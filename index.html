@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Klick - Experiencia de Aprendizaje</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ff66' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='18' cy='5' r='3'%3E%3C/circle%3E%3Ccircle cx='6' cy='12' r='3'%3E%3C/circle%3E%3Ccircle cx='18' cy='19' r='3'%3E%3C/circle%3E%3Cline x1='8.59' y1='13.51' x2='15.42' y2='17.49'%3E%3C/line%3E%3Cline x1='15.41' y1='6.51' x2='8.59' y2='10.49'%3E%3C/line%3E%3C/svg%3E">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap');
+
+        :root {
+            --bg-base: #050505;
+            --bg-surface: #111111;
+            --bg-elevated: #1e1e1e;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            
+            --accent-red: #ff2a5f;
+            --accent-blue: #00d4ff;
+            --accent-yellow: #ffb800;
+            --accent-green: #00ff66;
+            --accent-purple: #b5179e;
+            --accent-orange: #f77f00;
+            
+            --bpd-gold: #f59e0b; 
+            --bpd-gold-light: #fbbf24;
+
+            --radius-sm: 12px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            
+            --rank-rgb: 0, 255, 102;
+            --rank-color: #00ff66;
+        }
+
+        * { 
+            box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; 
+            user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
+            -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; 
+        }
+        body, html { width: 100%; height: 100%; overflow: hidden; background-color: var(--bg-base); color: var(--text-primary); }
+
+        #app { width: 100%; height: 100%; position: relative; background: radial-gradient(circle at 50% -20%, rgba(255,255,255,0.03) 0%, transparent 70%); transition: background 0.5s ease; }
+        #app.streak-active { background: radial-gradient(circle at 50% 50%, rgba(var(--rank-rgb), 0.15) 0%, var(--bg-base) 80%); animation: streak-pulse 1.5s infinite alternate ease-out; }
+        @keyframes streak-pulse { 0% { box-shadow: inset 0 0 0px rgba(var(--rank-rgb), 0); } 100% { box-shadow: inset 0 0 60px rgba(var(--rank-rgb), 0.15); } }
+
+        .streak-active #score-display { border-color: var(--rank-color); box-shadow: 0 0 15px rgba(var(--rank-rgb), 0.3); color: var(--rank-color); }
+        .streak-active #score-display::before { background: var(--rank-color); box-shadow: 0 0 10px var(--rank-color); }
+
+        #particle-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+
+        .screen { width: 100%; height: 100%; flex-direction: column; position: absolute; top: 0; left: 0; opacity: 0; visibility: hidden; pointer-events: none; transform: scale(0.97) translateY(10px); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); display: flex; z-index: 1; }
+        .screen.active { opacity: 1; visibility: visible; pointer-events: auto; transform: scale(1) translateY(0); z-index: 10; }
+
+        .glass-panel { background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+
+        #start-screen { justify-content: center; align-items: center; position: relative; }
+
+        /* Botones superiores */
+        .top-btn-container { position: absolute; top: 25px; display: flex; gap: 15px; z-index: 20; width: 100%; justify-content: space-between; padding: 0 25px; pointer-events: none; }
+        .top-btn { pointer-events: auto; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; transition: all 0.3s; }
+        .top-btn:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.1); transform: translateY(-2px); }
+        .top-btn svg { width: 26px; height: 26px; }
+
+        .logo-container { font-size: clamp(3.5rem, 10vw, 7rem); font-weight: 900; letter-spacing: -2px; color: var(--text-primary); text-align: center; line-height: 1; }
+        .logo-dot { color: var(--accent-green); transition: color 0.5s ease; }
+        .logo-subtitle { font-size: clamp(0.7rem, 2vw, 0.9rem); font-weight: 600; letter-spacing: 4px; color: var(--text-secondary); margin-top: 5px; margin-bottom: 40px; display: block; text-transform: uppercase; text-align: center; }
+
+        .menu-box { display: flex; flex-direction: column; gap: 15px; width: 90%; max-width: 340px; }
+        .btn-solid, .btn-outline, .btn-bpd { width: 100%; padding: clamp(14px, 2.5vh, 18px); font-size: 1rem; font-weight: 800; letter-spacing: 1.5px; border-radius: var(--radius-md); cursor: pointer; transition: all 0.3s ease-out; display: flex; justify-content: center; align-items: center; text-transform: uppercase; }
+        
+        .btn-solid { color: var(--text-primary); background-color: transparent; border: 1px solid var(--text-primary); }
+        .btn-solid:hover { background-color: rgba(255,255,255,0.1); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255,255,255,0.1); }
+        .btn-solid:active { transform: scale(0.96); }
+
+        .btn-outline { color: var(--text-secondary); background-color: transparent; border: 1px solid var(--text-secondary); }
+        .btn-outline:hover { color: var(--text-primary); border-color: var(--text-primary); background-color: rgba(255,255,255,0.05); transform: translateY(-2px); }
+        .btn-outline:active { transform: scale(0.96); }
+
+        .btn-bpd { color: var(--bpd-gold); background-color: transparent; border: 1px solid var(--bpd-gold); }
+        .btn-bpd:hover:not(:disabled) { background-color: rgba(245, 158, 11, 0.1); border-color: var(--bpd-gold-light); color: var(--bpd-gold-light); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(245, 158, 11, 0.2);}
+        .btn-bpd:active { transform: scale(0.96); }
+
+        .top-nav { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--bg-elevated); background: rgba(5, 5, 5, 0.6); backdrop-filter: blur(15px); z-index: 10; flex-shrink: 0; }
+        .btn-back { background: transparent; color: var(--text-secondary); border: 1px solid var(--bg-elevated); padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: all 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; width: 110px; }
+        .btn-back:hover { color: var(--text-primary); border-color: var(--text-primary); background: rgba(255,255,255,0.05); }
+        .nav-title { font-weight: 800; letter-spacing: 2px; color: var(--text-primary); text-align: center; flex: 1; text-transform: uppercase; font-size: 0.9rem; }
+        .nav-spacer { width: 110px; display: block; }
+
+        .content-fit { width: 100%; height: calc(100% - 65px); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: clamp(10px, 2vh, 20px); overflow: hidden; }
+        .content-scroll { width: 100%; height: calc(100% - 65px); display: flex; flex-direction: column; align-items: center; padding: 20px 15px 40px 15px; overflow-y: auto; }
+        .content-scroll::-webkit-scrollbar { width: 6px; } .content-scroll::-webkit-scrollbar-track { background: transparent; } .content-scroll::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 10px; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Modales */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: all 0.3s var(--ease-out); z-index: 100; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .settings-card { background: rgba(17, 17, 17, 0.9); backdrop-filter: blur(20px); padding: 30px; border-radius: var(--radius-lg); border: 1px solid var(--bg-elevated); width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 20px; transform: scale(0.95); transition: all 0.3s var(--ease-out); }
+        .modal-overlay.active .settings-card { transform: scale(1); }
+        .settings-title { font-size: 1.2rem; font-weight: 800; color: var(--text-primary); text-align: center; text-transform: uppercase; }
+        
+        .setting-group { display: flex; flex-direction: column; gap: 5px; }
+        .setting-group label { font-size: 0.8rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; display: flex; justify-content: space-between; }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; margin: 5px 0; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; background: var(--bg-elevated); border-radius: 3px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--text-primary); margin-top: -5px; cursor: pointer; }
+
+        /* Perfil */
+        .profile-dashboard { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: clamp(10px, 2vh, 30px); height: 100%; justify-content: center; }
+        .profile-hero { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: clamp(20px, 4vh, 40px); border-radius: var(--radius-lg); text-align: center; }
+        .profile-rank { font-weight: 800; font-size: clamp(0.8rem, 1.5vw, 1rem); text-transform: uppercase; letter-spacing: 2px; }
+        .profile-name-input { width: 100%; background: transparent; border: none; border-bottom: 2px solid var(--bg-elevated); color: var(--text-primary); font-size: clamp(1.8rem, 5vw, 3.5rem); font-weight: 900; text-align: center; padding: 5px 0; outline: none; text-transform: uppercase; transition: all 0.3s; }
+        .profile-name-input:focus { border-bottom-color: var(--text-primary); }
+        .profile-warning { color: var(--accent-red); font-size: 0.8rem; margin-top: 5px; font-weight: 600; opacity: 0; transition: opacity 0.3s ease; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(10px, 2vw, 20px); width: 100%; }
+        .stat-card { padding: clamp(15px, 3vh, 25px) 10px; border-radius: var(--radius-md); border: 1px solid var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 5px; }
+        .stat-value { font-size: clamp(1.5rem, 3vw, 2.5rem); font-weight: 900; color: var(--text-primary); line-height: 1; }
+        .stat-label { font-size: clamp(0.6rem, 1vw, 0.8rem); color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+        .profile-achievements-title { font-size: clamp(0.9rem, 2vw, 1.2rem); font-weight: 800; text-align: center; color: var(--text-primary); text-transform: uppercase; margin-top: 5px; letter-spacing: 1px; }
+        .profile-achievements-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(10px, 2vw, 15px); width: 100%; }
+        .achievement-slot { background: rgba(17, 17, 17, 0.4); border: 1px dashed var(--bg-elevated); border-radius: var(--radius-md); padding: clamp(10px, 2vh, 20px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; opacity: 0.4; filter: grayscale(1); }
+        .achievement-slot.unlocked { border-style: solid; opacity: 1; filter: grayscale(0); background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(10px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .ach-icon { width: clamp(24px, 4vw, 32px); height: clamp(24px, 4vw, 32px); }
+        .ach-icon svg { width: 100%; height: 100%; }
+        .ach-title { font-size: clamp(0.65rem, 1vw, 0.8rem); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
+
+        /* Guía y Rangos */
+        .guide-dashboard { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: clamp(5px, 1.5vh, 15px); height: 100%; justify-content: center; }
+        .guide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(5px, 1.5vw, 15px); width: 100%; }
+        .guide-card { padding: clamp(15px, 2vh, 20px); border-radius: var(--radius-md); border: 1px solid var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 5px; }
+        .guide-card.full-width { grid-column: 1 / -1; }
+        .guide-icon { width: 30px; height: 30px; color: var(--text-primary); margin-bottom: 5px; }
+        .guide-title { font-size: clamp(0.9rem, 1.5vw, 1.2rem); font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; }
+        .guide-text { color: var(--text-secondary); font-size: clamp(0.75rem, 1.2vw, 0.9rem); line-height: 1.3; }
+        .guide-text strong { color: var(--text-primary); }
+        .rank-list { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; width: 100%; gap: 5px; margin-top: 5px; }
+        .rank-item { display: flex; flex-direction: column; align-items: center; padding: clamp(5px, 1vh, 10px); background: rgba(5,5,5,0.5); border-radius: var(--radius-sm); border: 1px solid var(--bg-elevated); flex: 1 1 30%; }
+        .rank-item-name { font-weight: 800; font-size: clamp(0.8rem, 1.2vw, 1rem); text-transform: uppercase; margin-bottom: 2px; }
+        .rank-item-pts { color: var(--text-secondary); font-size: clamp(0.65rem, 1vw, 0.8rem); line-height: 1.2; text-align: center; }
+
+        /* Zona Canje BPD */
+        .canje-dashboard { width: 100%; max-width: 900px; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; }
+        .cheque-container { background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(15px); border: 2px dashed var(--bpd-gold); border-radius: var(--radius-lg); padding: clamp(15px, 3vh, 25px) clamp(20px, 4vw, 40px); width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: clamp(8px, 1.5vh, 15px); position: relative; overflow: hidden; }
+        .cheque-top { display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid rgba(245,158,11,0.3); padding-bottom: 10px; margin-bottom: 5px; }
+        .cheque-top-left { display: flex; align-items: center; gap: 15px; }
+        .cheque-top svg { width: clamp(25px, 4vw, 35px); height: clamp(25px, 4vw, 35px); color: var(--bpd-gold); }
+        .cheque-title { font-size: clamp(1rem, 2.5vw, 1.5rem); font-weight: 900; color: var(--bpd-gold-light); text-transform: uppercase; letter-spacing: 1px; }
+        .cheque-serial { font-family: monospace; color: var(--text-secondary); font-size: clamp(0.7rem, 1.2vw, 0.9rem); }
+        
+        .cheque-body { display: flex; flex-direction: column; gap: clamp(5px, 1vh, 10px); }
+        .c-row { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px dotted var(--bg-elevated); padding-bottom: 2px; }
+        .c-label { font-size: clamp(0.65rem, 1.2vw, 0.8rem); color: var(--text-secondary); text-transform: uppercase; font-weight: 800; letter-spacing: 1px; }
+        .c-value { font-size: clamp(0.9rem, 1.8vw, 1.2rem); font-weight: 900; color: var(--text-primary); font-family: monospace; text-align: right; text-transform: uppercase; }
+        .c-value.locked { color: var(--text-secondary); font-style: italic; }
+        .c-value.gold { color: var(--bpd-gold-light); text-shadow: 0 0 10px rgba(245,158,11,0.3); font-size: clamp(1.2rem, 2.2vw, 1.5rem); }
+        
+        .cheque-footer { display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 15px; margin-top: 5px; border-top: 1px solid rgba(245,158,11,0.2); padding-top: 10px; }
+        .canje-status-text { text-align: left; font-size: clamp(0.75rem, 1.2vw, 0.9rem); font-weight: 800; color: var(--text-primary); line-height: 1.4; }
+        .canje-status-sub { font-size: clamp(0.65rem, 1vw, 0.75rem); color: var(--text-secondary); display: block; font-weight: 500; margin-top: 2px; }
+        .c-instruction { display: none; font-size: clamp(0.7rem, 1.2vw, 0.85rem); color: var(--accent-green); text-align: left; font-weight: 600; padding: 10px; background: rgba(0,255,102,0.1); border: 1px solid rgba(0,255,102,0.2); border-radius: var(--radius-sm); margin-top: 0; flex: 1; }
+
+        /* Banco de Logros */
+        .achievements-wrapper { width: 100%; max-width: 1400px; display: flex; flex-direction: column; gap: 20px; }
+        .achievements-stats { text-align: center; color: var(--text-secondary); font-weight: 600; font-size: 0.9rem; letter-spacing: 1px; }
+        .achievements-grid { display: grid; gap: 20px; width: 100%; }
+        @media (min-width: 650px) { .achievements-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1100px) { .achievements-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 1500px) { .achievements-grid { grid-template-columns: repeat(5, 1fr); } }
+        .ach-card { background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(10px); padding: 25px 20px; border-radius: var(--radius-md); border: 1px dashed var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; opacity: 0.5; filter: grayscale(1); transition: all 0.3s ease; position: relative; cursor: pointer; }
+        .ach-card:hover { transform: scale(1.02); }
+        .ach-card.unlocked { border-style: solid; opacity: 1; filter: grayscale(0); background: rgba(25, 25, 25, 0.8); }
+        .ach-card.pinned { box-shadow: 0 0 15px var(--accent-yellow) !important; border-color: var(--accent-yellow) !important; }
+        .ach-card .ach-icon { width: 40px; height: 40px; margin-bottom: 5px;}
+        .ach-card .ach-title { font-size: 1.1rem; color: var(--text-primary); font-weight: 800; }
+        .ach-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; font-style: italic;}
+        .ach-card.unlocked .ach-desc { font-style: normal; }
+
+        /* --- RANKING GLOBAL --- */
+        .ranking-wrapper { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 15px; }
+        .ranking-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+        .rank-card { display: grid; grid-template-columns: 50px 1fr auto; align-items: center; background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(10px); padding: 12px 20px; border-radius: var(--radius-md); border: 1px solid var(--bg-elevated); transition: all 0.3s ease; }
+        .rank-card:hover { background: rgba(255, 255, 255, 0.05); transform: translateX(5px); }
+        .rc-pos { font-size: 1.5rem; font-weight: 900; color: var(--text-secondary); text-align: center; }
+        .rc-info { display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+        .rc-name { font-size: 1.1rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase; }
+        .rc-title { font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+        .rc-score { font-size: 1.2rem; font-weight: 900; font-family: monospace; color: var(--accent-blue); text-align: right; }
+        .rc-score span { font-size: 0.6rem; color: var(--text-secondary); vertical-align: middle; margin-left: 2px;}
+
+        .rank-card.pos-1 { border-color: #ffd700; background: rgba(255, 215, 0, 0.05); }
+        .rank-card.pos-1 .rc-pos { color: #ffd700; }
+        .rank-card.pos-1 .rc-score { color: #ffd700; }
+        
+        .rank-card.pos-2 { border-color: #c0c0c0; background: rgba(192, 192, 192, 0.05); }
+        .rank-card.pos-2 .rc-pos { color: #c0c0c0; }
+        .rank-card.pos-2 .rc-score { color: #c0c0c0; }
+        
+        .rank-card.pos-3 { border-color: #cd7f32; background: rgba(205, 127, 50, 0.05); }
+        .rank-card.pos-3 .rc-pos { color: #cd7f32; }
+        .rank-card.pos-3 .rc-score { color: #cd7f32; }
+
+        .rank-card.is-me { border-left: 4px solid var(--accent-green); }
+
+        .ranking-loading { text-align: center; color: var(--text-secondary); padding: 40px; font-weight: 600; font-size: 1.1rem; }
+
+        /* --- Pantalla de Pregunta --- */
+        #question-screen { justify-content: space-between; }
+        
+        .top-bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 15px 20px; font-weight: 600; font-size: 0.9rem; color: var(--text-secondary); z-index: 5; }
+        .top-bar > *:nth-child(1) { justify-self: start; }
+        .top-bar > *:nth-child(2) { justify-self: center; text-align: center; font-size: 1rem; color: var(--text-primary); letter-spacing: 1px; }
+        .top-bar > *:nth-child(3) { justify-self: end; }
+        
+        .btn-abandon { background: transparent; color: var(--accent-red); border: 1px solid rgba(255, 42, 95, 0.5); padding: 6px 12px; border-radius: 20px; cursor: pointer; font-weight: 800; font-size: 0.75rem; display: flex; align-items: center; gap: 5px; transition: all 0.2s; text-transform: uppercase; }
+        .btn-abandon:hover { background: rgba(255, 42, 95, 0.2); border-color: var(--accent-red); transform: scale(0.95); }
+        .btn-abandon svg { width: 14px; height: 14px; }
+
+        .score-badge { background: transparent; color: var(--text-primary); padding: 6px 15px; border-radius: 30px; border: 1px solid var(--text-secondary); font-variant-numeric: tabular-nums; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+        .score-badge::before { content: ''; display: inline-block; width: 8px; height: 8px; background: var(--accent-yellow); border-radius: 50%; box-shadow: 0 0 10px var(--accent-yellow); }
+        
+        .question-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px 20px; gap: 20px; width: 100%; max-width: 1000px; margin: 0 auto; z-index: 5; }
+        .timer-wrapper { position: relative; width: 60px; height: 60px; display: flex; justify-content: center; align-items: center; }
+        .timer-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+        .timer-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 6; }
+        .timer-path { fill: none; stroke: var(--text-primary); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 283; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear, stroke 0.3s ease; }
+        .timer-text { font-size: 1.4rem; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+        .question-text { font-size: clamp(1.4rem, 4vw, 2.5rem); font-weight: 800; text-align: center; line-height: 1.2; width: 100%; letter-spacing: -1px; }
+        .answers-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px; padding: 10px 20px 30px 20px; flex: 0 0 45vh; max-width: 1400px; width: 100%; margin: 0 auto; z-index: 5; }
+        .answer-btn { position: relative; background-color: transparent; border: 1px solid var(--text-secondary); border-radius: var(--radius-lg); color: var(--text-primary); font-size: clamp(1rem, 2vw, 1.2rem); font-weight: 600; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; opacity: 0; transform: translateY(20px); transition: transform 0.4s var(--ease-spring), opacity 0.4s var(--ease-out), background-color 0.2s, border-color 0.2s, filter 0.3s; }
+        .screen.active .answer-btn { opacity: 1; transform: translateY(0); }
+        .color-red { border-bottom: 2px solid var(--accent-red); } .color-blue { border-bottom: 2px solid var(--accent-blue); } .color-yellow { border-bottom: 2px solid var(--accent-yellow); } .color-green { border-bottom: 2px solid var(--accent-green); }
+        .answer-btn:active { transform: scale(0.96); }
+        .answers-grid.answered .answer-btn:not(.selected) { opacity: 0.2; transform: scale(0.95); filter: grayscale(1); pointer-events: none; }
+        .answers-grid.answered .answer-btn.selected { background-color: rgba(255,255,255,0.1); transform: scale(1.02); z-index: 2; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .shape-icon { width: 28px; height: 28px; margin: 0 0 8px 0; }
+        .progress-bar-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: rgba(255,255,255,0.1); z-index: 10; }
+        .progress-bar { height: 100%; background-color: var(--text-primary); width: 0%; transition: width 0.3s var(--ease-out); }
+
+        /* --- Pantallas Extra --- */
+        #feedback-screen { justify-content: center; align-items: center; text-align: center; }
+        #feedback-screen.correct .feedback-title { color: var(--accent-green); } #feedback-screen.incorrect .feedback-title { color: var(--accent-red); }
+        .feedback-content { display: flex; flex-direction: column; align-items: center; transform: scale(0.9); opacity: 0; transition: all 0.5s var(--ease-spring); }
+        .screen.active .feedback-content { transform: scale(1); opacity: 1; }
+        #feedback-icon-container svg { width: 80px; height: 80px; margin-bottom: 15px; }
+        .feedback-title { font-size: clamp(2.5rem, 8vw, 4rem); font-weight: 900; margin-bottom: 5px; letter-spacing: -2px; }
+        .feedback-points { font-size: 2rem; font-weight: 800; color: var(--text-primary); margin-bottom: 20px; font-variant-numeric: tabular-nums; background: transparent; padding: 5px 20px; border-radius: 30px; border: 1px solid var(--text-secondary); }
+        .streak-box { font-size: 1rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; }
+        .streak-box span { color: var(--accent-yellow); font-weight: 900; font-size: 1.2rem; }
+
+        #end-screen { justify-content: center; align-items: center; text-align: center; }
+        .results-container { width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 20px; z-index: 5; }
+        .results-icon { width: 60px; height: 60px; background: rgba(var(--rank-rgb), 0.1); border-radius: 50%; color: var(--rank-color); display: flex; justify-content: center; align-items: center; margin: 0 auto 10px auto; }
+        .results-icon svg { width: 30px; height: 30px; }
+        .podium-title { font-size: clamp(1.8rem, 5vw, 2.2rem); font-weight: 900; color: var(--text-primary); }
+        .final-score-box { background-color: rgba(17, 17, 17, 0.8); border: 1px solid var(--bg-elevated); padding: 25px; border-radius: var(--radius-lg); border-top: 4px solid var(--rank-color); }
+        .final-score-value { font-size: clamp(3rem, 10vw, 5rem); font-weight: 900; color: var(--text-primary); line-height: 1; }
+        .results-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; }
+        .r-stat-val { font-size: 1.2rem; font-weight: 800; color: var(--text-primary); display: block; }
+        .r-stat-label { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; }
+
+        /* Toast UI */
+        .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 100; pointer-events: none; }
+        .toast-item { background: rgba(17, 17, 17, 0.9); backdrop-filter: blur(10px); border: 1px solid var(--bg-elevated); border-left: 4px solid var(--accent-yellow); padding: 12px 15px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px; transform: translateX(120%); opacity: 0; transition: all 0.5s var(--ease-spring); }
+        .toast-item.show { transform: translateX(0); opacity: 1; }
+        .toast-icon { width: 24px; height: 24px; color: var(--accent-yellow); }
+        .toast-title { font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 800; display: block; }
+        .toast-name { font-size: 0.85rem; color: var(--text-primary); font-weight: 800; }
+
+        @media (max-width: 850px) {
+            .btn-back span, .nav-spacer { width: 60px; } .btn-back span { display: none; }
+            .answers-grid { grid-template-columns: 1fr; grid-template-rows: repeat(4, 1fr); flex: 0 0 55vh; gap: 10px; padding: 10px; }
+            .answer-btn { padding: 15px; font-size: 1rem; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .guide-grid { grid-template-columns: 1fr; }
+            .toast-container { bottom: auto; top: 20px; right: 50%; transform: translateX(50%); width: 90%; }
+            .toast-item { transform: translateY(-120%); }
+            .toast-item.show { transform: translateY(0); }
+            .c-row { flex-direction: column; align-items: flex-start; gap: 2px; }
+            .c-value { text-align: left; width: 100%; }
+            .cheque-footer { flex-direction: column; align-items: stretch; text-align: center; }
+            .canje-status-text { text-align: center; margin-bottom: 10px; }
+        }
+    </style>
+</head>
+<body ondragstart="return false;" ondrop="return false;">
+
+<div id="app">
+    <canvas id="particle-canvas"></canvas>
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Menú Principal -->
+    <div id="start-screen" class="screen active content-fit">
+        
+        <div class="top-btn-container">
+            <button class="top-btn" onclick="goToRanking()" title="Ranking Global">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"></rect><rect x="10" y="8" width="4" height="13"></rect><rect x="2" y="13" width="4" height="8"></rect></svg>
+            </button>
+            <button class="top-btn" onclick="openSettings()" title="Configuración">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+        </div>
+
+        <div class="logo-container">KLICK<span class="logo-dot">.</span></div>
+        <div class="logo-subtitle">By Didac-Click Group</div>
+
+        <div class="menu-box">
+            <button class="btn-solid" id="start-btn" onclick="startGameCheck()">Nueva Partida</button>
+            <button class="btn-outline" onclick="goToProfile()">Mi Perfil</button>
+            <button class="btn-outline" onclick="goToAchievements()">Banco de Logros</button>
+            <button class="btn-outline" onclick="goToGuide()">Instrucciones</button>
+            <button class="btn-bpd" onclick="goToCanje()">Zona de Canje (BPD)</button>
+        </div>
+    </div>
+
+    <!-- Modal Configuración -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="settings-card glass-panel">
+            <div class="settings-title">Configuración</div>
+            <div class="setting-group">
+                <label><span>Música</span> <span id="val-music">100%</span></label>
+                <input type="range" id="op-music" min="0" max="1" step="0.05" value="1">
+            </div>
+            <div class="setting-group">
+                <label><span>SFX</span> <span id="val-sfx">100%</span></label>
+                <input type="range" id="op-sfx" min="0" max="1" step="0.05" value="1">
+            </div>
+            <div class="setting-group">
+                <label><span>Opacidad Fondo</span> <span id="val-particles">100%</span></label>
+                <input type="range" id="op-particles" min="0" max="1" step="0.05" value="1">
+            </div>
+            <div class="setting-group" style="margin-top: 5px;">
+                <label><span>Límite FPS (Fluidez)</span> <span id="val-fps">60 FPS</span></label>
+                <input type="range" id="op-fps" min="15" max="240" step="5" value="60">
+                <span style="font-size: 0.65rem; color: var(--text-secondary); text-align: center; margin-top: 4px;">Baja los FPS si notas lag, o súbelos hasta 144/240Hz para pantallas fluidas.</span>
+            </div>
+            <button class="btn-solid" onclick="closeSettings()" style="margin-top: 5px; background: rgba(255,255,255,0.1);">Guardar</button>
+        </div>
+    </div>
+
+    <!-- Modal Abandonar Partida (Ultrarrápido) -->
+    <div id="abandon-modal" class="modal-overlay">
+        <div class="settings-card glass-panel" style="text-align: center; max-width: 320px;">
+            <div class="settings-title" style="color: var(--accent-red);">¿Abandonar Partida?</div>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">Se aplicará una penalidad de <strong style="color: var(--accent-red);">-1,000 pts</strong> a tu acumulado.</p>
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <button class="btn-outline" onclick="cancelAbandon()" style="flex: 1; border-color: var(--text-secondary); color: var(--text-secondary);">Cancelar</button>
+                <button class="btn-solid" onclick="confirmAbandon()" style="flex: 1; background: transparent; color: var(--accent-red); border-color: var(--accent-red);">Salir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ranking Global -->
+    <div id="ranking-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
+            <div class="nav-title">TOP 20 MUNDIAL</div><div class="nav-spacer"></div>
+        </div>
+        <div class="content-scroll no-scrollbar">
+            <div class="ranking-wrapper">
+                <div id="ranking-list" class="ranking-list">
+                    <div class="ranking-loading">Conectando con la base de datos global...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Perfil -->
+    <div id="profile-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
+            <div class="nav-title">DASHBOARD</div><div class="nav-spacer"></div>
+        </div>
+        <div class="content-fit">
+            <div class="profile-dashboard">
+                <div class="profile-hero glass-panel">
+                    <div class="profile-rank" id="profile-rank-display">Rango: Novato</div>
+                    <input type="text" id="profile-name-input" class="profile-name-input" placeholder="JUGADOR" autocomplete="off" maxlength="12">
+                    <div id="profile-warning" class="profile-warning">Se requiere un nombre</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card glass-panel"><div class="stat-value" id="stat-score">0</div><div class="stat-label">Mejor Puntuación</div></div>
+                    <div class="stat-card glass-panel"><div class="stat-value" id="stat-games">0</div><div class="stat-label">Partidas</div></div>
+                    <div class="stat-card glass-panel"><div class="stat-value" id="stat-streak">0</div><div class="stat-label">Racha Máx</div></div>
+                    <div class="stat-card glass-panel"><div class="stat-value" id="stat-days">0</div><div class="stat-label">Días</div></div>
+                </div>
+                <div class="profile-achievements-title">Fijados Recientemente</div>
+                <div class="profile-achievements-grid" id="profile-achievements-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guía -->
+    <div id="guide-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
+            <div class="nav-title">MANUAL</div><div class="nav-spacer"></div>
+        </div>
+        <div class="content-scroll no-scrollbar">
+            <div class="guide-dashboard">
+                <div class="guide-grid">
+                    <div class="guide-card glass-panel">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        <div class="guide-title" style="color: var(--accent-blue);">Dinámica y Materia</div>
+                        <div class="guide-text">Cada partida consta de <strong>20 preguntas aleatorias</strong> de la materia de <strong>Lengua Española</strong>. Ganas <strong>800 pts base</strong> por acierto y hasta <strong>800 pts extra</strong> por rapidez.</div>
+                    </div>
+                    <div class="guide-card glass-panel">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"></path></svg>
+                        <div class="guide-title" style="color: var(--accent-red);">Racha de Fuego</div>
+                        <div class="guide-text">Al llegar a <strong>5 aciertos seguidos</strong> entras en <em>Modo Frenesí</em>, otorgando <strong>+80 puntos adicionales progresivos</strong>. Si fallas, la racha se reinicia.</div>
+                    </div>
+                    <div class="guide-card full-width glass-panel">
+                        <div class="guide-title" style="color: var(--text-primary);">Sistema de Rangos Base</div>
+                        <div class="guide-text mb-1">Debes cumplir <strong>TODOS</strong> los requisitos simultáneamente para ascender de categoría.</div>
+                        <div class="rank-list">
+                            <div class="rank-item"><span class="rank-item-name" style="color: var(--accent-orange);">Junior</span><span class="rank-item-pts">8k pts récord | 100 aciertos | 20 partidas jugadas.</span></div>
+                            <div class="rank-item"><span class="rank-item-name" style="color: var(--accent-blue);">Pro</span><span class="rank-item-pts">12k pts récord | 500 aciertos | 100 ptds | Racha de 10.</span></div>
+                            <div class="rank-item"><span class="rank-item-name" style="color: var(--accent-red);">Maestro</span><span class="rank-item-pts">16k pts récord | 2k aciertos | 200 ptds | Racha de 15.</span></div>
+                        </div>
+                    </div>
+                    
+                    <!-- LEYENDA SEPARADA -->
+                    <div class="guide-card full-width glass-panel" style="border-color: var(--accent-yellow);">
+                        <div class="rank-list" style="margin-top: 0; width: 100%;">
+                            <div class="rank-item" style="width: 100%; background: transparent; border: none; padding: 0;">
+                                <span class="rank-item-name" style="color: var(--accent-yellow);">Rango: Leyenda</span>
+                                <span class="rank-item-pts">20k pts récord | 5k aciertos | 500 ptds | Racha de 20 | 20 perfectas.</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- EXPLICACIÓN NIVEL DE PODER (PL) -->
+                    <div class="guide-card full-width glass-panel" style="border-color: var(--accent-purple);">
+                        <div class="guide-title" style="color: var(--accent-purple);">Nivel de Poder Global (PL)</div>
+                        <div class="guide-text">
+                            El <strong>Top 20 Mundial</strong> se calcula mediante tu <strong>Nivel de Poder (PL)</strong>. Este algoritmo combina tu récord personal, racha máxima, cantidad de partidas perfectas, logros desbloqueados y tu tasa de precisión general.
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zona Canje BPD -->
+    <div id="canje-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
+            <div class="nav-title" style="color: var(--bpd-gold);">CANJE BPD</div><div class="nav-spacer"></div>
+        </div>
+        <div class="content-fit">
+            <div class="canje-dashboard">
+                <div class="cheque-container">
+                    <div class="cheque-top">
+                        <div class="cheque-top-left">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                            <span class="cheque-title">Banco del Pincel Dorado</span>
+                        </div>
+                        <span class="cheque-serial">No. 0000000</span>
+                    </div>
+
+                    <div class="cheque-body">
+                        <div class="c-row">
+                            <span class="c-label">Páguese a la orden de:</span>
+                            <span class="c-value" id="c-name">JUGADOR ANÓNIMO</span>
+                        </div>
+                        <div class="c-row">
+                            <span class="c-label">La suma de:</span>
+                            <span class="c-value locked" id="c-amount">*** BLOQUEADO ***</span>
+                        </div>
+                        <div class="c-row">
+                            <span class="c-label">Por concepto de:</span>
+                            <span class="c-value">Completar 100 Logros y Rango Leyenda en Klick</span>
+                        </div>
+                        <div class="c-row">
+                            <span class="c-label">Fecha de emisión:</span>
+                            <span class="c-value" id="c-date">--/--/----</span>
+                        </div>
+                    </div>
+
+                    <div class="cheque-footer">
+                        <div id="canje-status" class="canje-status-text">
+                            <!-- Inyectado vía JS -->
+                        </div>
+                        <button class="btn-bpd" id="canje-btn" onclick="revelarCheque()" disabled style="opacity:0.5; cursor:not-allowed; max-width: 250px;">Generar Recibo de Canje</button>
+                        <div id="canje-instruction" class="c-instruction">
+                            ¡Aprobado! Presenta esta pantalla intacta a un administrador del Banco del Pincel Dorado para que te otorgue los fondos.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banco de Logros -->
+    <div id="achievements-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
+            <div class="nav-title">LOGROS</div><div class="nav-spacer"></div>
+        </div>
+        <div class="content-scroll no-scrollbar">
+            <div class="achievements-wrapper">
+                <div class="achievements-stats" id="achievements-progress-text">Desbloqueados: 0 / 100</div>
+                <div class="achievements-grid" id="full-achievements-grid" style="content-visibility: auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Juego / Feedback / Fin -->
+    <div id="question-screen" class="screen">
+        <div class="top-bar">
+            <button class="btn-abandon" onclick="abandonGame()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                Salir
+            </button>
+            <div id="player-name-display">JUGADOR</div>
+            <div class="score-badge" id="score-display">0</div>
+        </div>
+        <div class="question-container">
+            <div class="timer-wrapper">
+                <svg class="timer-svg" viewBox="0 0 100 100"><circle class="timer-bg" cx="50" cy="50" r="45"></circle><circle class="timer-path" id="timer-path" cx="50" cy="50" r="45"></circle></svg>
+                <div class="timer-text" id="timer-display">20</div>
+            </div>
+            <div class="question-text" id="question-text">Cargando...</div>
+        </div>
+        <div class="answers-grid" id="answers-grid">
+            <button class="answer-btn color-red ans-delay-1" onclick="selectAnswer(0)"><svg class="shape-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 22 20 2 20"></polygon></svg><span id="ans-0">Opción 1</span></button>
+            <button class="answer-btn color-blue ans-delay-2" onclick="selectAnswer(1)"><svg class="shape-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 22 12 12 22 2 12"></polygon></svg><span id="ans-1">Opción 2</span></button>
+            <button class="answer-btn color-yellow ans-delay-3" onclick="selectAnswer(2)"><svg class="shape-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg><span id="ans-2">Opción 3</span></button>
+            <button class="answer-btn color-green ans-delay-4" onclick="selectAnswer(3)"><svg class="shape-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect></svg><span id="ans-3">Opción 4</span></button>
+        </div>
+        <div class="progress-bar-container"><div class="progress-bar" id="global-progress"></div></div>
+    </div>
+
+    <div id="feedback-screen" class="screen">
+        <div class="feedback-content">
+            <div id="feedback-icon-container"></div>
+            <div class="feedback-title" id="feedback-title">Correcto</div>
+            <div class="feedback-points" id="feedback-points">+850</div>
+            <div class="streak-box">Racha <span id="streak-display">1</span></div>
+        </div>
+    </div>
+
+    <div id="end-screen" class="screen">
+        <div class="results-container">
+            <div class="results-header">
+                <div class="results-icon" id="results-icon-svg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline><circle cx="12" cy="8" r="7"></circle></svg></div>
+                <div class="podium-title" id="final-message">Rendimiento Excelente</div>
+            </div>
+            <div class="final-score-box">
+                <div class="final-name" id="final-name">ESTUDIANTE</div>
+                <div class="final-score-value" id="final-score-display">0</div>
+                <div class="results-stats-grid">
+                    <div class="r-stat"><span class="r-stat-val" id="final-correct">0/20</span><span class="r-stat-label">Aciertos</span></div>
+                    <div class="r-stat"><span class="r-stat-val" id="final-streak">0</span><span class="r-stat-label">Racha Máx</span></div>
+                    <div class="r-stat"><span class="r-stat-val" id="final-speed">0</span><span class="r-stat-label">Rápidas</span></div>
+                </div>
+            </div>
+            <div class="results-actions">
+                <button class="btn-outline" onclick="goToMainMenu()">Menú Principal</button>
+                <button class="btn-solid" onclick="startGameCheck()">Volver a Jugar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- SISTEMAS DE PROTECCIÓN ANTI-TRAMPAS ---
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    document.addEventListener('keydown', e => {
+        if (e.keyCode === 123 || 
+            (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || 
+            (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 67 || e.keyCode === 83 || e.keyCode === 80))) { 
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === 'hidden' && isAnsweringAllowed && !isGamePaused) punishCheater();
+    });
+    window.addEventListener("blur", () => {
+        if (isAnsweringAllowed && !isGamePaused) punishCheater();
+    });
+
+    function punishCheater() {
+        if(!isAnsweringAllowed || isGamePaused) return;
+        isAnsweringAllowed = false;
+        clearInterval(timerInterval);
+        
+        const penalty = 2000; 
+        playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
+        // Castigo severo a los récords para afectar fuertemente el ranking
+        playerStats.bestScore = Math.max(0, playerStats.bestScore - penalty);
+        playerStats.maxStreak = Math.max(0, playerStats.maxStreak - 5);
+        playerStats.perfectGames = Math.max(0, playerStats.perfectGames - 1);
+        
+        saveStatsLocally();
+        submitLeaderboard(); 
+        
+        initAudio(); SFX.incorrect();
+        showToast('Trampa Detectada', `Infracción. Penalidad severa.`, 'var(--accent-red)', SVG_SKULL);
+        
+        document.getElementById('app').classList.remove('streak-active');
+        streak = 0;
+        switchScreen('start-screen');
+    }
+
+    // --- GENERACIÓN DE UUID (Para identificar jugadores unicos en el ranking) ---
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    // --- SVGs ---
+    const SVG_CORRECT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+    const SVG_INCORRECT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+    const SVG_TIMEOUT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+    const SVG_LOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
+    const SVG_TROPHY = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline><circle cx="12" cy="8" r="7"></circle></svg>`;
+    const SVG_USER = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+    const SVG_STAR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
+    const SVG_PIN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`;
+    const SVG_TARGET = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`;
+    const SVG_FIRE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"></path></svg>`;
+    const SVG_BOLT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`;
+    const SVG_CLOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+    const SVG_SKULL = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="12" r="1"></circle><circle cx="15" cy="12" r="1"></circle><path d="M8 20v2h8v-2"></path><path d="M12.5 17l-.5-1-.5 1h1z"></path><path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20"></path></svg>`;
+    const SVG_HEART = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
+    const SVG_SHIELD = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`;
+
+    // --- Stats y Logros (Persistencia Absoluta) ---
+    const defaultStats = {
+        uuid: generateUUID(),
+        playerName: "JUGADOR", gamesPlayed: 0, bestScore: 0, maxStreak: 0, achievements: [], pinnedAchievements: [],
+        nameChanges: 0, achViews: 0, guideViews: 0, totalScore: 0, perfectGames: 0, totalCorrect: 0, totalWrong: 0, 
+        totalTimeouts: 0, fastAnswersTotal: 0, frenziesTriggered: 0, lastLoginDate: "", currentLoginStreak: 0, 
+        maxLoginStreak: 0, todayGames: 0, maxScoreCount: 0, perfectStreak: 0, previousGameScore: -1,
+        musicVol: 1.0, sfxVol: 1.0, particleOpacity: 1.0, maxFps: 60
+    };
+    
+    const STORAGE_KEY = 'klick_player_data_permanent';
+    let savedData = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('klickStats_v9') || localStorage.getItem('klickStats_v8') || '{}';
+    let playerStats = { ...defaultStats, ...JSON.parse(savedData) };
+    
+    if(!playerStats.uuid) playerStats.uuid = generateUUID();
+
+    function saveStatsLocally() { 
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(playerStats)); 
+    }
+
+    window.addEventListener('beforeunload', () => {
+        saveStatsLocally();
+    });
+
+    // --- Audio ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx, isMusicPlaying = false, musicSeqStep = 0, nextNoteTime = 0, musicTimerID;
+    const cyberpunkNotes = [65.41, 77.78, 65.41, 58.27]; // C2, D#2, C2, Bb1
+    let chordIndex = 0;
+    
+    let masterMusicGain, masterSFXGain;
+
+    function initAudio() {
+        if (!audioCtx) { 
+            audioCtx = new AudioContext(); 
+            
+            // Crear Nodos Maestros de Volumen
+            masterMusicGain = audioCtx.createGain();
+            masterMusicGain.connect(audioCtx.destination);
+            masterSFXGain = audioCtx.createGain();
+            masterSFXGain.connect(audioCtx.destination);
+            
+            updateVolumes();
+            startMusicEngine(); 
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+    
+    function updateVolumes() {
+        if (masterMusicGain) {
+            masterMusicGain.gain.setValueAtTime(playerStats.musicVol, audioCtx.currentTime);
+        }
+        if (masterSFXGain) {
+            masterSFXGain.gain.setValueAtTime(playerStats.sfxVol, audioCtx.currentTime);
+        }
+    }
+
+    function playTone(freq, type, duration, vol = 0.05) {
+        if (!audioCtx) return; 
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime); 
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain); gain.connect(masterSFXGain); 
+        osc.start(); osc.stop(audioCtx.currentTime + duration);
+    }
+    function playNoiseAt(time, duration, vol) {
+        if (!audioCtx) return; 
+        const bufferSize = audioCtx.sampleRate * duration, buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate), data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = audioCtx.createBufferSource(); noise.buffer = buffer; const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(vol, time); gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+        const filter = audioCtx.createBiquadFilter(); filter.type = 'highpass'; filter.frequency.value = 5000;
+        noise.connect(filter); filter.connect(gain); gain.connect(masterMusicGain); noise.start(time);
+    }
+    function startMusicEngine() { isMusicPlaying = true; nextNoteTime = audioCtx.currentTime + 0.1; scheduler(); }
+    function scheduler() { if (!isMusicPlaying) return; while (nextNoteTime < audioCtx.currentTime + 0.1) { playMusicStep(nextNoteTime); nextNoteStep(); } musicTimerID = setTimeout(scheduler, 25); }
+    
+    function nextNoteStep() { 
+        const isFrenzy = streak >= 5; 
+        nextNoteTime += 0.25 * (60.0 / (isFrenzy ? 160 : 130)); 
+        musicSeqStep++; 
+        if (musicSeqStep >= 16) { 
+            musicSeqStep = 0; 
+            chordIndex = (chordIndex + 1) % 4; 
+        } 
+    }
+    
+    function playMusicStep(time) {
+        const isFrenzy = streak >= 5;
+        
+        // Bombo Techno
+        if (musicSeqStep % 4 === 0) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(120, time);
+            osc.frequency.exponentialRampToValueAtTime(10, time + 0.1);
+            gain.gain.setValueAtTime(0.8, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+            osc.connect(gain); gain.connect(masterMusicGain);
+            osc.start(time); osc.stop(time + 0.1);
+        }
+        
+        // Hi-hat
+        if (musicSeqStep % 2 !== 0) {
+            playNoiseAt(time, 0.05, 0.2);
+        }
+        
+        // Snare Frenesí
+        if (isFrenzy && (musicSeqStep === 4 || musicSeqStep === 12)) {
+            playNoiseAt(time, 0.1, 0.6);
+        }
+
+        // Sintetizador Cyberpunk
+        const synthRhythm = [1,0,1,0, 0,1,0,1, 1,0,0,1, 0,1,0,0];
+        if (synthRhythm[musicSeqStep] === 1) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = isFrenzy ? 'square' : 'sawtooth';
+            let freq = cyberpunkNotes[chordIndex];
+            if(isFrenzy && musicSeqStep % 8 === 0) freq *= 2; 
+            
+            osc.frequency.setValueAtTime(freq, time);
+            gain.gain.setValueAtTime(isFrenzy ? 0.12 : 0.08, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+            osc.connect(gain); gain.connect(masterMusicGain);
+            osc.start(time); osc.stop(time + 0.15);
+        }
+    }
+    
+    const SFX = {
+        click: () => playTone(600, 'sine', 0.1, 0.1), tick: () => playTone(800, 'square', 0.05, 0.02), select: () => { playTone(400, 'sine', 0.1, 0.05); setTimeout(()=>playTone(600, 'sine', 0.15, 0.05), 50); },
+        correct: () => { playTone(523.25, 'triangle', 0.2, 0.1); setTimeout(() => playTone(783.99, 'triangle', 0.4, 0.1), 100); }, incorrect: () => playTone(150, 'sawtooth', 0.4, 0.1),
+        streakTrigger: () => { playTone(440, 'sine', 0.1, 0.1); setTimeout(() => playTone(659.25, 'sine', 0.1, 0.1), 100); setTimeout(() => playTone(880, 'sine', 0.4, 0.15), 200); },
+        achievement: () => { playTone(880, 'sine', 0.1, 0.1); setTimeout(() => playTone(1108.73, 'sine', 0.1, 0.1), 100); setTimeout(() => playTone(1318.51, 'sine', 0.3, 0.1), 200); },
+        perfectGame: () => { playTone(440, 'sine', 0.2, 0.15); setTimeout(() => playTone(554.37, 'sine', 0.2, 0.15), 150); setTimeout(() => playTone(659.25, 'sine', 0.2, 0.15), 300); setTimeout(() => playTone(880, 'sine', 0.6, 0.2), 450); },
+        allWrongGame: () => { playTone(300, 'sawtooth', 0.3, 0.15); setTimeout(() => playTone(250, 'sawtooth', 0.3, 0.15), 300); setTimeout(() => playTone(200, 'sawtooth', 0.6, 0.2), 600); },
+        allTimeoutGame: () => { playTone(100, 'square', 0.1, 0.1); setTimeout(() => playTone(100, 'square', 0.1, 0.1), 300); setTimeout(() => playTone(100, 'square', 0.3, 0.15), 600); }
+    };
+
+    // --- UI Modal ---
+    function openSettings() {
+        initAudio(); SFX.click();
+        document.getElementById('op-music').value = playerStats.musicVol; document.getElementById('op-sfx').value = playerStats.sfxVol; 
+        document.getElementById('op-particles').value = playerStats.particleOpacity; document.getElementById('op-fps').value = playerStats.maxFps;
+        document.getElementById('val-music').innerText = Math.round(playerStats.musicVol*100)+'%'; document.getElementById('val-sfx').innerText = Math.round(playerStats.sfxVol*100)+'%'; 
+        document.getElementById('val-particles').innerText = Math.round(playerStats.particleOpacity*100)+'%'; document.getElementById('val-fps').innerText = playerStats.maxFps+' FPS';
+        document.getElementById('settings-modal').classList.add('active');
+    }
+    function closeSettings() { 
+        SFX.click(); 
+        document.getElementById('settings-modal').classList.remove('active'); 
+        updateVolumes();
+    }
+    document.getElementById('op-music').addEventListener('input', (e) => { playerStats.musicVol = parseFloat(e.target.value); document.getElementById('val-music').innerText = Math.round(playerStats.musicVol*100)+'%'; updateVolumes(); saveStatsLocally(); });
+    document.getElementById('op-sfx').addEventListener('input', (e) => { playerStats.sfxVol = parseFloat(e.target.value); document.getElementById('val-sfx').innerText = Math.round(playerStats.sfxVol*100)+'%'; updateVolumes(); saveStatsLocally(); });
+    document.getElementById('op-particles').addEventListener('input', (e) => { playerStats.particleOpacity = parseFloat(e.target.value); document.getElementById('val-particles').innerText = Math.round(playerStats.particleOpacity*100)+'%'; saveStatsLocally(); });
+    document.getElementById('op-fps').addEventListener('input', (e) => { playerStats.maxFps = parseInt(e.target.value); fpsInterval = 1000/playerStats.maxFps; document.getElementById('val-fps').innerText = playerStats.maxFps+' FPS'; saveStatsLocally(); });
+
+    // --- UI General Toasts ---
+    function showToast(title, message, color, icon) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const toast = document.createElement('div'); 
+        toast.className = 'toast-item'; 
+        toast.style.borderLeftColor = color;
+        toast.innerHTML = `<div class="toast-icon" style="color: ${color}">${icon}</div><div class="toast-text"><span class="toast-title">${title}</span><span class="toast-name">${message}</span></div>`;
+        container.appendChild(toast); 
+        setTimeout(() => toast.classList.add('show'), 50); 
+        setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, 3500);
+    }
+
+    // --- Módulo: Ranking Global (Google Apps Script) ---
+    // IMPORTANTE: Reemplaza esta URL con la que te generó tu Google Apps Script
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxbLrjL45NYaQsRaSlZJXHKlQj-1Qh4f-CPxz4KsOMpfMI4jwwYC1UrNpnm_-f6ISeCww/exec"; 
+    
+    // Algoritmo de Nivel de Poder (PL)
+    function calculatePowerLevel(stats) {
+        const base = stats.totalScore * 0.05; 
+        const best = stats.bestScore * 1.5; 
+        const streak = stats.maxStreak * 200;
+        const perf = stats.perfectGames * 1000;
+        const achs = stats.achievements.length * 300;
+        const winRate = stats.gamesPlayed > 0 ? (stats.totalCorrect / (stats.gamesPlayed * 20)) * 5000 : 0;
+        return Math.floor(base + best + streak + perf + achs + winRate);
+    }
+
+    async function submitLeaderboard() {
+        if (!playerStats.playerName || playerStats.playerName === "JUGADOR" || GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") return;
+        
+        const payload = {
+            uuid: playerStats.uuid,
+            name: playerStats.playerName,
+            rankTitle: getRankInfo(playerStats).title,
+            powerLevel: calculatePowerLevel(playerStats),
+            totalScore: playerStats.totalScore,
+            maxStreak: playerStats.maxStreak
+        };
+
+        try {
+            await fetch(GAS_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify(payload)
+            });
+        } catch(e) {
+            console.log("Error al sincronizar ranking:", e);
+        }
+    }
+
+    async function fetchLeaderboard() {
+        if(GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") {
+            document.getElementById('ranking-list').innerHTML = `<div class="ranking-loading">Debes configurar la URL de Google Apps Script en el código HTML.</div>`;
+            return;
+        }
+
+        try {
+            const res = await fetch(GAS_URL);
+            const topPlayers = await res.json();
+            
+            let html = "";
+            topPlayers.forEach((p, index) => {
+                const pos = index + 1;
+                const isMe = p.uuid === playerStats.uuid;
+                let classPos = pos <= 3 ? `pos-${pos}` : ``;
+                if(isMe) classPos += " is-me";
+                
+                html += `
+                <div class="rank-card ${classPos}">
+                    <div class="rc-pos">${pos}</div>
+                    <div class="rc-info">
+                        <div class="rc-name">${p.name} ${isMe ? '(Tú)' : ''}</div>
+                        <div class="rc-title">${p.rankTitle}</div>
+                    </div>
+                    <div class="rc-score">${p.powerLevel.toLocaleString()} <span>PL</span></div>
+                </div>`;
+            });
+            
+            document.getElementById('ranking-list').innerHTML = html;
+        } catch(e) {
+            if(document.getElementById('ranking-list').innerHTML.includes('ranking-loading')) {
+               document.getElementById('ranking-list').innerHTML = `<div class="ranking-loading">Error al conectar con la base de datos global. Reintentando...</div>`;
+            }
+            console.log("Error fetching leaderboard", e);
+        }
+    }
+
+    // Auto-Actualizar cada 60 segundos (Silencioso en segundo plano)
+    setInterval(() => {
+        submitLeaderboard();
+        fetchLeaderboard();
+    }, 60000);
+
+
+    // --- SISTEMA DE PREGUNTAS MASIVAS (JSON EXTERNO) ---
+    let quizDataPool = [];
+    
+    async function loadQuestions() {
+        try {
+            const response = await fetch('preguntas.json');
+            if (!response.ok) throw new Error('No se pudo cargar el archivo');
+            quizDataPool = await response.json();
+        } catch (error) {
+            quizDataPool = [
+                { "question": "⚠️ ERROR: No se pudo cargar 'preguntas.json'. ¿Estás abriendo el HTML directamente (file://) en vez de usar un servidor local?", "answers": ["Sí, ese es el error", "Debo usar Live Server", "Falta el archivo JSON", "Todas las anteriores"], "correctIndex": 3 }
+            ];
+            while(quizDataPool.length < 20) {
+                quizDataPool.push({ "question": "Por favor, carga el juego en un servidor web o súbelo a GitHub Pages para que el JSON funcione.", "answers": ["Entendido", "Ok", "Comprendo", "Solucionar"], "correctIndex": 0 });
+            }
+        }
+    }
+
+    // --- Data 100 Logros Simétricos ---
+    const ACHIEVEMENTS_DATA = [];
+    const colors = { blue: 'var(--accent-blue)', green: 'var(--accent-green)', yellow: 'var(--accent-yellow)', orange: 'var(--accent-orange)', red: 'var(--accent-red)', purple: 'var(--accent-purple)', dark: 'var(--text-secondary)' };
+    function addAchs(arr) { arr.forEach(a => ACHIEVEMENTS_DATA.push(a)); }
+
+    addAchs([
+        { id: 'm1', title: 'Bautizado', desc: 'Configura tu nombre de jugador por primera vez.', color: colors.blue, icon: SVG_USER }, 
+        { id: 'm2', title: 'Agente Secreto', desc: 'Cambia tu nombre de jugador 5 veces.', color: colors.purple, icon: SVG_USER }, 
+        { id: 'm3', title: 'Identidad Falsa', desc: 'Cambia tu nombre de jugador 20 veces.', color: colors.red, icon: SVG_USER }, 
+        { id: 'm4', title: 'Curioso', desc: 'Abre el Banco de Logros por primera vez.', color: colors.orange, icon: SVG_TROPHY }, 
+        { id: 'm5', title: 'Investigador', desc: 'Visita el Banco de Logros 10 veces.', color: colors.blue, icon: SVG_TROPHY }, 
+        { id: 'm6', title: 'Obsesivo', desc: 'Visita el Banco de Logros 50 veces.', color: colors.purple, icon: SVG_TROPHY }, 
+        { id: 'm7', title: 'Diseñador', desc: 'Fija tu primer logro en el perfil.', color: colors.yellow, icon: SVG_STAR }, 
+        { id: 'm8', title: 'Coleccionista', desc: 'Desbloquea 10 logros en total.', color: colors.green, icon: SVG_STAR }, 
+        { id: 'm9', title: 'Completista', desc: 'Alcanza el hito de 50 logros desbloqueados.', color: colors.orange, icon: SVG_STAR }, 
+        { id: 'm10', title: 'Dios', desc: 'La maestría absoluta. Consigue los 100 logros del juego.', color: colors.red, icon: SVG_STAR }
+    ]);
+    const daysTiers = [1, 2, 3, 5, 7, 14, 21, 30, 60, 90]; const daysTitles = ['Hola Mundo', 'Doble', 'Triple', 'Cinco', 'Semana Activa', 'Quincena', 'Tres Semanas', 'Un Mes', 'Bimestre', 'Trimestre Fuego'];
+    for(let i=0; i<10; i++) addAchs([{ id: `d${i+1}`, title: daysTitles[i], desc: `Inicia sesión y juega durante ${daysTiers[i]} días consecutivos.`, color: colors.green, icon: SVG_CLOCK }]);
+    const ptTiers = [10, 50, 100, 500, 1000, 5000, 10000, 50000]; 
+    for(let i=0; i<8; i++) addAchs([{ id: `p${i+1}`, title: `Jugador ${i+1}`, desc: `Acumula un total de ${ptTiers[i]} partidas jugadas en tu historial.`, color: colors.blue, icon: SVG_TARGET }]);
+    const ptsTiers = [50000, 250000, 1000000, 5000000, 10000000, 50000000, 100000000, 500000000]; 
+    for(let i=0; i<8; i++) addAchs([{ id: `pt${i+1}`, title: `Ahorrador ${i+1}`, desc: `Acumula la increíble suma de ${ptsTiers[i]} puntos totales.`, color: colors.green, icon: SVG_STAR }]);
+    const hsCountTiers = [1, 5, 10, 20, 50, 100, 250, 500]; 
+    for(let i=0; i<8; i++) addAchs([{ id: `hs${i+1}`, title: `Récord ${i+1}`, desc: `Supera la barrera de los 20,000 puntos en ${hsCountTiers[i]} partidas distintas.`, color: colors.purple, icon: SVG_FIRE }]);
+    const frTiers = [1, 10, 50, 100, 500, 1000, 5000, 25000]; 
+    for(let i=0; i<8; i++) addAchs([{ id: `r${i+1}`, title: `Frenético ${i+1}`, desc: `Activa el poderoso Modo Frenesí en ${frTiers[i]} ocasiones diferentes.`, color: colors.orange, icon: SVG_FIRE }]);
+    const pfTiers = [1, 10, 50, 100, 500, 1000, 5000, 10000]; 
+    for(let i=0; i<8; i++) addAchs([{ id: `pf${i+1}`, title: `Perfección ${i+1}`, desc: `Completa ${pfTiers[i]} partidas sin cometer ni un solo error.`, color: colors.yellow, icon: SVG_TARGET }]);
+    const spdTiers = [10, 100, 500, 1000, 5000, 25000, 100000, 250000]; 
+    for(let i=0; i<8; i++) addAchs([{ id: `sp${i+1}`, title: `Reflejos ${i+1}`, desc: `Responde correctamente antes de los 18 segundos en ${spdTiers[i]} ocasiones.`, color: colors.blue, icon: SVG_BOLT }]);
+    const acTiers = [50, 250, 1000, 5000, 25000, 50000, 250000, 500000]; 
+    for(let i=0; i<8; i++) addAchs([{ id: `ac${i+1}`, title: `Cerebro ${i+1}`, desc: `Acumula un total histórico de ${acTiers[i]} respuestas correctas.`, color: colors.green, icon: SVG_CORRECT }]);
+    
+    addAchs([
+        { id: 'u1', title: 'Error Inicial', desc: 'Equivócate al responder una pregunta por primera vez.', color: colors.dark, icon: SVG_INCORRECT }, 
+        { id: 'u2', title: 'Tropiezo', desc: 'Acumula un total de 100 respuestas incorrectas en tu carrera.', color: colors.dark, icon: SVG_INCORRECT }, 
+        { id: 'u3', title: 'Dormilón', desc: 'Deja que el reloj llegue a cero en una pregunta.', color: colors.dark, icon: SVG_CLOCK }, 
+        { id: 'u4', title: 'AFK', desc: 'Deja que el reloj llegue a cero 50 veces en total.', color: colors.dark, icon: SVG_CLOCK }, 
+        { id: 'u5', title: 'Por los Pelos', desc: 'Acierta una pregunta cuando el reloj marque exactamente 1 segundo.', color: colors.red, icon: SVG_CLOCK }, 
+        { id: 'u6', title: 'Pro', desc: 'Alcanza el prestigioso rango de jugador Pro.', color: colors.blue, icon: SVG_TROPHY }, 
+        { id: 'u7', title: 'Maestro', desc: 'Alcanza el formidable rango de jugador Maestro.', color: colors.red, icon: SVG_TROPHY }, 
+        { id: 'u8', title: 'Leyenda', desc: 'Alcanza el codiciado y legendario rango Leyenda.', color: colors.yellow, icon: SVG_TROPHY }, 
+        { id: 'u9', title: 'Silencioso', desc: 'Consigue una partida perfecta donde todas las respuestas sean súper rápidas.', color: colors.purple, icon: SVG_SKULL }, 
+        { id: 'u10', title: 'Desastre', desc: 'Termina una partida con exactamente 0 puntos. Un desastre absoluto.', color: colors.dark, icon: SVG_SKULL }, 
+        { id: 'u11', title: 'Fénix', desc: 'Falla la primera pregunta de una partida, pero levántate y acierta las 19 restantes.', color: colors.orange, icon: SVG_FIRE }, 
+        { id: 'u12', title: 'Tragedia', desc: 'Logra una racha perfecta de 19, pero falla trágicamente en la última pregunta.', color: colors.dark, icon: SVG_INCORRECT }, 
+        { id: 'u13', title: 'Flash', desc: 'Acierta una pregunta en menos de 1 segundo de haber aparecido.', color: colors.yellow, icon: SVG_BOLT }, 
+        { id: 'u14', title: 'Calculador', desc: 'Acierta estratégicamente dejando que el reloj baje hasta los 2 o 3 segundos.', color: colors.blue, icon: SVG_CLOCK }, 
+        { id: 'u15', title: 'Equilibrio', desc: 'Termina una partida con un balance perfecto: 10 aciertos y 10 fallos.', color: colors.green, icon: SVG_SHIELD }, 
+        { id: 'u16', title: 'Tardía', desc: 'Activa el Modo Frenesí al acertar de forma agónica tu vigésima y última pregunta.', color: colors.orange, icon: SVG_TARGET }, 
+        { id: 'u17', title: 'Reloj', desc: 'Termina una partida perfecta combinando exactamente 10 respuestas rápidas y 10 normales.', color: colors.blue, icon: SVG_CLOCK }, 
+        { id: 'u18', title: 'Blanco', desc: 'Quédate en blanco y deja agotar el tiempo en TODAS las 20 preguntas de una partida.', color: colors.dark, icon: SVG_SKULL }, 
+        { id: 'u19', title: 'Resurrección', desc: 'Obtén 0 puntos en una partida y redímete sacando más de 10,000 en la siguiente.', color: colors.yellow, icon: SVG_HEART }, 
+        { id: 'u20', title: 'Distraído', desc: 'Logra 19 aciertos pero arruina la perfección con 1 fallo por tiempo agotado.', color: colors.dark, icon: SVG_CLOCK }, 
+        { id: 'u21', title: 'Metralleta', desc: 'Responde correctamente todas las preguntas de una partida en los primeros 3 segundos.', color: colors.red, icon: SVG_BOLT }, 
+        { id: 'u22', title: 'Maratón', desc: 'Demuestra tu resistencia física y mental jugando 50 partidas en un solo día.', color: colors.purple, icon: SVG_HEART }, 
+        { id: 'u23', title: 'Doble Perf', desc: 'Demuestra tu consistencia logrando 2 partidas perfectas de forma consecutiva.', color: colors.yellow, icon: SVG_TARGET }, 
+        { id: 'u24', title: 'Extremis', desc: 'Vive al límite consiguiendo 3 aciertos de último segundo (Por los Pelos) en una misma partida.', color: colors.red, icon: SVG_SHIELD }
+    ]);
+
+    function processDailyLogin() {
+        const now = new Date(); const todayStr = now.toISOString().split('T')[0];
+        if (playerStats.lastLoginDate !== todayStr) {
+            const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1); const yesterdayStr = yesterday.toISOString().split('T')[0];
+            if (playerStats.lastLoginDate === yesterdayStr) { playerStats.currentLoginStreak++; playerStats.maxLoginStreak = Math.max(playerStats.maxLoginStreak, playerStats.currentLoginStreak); } 
+            else { playerStats.currentLoginStreak = 1; if(playerStats.maxLoginStreak === 0) playerStats.maxLoginStreak = 1; }
+            playerStats.lastLoginDate = todayStr; playerStats.todayGames = 0; saveStatsLocally(); checkAchievements();
+        }
+    }
+    function shuffleArray(array) { let current = array.length, random; while (current !== 0) { random = Math.floor(Math.random() * current); current--; [array[current], array[random]] = [array[random], array[current]]; } return array; }
+
+    function getRankInfo(stats) {
+        if (stats.bestScore >= 20000 && stats.totalCorrect >= 5000 && stats.gamesPlayed >= 500 && stats.perfectGames >= 20 && stats.maxStreak >= 20) return { title: "Leyenda", color: "var(--accent-yellow)", rgb: "255, 184, 0" };
+        if (stats.bestScore >= 16000 && stats.totalCorrect >= 2000 && stats.gamesPlayed >= 200 && stats.maxStreak >= 15) return { title: "Maestro", color: "var(--accent-red)", rgb: "255, 42, 95" };
+        if (stats.bestScore >= 12000 && stats.totalCorrect >= 500 && stats.gamesPlayed >= 100 && stats.maxStreak >= 10) return { title: "Pro", color: "var(--accent-blue)", rgb: "0, 212, 255" };
+        if (stats.bestScore >= 8000 && stats.totalCorrect >= 100 && stats.gamesPlayed >= 20) return { title: "Junior", color: "var(--accent-orange)", rgb: "247, 127, 0" };
+        return { title: "Novato", color: "var(--accent-green)", rgb: "0, 255, 102" };
+    }
+    let currentRankInfo = getRankInfo(playerStats);
+
+    function checkAchievements() {
+        let newlyUnlocked = [];
+        const unlock = (id) => { if (!playerStats.achievements.includes(id)) { playerStats.achievements.push(id); newlyUnlocked.push(ACHIEVEMENTS_DATA.find(a => a.id === id)); } };
+        if (playerStats.nameChanges >= 1) unlock('m1'); if (playerStats.nameChanges >= 5) unlock('m2'); if (playerStats.nameChanges >= 20) unlock('m3');
+        if (playerStats.achViews >= 1) unlock('m4'); if (playerStats.achViews >= 10) unlock('m5'); if (playerStats.achViews >= 50) unlock('m6');
+        if (playerStats.pinnedAchievements.length > 0) unlock('m7'); if (playerStats.achievements.length >= 10) unlock('m8'); if (playerStats.achievements.length >= 50) unlock('m9');
+        if (playerStats.achievements.length >= 99) unlock('m10');
+        const days = playerStats.maxLoginStreak; for(let i=0; i<10; i++) if(days >= daysTiers[i]) unlock(`d${i+1}`);
+        const pts = playerStats.gamesPlayed; for(let i=0; i<8; i++) if(pts >= ptTiers[i]) unlock(`p${i+1}`);
+        const tot = playerStats.totalScore; for(let i=0; i<8; i++) if(tot >= ptsTiers[i]) unlock(`pt${i+1}`);
+        const hsc = playerStats.maxScoreCount; for(let i=0; i<8; i++) if(hsc >= hsCountTiers[i]) unlock(`hs${i+1}`);
+        const fr = playerStats.frenziesTriggered; for(let i=0; i<8; i++) if(fr >= frTiers[i]) unlock(`r${i+1}`);
+        const pf = playerStats.perfectGames; for(let i=0; i<8; i++) if(pf >= pfTiers[i]) unlock(`pf${i+1}`);
+        const sp = playerStats.fastAnswersTotal; for(let i=0; i<8; i++) if(sp >= spdTiers[i]) unlock(`sp${i+1}`);
+        const ac = playerStats.totalCorrect; for(let i=0; i<8; i++) if(ac >= acTiers[i]) unlock(`ac${i+1}`);
+        if (playerStats.totalWrong > 0) unlock('u1'); if (playerStats.totalWrong >= 100) unlock('u2'); if (playerStats.totalTimeouts > 0) unlock('u3');
+        if (playerStats.totalTimeouts >= 50) unlock('u4'); if (playerStats.todayGames >= 50) unlock('u22'); if (playerStats.perfectStreak >= 2) unlock('u23');
+        
+        const rank = getRankInfo(playerStats).title; 
+        if (rank === "Pro" || rank === "Maestro" || rank === "Leyenda") unlock('u6'); 
+        if (rank === "Maestro" || rank === "Leyenda") unlock('u7'); 
+        if (rank === "Leyenda") unlock('u8');
+        
+        if (newlyUnlocked.length > 0) { saveStatsLocally(); renderAchievements(); newlyUnlocked.forEach((ach, index) => { setTimeout(() => { SFX.achievement(); showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon); }, index * 1300); }); }
+    }
+
+    function togglePin(achId) {
+        if (!playerStats.achievements.includes(achId)) return; SFX.click(); const index = playerStats.pinnedAchievements.indexOf(achId);
+        if (index > -1) playerStats.pinnedAchievements.splice(index, 1); else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); }
+        saveStatsLocally(); checkAchievements(); renderAchievements();
+    }
+    let isAchievementsInitialized = false; const achCardElements = {};
+    function initializeAchievementsDOM() {
+        const fullGrid = document.getElementById('full-achievements-grid'); if(!fullGrid) return; fullGrid.innerHTML = ''; const fragment = document.createDocumentFragment();
+        ACHIEVEMENTS_DATA.forEach(ach => { const card = document.createElement('div'); card.id = `ach-card-${ach.id}`; card.className = 'ach-card'; card.onclick = () => togglePin(ach.id); achCardElements[ach.id] = card; fragment.appendChild(card); });
+        fullGrid.appendChild(fragment); isAchievementsInitialized = true;
+    }
+    function renderAchievements() {
+        if (!isAchievementsInitialized) initializeAchievementsDOM();
+        const profileGrid = document.getElementById('profile-achievements-grid'); let unlockedCount = playerStats.achievements.length;
+        ACHIEVEMENTS_DATA.forEach(ach => {
+            const isUnlocked = playerStats.achievements.includes(ach.id), isPinned = playerStats.pinnedAchievements.includes(ach.id), card = achCardElements[ach.id]; if(!card) return;
+            card.className = `ach-card ${isUnlocked ? 'unlocked' : ''} ${isPinned ? 'pinned' : ''}`;
+            if(isUnlocked && !isPinned) { card.style.borderColor = ach.color; card.style.boxShadow = `0 10px 20px ${ach.color.replace(')', ', 0.1)').replace('var(', 'rgba(')}`; } else { card.style.borderColor = ''; card.style.boxShadow = ''; }
+            card.innerHTML = `<div class="pin-hint" style="position:absolute;top:5px;right:5px;font-size:0.6rem;color:var(--accent-yellow);opacity:${isPinned?1:0}">${SVG_PIN}</div><div class="ach-icon" style="color: ${isUnlocked ? ach.color : 'var(--text-secondary)'};">${isUnlocked ? ach.icon : SVG_LOCK}</div><div class="ach-title">${ach.title}</div><div class="ach-desc">${isUnlocked ? ach.desc : 'Misterio... Sigue jugando para descubrirlo.'}</div>`;
+        });
+        if (profileGrid) {
+            profileGrid.innerHTML = ''; const profFragment = document.createDocumentFragment(); let profileRendered = 0;
+            playerStats.pinnedAchievements.forEach(id => { if (profileRendered >= 3) return; const ach = ACHIEVEMENTS_DATA.find(a => a.id === id); if (ach) { appendProfileSlot(profFragment, ach, true); profileRendered++; } });
+            [...playerStats.achievements].reverse().forEach(id => { if (profileRendered >= 3 || playerStats.pinnedAchievements.includes(id)) return; const ach = ACHIEVEMENTS_DATA.find(a => a.id === id); if (ach) { appendProfileSlot(profFragment, ach, false); profileRendered++; } });
+            while (profileRendered < 3) { const slot = document.createElement('div'); slot.className = 'achievement-slot'; slot.innerHTML = `<div class="ach-icon" style="color: var(--text-secondary);">${SVG_LOCK}</div><div class="ach-title" style="color: var(--text-secondary);">Vacío</div>`; profFragment.appendChild(slot); profileRendered++; }
+            profileGrid.appendChild(profFragment);
+        }
+        document.getElementById('achievements-progress-text').innerText = `Desbloqueados: ${unlockedCount} / 100`;
+    }
+    function appendProfileSlot(grid, ach, isPinned) {
+        const slot = document.createElement('div'); slot.className = `achievement-slot unlocked ${isPinned ? 'pinned' : ''}`; slot.style.borderColor = ach.color;
+        slot.innerHTML = `<div class="pin-indicator" style="display:${isPinned?'block':'none'}">${SVG_PIN}</div><div class="ach-icon" style="color: ${ach.color};">${ach.icon}</div><div class="ach-title">${ach.title}</div>`; grid.appendChild(slot);
+    }
+
+    // --- UI Flow ---
+    function switchScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); setTimeout(() => document.getElementById(id).classList.add('active'), 50); }
+    function goToMainMenu() { SFX.click(); switchScreen('start-screen'); }
+    function goToGuide() { initAudio(); SFX.click(); playerStats.guideViews++; saveStatsLocally(); checkAchievements(); switchScreen('guide-screen'); }
+    function goToAchievements() { initAudio(); SFX.click(); playerStats.achViews++; saveStatsLocally(); checkAchievements(); renderAchievements(); switchScreen('achievements-screen'); }
+    
+    function goToRanking() { 
+        initAudio(); SFX.click();
+        switchScreen('ranking-screen');
+    }
+
+    function goToCanje() {
+        initAudio(); SFX.click();
+        const unlocked = playerStats.achievements.length;
+        const isLeyenda = currentRankInfo.title === "Leyenda";
+        
+        let statusHtml = `Logros: <span style="color:${unlocked >= 100 ? 'var(--accent-green)' : 'var(--accent-yellow)'}">${unlocked}/100</span><br>`;
+        statusHtml += `Rango: <span style="color:${isLeyenda ? 'var(--accent-green)' : 'var(--accent-yellow)'}">${currentRankInfo.title}</span> (Requiere Leyenda)<br>`;
+
+        if(unlocked < 100 || !isLeyenda) { statusHtml += `<span class="canje-status-sub" style="color:var(--accent-red)">Faltan requisitos para reclamar.</span>`; } 
+        else { statusHtml += `<span class="canje-status-sub" style="color:var(--accent-green)">¡Cumples todos los requisitos!</span>`; }
+        
+        document.getElementById('canje-status').innerHTML = statusHtml;
+        const btn = document.getElementById('canje-btn');
+        const cName = document.getElementById('c-name');
+        const cAmount = document.getElementById('c-amount');
+        
+        cName.innerText = (playerStats.playerName && playerStats.playerName !== "JUGADOR") ? playerStats.playerName : "JUGADOR ANÓNIMO";
+        cName.classList.remove('locked');
+        
+        if(unlocked >= 100 && isLeyenda) { 
+            btn.disabled = false; btn.style.opacity = 1; btn.style.cursor = 'pointer'; 
+            cAmount.classList.remove('locked'); cAmount.innerText = "1,000,000 ℙ";
+        } else { 
+            btn.disabled = true; btn.style.opacity = 0.5; btn.style.cursor = 'not-allowed'; 
+            cAmount.classList.add('locked'); cAmount.innerText = "*** BLOQUEADO ***";
+            document.getElementById('canje-instruction').style.display = 'none';
+        }
+        switchScreen('canje-screen');
+    }
+    
+    function revelarCheque() {
+        SFX.achievement();
+        document.getElementById('canje-status').style.display = 'none';
+        document.getElementById('canje-btn').style.display = 'none';
+        const cAmount = document.getElementById('c-amount'); cAmount.classList.add('gold');
+        document.getElementById('canje-instruction').style.display = 'block';
+        document.getElementById('c-date').innerText = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+    
+    function goToProfile(needsName = false) {
+        initAudio(); SFX.click();
+        document.getElementById('stat-games').innerText = playerStats.gamesPlayed; document.getElementById('stat-score').innerText = playerStats.bestScore; document.getElementById('stat-streak').innerText = playerStats.maxStreak; document.getElementById('stat-days').innerText = playerStats.maxLoginStreak;
+        document.getElementById('profile-name-input').value = (playerStats.playerName === "JUGADOR") ? "" : playerStats.playerName;
+        document.getElementById('profile-warning').style.opacity = needsName ? '1' : '0';
+        currentRankInfo = getRankInfo(playerStats); updateLogoDots(); document.getElementById('profile-rank-display').innerText = `Rango: ${currentRankInfo.title}`; document.getElementById('profile-rank-display').style.color = currentRankInfo.color;
+        renderAchievements(); switchScreen('profile-screen');
+        if (needsName) setTimeout(() => { document.getElementById('profile-name-input').focus(); document.getElementById('profile-name-input').classList.add('shake'); setTimeout(() => document.getElementById('profile-name-input').classList.remove('shake'), 400); }, 400);
+    }
+
+    async function startGameCheck() { 
+        initAudio(); 
+        if (!playerStats.playerName || playerStats.playerName === "JUGADOR") { 
+            SFX.incorrect(); goToProfile(true); 
+            return;
+        } 
+        if (quizDataPool.length === 0) {
+            const btn = document.getElementById('start-btn');
+            const originalText = btn.innerText;
+            btn.innerText = "Cargando..."; btn.style.opacity = "0.7";
+            await loadQuestions();
+            btn.innerText = originalText; btn.style.opacity = "1";
+        }
+        startGame(); 
+    }
+
+    document.getElementById('profile-name-input').addEventListener('input', e => { e.target.value = e.target.value.replace(/[^a-zA-Z0-9ÁÉÍÓÚÑáéíóúñ ]/g, '').toUpperCase(); document.getElementById('profile-warning').style.opacity = e.target.value ? '0' : '1'; });
+    document.getElementById('profile-name-input').addEventListener('change', e => { 
+        const n = e.target.value.trim(); 
+        if(n && n !== "JUGADOR" && n !== playerStats.playerName) playerStats.nameChanges++; 
+        playerStats.playerName = n || "JUGADOR"; 
+        saveStatsLocally(); checkAchievements(); 
+        submitLeaderboard();
+    });
+    document.getElementById('profile-name-input').addEventListener('keypress', function(e) { if(e.key === 'Enter') this.blur(); });
+    function updateLogoDots() { document.documentElement.style.setProperty('--rank-rgb', currentRankInfo.rgb); document.documentElement.style.setProperty('--rank-color', currentRankInfo.color); document.querySelectorAll('.logo-dot').forEach(d => { d.style.color = currentRankInfo.color; d.style.textShadow = `0 0 15px rgba(${currentRankInfo.rgb}, 0.5)`; }); }
+
+    // --- Game Logic ---
+    let currentSessionQuestions = [], currentQuestionIndex = 0, score = 0, streak = 0, currentMaxStreak = 0, timerInterval, timeLeft = 20; 
+    const TOTAL_TIME = 20, QUESTIONS_PER_GAME = 20; 
+    let currentFastAnswers = 0, currentWrongAnswers = 0, currentTimeoutAnswers = 0, isAnsweringAllowed = false, currentGameLog = [];
+    let isGamePaused = false;
+
+    function startGame() {
+        initAudio(); SFX.click(); document.getElementById('player-name-display').innerText = playerStats.playerName && playerStats.playerName !== "JUGADOR" ? playerStats.playerName : "JUGADOR"; document.getElementById('final-name').innerText = document.getElementById('player-name-display').innerText;
+        currentSessionQuestions = shuffleArray([...quizDataPool]).slice(0, QUESTIONS_PER_GAME);
+        currentQuestionIndex = score = streak = currentMaxStreak = currentFastAnswers = currentWrongAnswers = currentTimeoutAnswers = 0; currentGameLog = []; isGamePaused = false;
+        document.getElementById('score-display').innerText = score; updateStreakVisuals(); switchScreen('question-screen'); setTimeout(loadQuestion, 400); 
+    }
+    
+    function updateStreakVisuals() { const app = document.getElementById('app'); if (streak >= 5) { if (!app.classList.contains('streak-active')) { app.classList.add('streak-active'); SFX.streakTrigger(); } } else app.classList.remove('streak-active'); }
+    
+    function loadQuestion() {
+        const currentQ = currentSessionQuestions[currentQuestionIndex];
+        const timerPath = document.getElementById('timer-path');
+        const timerText = document.getElementById('timer-display');
+        document.getElementById('global-progress').style.width = `${(currentQuestionIndex / QUESTIONS_PER_GAME) * 100}%`; 
+        document.getElementById('question-text').innerText = currentQ.question;
+        
+        let mixedAnswers = currentQ.answers.map((text, idx) => ({ text: text, isCorrect: idx === currentQ.correctIndex }));
+        mixedAnswers = shuffleArray(mixedAnswers);
+        for(let i=0; i<4; i++) { 
+            document.getElementById(`ans-${i}`).innerText = mixedAnswers[i].text;
+            if (mixedAnswers[i].isCorrect) currentQ.currentCorrectIndex = i;
+        }
+
+        document.getElementById('answers-grid').classList.remove('answered'); document.querySelectorAll('.answer-btn').forEach(btn => btn.classList.remove('selected'));
+        isAnsweringAllowed = true; isGamePaused = false; timeLeft = TOTAL_TIME; timerText.innerText = timeLeft; timerPath.style.transition = 'none'; timerPath.style.strokeDashoffset = '0'; timerPath.style.stroke = 'var(--text-primary)'; timerText.style.color = 'var(--text-primary)'; void timerPath.offsetWidth; timerPath.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s ease';
+        
+        clearInterval(timerInterval); 
+        timerInterval = setInterval(() => { 
+            if (isGamePaused) return;
+            timeLeft--; timerText.innerText = timeLeft; timerPath.style.strokeDashoffset = 283 - (timeLeft/TOTAL_TIME)*283; 
+            if(timeLeft <= 5 && timeLeft > 0) { SFX.tick(); timerPath.style.stroke = 'var(--accent-red)'; timerText.style.color = 'var(--accent-red)'; } 
+            if(timeLeft <= 0) handleTimeout(); 
+        }, 1000);
+    }
+    
+    function selectAnswer(selectedIndex) {
+        if (!isAnsweringAllowed || isGamePaused) return; isAnsweringAllowed = false; clearInterval(timerInterval); SFX.select();
+        document.getElementById('answers-grid').classList.add('answered'); document.querySelectorAll('.answer-btn')[selectedIndex].classList.add('selected');
+        const isCorrect = (selectedIndex === currentSessionQuestions[currentQuestionIndex].currentCorrectIndex); 
+        currentGameLog.push({ correct: isCorrect, time: timeLeft });
+        if(isCorrect) { playerStats.totalCorrect++; if(timeLeft >= 18) { currentFastAnswers++; playerStats.fastAnswersTotal++; } } else { playerStats.totalWrong++; currentWrongAnswers++; }
+        saveStatsLocally(); setTimeout(() => showFeedback(isCorrect), 600);
+    }
+    
+    function handleTimeout() {
+        if (!isAnsweringAllowed || isGamePaused) return; isAnsweringAllowed = false; clearInterval(timerInterval); playerStats.totalWrong++; playerStats.totalTimeouts++; currentTimeoutAnswers++; currentGameLog.push({ correct: false, timeout: true, time: 0 });
+        saveStatsLocally(); document.getElementById('answers-grid').classList.add('answered'); setTimeout(() => showFeedback(false, true), 600);
+    }
+
+    function abandonGame() {
+        if(!isAnsweringAllowed) return;
+        SFX.click();
+        isGamePaused = true;
+        document.getElementById('abandon-modal').classList.add('active');
+    }
+
+    function cancelAbandon() {
+        SFX.click();
+        isGamePaused = false;
+        document.getElementById('abandon-modal').classList.remove('active');
+    }
+
+    function confirmAbandon() {
+        document.getElementById('abandon-modal').classList.remove('active');
+        isAnsweringAllowed = false;
+        clearInterval(timerInterval);
+        
+        initAudio(); SFX.incorrect(); 
+        
+        const penalty = 2000; 
+        playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
+        playerStats.bestScore = Math.max(0, playerStats.bestScore - penalty);
+        playerStats.maxStreak = Math.max(0, playerStats.maxStreak - 5);
+        playerStats.perfectGames = Math.max(0, playerStats.perfectGames - 1);
+        
+        saveStatsLocally();
+        submitLeaderboard(); 
+        
+        showToast('Trampa Detectada', `Infracción. Penalidad severa.`, 'var(--accent-red)', SVG_SKULL);
+
+        document.getElementById('app').classList.remove('streak-active');
+        streak = 0;
+        switchScreen('start-screen');
+    }
+
+    function animateScore(target) {
+        const el = document.getElementById('score-display'); let curr = parseInt(el.innerText); const diff = target - curr; if(diff <= 0) return;
+        const step = Math.ceil(diff / 20), t = setInterval(() => { curr += step; if(curr >= target) { curr = target; clearInterval(t); } el.innerText = curr; }, 20);
+    }
+    function showFeedback(isCorrect, isTimeout = false) {
+        const scr = document.getElementById('feedback-screen'), icon = document.getElementById('feedback-icon-container'), title = document.getElementById('feedback-title'), points = document.getElementById('feedback-points');
+        if (isCorrect) {
+            SFX.correct(); scr.className = 'screen correct'; icon.innerHTML = SVG_CORRECT; title.innerText = "¡Excelente!";
+            const earned = 800 + Math.round((timeLeft / TOTAL_TIME) * 800) + (streak * 80); score += earned; streak++; if(streak > currentMaxStreak) currentMaxStreak = streak;
+            if (streak === 5) playerStats.frenziesTriggered++; points.innerText = `+${earned}`; points.style.display = 'block';
+        } else {
+            SFX.incorrect(); if (isTimeout) { scr.className = 'screen timeout'; icon.innerHTML = SVG_TIMEOUT; title.innerText = "Tiempo Agotado"; } else { scr.className = 'screen incorrect'; icon.innerHTML = SVG_INCORRECT; title.innerText = "Incorrecto"; }
+            streak = 0; points.style.display = 'none';
+        }
+        document.getElementById('streak-display').innerText = streak; updateStreakVisuals(); switchScreen('feedback-screen'); setTimeout(() => animateScore(score), 300); checkAchievements();
+        setTimeout(() => { currentQuestionIndex++; currentQuestionIndex < QUESTIONS_PER_GAME ? (switchScreen('question-screen'), setTimeout(loadQuestion, 400)) : endGame(); }, 2000);
+    }
+    function saveGameStats() {
+        playerStats.gamesPlayed++; playerStats.todayGames++; playerStats.totalScore += score; if(score > playerStats.bestScore) playerStats.bestScore = score; if(currentMaxStreak > playerStats.maxStreak) playerStats.maxStreak = currentMaxStreak;
+        const isPerfect = (currentMaxStreak === QUESTIONS_PER_GAME && currentWrongAnswers === 0 && currentTimeoutAnswers === 0);
+        if(score >= 20000) playerStats.maxScoreCount++; if(isPerfect) { playerStats.perfectStreak++; playerStats.perfectGames++; } else playerStats.perfectStreak = 0;
+        playerStats.previousGameScore = score; currentRankInfo = getRankInfo(playerStats); updateLogoDots(); saveStatsLocally(); checkAchievements();
+        submitLeaderboard(); 
+    }
+    function endGame() {
+        document.getElementById('final-score-display').innerText = score; saveGameStats();
+        if (currentWrongAnswers === 0 && currentTimeoutAnswers === 0) SFX.perfectGame(); else if (currentWrongAnswers === QUESTIONS_PER_GAME) SFX.allWrongGame(); else if (currentTimeoutAnswers === QUESTIONS_PER_GAME) SFX.allTimeoutGame();
+        const msg = document.getElementById('final-message'), icn = document.getElementById('results-icon-svg'), maxExp = QUESTIONS_PER_GAME * 1600;
+        if(score >= maxExp * 0.8) { msg.innerText = "Leyenda"; icn.innerHTML = SVG_TROPHY; } else if (score >= maxExp * 0.5) { msg.innerText = "Buen Desempeño"; icn.innerHTML = SVG_STAR; } else { msg.innerText = "Sigue Practicando"; icn.innerHTML = SVG_TARGET; }
+        document.getElementById('final-correct').innerText = `${QUESTIONS_PER_GAME - currentWrongAnswers - currentTimeoutAnswers}/${QUESTIONS_PER_GAME}`; document.getElementById('final-streak').innerText = currentMaxStreak; document.getElementById('final-speed').innerText = currentFastAnswers;
+        document.getElementById('app').classList.remove('streak-active'); streak = 0; switchScreen('end-screen');
+    }
+
+    // --- FPS Controlled Particles ---
+    const canvas = document.getElementById('particle-canvas'); const ctx = canvas.getContext('2d'); let particlesArray = [];
+    let fpsInterval = 1000 / playerStats.maxFps; let then = performance.now();
+    function initParticles() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; particlesArray = []; let num = Math.min((canvas.width * canvas.height) / 12000, window.innerWidth < 768 ? 40 : 80); for (let i = 0; i < num; i++) particlesArray.push(new Particle(Math.random() * innerWidth, Math.random() * innerHeight, (Math.random()*1)-0.5, (Math.random()*1)-0.5, (Math.random()*2)+1)); }
+    class Particle { 
+        constructor(x, y, dx, dy, s) { this.x = x; this.y = y; this.dx = dx; this.dy = dy; this.s = s; } 
+        draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.s, 0, Math.PI*2); ctx.fillStyle = `rgba(${currentRankInfo.rgb}, ${(streak >= 5 ? 0.8 : 0.5) * playerStats.particleOpacity})`; ctx.fill(); } 
+        update(timeScale) { const m = streak >= 5 ? 3.5 : 1; if(this.x > canvas.width || this.x < 0) this.dx = -this.dx; if(this.y > canvas.height || this.y < 0) this.dy = -this.dy; this.x += this.dx * m * timeScale; this.y += this.dy * m * timeScale; this.draw(); } 
+    }
+    function connectParticles() { const isStreak = streak >= 5; for(let a = 0; a < particlesArray.length; a++) { for(let b = a; b < particlesArray.length; b++) { let dist = ((particlesArray[a].x - particlesArray[b].x)**2) + ((particlesArray[a].y - particlesArray[b].y)**2), cDist = (canvas.width/10) * (canvas.height/10); if (dist < cDist) { ctx.strokeStyle = `rgba(${currentRankInfo.rgb}, ${(1 - (dist / cDist)) * (isStreak ? 0.6 : 0.3) * playerStats.particleOpacity})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(particlesArray[a].x, particlesArray[a].y); ctx.lineTo(particlesArray[b].x, particlesArray[b].y); ctx.stroke(); } } } }
+    
+    function animateParticles(now) { 
+        requestAnimationFrame(animateParticles); 
+        let elapsed = now - then; 
+        if (elapsed > fpsInterval) { 
+            then = now - (elapsed % fpsInterval); 
+            ctx.clearRect(0, 0, innerWidth, innerHeight); 
+            let timeScale = elapsed / 16.666;
+            if (timeScale > 10) timeScale = 10;
+            for(let i=0; i<particlesArray.length; i++) particlesArray[i].update(timeScale); 
+            connectParticles(); 
+        } 
+    }
+    
+    window.addEventListener('resize', () => initParticles()); initParticles(); requestAnimationFrame(animateParticles);
+
+    setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); }, 500);
+</script>
+</body>
+</html>
