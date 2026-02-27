@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Klick - Experiencia de Aprendizaje</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ff66' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='18' cy='5' r='3'%3E%3C/circle%3E%3Ccircle cx='6' cy='12' r='3'%3E%3C/circle%3E%3Ccircle cx='18' cy='19' r='3'%3E%3C/circle%3E%3Cline x1='8.59' y1='13.51' x2='15.42' y2='17.49'%3E%3C/line%3E%3Cline x1='15.41' y1='6.51' x2='8.59' y2='10.49'%3E%3C/line%3E%3C/svg%3E">
+    <title>Klick</title>
+    <!-- Favicon actualizado a un rayo tecnológico cyan -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300d4ff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'%3E%3C/polygon%3E%3C/svg%3E">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap');
 
@@ -358,7 +359,7 @@
     <div id="ranking-screen" class="screen nav-screen">
         <div class="top-nav">
             <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
-            <div class="nav-title">TOP 20 MUNDIAL</div><div class="nav-spacer"></div>
+            <div class="nav-title">TOP 20</div><div class="nav-spacer"></div>
         </div>
         <div class="content-scroll no-scrollbar">
             <div class="ranking-wrapper">
@@ -663,7 +664,6 @@
     // --- Audio ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx, isMusicPlaying = false, musicSeqStep = 0, nextNoteTime = 0, musicTimerID;
-    const cyberpunkNotes = [65.41, 77.78, 65.41, 58.27]; // C2, D#2, C2, Bb1
     let chordIndex = 0;
     
     let masterMusicGain, masterSFXGain;
@@ -702,21 +702,25 @@
         osc.connect(gain); gain.connect(masterSFXGain); 
         osc.start(); osc.stop(audioCtx.currentTime + duration);
     }
-    function playNoiseAt(time, duration, vol) {
+    
+    // Función de ruido actualizada (permite modificar el filtro según se necesite)
+    function playNoiseAt(time, duration, vol, cutoff = 5000) {
         if (!audioCtx) return; 
         const bufferSize = audioCtx.sampleRate * duration, buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate), data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
         const noise = audioCtx.createBufferSource(); noise.buffer = buffer; const gain = audioCtx.createGain();
         gain.gain.setValueAtTime(vol, time); gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-        const filter = audioCtx.createBiquadFilter(); filter.type = 'highpass'; filter.frequency.value = 5000;
+        const filter = audioCtx.createBiquadFilter(); filter.type = 'highpass'; filter.frequency.value = cutoff;
         noise.connect(filter); filter.connect(gain); gain.connect(masterMusicGain); noise.start(time);
     }
+    
     function startMusicEngine() { isMusicPlaying = true; nextNoteTime = audioCtx.currentTime + 0.1; scheduler(); }
     function scheduler() { if (!isMusicPlaying) return; while (nextNoteTime < audioCtx.currentTime + 0.1) { playMusicStep(nextNoteTime); nextNoteStep(); } musicTimerID = setTimeout(scheduler, 25); }
     
     function nextNoteStep() { 
         const isFrenzy = streak >= 5; 
-        nextNoteTime += 0.25 * (60.0 / (isFrenzy ? 160 : 130)); 
+        // 115 BPM base, 130 BPM Frenzy (Ritmo inspirador, más calmado y profundo)
+        nextNoteTime += 0.25 * (60.0 / (isFrenzy ? 130 : 115)); 
         musicSeqStep++; 
         if (musicSeqStep >= 16) { 
             musicSeqStep = 0; 
@@ -727,43 +731,81 @@
     function playMusicStep(time) {
         const isFrenzy = streak >= 5;
         
-        // Bombo Techno
+        // Progresión de acordes inspiradora (Am - F - C - G) tipo Synthwave Épico
+        const chordProgression = [
+            [45, 48, 52, 57], // Am
+            [41, 45, 48, 53], // F
+            [48, 52, 55, 60], // C
+            [43, 47, 50, 55]  // G
+        ];
+        const currentChord = chordProgression[chordIndex];
+        const midiToFreq = (m) => 440 * Math.pow(2, (m - 69) / 12);
+
+        // 1. Bombo (Kick) - Más profundo, cálido y envolvente
         if (musicSeqStep % 4 === 0) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'sine';
             osc.frequency.setValueAtTime(120, time);
-            osc.frequency.exponentialRampToValueAtTime(10, time + 0.1);
-            gain.gain.setValueAtTime(0.8, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+            osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.3);
+            gain.gain.setValueAtTime(0.8, time); // VOLUMEN AUMENTADO (antes 0.5)
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
             osc.connect(gain); gain.connect(masterMusicGain);
-            osc.start(time); osc.stop(time + 0.1);
+            osc.start(time); osc.stop(time + 0.3);
         }
         
-        // Hi-hat
-        if (musicSeqStep % 2 !== 0) {
-            playNoiseAt(time, 0.05, 0.2);
-        }
-        
-        // Snare Frenesí
-        if (isFrenzy && (musicSeqStep === 4 || musicSeqStep === 12)) {
-            playNoiseAt(time, 0.1, 0.6);
+        // 2. Línea de Bajo (Warm Pad/Bass) - Un pulso constante suave
+        if (musicSeqStep % 2 === 0) {
+             const osc = audioCtx.createOscillator();
+             const gain = audioCtx.createGain();
+             const filter = audioCtx.createBiquadFilter();
+             
+             osc.type = 'sawtooth';
+             osc.frequency.setValueAtTime(midiToFreq(currentChord[0] - 12), time); // Tónica una octava abajo
+             
+             filter.type = 'lowpass';
+             filter.frequency.setValueAtTime(isFrenzy ? 800 : 350, time); // Se abre un poco en frenesí
+             filter.frequency.exponentialRampToValueAtTime(100, time + 0.2);
+
+             gain.gain.setValueAtTime(isFrenzy ? 0.5 : 0.35, time); // VOLUMEN AUMENTADO (antes 0.25 / 0.15)
+             gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+
+             osc.connect(filter); filter.connect(gain); gain.connect(masterMusicGain);
+             osc.start(time); osc.stop(time + 0.2);
         }
 
-        // Sintetizador Cyberpunk
-        const synthRhythm = [1,0,1,0, 0,1,0,1, 1,0,0,1, 0,1,0,0];
-        if (synthRhythm[musicSeqStep] === 1) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = isFrenzy ? 'square' : 'sawtooth';
-            let freq = cyberpunkNotes[chordIndex];
-            if(isFrenzy && musicSeqStep % 8 === 0) freq *= 2; 
-            
-            osc.frequency.setValueAtTime(freq, time);
-            gain.gain.setValueAtTime(isFrenzy ? 0.12 : 0.08, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
-            osc.connect(gain); gain.connect(masterMusicGain);
-            osc.start(time); osc.stop(time + 0.15);
+        // 3. Arpegiador Principal (Melódico y cristalino)
+        // Patrón rítmico agradable
+        const arpPattern = [0, 1, 2, 1, 0, 1, 2, 3, 2, 1, 2, 3, 0, 1, 2, 1]; 
+        const noteMidi = currentChord[arpPattern[musicSeqStep]] + (isFrenzy ? 12 : 0); // Sube de octava en frenesí
+        
+        const oscArp = audioCtx.createOscillator();
+        const gainArp = audioCtx.createGain();
+        const filterArp = audioCtx.createBiquadFilter();
+
+        oscArp.type = 'triangle'; // Suave y celestial, sin ser agudo chirriante
+        oscArp.frequency.setValueAtTime(midiToFreq(noteMidi), time);
+
+        filterArp.type = 'lowpass';
+        filterArp.frequency.setValueAtTime(isFrenzy ? 2500 : 1000, time);
+
+        gainArp.gain.setValueAtTime(0.0, time);
+        gainArp.gain.linearRampToValueAtTime(isFrenzy ? 0.4 : 0.3, time + 0.02); // VOLUMEN AUMENTADO (antes 0.2 / 0.15)
+        gainArp.gain.exponentialRampToValueAtTime(0.001, time + (isFrenzy ? 0.15 : 0.25));
+
+        oscArp.connect(filterArp); filterArp.connect(gainArp); gainArp.connect(masterMusicGain);
+        oscArp.start(time); oscArp.stop(time + 0.3);
+        
+        // 4. Percusión de ambiente en Frenesí
+        if (isFrenzy) {
+            // Hi-hat sutil a contratiempo
+            if (musicSeqStep % 2 !== 0) {
+                playNoiseAt(time, 0.05, 0.2, 7000); // VOLUMEN AUMENTADO (antes 0.1)
+            }
+            // Snare (Caja) rítmica en los tiempos fuertes
+            if (musicSeqStep === 4 || musicSeqStep === 12) {
+                playNoiseAt(time, 0.15, 0.3, 2000); // VOLUMEN AUMENTADO (antes 0.15)
+            }
         }
     }
     
