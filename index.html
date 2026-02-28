@@ -1050,7 +1050,7 @@
     let quizDataPool = [];
     async function loadQuestions() {
         try {
-            const response = await fetch('preguntas.json');
+            const response = await fetch('https://cjce21.github.io/Klick/preguntas.json');
             if (!response.ok) throw new Error('No se pudo cargar el archivo');
             quizDataPool = await response.json();
         } catch (error) {
@@ -1958,4 +1958,5 @@
 </script>
 </body>
 </html>
+
 
