@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Klick</title>
+    <title>Klick - Experiencia de Aprendizaje</title>
     <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ff66' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'%3E%3C/polygon%3E%3C/svg%3E">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap');
@@ -165,6 +165,11 @@
         @media (min-width: 1500px) { .achievements-grid { grid-template-columns: repeat(6, 1fr); } }
         .ach-card { background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(10px); padding: 18px 14px; border-radius: var(--radius-md); border: 1px dashed var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; opacity: 0.5; filter: grayscale(1); transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease; position: relative; cursor: pointer; min-height: 140px; justify-content: center; transform: none !important; }
         .ach-card:hover { border-color: rgba(255,255,255,0.25); }
+        .ach-pin-badge { position: absolute; top: 5px; right: 6px; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; line-height: 1; pointer-events: none; }
+        .ach-pin-manual { color: var(--accent-yellow); }
+        .ach-pin-manual svg { width: 14px; height: 14px; }
+        .ach-pin-auto { color: rgba(255,255,255,0.45); font-size: 13px; }
+        .ach-card.in-profile { border-style: solid; }
         .ach-card.unlocked { border-style: solid; opacity: 1; filter: grayscale(0); background: rgba(25, 25, 25, 0.8); }
         .ach-card.pinned { box-shadow: 0 0 18px rgba(255,184,0,0.4) !important; border-color: var(--accent-yellow) !important; border-style: solid !important; }
         .ach-card .ach-icon { width: 36px; height: 36px; margin-bottom: 2px;}
@@ -527,7 +532,7 @@
                     <div class="guide-card glass-panel" style="border-color: var(--accent-yellow);">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-yellow);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                         <div class="guide-title" style="color: var(--accent-yellow);">Banco de Logros</div>
-                        <div class="guide-text">Hay <strong>95 logros</strong> para desbloquear. Algunos son escalables (por jugar más), otros son únicos y secretos. Puedes <strong>fijar hasta 3 logros</strong> en tu perfil. ¡Descúbrelos explorando todas las secciones del juego!</div>
+                        <div class="guide-text">Hay <strong>247 logros</strong> para desbloquear. Algunos son escalables (por jugar más), otros son únicos y secretos. Puedes <strong>fijar hasta 3 logros</strong> en tu perfil. ¡Descúbrelos explorando todas las secciones del juego!</div>
                     </div>
 
                     <!-- Power Level / Ranking -->
@@ -552,7 +557,7 @@
         </div>
         <div class="content-scroll no-scrollbar">
             <div class="achievements-wrapper">
-                <div class="achievements-stats" id="achievements-progress-text">Desbloqueados: 0 / 95</div>
+                <div class="achievements-stats" id="achievements-progress-text">Desbloqueados: 0 / 247</div>
                 <div class="achievements-grid" id="full-achievements-grid" style="content-visibility: auto;"></div>
             </div>
         </div>
@@ -730,39 +735,52 @@
     });
 
     // --- Audio y Reactividad Musical ---
+    // ── AUDIO ENGINE (Web Audio API – lookahead scheduler) ──────────────────
     const AudioContext = window.AudioContext || window.webkitAudioContext;
-    let audioCtx, isMusicPlaying = false, musicSeqStep = 0, nextNoteTime = 0, musicTimerID;
+    let audioCtx = null;
+    let masterMusicGain, masterSFXGain, masterLimiter, audioAnalyser, audioDataArray;
+    let isMusicPlaying = false, musicSeqStep = 0, nextNoteTime = 0, musicTimerID = null;
     let chordIndex = 0;
-    
-    let masterMusicGain, masterSFXGain, audioAnalyser;
-    let audioDataArray;
+    // Lookahead and schedule interval (seconds / ms) – tight for accuracy
+    const SCHED_AHEAD = 0.12;   // schedule this far ahead
+    const SCHED_INTERVAL = 25;  // scheduler polling interval ms
 
     function initAudio() {
-        if (!audioCtx) { 
-            audioCtx = new AudioContext(); 
+        if (!audioCtx) {
+            audioCtx = new AudioContext();
+            // Master music gain (lower so it doesn't overpower SFX)
             masterMusicGain = audioCtx.createGain();
+            masterMusicGain.gain.value = playerStats.musicVol * 0.55;
+            // Master SFX gain
             masterSFXGain = audioCtx.createGain();
+            masterSFXGain.gain.value = playerStats.sfxVol;
+            // Limiter/compressor to avoid clipping
+            masterLimiter = audioCtx.createDynamicsCompressor();
+            masterLimiter.threshold.value = -3;
+            masterLimiter.knee.value = 3;
+            masterLimiter.ratio.value = 12;
+            masterLimiter.attack.value = 0.001;
+            masterLimiter.release.value = 0.1;
+            // Analyser for visuals
             audioAnalyser = audioCtx.createAnalyser();
-            audioAnalyser.fftSize = 64; 
+            audioAnalyser.fftSize = 64;
             audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
-            
+            // Routing: music -> analyser -> limiter -> out
+            //          sfx             -> limiter -> out
             masterMusicGain.connect(audioAnalyser);
-            masterSFXGain.connect(audioCtx.destination); 
-            audioAnalyser.connect(audioCtx.destination);
-            
-            updateVolumes();
-            startMusicEngine(); 
+            audioAnalyser.connect(masterLimiter);
+            masterSFXGain.connect(masterLimiter);
+            masterLimiter.connect(audioCtx.destination);
+            startMusicEngine();
         }
         if (audioCtx.state === 'suspended') audioCtx.resume();
     }
-    
+
     function updateVolumes() {
-        if (masterMusicGain) {
-            masterMusicGain.gain.setValueAtTime(playerStats.musicVol, audioCtx.currentTime);
-        }
-        if (masterSFXGain) {
-            masterSFXGain.gain.setValueAtTime(playerStats.sfxVol, audioCtx.currentTime);
-        }
+        if (!audioCtx) return;
+        const t = audioCtx.currentTime;
+        if (masterMusicGain) masterMusicGain.gain.setTargetAtTime(playerStats.musicVol * 0.55, t, 0.05);
+        if (masterSFXGain)   masterSFXGain.gain.setTargetAtTime(playerStats.sfxVol, t, 0.05);
     }
 
     let currentAudioPulse = 0;
@@ -770,91 +788,146 @@
         if (!audioAnalyser) return 0;
         audioAnalyser.getByteFrequencyData(audioDataArray);
         let sum = 0;
-        for(let i = 0; i < 4; i++) sum += audioDataArray[i];
-        currentAudioPulse = sum / (4 * 255); 
+        for (let i = 0; i < 4; i++) sum += audioDataArray[i];
+        currentAudioPulse = sum / (4 * 255);
         return currentAudioPulse;
     }
 
-    function playTone(freq, type, duration, vol = 0.05) {
-        if (!audioCtx) return; 
-        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(vol, audioCtx.currentTime); 
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-        osc.connect(gain); gain.connect(masterSFXGain); 
-        osc.start(); osc.stop(audioCtx.currentTime + duration);
+    // Schedule a single oscillator note at an exact AudioContext time
+    function schedNote(freq, type, startTime, duration, vol, dest) {
+        const osc  = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.0001, startTime);
+        gain.gain.linearRampToValueAtTime(vol, startTime + 0.005);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+        osc.connect(gain);
+        gain.connect(dest || masterSFXGain);
+        osc.start(startTime);
+        osc.stop(startTime + duration + 0.01);
     }
-    
+
+    // Play an SFX: array of [freq, type, offsetSec, duration, vol]
+    function playSFX(notes) {
+        if (!audioCtx || playerStats.sfxVol === 0) return;
+        const now = audioCtx.currentTime + 0.01;  // tiny buffer to avoid scheduling in past
+        notes.forEach(([freq, type, offset, duration, vol]) => {
+            schedNote(freq, type, now + offset, duration, vol * playerStats.sfxVol);
+        });
+    }
+
+    // Noise burst for music (scheduled to exact time)
     function playNoiseAt(time, duration, vol, cutoff = 5000) {
-        if (!audioCtx) return; 
-        const bufferSize = audioCtx.sampleRate * duration, buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate), data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-        const noise = audioCtx.createBufferSource(); noise.buffer = buffer; const gain = audioCtx.createGain();
-        gain.gain.setValueAtTime(vol, time); gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-        const filter = audioCtx.createBiquadFilter(); filter.type = 'highpass'; filter.frequency.value = cutoff;
-        noise.connect(filter); filter.connect(gain); gain.connect(masterMusicGain); noise.start(time);
+        if (!audioCtx) return;
+        const sr = audioCtx.sampleRate;
+        const buf = audioCtx.createBuffer(1, Math.ceil(sr * duration), sr);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        const src    = audioCtx.createBufferSource();
+        const gain   = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+        src.buffer = buf;
+        filter.type = 'highpass';
+        filter.frequency.value = cutoff;
+        gain.gain.setValueAtTime(vol, time);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(masterMusicGain);
+        src.start(time);
     }
-    
-    function startMusicEngine() { isMusicPlaying = true; nextNoteTime = audioCtx.currentTime + 0.1; scheduler(); }
-    function scheduler() { if (!isMusicPlaying) return; while (nextNoteTime < audioCtx.currentTime + 0.1) { playMusicStep(nextNoteTime); nextNoteStep(); } musicTimerID = setTimeout(scheduler, 25); }
-    
-    function nextNoteStep() { 
-        const isFrenzy = streak >= 5; 
-        nextNoteTime += 0.25 * (60.0 / (isFrenzy ? 130 : 115)); 
-        musicSeqStep++; 
-        if (musicSeqStep >= 16) { 
-            musicSeqStep = 0; 
-            chordIndex = (chordIndex + 1) % 4; 
-        } 
+
+    // ── Music scheduler ──
+    function startMusicEngine() {
+        isMusicPlaying = true;
+        nextNoteTime = audioCtx.currentTime + 0.05;
+        schedulerTick();
     }
-    
-    function playMusicStep(time) {
-        const isFrenzy = streak >= 5;
-        const chordProgression = [[60,64,67,72],[65,69,72,77],[67,71,74,79],[57,60,64,69]];
-        const currentChord = chordProgression[chordIndex];
-        const midiToFreq = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
-        if (musicSeqStep % 4 === 0) {
-            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'sine'; osc.frequency.setValueAtTime(120, time);
-            osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.3);
-            gain.gain.setValueAtTime(0.8, time); gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
-            osc.connect(gain); gain.connect(masterMusicGain); osc.start(time); osc.stop(time + 0.3);
+    function schedulerTick() {
+        if (!isMusicPlaying || !audioCtx) return;
+        while (nextNoteTime < audioCtx.currentTime + SCHED_AHEAD) {
+            playMusicStep(nextNoteTime);
+            advanceMusicStep();
         }
-        
-        if (musicSeqStep % 2 === 0) {
-             const osc = audioCtx.createOscillator(), gain = audioCtx.createGain(), filter = audioCtx.createBiquadFilter();
-             osc.type = 'sawtooth'; osc.frequency.setValueAtTime(midiToFreq(currentChord[0] - 12), time);
-             filter.type = 'lowpass'; filter.frequency.setValueAtTime(isFrenzy ? 800 : 350, time);
-             filter.frequency.exponentialRampToValueAtTime(100, time + 0.2);
-             gain.gain.setValueAtTime(isFrenzy ? 0.5 : 0.35, time); gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
-             osc.connect(filter); filter.connect(gain); gain.connect(masterMusicGain); osc.start(time); osc.stop(time + 0.2);
+        musicTimerID = setTimeout(schedulerTick, SCHED_INTERVAL);
+    }
+
+    function advanceMusicStep() {
+        const bpm = (typeof streak !== 'undefined' && streak >= 5) ? 132 : 116;
+        nextNoteTime += 60.0 / bpm / 4;   // 16th note at given BPM
+        musicSeqStep++;
+        if (musicSeqStep >= 16) { musicSeqStep = 0; chordIndex = (chordIndex + 1) % 4; }
+    }
+
+    const CHORD_PROG = [[60,64,67,72],[65,69,72,77],[67,71,74,79],[57,60,64,69]];
+    const ARP_PAT    = [0,1,2,3,2,1,0,2,1,3,0,2,3,1,2,0];
+    const midiToHz   = m => 440 * Math.pow(2, (m - 69) / 12);
+
+    function playMusicStep(t) {
+        const isFrenzy = (typeof streak !== 'undefined' && streak >= 5);
+        const chord    = CHORD_PROG[chordIndex];
+        const step     = musicSeqStep;
+
+        // Kick (every 4 steps)
+        if (step % 4 === 0) {
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = 'sine';
+            o.frequency.setValueAtTime(130, t);
+            o.frequency.exponentialRampToValueAtTime(0.01, t + 0.25);
+            g.gain.setValueAtTime(isFrenzy ? 0.9 : 0.7, t);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+            o.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 0.3);
         }
 
-        const arpPattern = [0,1,2,3,2,1,0,2,1,3,0,2,3,1,2,0];
-        const noteMidi = currentChord[arpPattern[musicSeqStep % arpPattern.length]] + (isFrenzy ? 12 : 0);
-        
-        const oscArp = audioCtx.createOscillator(), gainArp = audioCtx.createGain(), filterArp = audioCtx.createBiquadFilter();
-        oscArp.type = 'triangle'; oscArp.frequency.setValueAtTime(midiToFreq(noteMidi), time);
-        filterArp.type = 'lowpass'; filterArp.frequency.setValueAtTime(isFrenzy ? 2500 : 1000, time);
-        gainArp.gain.setValueAtTime(0.0, time); gainArp.gain.linearRampToValueAtTime(isFrenzy ? 0.4 : 0.3, time + 0.02); 
-        gainArp.gain.exponentialRampToValueAtTime(0.001, time + (isFrenzy ? 0.15 : 0.25));
-        oscArp.connect(filterArp); filterArp.connect(gainArp); gainArp.connect(masterMusicGain);
-        oscArp.start(time); oscArp.stop(time + 0.3);
-        
+        // Bass (every 2 steps)
+        if (step % 2 === 0) {
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain(), f = audioCtx.createBiquadFilter();
+            o.type = 'sawtooth';
+            o.frequency.setValueAtTime(midiToHz(chord[0] - 12), t);
+            f.type = 'lowpass';
+            f.frequency.setValueAtTime(isFrenzy ? 900 : 400, t);
+            f.frequency.exponentialRampToValueAtTime(80, t + 0.18);
+            g.gain.setValueAtTime(isFrenzy ? 0.45 : 0.3, t);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+            o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 0.2);
+        }
+
+        // Arp melody (every step)
+        const noteMidi = chord[ARP_PAT[step]] + (isFrenzy ? 12 : 0);
+        const arpDur   = isFrenzy ? 0.12 : 0.22;
+        const arpVol   = isFrenzy ? 0.35 : 0.25;
+        {
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain(), f = audioCtx.createBiquadFilter();
+            o.type = 'triangle';
+            o.frequency.setValueAtTime(midiToHz(noteMidi), t);
+            f.type = 'lowpass';
+            f.frequency.setValueAtTime(isFrenzy ? 3000 : 1200, t);
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.linearRampToValueAtTime(arpVol, t + 0.015);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + arpDur);
+            o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + arpDur + 0.01);
+        }
+
+        // Hi-hat noise in frenzy
         if (isFrenzy) {
-            if (musicSeqStep % 2 !== 0) playNoiseAt(time, 0.05, 0.2, 7000); 
-            if (musicSeqStep === 4 || musicSeqStep === 12) playNoiseAt(time, 0.15, 0.3, 2000); 
+            if (step % 2 !== 0) playNoiseAt(t, 0.04, 0.15, 8000);
+            if (step === 0 || step === 8) playNoiseAt(t, 0.12, 0.25, 2000);
         }
     }
-    
+
+    // ── SFX definitions (all notes pre-scheduled via WebAudio clock) ─────────
     const SFX = {
-        click: () => playTone(600, 'sine', 0.1, 0.1), tick: () => playTone(800, 'square', 0.05, 0.02), select: () => { playTone(400, 'sine', 0.1, 0.05); setTimeout(()=>playTone(600, 'sine', 0.15, 0.05), 50); },
-        correct: () => { playTone(523.25, 'triangle', 0.2, 0.1); setTimeout(() => playTone(783.99, 'triangle', 0.4, 0.1), 100); }, incorrect: () => playTone(150, 'sawtooth', 0.4, 0.1),
-        streakTrigger: () => { playTone(440, 'sine', 0.1, 0.1); setTimeout(() => playTone(659.25, 'sine', 0.1, 0.1), 100); setTimeout(() => playTone(880, 'sine', 0.4, 0.15), 200); },
-        achievement: () => { playTone(880, 'sine', 0.1, 0.1); setTimeout(() => playTone(1108.73, 'sine', 0.1, 0.1), 100); setTimeout(() => playTone(1318.51, 'sine', 0.3, 0.1), 200); },
-        gameStart: () => { playTone(300, 'sine', 0.1, 0.1); setTimeout(() => playTone(400, 'sine', 0.1, 0.1), 100); setTimeout(() => playTone(600, 'sine', 0.3, 0.15), 200); },
-        gameEnd: () => { playTone(500, 'triangle', 0.15, 0.1); setTimeout(() => playTone(700, 'triangle', 0.15, 0.1), 150); setTimeout(() => playTone(900, 'triangle', 0.4, 0.15), 300); }
+        click:        () => playSFX([[700, 'sine', 0, 0.08, 0.12]]),
+        tick:         () => playSFX([[900, 'square', 0, 0.04, 0.04]]),
+        select:       () => playSFX([[420, 'sine', 0, 0.09, 0.07], [640, 'sine', 0.05, 0.12, 0.07]]),
+        correct:      () => playSFX([[523, 'triangle', 0, 0.15, 0.14], [784, 'triangle', 0.09, 0.25, 0.14], [1047, 'sine', 0.18, 0.2, 0.09]]),
+        incorrect:    () => playSFX([[180, 'sawtooth', 0, 0.12, 0.16], [140, 'sawtooth', 0.08, 0.2, 0.14]]),
+        streakTrigger:() => playSFX([[440, 'sine', 0, 0.1, 0.12], [659, 'sine', 0.08, 0.12, 0.13], [880, 'triangle', 0.17, 0.3, 0.15]]),
+        achievement:  () => playSFX([[880, 'sine', 0, 0.1, 0.13], [1109, 'sine', 0.09, 0.12, 0.13], [1319, 'sine', 0.19, 0.35, 0.13], [1760, 'sine', 0.3, 0.25, 0.09]]),
+        gameStart:    () => playSFX([[330, 'sine', 0, 0.1, 0.13], [440, 'sine', 0.09, 0.12, 0.13], [660, 'triangle', 0.19, 0.35, 0.15]]),
+        gameEnd:      () => playSFX([[550, 'triangle', 0, 0.14, 0.13], [730, 'triangle', 0.13, 0.15, 0.13], [920, 'triangle', 0.27, 0.4, 0.14]])
     };
 
     // --- UI Modal y Configuracion ---
@@ -1017,7 +1090,7 @@
         { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 50 logros en total.',                         color: colors.yellow, icon: SVG_STAR },
         { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 65 logros en total.',                         color: colors.orange, icon: SVG_STAR },
         { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 80 logros.',                                  color: colors.purple, icon: SVG_STAR },
-        { id: 'master3', title: 'Dios Klick',   desc: 'Consigue los 95 logros del juego. Eres absoluto.',        color: colors.red,    icon: SVG_STAR },
+        { id: 'master3', title: 'Dios Klick',   desc: 'Consigue los 247 logros del juego. Eres absoluto.',        color: colors.red,    icon: SVG_STAR },
     ]);
 
     // --- DÍAS DE ACTIVIDAD (10) ---
@@ -1360,73 +1433,102 @@
     }
     
     // Rarity score: how exclusive/rare is each achievement (higher = rarer)
-    const RARITY_SCORE = {master3:100,master4:95,master2:90,master1:85,fin5:82,u8:80,u7:78,u15:75,nm4:73,nm3:70,nm10:68,u9:65,u23:62,u11:60,u16:58,nm9:55,u19:52,u24:50,np1:48,np3:46,u21:44};
+    // ── Rarity score for auto-profile fill ──────────────────────────────────
+    const RARITY_SCORE = {master3:100,master4:96,master2:91,master1:86,fin5:83,u8:81,u7:79,u15:76,nm4:74,nm3:71,nm10:69,u9:66,u23:63,u11:61,u16:59,nm9:56,u19:53,u24:51,np1:49,np3:47,u21:44};
     function getAchRarity(id) { return RARITY_SCORE[id] || 10; }
 
     function getAutoProfileAchs() {
-        const pinned = [];
-        // Force tramposo first if present
-        if (playerStats.achievements.includes('tramposo')) pinned.push('tramposo');
-        // Respect manually pinned achievements
-        playerStats.pinnedAchievements.filter(id => id !== 'tramposo').forEach(id => {
-            if (pinned.length < 3 && playerStats.achievements.includes(id)) pinned.push(id);
-        });
-        // Fill remaining slots with rarest unlocked achievements
-        if (pinned.length < 3) {
-            const remaining = playerStats.achievements.filter(id => id !== 'tramposo' && !pinned.includes(id));
-            remaining.sort((a, b) => getAchRarity(b) - getAchRarity(a));
-            remaining.forEach(id => { if (pinned.length < 3) pinned.push(id); });
+        const result = [];
+        if (playerStats.achievements.includes('tramposo')) result.push('tramposo');
+        playerStats.pinnedAchievements
+            .filter(id => id !== 'tramposo')
+            .forEach(id => { if (result.length < 3 && playerStats.achievements.includes(id)) result.push(id); });
+        if (result.length < 3) {
+            const rest = playerStats.achievements
+                .filter(id => id !== 'tramposo' && !result.includes(id))
+                .sort((a,b) => getAchRarity(b) - getAchRarity(a));
+            rest.forEach(id => { if (result.length < 3) result.push(id); });
         }
-        return pinned;
+        return result;
     }
 
     function renderAchievements() {
         if (!isAchievementsInitialized) initializeAchievementsDOM();
-        const profileGrid = document.getElementById('profile-achievements-grid');
-        let unlockedCount = playerStats.achievements.filter(id => id !== 'tramposo').length;
-        const displayPinned = getAutoProfileAchs();
+        const profileGrid  = document.getElementById('profile-achievements-grid');
+        const unlockedCount = playerStats.achievements.filter(id => id !== 'tramposo').length;
+        const displayPinned = getAutoProfileAchs();   // IDs actually shown in profile right now
+        const manualPinned  = playerStats.pinnedAchievements;
 
         ACHIEVEMENTS_DATA.forEach(ach => {
-            const isUnlocked = playerStats.achievements.includes(ach.id);
-            const isPinned = playerStats.pinnedAchievements.includes(ach.id);
-            const card = achCardElements[ach.id]; if (!card) return;
-            card.className = `ach-card${isUnlocked ? ' unlocked' : ''}${isPinned ? ' pinned' : ''}`;
+            const isUnlocked  = playerStats.achievements.includes(ach.id);
+            const isManualPin = manualPinned.includes(ach.id);
+            const isInProfile = displayPinned.includes(ach.id);
+            const card = achCardElements[ach.id];
+            if (!card) return;
+
+            // ── Classes ──
+            let cls = 'ach-card';
+            if (isUnlocked)  cls += ' unlocked';
+            if (isManualPin) cls += ' pinned';
+            else if (isInProfile) cls += ' in-profile';
+            card.className = cls;
+
+            // ── Colors ──
             card.style.borderColor = isUnlocked ? ach.color : '';
-            card.style.boxShadow = isPinned ? `0 0 18px ${ach.color}55` : '';
-            const pinLabel = isPinned ? `<div style="position:absolute;top:5px;right:5px;width:14px;height:14px;color:var(--accent-yellow)">${SVG_PIN}</div>` : '';
-            card.innerHTML = `${pinLabel}<div class="ach-icon" style="color:${isUnlocked ? ach.color : 'var(--text-secondary)'}">${isUnlocked ? ach.icon : SVG_LOCK}</div><div class="ach-title">${ach.title}</div><div class="ach-desc">${isUnlocked ? ach.desc : 'Sigue jugando para descubrirlo.'}</div>`;
+            if (isManualPin)       card.style.boxShadow = `0 0 14px ${ach.color}66`;
+            else if (isInProfile)  card.style.boxShadow = `0 0 7px ${ach.color}33`;
+            else                   card.style.boxShadow = '';
+
+            // ── Profile indicator badge (always visible when in profile) ──
+            // Gold SVG pin = manually fixed by player
+            // White star   = auto-selected as rarest achievement
+            let badge = '';
+            if (isManualPin) {
+                badge = `<div class="ach-pin-badge ach-pin-manual" title="Fijado manualmente en perfil">${SVG_PIN}</div>`;
+            } else if (isInProfile) {
+                badge = `<div class="ach-pin-badge ach-pin-auto" title="En perfil (automático)">★</div>`;
+            }
+
+            card.innerHTML = badge +
+                `<div class="ach-icon" style="color:${isUnlocked ? ach.color : 'var(--text-secondary)'}">${isUnlocked ? ach.icon : SVG_LOCK}</div>` +
+                `<div class="ach-title">${ach.title}</div>` +
+                `<div class="ach-desc">${isUnlocked ? ach.desc : 'Sigue jugando para descubrirlo.'}</div>`;
         });
 
+        // ── Profile grid ──
         if (profileGrid) {
             profileGrid.innerHTML = '';
-            const profFragment = document.createDocumentFragment();
-            let profileRendered = 0;
+            const frag = document.createDocumentFragment();
+            let n = 0;
             displayPinned.forEach(id => {
-                if (profileRendered >= 3) return;
+                if (n >= 3) return;
                 let ach = ACHIEVEMENTS_DATA.find(a => a.id === id);
                 if (id === 'tramposo') ach = CHEATER_ACHIEVEMENT;
-                if (ach) {
-                    const slot = document.createElement('div');
-                    slot.className = 'achievement-slot unlocked';
-                    slot.style.borderColor = ach.color;
-                    slot.style.boxShadow = `0 0 10px ${ach.color}33`;
-                    slot.innerHTML = `<div class="ach-icon" style="color:${ach.color}">${ach.icon}</div><div class="ach-title">${ach.title}</div>`;
-                    profFragment.appendChild(slot);
-                    profileRendered++;
-                }
+                if (!ach) return;
+                const slot = document.createElement('div');
+                slot.className = 'achievement-slot unlocked';
+                slot.style.borderColor = ach.color;
+                slot.style.boxShadow = `0 0 12px ${ach.color}44`;
+                slot.innerHTML = `<div class="ach-icon" style="color:${ach.color}">${ach.icon}</div><div class="ach-title">${ach.title}</div>`;
+                frag.appendChild(slot); n++;
             });
-            while (profileRendered < 3) {
-                const slot = document.createElement('div'); slot.className = 'achievement-slot';
+            while (n < 3) {
+                const slot = document.createElement('div');
+                slot.className = 'achievement-slot';
                 slot.innerHTML = `<div class="ach-icon" style="color:var(--text-secondary)">${SVG_LOCK}</div><div class="ach-title" style="color:var(--text-secondary)">Vacío</div>`;
-                profFragment.appendChild(slot); profileRendered++;
+                frag.appendChild(slot); n++;
             }
-            profileGrid.appendChild(profFragment);
+            profileGrid.appendChild(frag);
         }
-        document.getElementById('achievements-progress-text').innerText = `Desbloqueados: ${unlockedCount} / 95`;
+
+        const el = document.getElementById('achievements-progress-text');
+        if (el) el.innerText = `Desbloqueados: ${unlockedCount} / 247`;
     }
 
     function appendProfileSlot(grid, ach) {
-        const slot = document.createElement('div'); slot.className = 'achievement-slot unlocked'; slot.style.borderColor = ach.color;
+        const slot = document.createElement('div');
+        slot.className = 'achievement-slot unlocked';
+        slot.style.borderColor = ach.color;
         slot.innerHTML = `<div class="ach-icon" style="color:${ach.color}">${ach.icon}</div><div class="ach-title">${ach.title}</div>`;
         grid.appendChild(slot);
     }
@@ -1856,4 +1958,3 @@
 </script>
 </body>
 </html>
-
