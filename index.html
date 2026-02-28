@@ -726,14 +726,6 @@
     
     if(!playerStats.uuid) playerStats.uuid = generateUUID();
 
-    // Sanitizar fechas: si no son strings "YYYY-MM-DD" válidos, resetear
-    if (typeof playerStats.lastLoginDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(playerStats.lastLoginDate)) {
-        playerStats.lastLoginDate = '';
-    }
-    if (typeof playerStats.lastPlayedDay !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(playerStats.lastPlayedDay)) {
-        playerStats.lastPlayedDay = '';
-    }
-
     function saveStatsLocally() { 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(playerStats)); 
     }
@@ -1293,48 +1285,14 @@
     ]);
 
 
-    function getTodayLocalStr() {
-        // Usa fecha LOCAL del dispositivo, no UTC — evita bugs de zona horaria
-        const now = new Date();
-        const y = now.getFullYear();
-        const m = String(now.getMonth() + 1).padStart(2, '0');
-        const d = String(now.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`; // Siempre un String "YYYY-MM-DD"
-    }
-
     function processDailyLogin() {
-        const todayStr = getTodayLocalStr(); // String "YYYY-MM-DD"
-
-        // Sanitizar: si el valor guardado no es un string YYYY-MM-DD válido, resetear
-        const stored = playerStats.lastLoginDate;
-        const lastDate = (typeof stored === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(stored))
-            ? stored
-            : ''; // valor inválido (array, undefined, etc.) → tratar como nunca logueado
-
-        if (lastDate === todayStr) return; // Ya se procesó hoy, no hacer nada
-
-        if (lastDate !== '') {
-            // Calcular cuántos días han pasado usando fechas locales
-            const [ly, lm, ld] = lastDate.split('-').map(Number);
-            const last  = new Date(ly, lm - 1, ld);
-            const [ty, tm, td] = todayStr.split('-').map(Number);
-            const today = new Date(ty, tm - 1, td);
-            const diffDays = Math.round((today - last) / (1000 * 60 * 60 * 24));
-
-            if (diffDays === 1) {
-                playerStats.currentLoginStreak++;
-            } else {
-                playerStats.currentLoginStreak = 1;
-            }
-        } else {
-            playerStats.currentLoginStreak = 1;
+        const now = new Date(); const todayStr = now.toISOString().split('T');
+        if (playerStats.lastLoginDate !== todayStr) {
+            const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1); const yesterdayStr = yesterday.toISOString().split('T');
+            if (playerStats.lastLoginDate === yesterdayStr) { playerStats.currentLoginStreak++; playerStats.maxLoginStreak = Math.max(playerStats.maxLoginStreak, playerStats.currentLoginStreak); } 
+            else { playerStats.currentLoginStreak = 1; if(playerStats.maxLoginStreak === 0) playerStats.maxLoginStreak = 1; }
+            playerStats.lastLoginDate = todayStr; playerStats.todayGames = 0; saveStatsLocally(); checkAchievements();
         }
-
-        playerStats.maxLoginStreak = Math.max(playerStats.maxLoginStreak, playerStats.currentLoginStreak);
-        playerStats.lastLoginDate = todayStr; // Guardar siempre como String
-        playerStats.todayGames = 0;
-        saveStatsLocally();
-        checkAchievements();
     }
     function shuffleArray(array) { let current = array.length, random; while (current !== 0) { random = Math.floor(Math.random() * current); current--; [array[current], array[random]] = [array[random], array[current]]; } return array; }
 
@@ -1656,12 +1614,9 @@
         if(hora>=23||hora<1) playerStats.playedNocturno=true;
         if(hora<6) playerStats.playedMadrugador=true;
         
-        const todayStr2 = getTodayLocalStr();
+        const todayStr2 = new Date().toISOString().split('T');
         if(!playerStats.totalDaysPlayed) playerStats.totalDaysPlayed = 0;
-        // Sanitizar lastPlayedDay por si tiene formato inválido
-        const lastPlayed = (typeof playerStats.lastPlayedDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(playerStats.lastPlayedDay))
-            ? playerStats.lastPlayedDay : '';
-        if(!lastPlayed || lastPlayed !== todayStr2) {
+        if(!playerStats.lastPlayedDay || playerStats.lastPlayedDay !== todayStr2) {
             playerStats.lastPlayedDay = todayStr2;
             playerStats.totalDaysPlayed++;
         }
