@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Klick - Experiencia de Aprendizaje</title>
-    <!-- Favicon dinámico (se actualiza por JS) -->
     <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ff66' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'%3E%3C/polygon%3E%3C/svg%3E">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap');
@@ -48,9 +47,6 @@
         #app.streak-active { background: radial-gradient(circle at 50% 50%, rgba(var(--rank-rgb), 0.15) 0%, var(--bg-base) 80%); animation: streak-pulse 1.5s infinite alternate ease-out; }
         @keyframes streak-pulse { 0% { box-shadow: inset 0 0 0px rgba(var(--rank-rgb), 0); } 100% { box-shadow: inset 0 0 60px rgba(var(--rank-rgb), 0.15); } }
 
-        .streak-active #score-display { border-color: var(--rank-color); box-shadow: 0 0 15px rgba(var(--rank-rgb), 0.3); color: var(--rank-color); }
-        .streak-active #score-display::before { background: var(--rank-color); box-shadow: 0 0 10px var(--rank-color); }
-
         #particle-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 
         .screen { width: 100%; height: 100%; flex-direction: column; position: absolute; top: 0; left: 0; opacity: 0; visibility: hidden; pointer-events: none; transform: scale(0.97) translateY(10px); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); display: flex; z-index: 1; }
@@ -66,12 +62,12 @@
         .top-btn:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.1); transform: translateY(-2px); }
         .top-btn svg { width: 26px; height: 26px; }
 
-        .logo-container { font-size: clamp(3.5rem, 10vw, 7rem); font-weight: 900; letter-spacing: -2px; color: var(--text-primary); text-align: center; line-height: 1; }
-        .logo-dot { color: var(--accent-green); transition: color 0.5s ease; }
+        .logo-container { font-size: clamp(3.5rem, 10vw, 7rem); font-weight: 900; font-style: italic; letter-spacing: -2px; color: var(--text-primary); text-align: center; line-height: 1; }
+        .logo-dot { color: var(--accent-green); transition: color 0.5s ease; font-style: normal; }
         .logo-subtitle { font-size: clamp(0.7rem, 2vw, 0.9rem); font-weight: 600; letter-spacing: 4px; color: var(--text-secondary); margin-top: 5px; margin-bottom: 40px; display: block; text-transform: uppercase; text-align: center; }
 
-        .menu-box { display: flex; flex-direction: column; gap: 15px; width: 90%; max-width: 340px; }
-        .btn-solid, .btn-outline, .btn-bpd { width: 100%; padding: clamp(14px, 2.5vh, 18px); font-size: 1rem; font-weight: 800; letter-spacing: 1.5px; border-radius: var(--radius-md); cursor: pointer; transition: all 0.3s ease-out; display: flex; justify-content: center; align-items: center; text-transform: uppercase; }
+        .menu-box { display: flex; flex-direction: column; gap: 15px; width: 90%; max-width: 360px; }
+        .btn-solid, .btn-outline, .btn-bpd { width: 100%; padding: clamp(14px, 2.5vh, 18px); font-size: 1rem; font-weight: 800; letter-spacing: 1.5px; border-radius: var(--radius-md); cursor: pointer; transition: all 0.3s ease-out; display: flex; justify-content: center; align-items: center; text-transform: uppercase; gap: 10px; }
         
         .btn-solid { color: var(--text-primary); background-color: transparent; border: 1px solid var(--text-primary); }
         .btn-solid:hover { background-color: rgba(255,255,255,0.1); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255,255,255,0.1); }
@@ -102,35 +98,21 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: all 0.3s var(--ease-out); z-index: 100; }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         
-        /* --- ESTILOS DE CONFIGURACIÓN RENOVADOS --- */
-        .settings-card { 
-            background: rgba(15, 15, 15, 0.95); backdrop-filter: blur(25px); 
-            padding: 25px 30px 30px 30px; border-radius: var(--radius-lg); 
-            border: 1px solid rgba(255, 255, 255, 0.08); 
-            border-top: 4px solid var(--rank-color); /* Se enlaza al rango del usuario */
-            width: 90%; max-width: 400px; 
-            box-shadow: 0 25px 50px rgba(0,0,0,0.8), 0 0 40px rgba(var(--rank-rgb), 0.15); 
-            display: flex; flex-direction: column; gap: 15px; 
-            transform: scale(0.95); transition: all 0.3s var(--ease-out); 
-        }
-        .modal-overlay.active .settings-card { transform: scale(1); }
-        .settings-title { 
-            font-size: 1.2rem; font-weight: 900; color: var(--text-primary); text-align: center; text-transform: uppercase; letter-spacing: 2px;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            padding-bottom: 15px; border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
-        }
-        .settings-title svg { color: var(--rank-color); width: 24px; height: 24px; }
-        
-        .setting-group { 
-            display: flex; flex-direction: column; gap: 8px; 
-            background: rgba(255, 255, 255, 0.02); padding: 12px 15px; border-radius: var(--radius-sm); border: 1px solid transparent;
-            transition: all 0.3s;
-        }
-        .setting-group:hover { background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.05); }
-        .setting-group label { font-size: 0.8rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; letter-spacing: 1px;}
-        .setting-value { color: var(--accent-blue); font-family: monospace; font-size: 1rem; font-weight: 900; background: rgba(0, 212, 255, 0.1); padding: 2px 8px; border-radius: 6px;}
+        /* --- Pantalla de Configuración --- */
+        .settings-dashboard { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: clamp(15px, 2vh, 30px); margin: 0 auto; justify-content: center; min-height: 100%; padding-bottom: 20px; }
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: clamp(15px, 2vw, 25px); width: 100%; }
+        .setting-card { padding: clamp(20px, 3vh, 30px); border-radius: var(--radius-lg); border: 1px solid var(--bg-elevated); display: flex; flex-direction: column; gap: 20px; transition: all 0.3s ease; }
+        .setting-card:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .setting-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .setting-title-box { display: flex; align-items: center; gap: 15px; }
+        .setting-icon { width: 45px; height: 45px; border-radius: 50%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+        .setting-icon svg { width: 22px; height: 22px; }
+        .setting-label { font-size: clamp(0.9rem, 1.5vw, 1.1rem); font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 1px; display: flex; flex-direction: column; }
+        .setting-desc { font-size: clamp(0.65rem, 1vw, 0.75rem); color: var(--text-secondary); margin-top: 4px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+        .setting-value { font-family: monospace; font-size: clamp(0.9rem, 1.5vw, 1.1rem); font-weight: 900; padding: 6px 14px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.05); }
 
-        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; margin: 8px 0 0 0; }
+        /* Estilos de Rango/Deslizadores */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; margin: 5px 0 0 0; }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; background: rgba(0,0,0,0.6); border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 1px 3px rgba(0,0,0,0.8); }
         input[type=range]::-webkit-slider-thumb { 
             -webkit-appearance: none; height: 22px; width: 22px; border-radius: 50%; 
@@ -245,13 +227,19 @@
         #question-screen { justify-content: space-between; }
         
         .top-bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 15px 20px; font-weight: 600; font-size: 0.9rem; color: var(--text-secondary); z-index: 5; }
-        .top-bar > *:nth-child(1) { justify-self: start; }
-        .top-bar > *:nth-child(2) { justify-self: center; text-align: center; font-size: 1rem; color: var(--text-primary); letter-spacing: 1px; }
-        .top-bar > *:nth-child(3) { justify-self: end; }
+        .top-bar > *:nth-child(1) { justify-self: start; display: flex; align-items: center; gap: 15px; }
+        .top-bar > *:nth-child(2) { justify-self: center; text-align: center; font-size: 1rem; color: var(--text-primary); letter-spacing: 1px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .top-bar > *:nth-child(3) { justify-self: end; display: flex; align-items: center; gap: 10px; }
         
         .btn-abandon { background: transparent; color: var(--accent-red); border: 1px solid rgba(255, 42, 95, 0.5); padding: 6px 12px; border-radius: 20px; cursor: pointer; font-weight: 800; font-size: 0.75rem; display: flex; align-items: center; gap: 5px; transition: all 0.2s; text-transform: uppercase; }
         .btn-abandon:hover { background: rgba(255, 42, 95, 0.2); border-color: var(--accent-red); transform: scale(0.95); }
         .btn-abandon svg { width: 14px; height: 14px; }
+
+        #lives-container { display: flex; gap: 3px; color: var(--accent-yellow); }
+        #lives-container svg { width: 16px; height: 16px; transition: all 0.3s; }
+        .life-lost { opacity: 0.2; transform: scale(0.8); filter: grayscale(1); }
+
+        .multiplier-badge { background: transparent; color: var(--accent-red); font-weight: 900; font-size: 1.2rem; display: none; text-shadow: 0 0 10px rgba(255,42,95,0.5); }
 
         .score-badge { background: transparent; color: var(--text-primary); padding: 6px 15px; border-radius: 30px; border: 1px solid var(--text-secondary); font-variant-numeric: tabular-nums; font-weight: 800; display: flex; align-items: center; gap: 8px; }
         .score-badge::before { content: ''; display: inline-block; width: 8px; height: 8px; background: var(--accent-yellow); border-radius: 50%; box-shadow: 0 0 10px var(--accent-yellow); }
@@ -285,17 +273,20 @@
         .streak-box { font-size: 1rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; }
         .streak-box span { color: var(--accent-yellow); font-weight: 900; font-size: 1.2rem; }
 
-        #end-screen { justify-content: center; align-items: center; text-align: center; }
-        .results-container { width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 20px; z-index: 5; }
-        .results-icon { width: 60px; height: 60px; background: rgba(var(--rank-rgb), 0.1); border-radius: 50%; color: var(--rank-color); display: flex; justify-content: center; align-items: center; margin: 0 auto 10px auto; }
-        .results-icon svg { width: 30px; height: 30px; }
-        .podium-title { font-size: clamp(1.8rem, 5vw, 2.2rem); font-weight: 900; color: var(--text-primary); }
-        .final-score-box { background-color: rgba(17, 17, 17, 0.8); border: 1px solid var(--bg-elevated); padding: 25px; border-radius: var(--radius-lg); border-top: 4px solid var(--rank-color); }
-        .final-score-value { font-size: clamp(3rem, 10vw, 5rem); font-weight: 900; color: var(--text-primary); line-height: 1; }
-        .results-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; }
-        .r-stat-val { font-size: 1.2rem; font-weight: 800; color: var(--text-primary); display: block; }
-        .r-stat-label { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; }
-        .results-actions { display: flex; flex-direction: column; gap: 15px; width: 100%; margin-top: 10px; }
+        /* --- PANTALLA DE FIN (Estética Homogeneizada) --- */
+        #end-screen .settings-card {
+            max-width: 450px; text-align: center; padding: 35px 30px;
+            display: flex; flex-direction: column; align-items: center; gap: 15px;
+        }
+        .results-icon { width: 70px; height: 70px; background: rgba(var(--rank-rgb), 0.1); border-radius: 50%; color: var(--rank-color); display: flex; justify-content: center; align-items: center; margin: 0 auto; box-shadow: 0 0 20px rgba(var(--rank-rgb), 0.2); }
+        .results-icon svg { width: 35px; height: 35px; }
+        .podium-title { font-size: clamp(1.8rem, 5vw, 2.2rem); font-weight: 900; color: var(--text-primary); line-height: 1.1; margin-top: 5px;}
+        .final-name { font-size: 1rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; font-weight: 800;}
+        .final-score-value { font-size: clamp(3.5rem, 10vw, 5rem); font-weight: 900; color: var(--text-primary); line-height: 1; text-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .results-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 20px; margin-bottom: 10px;}
+        .r-stat { display: flex; flex-direction: column; align-items: center; gap: 3px; background: rgba(255,255,255,0.02); padding: 10px; border-radius: var(--radius-sm);}
+        .r-stat-val { font-size: 1.3rem; font-weight: 900; color: var(--text-primary); }
+        .r-stat-label { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;}
 
         /* Toast UI */
         .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 100; pointer-events: none; }
@@ -327,7 +318,6 @@
     <canvas id="particle-canvas"></canvas>
     <div class="toast-container" id="toast-container"></div>
 
-    <!-- Menú Principal -->
     <div id="start-screen" class="screen active content-fit">
         
         <div class="top-btn-container">
@@ -342,47 +332,93 @@
         <div class="logo-container">KLICK<span class="logo-dot">.</span></div>
         <div class="logo-subtitle">By Didac-Click Group</div>
 
-        <div class="menu-box">
-            <button class="btn-solid" id="start-btn" onclick="startGameCheck()">Nueva Partida</button>
-            <button class="btn-outline" onclick="goToProfile()">Mi Perfil</button>
+        <div class="menu-box" id="menu-box">
+            <button class="btn-solid" onclick="startGameCheck('classic')" style="border-color: var(--accent-blue); color: var(--accent-blue);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Modo Clásico
+            </button>
+            <button class="btn-solid" onclick="startGameCheck('hardcore')" style="border-color: var(--accent-red); color: var(--accent-red);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                Modo Hardcore
+            </button>
+            <button class="btn-outline" onclick="goToProfile()" style="margin-top: 10px;">Mi Perfil</button>
             <button class="btn-outline" onclick="goToAchievements()">Banco de Logros</button>
             <button class="btn-outline" onclick="goToGuide()">Instrucciones</button>
             <button class="btn-bpd" onclick="goToCanje()">Zona de Canje (BPD)</button>
         </div>
     </div>
 
-    <!-- Modal Configuración -->
-    <div id="settings-modal" class="modal-overlay">
-        <div class="settings-card">
-            <div class="settings-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                Ajustes
+    <div id="settings-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
+            <div class="nav-title">CONFIGURACIÓN</div><div class="nav-spacer"></div>
+        </div>
+        <div class="content-scroll no-scrollbar">
+            <div class="settings-dashboard">
+                <div class="settings-grid">
+                    
+                    <div class="setting-card glass-panel">
+                        <div class="setting-header">
+                            <div class="setting-title-box">
+                                <div class="setting-icon" style="color: var(--accent-green);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                                </div>
+                                <div class="setting-label">Música Ambiental<div class="setting-desc">Volumen de la banda sonora</div></div>
+                            </div>
+                            <span id="val-music" class="setting-value" style="color: var(--accent-green); background: rgba(0, 255, 102, 0.1);">100%</span>
+                        </div>
+                        <input type="range" id="op-music" min="0" max="1" step="0.05" value="1">
+                    </div>
+
+                    <div class="setting-card glass-panel">
+                        <div class="setting-header">
+                            <div class="setting-title-box">
+                                <div class="setting-icon" style="color: var(--accent-blue);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                                </div>
+                                <div class="setting-label">Efectos (SFX)<div class="setting-desc">Volumen de respuestas y clics</div></div>
+                            </div>
+                            <span id="val-sfx" class="setting-value" style="color: var(--accent-blue); background: rgba(0, 212, 255, 0.1);">100%</span>
+                        </div>
+                        <input type="range" id="op-sfx" min="0" max="1" step="0.05" value="1">
+                    </div>
+
+                    <div class="setting-card glass-panel">
+                        <div class="setting-header">
+                            <div class="setting-title-box">
+                                <div class="setting-icon" style="color: var(--accent-purple);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                </div>
+                                <div class="setting-label">Fondo Activo<div class="setting-desc">Opacidad de las partículas reactivas</div></div>
+                            </div>
+                            <span id="val-particles" class="setting-value" style="color: var(--accent-purple); background: rgba(181, 23, 158, 0.1);">100%</span>
+                        </div>
+                        <input type="range" id="op-particles" min="0" max="1" step="0.05" value="1">
+                    </div>
+
+                    <div class="setting-card glass-panel">
+                        <div class="setting-header">
+                            <div class="setting-title-box">
+                                <div class="setting-icon" style="color: var(--accent-yellow);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                </div>
+                                <div class="setting-label">Fluidez (FPS)<div class="setting-desc">Tasa de refresco del sistema</div></div>
+                            </div>
+                            <span id="val-fps" class="setting-value" style="color: var(--accent-yellow); background: rgba(255, 184, 0, 0.1);">60 FPS</span>
+                        </div>
+                        <input type="range" id="op-fps" min="15" max="240" step="5" value="60">
+                    </div>
+
+                </div>
+                
+                <button class="btn-solid" onclick="goToMainMenu()" style="max-width: 300px; margin: 15px auto 0 auto; border-color: var(--rank-color); color: var(--rank-color); background: rgba(var(--rank-rgb), 0.05);">Guardar y Regresar</button>
             </div>
-            <div class="setting-group">
-                <label><span>Música</span> <span id="val-music" class="setting-value">100%</span></label>
-                <input type="range" id="op-music" min="0" max="1" step="0.05" value="1">
-            </div>
-            <div class="setting-group">
-                <label><span>SFX (Efectos)</span> <span id="val-sfx" class="setting-value">100%</span></label>
-                <input type="range" id="op-sfx" min="0" max="1" step="0.05" value="1">
-            </div>
-            <div class="setting-group">
-                <label><span>Fondo Activo</span> <span id="val-particles" class="setting-value">100%</span></label>
-                <input type="range" id="op-particles" min="0" max="1" step="0.05" value="1">
-            </div>
-            <div class="setting-group">
-                <label><span>Fluidez / FPS</span> <span id="val-fps" class="setting-value" style="color: var(--accent-yellow); background: rgba(255, 184, 0, 0.1);">60 FPS</span></label>
-                <input type="range" id="op-fps" min="15" max="240" step="5" value="60">
-                <span style="font-size: 0.65rem; color: var(--text-secondary); text-align: center; margin-top: 5px; line-height: 1.2;">Baja los FPS si notas lag, o súbelos para pantallas veloces (144Hz/240Hz).</span>
-            </div>
-            <button class="btn-solid" onclick="closeSettings()" style="margin-top: 10px; border-color: var(--rank-color); color: var(--rank-color); background: rgba(var(--rank-rgb), 0.05);">Guardar Cambios</button>
         </div>
     </div>
 
-    <!-- Modal Abandonar Partida (Ultrarrápido) -->
     <div id="abandon-modal" class="modal-overlay">
-        <div class="settings-card glass-panel" style="text-align: center; max-width: 320px;">
-            <div class="settings-title" style="color: var(--accent-red);">¿Abandonar Partida?</div>
+        <div class="settings-card glass-panel" style="text-align: center; max-width: 320px; padding: 25px 30px; border-radius: var(--radius-lg); border-top: 4px solid var(--accent-red); display: flex; flex-direction: column; gap: 15px;">
+            <div style="font-size: 1.2rem; font-weight: 900; color: var(--accent-red); text-transform: uppercase;">¿Abandonar Partida?</div>
             <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">Se aplicará una penalidad de <strong style="color: var(--accent-red);">-1,000 pts</strong> a tu acumulado.</p>
             <div style="display: flex; gap: 10px; width: 100%;">
                 <button class="btn-outline" onclick="cancelAbandon()" style="flex: 1; border-color: var(--text-secondary); color: var(--text-secondary);">Cancelar</button>
@@ -391,7 +427,6 @@
         </div>
     </div>
 
-    <!-- Ranking Global -->
     <div id="ranking-screen" class="screen nav-screen">
         <div class="top-nav">
             <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
@@ -406,7 +441,6 @@
         </div>
     </div>
 
-    <!-- Perfil -->
     <div id="profile-screen" class="screen nav-screen">
         <div class="top-nav">
             <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
@@ -431,7 +465,6 @@
         </div>
     </div>
 
-    <!-- Guía -->
     <div id="guide-screen" class="screen nav-screen">
         <div class="top-nav">
             <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
@@ -442,13 +475,18 @@
                 <div class="guide-grid">
                     <div class="guide-card glass-panel">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                        <div class="guide-title" style="color: var(--accent-blue);">Dinámica y Materia</div>
-                        <div class="guide-text">Cada partida consta de <strong>20 preguntas aleatorias</strong> de la materia de <strong>Lengua Española</strong>. Ganas <strong>800 pts base</strong> por acierto y hasta <strong>800 pts extra</strong> por rapidez.</div>
+                        <div class="guide-title" style="color: var(--accent-blue);">Modo Clásico</div>
+                        <div class="guide-text">Cada partida consta de <strong>20 preguntas aleatorias</strong> de <strong>Lengua Española</strong>. Ganas <strong>800 pts base</strong> por acierto y hasta <strong>800 extra</strong> por rapidez.</div>
                     </div>
-                    <div class="guide-card glass-panel">
+                    <div class="guide-card glass-panel" style="border-color: var(--accent-red);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-red);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        <div class="guide-title" style="color: var(--accent-red);">Modo Hardcore</div>
+                        <div class="guide-text"><strong>Preguntas infinitas</strong>, solo <strong>15 segundos</strong> y <strong>3 vidas</strong>. Si fallas, pierdes una vida. El modo de los verdaderos campeones.</div>
+                    </div>
+                    <div class="guide-card glass-panel full-width">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"></path></svg>
-                        <div class="guide-title" style="color: var(--accent-red);">Racha de Fuego</div>
-                        <div class="guide-text">Al llegar a <strong>5 aciertos seguidos</strong> entras en <em>Modo Frenesí</em>, otorgando <strong>+80 puntos adicionales progresivos</strong>. Si fallas, la racha se reinicia.</div>
+                        <div class="guide-title" style="color: var(--accent-orange);">Racha de Frenesí (Evolutiva)</div>
+                        <div class="guide-text">Al llegar a <strong>5 aciertos seguidos</strong> entras en Modo Frenesí. En Clásico da +80 pts fijos. En <strong>Hardcore</strong> es un multiplicador global <strong>(x2, x3, x4)</strong> que sube cada 5 aciertos.</div>
                     </div>
                     <div class="guide-card full-width glass-panel">
                         <div class="guide-title" style="color: var(--text-primary);">Sistema de Rangos Base</div>
@@ -460,7 +498,6 @@
                         </div>
                     </div>
                     
-                    <!-- LEYENDA SEPARADA -->
                     <div class="guide-card full-width glass-panel" style="border-color: var(--accent-yellow);">
                         <div class="rank-list" style="margin-top: 0; width: 100%;">
                             <div class="rank-item" style="width: 100%; background: transparent; border: none; padding: 0;">
@@ -470,7 +507,6 @@
                         </div>
                     </div>
                     
-                    <!-- EXPLICACIÓN NIVEL DE PODER (PL) -->
                     <div class="guide-card full-width glass-panel" style="border-color: var(--accent-purple);">
                         <div class="guide-title" style="color: var(--accent-purple);">Nivel de Poder Global (PL)</div>
                         <div class="guide-text">
@@ -483,7 +519,6 @@
         </div>
     </div>
 
-    <!-- Zona Canje BPD -->
     <div id="canje-screen" class="screen nav-screen">
         <div class="top-nav">
             <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
@@ -521,8 +556,7 @@
 
                     <div class="cheque-footer">
                         <div id="canje-status" class="canje-status-text">
-                            <!-- Inyectado vía JS -->
-                        </div>
+                            </div>
                         <button class="btn-bpd" id="canje-btn" onclick="revelarCheque()" disabled style="opacity:0.5; cursor:not-allowed; max-width: 250px;">Generar Recibo de Canje</button>
                         <div id="canje-instruction" class="c-instruction">
                             ¡Aprobado! Presenta esta pantalla intacta a un administrador del Banco del Pincel Dorado para que te otorgue los fondos.
@@ -533,7 +567,6 @@
         </div>
     </div>
 
-    <!-- Banco de Logros -->
     <div id="achievements-screen" class="screen nav-screen">
         <div class="top-nav">
             <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
@@ -547,15 +580,23 @@
         </div>
     </div>
 
-    <!-- Juego / Feedback / Fin -->
     <div id="question-screen" class="screen">
         <div class="top-bar">
-            <button class="btn-abandon" onclick="abandonGame()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                Salir
-            </button>
-            <div id="player-name-display">JUGADOR</div>
-            <div class="score-badge" id="score-display">0</div>
+            <div>
+                <button class="btn-abandon" onclick="abandonGame()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    Salir
+                </button>
+            </div>
+            <div>
+                <div id="player-name-display">JUGADOR</div>
+                <div id="lives-container">
+                    </div>
+            </div>
+            <div>
+                <div id="multiplier-badge" class="multiplier-badge">x1</div>
+                <div class="score-badge" id="score-display">0</div>
+            </div>
         </div>
         <div class="question-container">
             <div class="timer-wrapper">
@@ -570,7 +611,7 @@
             <button class="answer-btn color-yellow ans-delay-3" onclick="selectAnswer(2)"><svg class="shape-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg><span id="ans-2">Opción 3</span></button>
             <button class="answer-btn color-green ans-delay-4" onclick="selectAnswer(3)"><svg class="shape-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect></svg><span id="ans-3">Opción 4</span></button>
         </div>
-        <div class="progress-bar-container"><div class="progress-bar" id="global-progress"></div></div>
+        <div class="progress-bar-container" id="progress-container"><div class="progress-bar" id="global-progress"></div></div>
     </div>
 
     <div id="feedback-screen" class="screen">
@@ -582,24 +623,25 @@
         </div>
     </div>
 
-    <div id="end-screen" class="screen">
-        <div class="results-container">
-            <div class="results-header">
+    <div id="end-screen" class="screen nav-screen">
+        <div class="content-fit">
+            <div class="settings-card glass-panel" id="end-glass-panel">
                 <div class="results-icon" id="results-icon-svg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline><circle cx="12" cy="8" r="7"></circle></svg></div>
                 <div class="podium-title" id="final-message">Rendimiento Excelente</div>
-            </div>
-            <div class="final-score-box">
                 <div class="final-name" id="final-name">ESTUDIANTE</div>
+                
                 <div class="final-score-value" id="final-score-display">0</div>
+                
                 <div class="results-stats-grid">
-                    <div class="r-stat"><span class="r-stat-val" id="final-correct">0/20</span><span class="r-stat-label">Aciertos</span></div>
+                    <div class="r-stat"><span class="r-stat-val" id="final-correct">0/20</span><span class="r-stat-label" id="final-correct-label">Aciertos</span></div>
                     <div class="r-stat"><span class="r-stat-val" id="final-streak">0</span><span class="r-stat-label">Racha Máx</span></div>
                     <div class="r-stat"><span class="r-stat-val" id="final-speed">0</span><span class="r-stat-label">Rápidas</span></div>
                 </div>
-            </div>
-            <div class="results-actions">
-                <button class="btn-outline" onclick="goToMainMenu()">Menú Principal</button>
-                <button class="btn-solid" onclick="startGameCheck()">Volver a Jugar</button>
+
+                <div style="display: flex; gap: 15px; width: 100%; margin-top: 10px;">
+                    <button class="btn-outline" onclick="goToMainMenu()" style="flex: 1;">Menú</button>
+                    <button class="btn-solid" onclick="replayGame()" style="flex: 1; border-color: var(--rank-color); background: rgba(var(--rank-rgb), 0.1);">Jugar de Nuevo</button>
+                </div>
             </div>
         </div>
     </div>
@@ -632,7 +674,6 @@
         
         const penalty = 2000; 
         playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
-        // Castigo severo a los récords para afectar fuertemente el ranking
         playerStats.bestScore = Math.max(0, playerStats.bestScore - penalty);
         playerStats.maxStreak = Math.max(0, playerStats.maxStreak - 5);
         playerStats.perfectGames = Math.max(0, playerStats.perfectGames - 1);
@@ -641,7 +682,6 @@
         if (!playerStats.achievements.includes('tramposo')) {
             playerStats.achievements.push('tramposo');
         }
-        // -----------------------------
 
         saveStatsLocally();
         submitLeaderboard(); 
@@ -703,22 +743,31 @@
         saveStatsLocally();
     });
 
-    // --- Audio ---
+    // --- Audio y Reactividad Musical ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx, isMusicPlaying = false, musicSeqStep = 0, nextNoteTime = 0, musicTimerID;
     let chordIndex = 0;
     
-    let masterMusicGain, masterSFXGain;
+    let masterMusicGain, masterSFXGain, audioAnalyser;
+    let audioDataArray;
 
     function initAudio() {
         if (!audioCtx) { 
             audioCtx = new AudioContext(); 
             
-            // Crear Nodos Maestros de Volumen
+            // Nodos Maestros
             masterMusicGain = audioCtx.createGain();
-            masterMusicGain.connect(audioCtx.destination);
             masterSFXGain = audioCtx.createGain();
-            masterSFXGain.connect(audioCtx.destination);
+            
+            // Analizador para reactividad de partículas
+            audioAnalyser = audioCtx.createAnalyser();
+            audioAnalyser.fftSize = 64; // Pequeño para capturar bajos rápido
+            audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
+            
+            // Ruteo
+            masterMusicGain.connect(audioAnalyser);
+            masterSFXGain.connect(audioCtx.destination); // SFX sin pasar por el analizador (para no alterar partículas con clics)
+            audioAnalyser.connect(audioCtx.destination);
             
             updateVolumes();
             startMusicEngine(); 
@@ -735,6 +784,17 @@
         }
     }
 
+    // Funciones de utilidad para audio
+    let currentAudioPulse = 0;
+    function getAudioPulse() {
+        if (!audioAnalyser) return 0;
+        audioAnalyser.getByteFrequencyData(audioDataArray);
+        let sum = 0;
+        for(let i = 0; i < 4; i++) sum += audioDataArray[i]; // Captura los graves
+        currentAudioPulse = sum / (4 * 255); // Valor normalizado 0 a 1
+        return currentAudioPulse;
+    }
+
     function playTone(freq, type, duration, vol = 0.05) {
         if (!audioCtx) return; 
         const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
@@ -745,7 +805,6 @@
         osc.start(); osc.stop(audioCtx.currentTime + duration);
     }
     
-    // Función de ruido actualizada (permite modificar el filtro según se necesite)
     function playNoiseAt(time, duration, vol, cutoff = 5000) {
         if (!audioCtx) return; 
         const bufferSize = audioCtx.sampleRate * duration, buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate), data = buffer.getChannelData(0);
@@ -761,7 +820,7 @@
     
     function nextNoteStep() { 
         const isFrenzy = streak >= 5; 
-        // 115 BPM base, 130 BPM Frenzy (Ritmo inspirador, más calmado y profundo)
+        // 115 BPM base, 130 BPM Frenzy (Ritmo inspirador)
         nextNoteTime += 0.25 * (60.0 / (isFrenzy ? 130 : 115)); 
         musicSeqStep++; 
         if (musicSeqStep >= 16) { 
@@ -773,66 +832,65 @@
     function playMusicStep(time) {
         const isFrenzy = streak >= 5;
         
-        // Progresión de acordes inspiradora (Am - F - C - G) tipo Synthwave Épico
+        // Progresión de acordes inspiradora (Am - F - C - G)
         const chordProgression = [
-            [45, 48, 52, 57], // Am
-            [41, 45, 48, 53], // F
-            [48, 52, 55, 60], // C
-            [43, 47, 50, 55]  // G
+          [57, 60, 64, 67], // Am: A3, C4, E4, G4
+          [53, 57, 60, 65], // F:  F3, A3, C4, F4
+          [48, 52, 55, 60], // C:  C3, E3, G3, C4
+          [55, 59, 62, 67]  // G:  G3, B3, D4, G4
         ];
         const currentChord = chordProgression[chordIndex];
         const midiToFreq = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
-        // 1. Bombo (Kick) - Más profundo, cálido y envolvente
+        // 1. Bombo (Kick)
         if (musicSeqStep % 4 === 0) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'sine';
             osc.frequency.setValueAtTime(120, time);
             osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.3);
-            gain.gain.setValueAtTime(0.8, time); // VOLUMEN AUMENTADO (antes 0.5)
+            gain.gain.setValueAtTime(0.8, time); 
             gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
             osc.connect(gain); gain.connect(masterMusicGain);
             osc.start(time); osc.stop(time + 0.3);
         }
         
-        // 2. Línea de Bajo (Warm Pad/Bass) - Un pulso constante suave
+        // 2. Línea de Bajo (Warm Pad/Bass)
         if (musicSeqStep % 2 === 0) {
              const osc = audioCtx.createOscillator();
              const gain = audioCtx.createGain();
              const filter = audioCtx.createBiquadFilter();
              
              osc.type = 'sawtooth';
-             osc.frequency.setValueAtTime(midiToFreq(currentChord[0] - 12), time); // Tónica una octava abajo
+             osc.frequency.setValueAtTime(midiToFreq(currentChord - 12), time);
              
              filter.type = 'lowpass';
-             filter.frequency.setValueAtTime(isFrenzy ? 800 : 350, time); // Se abre un poco en frenesí
+             filter.frequency.setValueAtTime(isFrenzy ? 800 : 350, time);
              filter.frequency.exponentialRampToValueAtTime(100, time + 0.2);
 
-             gain.gain.setValueAtTime(isFrenzy ? 0.5 : 0.35, time); // VOLUMEN AUMENTADO (antes 0.25 / 0.15)
+             gain.gain.setValueAtTime(isFrenzy ? 0.5 : 0.35, time);
              gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
 
              osc.connect(filter); filter.connect(gain); gain.connect(masterMusicGain);
              osc.start(time); osc.stop(time + 0.2);
         }
 
-        // 3. Arpegiador Principal (Melódico y cristalino)
-        // Patrón rítmico agradable
-        const arpPattern = [0, 1, 2, 1, 0, 1, 2, 3, 2, 1, 2, 3, 0, 1, 2, 1]; 
-        const noteMidi = currentChord[arpPattern[musicSeqStep]] + (isFrenzy ? 12 : 0); // Sube de octava en frenesí
+        // 3. Arpegiador Principal
+        const arpPattern = [0, 2, 1, 3, 0, 3, 2, 1, 0, 2, 3, 1, 2, 0, 1, 3]; 
+        const noteMidi = currentChord[arpPattern[musicSeqStep]] + (isFrenzy ? 12 : 0);
         
         const oscArp = audioCtx.createOscillator();
         const gainArp = audioCtx.createGain();
         const filterArp = audioCtx.createBiquadFilter();
 
-        oscArp.type = 'triangle'; // Suave y celestial, sin ser agudo chirriante
+        oscArp.type = 'triangle'; 
         oscArp.frequency.setValueAtTime(midiToFreq(noteMidi), time);
 
         filterArp.type = 'lowpass';
         filterArp.frequency.setValueAtTime(isFrenzy ? 2500 : 1000, time);
 
         gainArp.gain.setValueAtTime(0.0, time);
-        gainArp.gain.linearRampToValueAtTime(isFrenzy ? 0.4 : 0.3, time + 0.02); // VOLUMEN AUMENTADO (antes 0.2 / 0.15)
+        gainArp.gain.linearRampToValueAtTime(isFrenzy ? 0.4 : 0.3, time + 0.02); 
         gainArp.gain.exponentialRampToValueAtTime(0.001, time + (isFrenzy ? 0.15 : 0.25));
 
         oscArp.connect(filterArp); filterArp.connect(gainArp); gainArp.connect(masterMusicGain);
@@ -840,13 +898,11 @@
         
         // 4. Percusión de ambiente en Frenesí
         if (isFrenzy) {
-            // Hi-hat sutil a contratiempo
             if (musicSeqStep % 2 !== 0) {
-                playNoiseAt(time, 0.05, 0.2, 7000); // VOLUMEN AUMENTADO (antes 0.1)
+                playNoiseAt(time, 0.05, 0.2, 7000); 
             }
-            // Snare (Caja) rítmica en los tiempos fuertes
             if (musicSeqStep === 4 || musicSeqStep === 12) {
-                playNoiseAt(time, 0.15, 0.3, 2000); // VOLUMEN AUMENTADO (antes 0.15)
+                playNoiseAt(time, 0.15, 0.3, 2000); 
             }
         }
     }
@@ -863,20 +919,16 @@
         gameEnd: () => { playTone(500, 'triangle', 0.15, 0.1); setTimeout(() => playTone(700, 'triangle', 0.15, 0.1), 150); setTimeout(() => playTone(900, 'triangle', 0.4, 0.15), 300); }
     };
 
-    // --- UI Modal ---
+    // --- UI Modal y Configuracion ---
     function openSettings() {
         initAudio(); SFX.click();
         document.getElementById('op-music').value = playerStats.musicVol; document.getElementById('op-sfx').value = playerStats.sfxVol; 
         document.getElementById('op-particles').value = playerStats.particleOpacity; document.getElementById('op-fps').value = playerStats.maxFps;
         document.getElementById('val-music').innerText = Math.round(playerStats.musicVol*100)+'%'; document.getElementById('val-sfx').innerText = Math.round(playerStats.sfxVol*100)+'%'; 
         document.getElementById('val-particles').innerText = Math.round(playerStats.particleOpacity*100)+'%'; document.getElementById('val-fps').innerText = playerStats.maxFps+' FPS';
-        document.getElementById('settings-modal').classList.add('active');
+        switchScreen('settings-screen');
     }
-    function closeSettings() { 
-        SFX.click(); 
-        document.getElementById('settings-modal').classList.remove('active'); 
-        updateVolumes();
-    }
+
     document.getElementById('op-music').addEventListener('input', (e) => { playerStats.musicVol = parseFloat(e.target.value); document.getElementById('val-music').innerText = Math.round(playerStats.musicVol*100)+'%'; updateVolumes(); saveStatsLocally(); });
     document.getElementById('op-sfx').addEventListener('input', (e) => { playerStats.sfxVol = parseFloat(e.target.value); document.getElementById('val-sfx').innerText = Math.round(playerStats.sfxVol*100)+'%'; updateVolumes(); saveStatsLocally(); });
     document.getElementById('op-particles').addEventListener('input', (e) => { playerStats.particleOpacity = parseFloat(e.target.value); document.getElementById('val-particles').innerText = Math.round(playerStats.particleOpacity*100)+'%'; saveStatsLocally(); });
@@ -896,10 +948,8 @@
     }
 
     // --- Módulo: Ranking Global (Google Apps Script) ---
-    // IMPORTANTE: Reemplaza esta URL con la que te generó tu Google Apps Script
     const GAS_URL = "https://script.google.com/macros/s/AKfycbxbLrjL45NYaQsRaSlZJXHKlQj-1Qh4f-CPxz4KsOMpfMI4jwwYC1UrNpnm_-f6ISeCww/exec"; 
     
-    // Algoritmo de Nivel de Poder (PL)
     function calculatePowerLevel(stats) {
         const base = stats.totalScore * 0.05; 
         const best = stats.bestScore * 1.5; 
@@ -971,12 +1021,10 @@
         }
     }
 
-    // Auto-Actualizar cada 60 segundos (Silencioso en segundo plano)
     setInterval(() => {
         submitLeaderboard();
         fetchLeaderboard();
     }, 60000);
-
 
     // --- SISTEMA DE PREGUNTAS MASIVAS (JSON EXTERNO) ---
     let quizDataPool = [];
@@ -1000,7 +1048,6 @@
     const ACHIEVEMENTS_DATA = [];
     const colors = { blue: 'var(--accent-blue)', green: 'var(--accent-green)', yellow: 'var(--accent-yellow)', orange: 'var(--accent-orange)', red: 'var(--accent-red)', purple: 'var(--accent-purple)', dark: 'var(--text-secondary)' };
     
-    // Constante para el logro oculto e imborrable
     const CHEATER_ACHIEVEMENT = { id: 'tramposo', title: 'TRAMPOSO', desc: 'Infringió las normas. Marca imborrable.', color: 'var(--accent-red)', icon: SVG_SKULL };
 
     function addAchs(arr) { arr.forEach(a => ACHIEVEMENTS_DATA.push(a)); }
@@ -1017,21 +1064,22 @@
         { id: 'm9', title: 'Completista', desc: 'Alcanza el hito de 50 logros desbloqueados.', color: colors.orange, icon: SVG_STAR }, 
         { id: 'm10', title: 'Dios', desc: 'La maestría absoluta. Consigue los 100 logros del juego.', color: colors.red, icon: SVG_STAR }
     ]);
-    const daysTiers = [1, 2, 3, 5, 7, 14, 21, 30, 60, 90]; const daysTitles = ['Hola Mundo', 'Doble', 'Triple', 'Cinco', 'Semana Activa', 'Quincena', 'Tres Semanas', 'Un Mes', 'Bimestre', 'Trimestre Fuego'];
+    const daysTiers = [1, 2, 3, 5, 7, 15, 21, 30, 60, 90]; 
+    const daysTitles = ['Hola Mundo', 'Doble', 'Triple', 'Cinco', 'Semana Activa', 'Quincena', 'Tres Semanas', 'Un Mes', 'Bimestre', 'Trimestre Fuego'];
     for(let i=0; i<10; i++) addAchs([{ id: `d${i+1}`, title: daysTitles[i], desc: `Inicia sesión y juega durante ${daysTiers[i]} días consecutivos.`, color: colors.green, icon: SVG_CLOCK }]);
-    const ptTiers = [10, 50, 100, 500, 1000, 5000, 10000, 50000]; 
+    const ptTiers = [1, 10, 25, 50, 100, 200, 350, 500]; 
     for(let i=0; i<8; i++) addAchs([{ id: `p${i+1}`, title: `Jugador ${i+1}`, desc: `Acumula un total de ${ptTiers[i]} partidas jugadas en tu historial.`, color: colors.blue, icon: SVG_TARGET }]);
-    const ptsTiers = [50000, 250000, 1000000, 5000000, 10000000, 50000000, 100000000, 500000000]; 
+    const ptsTiers = [5000, 25000, 75000, 150000, 300000, 600000, 1000000, 2000000]; 
     for(let i=0; i<8; i++) addAchs([{ id: `pt${i+1}`, title: `Ahorrador ${i+1}`, desc: `Acumula la increíble suma de ${ptsTiers[i]} puntos totales.`, color: colors.green, icon: SVG_STAR }]);
-    const hsCountTiers = [1, 5, 10, 20, 50, 100, 250, 500]; 
+    const hsCountTiers = [1, 3, 5, 10, 20, 35, 50, 75]; 
     for(let i=0; i<8; i++) addAchs([{ id: `hs${i+1}`, title: `Récord ${i+1}`, desc: `Supera la barrera de los 20,000 puntos en ${hsCountTiers[i]} partidas distintas.`, color: colors.purple, icon: SVG_FIRE }]);
-    const frTiers = [1, 10, 50, 100, 500, 1000, 5000, 25000]; 
+    const frTiers = [1, 5, 15, 30, 60, 100, 200, 350]; 
     for(let i=0; i<8; i++) addAchs([{ id: `r${i+1}`, title: `Frenético ${i+1}`, desc: `Activa el poderoso Modo Frenesí en ${frTiers[i]} ocasiones diferentes.`, color: colors.orange, icon: SVG_FIRE }]);
-    const pfTiers = [1, 10, 50, 100, 500, 1000, 5000, 10000]; 
+    const pfTiers = [1, 3, 5, 10, 20, 35, 50, 75]; 
     for(let i=0; i<8; i++) addAchs([{ id: `pf${i+1}`, title: `Perfección ${i+1}`, desc: `Completa ${pfTiers[i]} partidas sin cometer ni un solo error.`, color: colors.yellow, icon: SVG_TARGET }]);
-    const spdTiers = [10, 100, 500, 1000, 5000, 25000, 100000, 250000]; 
+    const spdTiers = [5, 15, 30, 60, 100, 200, 350, 500]; 
     for(let i=0; i<8; i++) addAchs([{ id: `sp${i+1}`, title: `Reflejos ${i+1}`, desc: `Responde correctamente antes de los 18 segundos en ${spdTiers[i]} ocasiones.`, color: colors.blue, icon: SVG_BOLT }]);
-    const acTiers = [50, 250, 1000, 5000, 25000, 50000, 250000, 500000]; 
+    const acTiers = [10, 50, 100, 250, 500, 1000, 2000, 5000]; 
     for(let i=0; i<8; i++) addAchs([{ id: `ac${i+1}`, title: `Cerebro ${i+1}`, desc: `Acumula un total histórico de ${acTiers[i]} respuestas correctas.`, color: colors.green, icon: SVG_CORRECT }]);
     
     addAchs([
@@ -1085,7 +1133,6 @@
         let newlyUnlocked = [];
         const unlock = (id) => { if (!playerStats.achievements.includes(id)) { playerStats.achievements.push(id); newlyUnlocked.push(ACHIEVEMENTS_DATA.find(a => a.id === id)); } };
         
-        // Forzar y bloquear el pin del Tramposo en la posición 1 si se posee
         if (playerStats.achievements.includes('tramposo')) {
             if (!playerStats.pinnedAchievements.includes('tramposo')) {
                 playerStats.pinnedAchievements.unshift('tramposo');
@@ -1101,7 +1148,7 @@
         if (playerStats.nameChanges >= 1) unlock('m1'); if (playerStats.nameChanges >= 5) unlock('m2'); if (playerStats.nameChanges >= 20) unlock('m3');
         if (playerStats.achViews >= 1) unlock('m4'); if (playerStats.achViews >= 10) unlock('m5'); if (playerStats.achViews >= 50) unlock('m6');
         if (playerStats.pinnedAchievements.filter(id => id !== 'tramposo').length > 0) unlock('m7'); if (normalAchs >= 10) unlock('m8'); if (normalAchs >= 50) unlock('m9');
-        if (normalAchs >= 100) unlock('m10'); // Ajustado a 100 para no contar el de tramposo
+        if (normalAchs >= 100) unlock('m10'); 
         
         const days = playerStats.maxLoginStreak; for(let i=0; i<10; i++) if(days >= daysTiers[i]) unlock(`d${i+1}`);
         const pts = playerStats.gamesPlayed; for(let i=0; i<8; i++) if(pts >= ptTiers[i]) unlock(`p${i+1}`);
@@ -1229,20 +1276,20 @@
         if (needsName) setTimeout(() => { document.getElementById('profile-name-input').focus(); document.getElementById('profile-name-input').classList.add('shake'); setTimeout(() => document.getElementById('profile-name-input').classList.remove('shake'), 400); }, 400);
     }
 
-    async function startGameCheck() { 
+    async function startGameCheck(mode) { 
         initAudio(); 
         if (!playerStats.playerName || playerStats.playerName === "JUGADOR") { 
             SFX.incorrect(); goToProfile(true); 
             return;
         } 
         if (quizDataPool.length === 0) {
-            const btn = document.getElementById('start-btn');
+            const btn = document.querySelector('.btn-solid');
             const originalText = btn.innerText;
             btn.innerText = "Cargando..."; btn.style.opacity = "0.7";
             await loadQuestions();
             btn.innerText = originalText; btn.style.opacity = "1";
         }
-        startGame(); 
+        startGame(mode); 
     }
 
     document.getElementById('profile-name-input').addEventListener('input', e => { e.target.value = e.target.value.replace(/[^a-zA-Z0-9ÁÉÍÓÚÑáéíóúñ ]/g, '').toUpperCase(); document.getElementById('profile-warning').style.opacity = e.target.value ? '0' : '1'; });
@@ -1260,7 +1307,6 @@
         document.documentElement.style.setProperty('--rank-color', currentRankInfo.color); 
         document.querySelectorAll('.logo-dot').forEach(d => { d.style.color = currentRankInfo.color; d.style.textShadow = `0 0 15px rgba(${currentRankInfo.rgb}, 0.5)`; }); 
         
-        // Actualizar el color del Favicon dinámicamente
         const favicon = document.getElementById('dynamic-favicon');
         if(favicon) {
             const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgb(${currentRankInfo.rgb})' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'></polygon></svg>`;
@@ -1269,25 +1315,98 @@
     }
 
     // --- Game Logic ---
+    let activeGameMode = 'classic';
     let currentSessionQuestions = [], currentQuestionIndex = 0, score = 0, streak = 0, currentMaxStreak = 0, timerInterval, timeLeft = 20; 
-    const TOTAL_TIME = 20, QUESTIONS_PER_GAME = 20; 
+    let activeTimerLimit = 20;
+    const QUESTIONS_PER_GAME_CLASSIC = 20; 
     let currentFastAnswers = 0, currentWrongAnswers = 0, currentTimeoutAnswers = 0, isAnsweringAllowed = false, currentGameLog = [];
     let isGamePaused = false;
+    let hardcoreLives = 3;
+    let hardcoreMultiplier = 1;
 
-    function startGame() {
-        initAudio(); SFX.gameStart(); document.getElementById('player-name-display').innerText = playerStats.playerName && playerStats.playerName !== "JUGADOR" ? playerStats.playerName : "JUGADOR"; document.getElementById('final-name').innerText = document.getElementById('player-name-display').innerText;
-        currentSessionQuestions = shuffleArray([...quizDataPool]).slice(0, QUESTIONS_PER_GAME);
-        currentQuestionIndex = score = streak = currentMaxStreak = currentFastAnswers = currentWrongAnswers = currentTimeoutAnswers = 0; currentGameLog = []; isGamePaused = false;
+    function startGame(mode) {
+        initAudio(); SFX.gameStart();
+        activeGameMode = mode || 'classic';
+        activeTimerLimit = activeGameMode === 'hardcore' ? 15 : 20;
+        
+        document.getElementById('player-name-display').innerText = playerStats.playerName && playerStats.playerName !== "JUGADOR" ? playerStats.playerName : "JUGADOR"; 
+        document.getElementById('final-name').innerText = document.getElementById('player-name-display').innerText;
+        
+        currentSessionQuestions = shuffleArray([...quizDataPool]);
+        if(activeGameMode === 'classic') currentSessionQuestions = currentSessionQuestions.slice(0, QUESTIONS_PER_GAME_CLASSIC);
+        
+        currentQuestionIndex = score = streak = currentMaxStreak = currentFastAnswers = currentWrongAnswers = currentTimeoutAnswers = 0; 
+        currentGameLog = []; isGamePaused = false;
+        
+        // Setup Hardcore UI
+        hardcoreLives = 3;
+        hardcoreMultiplier = 1;
+        
+        const livesContainer = document.getElementById('lives-container');
+        const multBadge = document.getElementById('multiplier-badge');
+        if(activeGameMode === 'hardcore') {
+            livesContainer.style.display = 'flex';
+            document.getElementById('progress-container').style.display = 'none'; // Sin límite
+            updateLivesUI();
+            updateMultiplierUI();
+        } else {
+            livesContainer.style.display = 'none';
+            multBadge.style.display = 'none';
+            document.getElementById('progress-container').style.display = 'block';
+        }
+
         document.getElementById('score-display').innerText = score; updateStreakVisuals(); switchScreen('question-screen'); setTimeout(loadQuestion, 400); 
     }
+
+    function updateLivesUI() {
+        const c = document.getElementById('lives-container');
+        c.innerHTML = '';
+        for(let i = 0; i < 3; i++) {
+            let svgStr = SVG_BOLT;
+            let el = document.createElement('div');
+            el.innerHTML = svgStr;
+            if(i >= hardcoreLives) el.classList.add('life-lost');
+            c.appendChild(el);
+        }
+    }
+
+    function updateMultiplierUI() {
+        const b = document.getElementById('multiplier-badge');
+        if(activeGameMode === 'hardcore') {
+            hardcoreMultiplier = Math.max(1, Math.floor(streak / 5) + 1);
+            if(hardcoreMultiplier > 1) {
+                b.style.display = 'block';
+                b.innerText = `x${hardcoreMultiplier}`;
+            } else {
+                b.style.display = 'none';
+            }
+        }
+    }
     
-    function updateStreakVisuals() { const app = document.getElementById('app'); if (streak >= 5) { if (!app.classList.contains('streak-active')) { app.classList.add('streak-active'); SFX.streakTrigger(); } } else app.classList.remove('streak-active'); }
+    function updateStreakVisuals() { 
+        const app = document.getElementById('app'); 
+        if (streak >= 5) { 
+            if (!app.classList.contains('streak-active')) { app.classList.add('streak-active'); SFX.streakTrigger(); } 
+        } else app.classList.remove('streak-active'); 
+    }
+
+    function getNextQuestion() {
+        if(activeGameMode === 'hardcore' && currentQuestionIndex >= currentSessionQuestions.length - 2) {
+            // Rellenar infinitamente
+            currentSessionQuestions = currentSessionQuestions.concat(shuffleArray([...quizDataPool]));
+        }
+        return currentSessionQuestions[currentQuestionIndex];
+    }
     
     function loadQuestion() {
-        const currentQ = currentSessionQuestions[currentQuestionIndex];
+        const currentQ = getNextQuestion();
         const timerPath = document.getElementById('timer-path');
         const timerText = document.getElementById('timer-display');
-        document.getElementById('global-progress').style.width = `${(currentQuestionIndex / QUESTIONS_PER_GAME) * 100}%`; 
+        
+        if(activeGameMode === 'classic') {
+            document.getElementById('global-progress').style.width = `${(currentQuestionIndex / QUESTIONS_PER_GAME_CLASSIC) * 100}%`; 
+        }
+        
         document.getElementById('question-text').innerText = currentQ.question;
         
         let mixedAnswers = currentQ.answers.map((text, idx) => ({ text: text, isCorrect: idx === currentQ.correctIndex }));
@@ -1298,12 +1417,14 @@
         }
 
         document.getElementById('answers-grid').classList.remove('answered'); document.querySelectorAll('.answer-btn').forEach(btn => btn.classList.remove('selected'));
-        isAnsweringAllowed = true; isGamePaused = false; timeLeft = TOTAL_TIME; timerText.innerText = timeLeft; timerPath.style.transition = 'none'; timerPath.style.strokeDashoffset = '0'; timerPath.style.stroke = 'var(--text-primary)'; timerText.style.color = 'var(--text-primary)'; void timerPath.offsetWidth; timerPath.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s ease';
+        isAnsweringAllowed = true; isGamePaused = false; timeLeft = activeTimerLimit; timerText.innerText = timeLeft; 
+        
+        timerPath.style.transition = 'none'; timerPath.style.strokeDashoffset = '0'; timerPath.style.stroke = 'var(--text-primary)'; timerText.style.color = 'var(--text-primary)'; void timerPath.offsetWidth; timerPath.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s ease';
         
         clearInterval(timerInterval); 
         timerInterval = setInterval(() => { 
             if (isGamePaused) return;
-            timeLeft--; timerText.innerText = timeLeft; timerPath.style.strokeDashoffset = 283 - (timeLeft/TOTAL_TIME)*283; 
+            timeLeft--; timerText.innerText = timeLeft; timerPath.style.strokeDashoffset = 283 - (timeLeft/activeTimerLimit)*283; 
             if(timeLeft <= 5 && timeLeft > 0) { SFX.tick(); timerPath.style.stroke = 'var(--accent-red)'; timerText.style.color = 'var(--accent-red)'; } 
             if(timeLeft <= 0) handleTimeout(); 
         }, 1000);
@@ -1312,9 +1433,18 @@
     function selectAnswer(selectedIndex) {
         if (!isAnsweringAllowed || isGamePaused) return; isAnsweringAllowed = false; clearInterval(timerInterval); SFX.select();
         document.getElementById('answers-grid').classList.add('answered'); document.querySelectorAll('.answer-btn')[selectedIndex].classList.add('selected');
-        const isCorrect = (selectedIndex === currentSessionQuestions[currentQuestionIndex].currentCorrectIndex); 
+        
+        const q = getNextQuestion();
+        const isCorrect = (selectedIndex === q.currentCorrectIndex); 
         currentGameLog.push({ correct: isCorrect, time: timeLeft });
-        if(isCorrect) { playerStats.totalCorrect++; if(timeLeft >= 18) { currentFastAnswers++; playerStats.fastAnswersTotal++; } } else { playerStats.totalWrong++; currentWrongAnswers++; }
+        
+        if(isCorrect) { 
+            playerStats.totalCorrect++; 
+            if(timeLeft >= activeTimerLimit - 2) { currentFastAnswers++; playerStats.fastAnswersTotal++; } 
+        } else { 
+            playerStats.totalWrong++; currentWrongAnswers++; 
+        }
+        
         saveStatsLocally(); setTimeout(() => showFeedback(isCorrect), 600);
     }
     
@@ -1343,7 +1473,6 @@
         
         initAudio(); SFX.incorrect(); 
         
-        // El abandono solo resta puntos, pero NO da el logro de tramposo ni penaliza rachas generales fuertemente.
         const penalty = 1000; 
         playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
         
@@ -1357,49 +1486,169 @@
         switchScreen('start-screen');
     }
 
+    function replayGame() {
+        SFX.click();
+        startGame(activeGameMode);
+    }
+
     function animateScore(target) {
         const el = document.getElementById('score-display'); let curr = parseInt(el.innerText); const diff = target - curr; if(diff <= 0) return;
         const step = Math.ceil(diff / 20), t = setInterval(() => { curr += step; if(curr >= target) { curr = target; clearInterval(t); } el.innerText = curr; }, 20);
     }
+    
     function showFeedback(isCorrect, isTimeout = false) {
         const scr = document.getElementById('feedback-screen'), icon = document.getElementById('feedback-icon-container'), title = document.getElementById('feedback-title'), points = document.getElementById('feedback-points');
+        
         if (isCorrect) {
             SFX.correct(); scr.className = 'screen correct'; icon.innerHTML = SVG_CORRECT; title.innerText = "¡Excelente!";
-            const earned = 800 + Math.round((timeLeft / TOTAL_TIME) * 800) + (streak * 80); score += earned; streak++; if(streak > currentMaxStreak) currentMaxStreak = streak;
-            if (streak === 5) playerStats.frenziesTriggered++; points.innerText = `+${earned}`; points.style.display = 'block';
+            let earned = 800 + Math.round((timeLeft / activeTimerLimit) * 800);
+            
+            if (activeGameMode === 'classic') {
+                earned += (streak * 80);
+            } else {
+                earned = earned * hardcoreMultiplier;
+            }
+            
+            score += earned; streak++; if(streak > currentMaxStreak) currentMaxStreak = streak;
+            if (streak === 5) playerStats.frenziesTriggered++; 
+            points.innerText = `+${earned}`; points.style.display = 'block';
         } else {
-            SFX.incorrect(); if (isTimeout) { scr.className = 'screen timeout'; icon.innerHTML = SVG_TIMEOUT; title.innerText = "Tiempo Agotado"; } else { scr.className = 'screen incorrect'; icon.innerHTML = SVG_INCORRECT; title.innerText = "Incorrecto"; }
+            SFX.incorrect(); 
+            if (isTimeout) { scr.className = 'screen timeout'; icon.innerHTML = SVG_TIMEOUT; title.innerText = "Tiempo Agotado"; } 
+            else { scr.className = 'screen incorrect'; icon.innerHTML = SVG_INCORRECT; title.innerText = "Incorrecto"; }
+            
             streak = 0; points.style.display = 'none';
+            if(activeGameMode === 'hardcore') {
+                hardcoreLives--;
+                updateLivesUI();
+            }
         }
-        document.getElementById('streak-display').innerText = streak; updateStreakVisuals(); switchScreen('feedback-screen'); setTimeout(() => animateScore(score), 300); checkAchievements();
-        setTimeout(() => { currentQuestionIndex++; currentQuestionIndex < QUESTIONS_PER_GAME ? (switchScreen('question-screen'), setTimeout(loadQuestion, 400)) : endGame(); }, 2000);
+        
+        updateMultiplierUI();
+        document.getElementById('streak-display').innerText = streak; 
+        updateStreakVisuals(); 
+        switchScreen('feedback-screen'); 
+        setTimeout(() => animateScore(score), 300); 
+        checkAchievements();
+        
+        setTimeout(() => { 
+            currentQuestionIndex++;
+            if (activeGameMode === 'classic') {
+                currentQuestionIndex < QUESTIONS_PER_GAME_CLASSIC ? (switchScreen('question-screen'), setTimeout(loadQuestion, 400)) : endGame();
+            } else {
+                if(hardcoreLives > 0) {
+                    switchScreen('question-screen'); setTimeout(loadQuestion, 400);
+                } else {
+                    endGame();
+                }
+            }
+        }, 2000);
     }
+    
     function saveGameStats() {
         playerStats.gamesPlayed++; playerStats.todayGames++; playerStats.totalScore += score; if(score > playerStats.bestScore) playerStats.bestScore = score; if(currentMaxStreak > playerStats.maxStreak) playerStats.maxStreak = currentMaxStreak;
-        const isPerfect = (currentMaxStreak === QUESTIONS_PER_GAME && currentWrongAnswers === 0 && currentTimeoutAnswers === 0);
-        if(score >= 20000) playerStats.maxScoreCount++; if(isPerfect) { playerStats.perfectStreak++; playerStats.perfectGames++; } else playerStats.perfectStreak = 0;
+        
+        if(activeGameMode === 'classic') {
+            const isPerfect = (currentMaxStreak === QUESTIONS_PER_GAME_CLASSIC && currentWrongAnswers === 0 && currentTimeoutAnswers === 0);
+            if(score >= 20000) playerStats.maxScoreCount++; 
+            if(isPerfect) { playerStats.perfectStreak++; playerStats.perfectGames++; } else playerStats.perfectStreak = 0;
+        }
+
         playerStats.previousGameScore = score; currentRankInfo = getRankInfo(playerStats); updateLogoDots(); saveStatsLocally(); checkAchievements();
         submitLeaderboard(); 
     }
+    
     function endGame() {
         document.getElementById('final-score-display').innerText = score; saveGameStats();
-        if (currentWrongAnswers === 0 && currentTimeoutAnswers === 0) SFX.perfectGame(); else if (currentWrongAnswers === QUESTIONS_PER_GAME) SFX.allWrongGame(); else if (currentTimeoutAnswers === QUESTIONS_PER_GAME) SFX.allTimeoutGame(); else SFX.gameEnd();
-        const msg = document.getElementById('final-message'), icn = document.getElementById('results-icon-svg'), maxExp = QUESTIONS_PER_GAME * 1600;
-        if(score >= maxExp * 0.8) { msg.innerText = "Leyenda"; icn.innerHTML = SVG_TROPHY; } else if (score >= maxExp * 0.5) { msg.innerText = "Buen Desempeño"; icn.innerHTML = SVG_STAR; } else { msg.innerText = "Sigue Practicando"; icn.innerHTML = SVG_TARGET; }
-        document.getElementById('final-correct').innerText = `${QUESTIONS_PER_GAME - currentWrongAnswers - currentTimeoutAnswers}/${QUESTIONS_PER_GAME}`; document.getElementById('final-streak').innerText = currentMaxStreak; document.getElementById('final-speed').innerText = currentFastAnswers;
+        
+        const isAllWrong = (activeGameMode === 'classic' && currentWrongAnswers === QUESTIONS_PER_GAME_CLASSIC);
+        const isAllTimeouts = (activeGameMode === 'classic' && currentTimeoutAnswers === QUESTIONS_PER_GAME_CLASSIC);
+
+        if (currentWrongAnswers === 0 && currentTimeoutAnswers === 0 && activeGameMode === 'classic') SFX.perfectGame(); 
+        else if (isAllWrong) SFX.allWrongGame(); 
+        else if (isAllTimeouts) SFX.allTimeoutGame(); 
+        else SFX.gameEnd();
+        
+        const msg = document.getElementById('final-message'), icn = document.getElementById('results-icon-svg');
+        const endPanel = document.getElementById('end-glass-panel');
+
+        // Determinar título
+        if (activeGameMode === 'hardcore') {
+            msg.innerText = score > 15000 ? "Superviviente Nato" : "Muerte Súbita";
+            icn.innerHTML = score > 15000 ? SVG_TROPHY : SVG_SKULL;
+            endPanel.style.borderTopColor = score > 15000 ? 'var(--accent-yellow)' : 'var(--accent-red)';
+        } else {
+            const maxExp = QUESTIONS_PER_GAME_CLASSIC * 1600;
+            if(score >= maxExp * 0.8) { msg.innerText = "Leyenda"; icn.innerHTML = SVG_TROPHY; endPanel.style.borderTopColor = 'var(--accent-yellow)';} 
+            else if (score >= maxExp * 0.5) { msg.innerText = "Buen Desempeño"; icn.innerHTML = SVG_STAR; endPanel.style.borderTopColor = 'var(--accent-blue)';} 
+            else { msg.innerText = "Sigue Practicando"; icn.innerHTML = SVG_TARGET; endPanel.style.borderTopColor = 'var(--text-secondary)';}
+        }
+
+        document.getElementById('final-correct-label').innerText = activeGameMode === 'hardcore' ? 'Aciertos' : 'Aciertos';
+        document.getElementById('final-correct').innerText = activeGameMode === 'hardcore' ? currentQuestionIndex : `${QUESTIONS_PER_GAME_CLASSIC - currentWrongAnswers - currentTimeoutAnswers}/${QUESTIONS_PER_GAME_CLASSIC}`; 
+        
+        document.getElementById('final-streak').innerText = currentMaxStreak; 
+        document.getElementById('final-speed').innerText = currentFastAnswers;
+        
         document.getElementById('app').classList.remove('streak-active'); streak = 0; switchScreen('end-screen');
     }
 
-    // --- FPS Controlled Particles ---
+    // --- FPS Controlled Particles Reactivas ---
     const canvas = document.getElementById('particle-canvas'); const ctx = canvas.getContext('2d'); let particlesArray = [];
     let fpsInterval = 1000 / playerStats.maxFps; let then = performance.now();
-    function initParticles() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; particlesArray = []; let num = Math.min((canvas.width * canvas.height) / 10000, window.innerWidth < 768 ? 50 : 100); for (let i = 0; i < num; i++) particlesArray.push(new Particle(Math.random() * innerWidth, Math.random() * innerHeight, (Math.random()*1)-0.5, (Math.random()*1)-0.5, (Math.random()*2)+1)); }
-    class Particle { 
-        constructor(x, y, dx, dy, s) { this.x = x; this.y = y; this.dx = dx; this.dy = dy; this.s = s; } 
-        draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.s, 0, Math.PI*2); ctx.fillStyle = `rgba(${currentRankInfo.rgb}, ${(streak >= 5 ? 0.8 : 0.5) * playerStats.particleOpacity})`; ctx.fill(); } 
-        update(timeScale) { const m = streak >= 5 ? 3.5 : 1; if(this.x > canvas.width || this.x < 0) this.dx = -this.dx; if(this.y > canvas.height || this.y < 0) this.dy = -this.dy; this.x += this.dx * m * timeScale; this.y += this.dy * m * timeScale; this.draw(); } 
+    
+    function initParticles() { 
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight; particlesArray = []; 
+        let num = Math.min((canvas.width * canvas.height) / 10000, window.innerWidth < 768 ? 50 : 100); 
+        for (let i = 0; i < num; i++) particlesArray.push(new Particle(Math.random() * innerWidth, Math.random() * innerHeight, (Math.random()*1)-0.5, (Math.random()*1)-0.5, (Math.random()*2)+1)); 
     }
-    function connectParticles() { const isStreak = streak >= 5; for(let a = 0; a < particlesArray.length; a++) { for(let b = a; b < particlesArray.length; b++) { let dist = ((particlesArray[a].x - particlesArray[b].x)**2) + ((particlesArray[a].y - particlesArray[b].y)**2), cDist = (canvas.width/10) * (canvas.height/10); if (dist < cDist) { ctx.strokeStyle = `rgba(${currentRankInfo.rgb}, ${(1 - (dist / cDist)) * (isStreak ? 0.6 : 0.3) * playerStats.particleOpacity})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(particlesArray[a].x, particlesArray[a].y); ctx.lineTo(particlesArray[b].x, particlesArray[b].y); ctx.stroke(); } } } }
+    
+    class Particle { 
+        constructor(x, y, dx, dy, s) { this.x = x; this.y = y; this.dx = dx; this.dy = dy; this.s = s; this.baseS = s;} 
+        draw(pulse) { 
+            ctx.beginPath(); 
+            // Las partículas crecen con los bajos de la música
+            const dynamicSize = this.s + (pulse * 5); 
+            ctx.arc(this.x, this.y, dynamicSize, 0, Math.PI*2); 
+            ctx.fillStyle = `rgba(${currentRankInfo.rgb}, ${(streak >= 5 ? 0.8 : 0.5) * playerStats.particleOpacity})`; 
+            ctx.fill(); 
+        } 
+        update(timeScale, pulse) { 
+            const m = streak >= 5 ? 3.5 : 1; 
+            if(this.x > canvas.width || this.x < 0) this.dx = -this.dx; 
+            if(this.y > canvas.height || this.y < 0) this.dy = -this.dy; 
+            
+            // Reacción rápida al audio: Aceleración extra
+            const speedBoost = 1 + (pulse * 2.5);
+            this.x += this.dx * m * timeScale * speedBoost; 
+            this.y += this.dy * m * timeScale * speedBoost; 
+            
+            this.draw(pulse); 
+        } 
+    }
+    
+    function connectParticles(pulse) { 
+        const isStreak = streak >= 5; 
+        for(let a = 0; a < particlesArray.length; a++) { 
+            for(let b = a; b < particlesArray.length; b++) { 
+                let dist = ((particlesArray[a].x - particlesArray[b].x)**2) + ((particlesArray[a].y - particlesArray[b].y)**2);
+                let cDist = (canvas.width/10) * (canvas.height/10); 
+                
+                // Si la música golpea fuerte, conectan desde más lejos
+                cDist = cDist * (1 + pulse);
+
+                if (dist < cDist) { 
+                    ctx.strokeStyle = `rgba(${currentRankInfo.rgb}, ${(1 - (dist / cDist)) * (isStreak ? 0.6 : 0.3) * playerStats.particleOpacity})`; 
+                    // Grosor de la línea reacciona al audio
+                    ctx.lineWidth = 1 + (pulse * 3); 
+                    ctx.beginPath(); 
+                    ctx.moveTo(particlesArray[a].x, particlesArray[a].y); 
+                    ctx.lineTo(particlesArray[b].x, particlesArray[b].y); 
+                    ctx.stroke(); 
+                } 
+            } 
+        } 
+    }
     
     function animateParticles(now) { 
         requestAnimationFrame(animateParticles); 
@@ -1407,10 +1656,14 @@
         if (elapsed > fpsInterval) { 
             then = now - (elapsed % fpsInterval); 
             ctx.clearRect(0, 0, innerWidth, innerHeight); 
+            
             let timeScale = elapsed / 16.666;
             if (timeScale > 10) timeScale = 10;
-            for(let i=0; i<particlesArray.length; i++) particlesArray[i].update(timeScale); 
-            connectParticles(); 
+            
+            const pulse = getAudioPulse(); // Extraemos la fuerza de la música
+
+            for(let i=0; i<particlesArray.length; i++) particlesArray[i].update(timeScale, pulse); 
+            connectParticles(pulse); 
         } 
     }
     
