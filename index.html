@@ -223,6 +223,10 @@
 
         .ranking-loading { text-align: center; color: var(--text-secondary); padding: 40px; font-weight: 600; font-size: 1.1rem; }
 
+        #countdown-screen { justify-content: center; align-items: center; }
+        #countdown-number { transition: transform 0.25s var(--ease-spring), opacity 0.25s ease; }
+        #countdown-label { transition: opacity 0.25s ease; }
+
         /* --- Pantalla de Pregunta --- */
         #question-screen { justify-content: space-between; }
         
@@ -333,13 +337,9 @@
         <div class="logo-subtitle">By Didac-Click Group</div>
 
         <div class="menu-box" id="menu-box">
-            <button class="btn-solid" onclick="startGameCheck('classic')" style="border-color: var(--accent-blue); color: var(--accent-blue);">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                Modo Clásico
-            </button>
-            <button class="btn-solid" onclick="startGameCheck('hardcore')" style="border-color: var(--accent-red); color: var(--accent-red);">
+            <button class="btn-solid" onclick="startGameCheck()" style="border-color: var(--accent-red); color: var(--accent-red);">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                Modo Hardcore
+                ¡Jugar!
             </button>
             <button class="btn-outline" onclick="goToProfile()" style="margin-top: 10px;">Mi Perfil</button>
             <button class="btn-outline" onclick="goToAchievements()">Banco de Logros</button>
@@ -406,7 +406,7 @@
                             </div>
                             <span id="val-fps" class="setting-value" style="color: var(--accent-yellow); background: rgba(255, 184, 0, 0.1);">60 FPS</span>
                         </div>
-                        <input type="range" id="op-fps" min="15" max="240" step="5" value="60">
+                        <input type="range" id="op-fps" min="0" max="4" step="1" value="2">
                     </div>
 
                 </div>
@@ -473,20 +473,15 @@
         <div class="content-scroll no-scrollbar">
             <div class="guide-dashboard">
                 <div class="guide-grid">
-                    <div class="guide-card glass-panel">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                        <div class="guide-title" style="color: var(--accent-blue);">Modo Clásico</div>
-                        <div class="guide-text">Cada partida consta de <strong>20 preguntas aleatorias</strong> de <strong>Lengua Española</strong>. Ganas <strong>800 pts base</strong> por acierto y hasta <strong>800 extra</strong> por rapidez.</div>
-                    </div>
-                    <div class="guide-card glass-panel" style="border-color: var(--accent-red);">
+                    <div class="guide-card glass-panel full-width" style="border-color: var(--accent-red);">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-red);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                        <div class="guide-title" style="color: var(--accent-red);">Modo Hardcore</div>
-                        <div class="guide-text"><strong>Preguntas infinitas</strong>, solo <strong>15 segundos</strong> y <strong>3 vidas</strong>. Si fallas, pierdes una vida. El modo de los verdaderos campeones.</div>
+                        <div class="guide-title" style="color: var(--accent-red);">Modo de Juego</div>
+                        <div class="guide-text"><strong>Preguntas infinitas</strong>, solo <strong>15 segundos</strong> por pregunta y <strong>3 vidas</strong>. Si fallas o se acaba el tiempo, pierdes una vida. ¡Sobrevive tanto como puedas!</div>
                     </div>
                     <div class="guide-card glass-panel full-width">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"></path></svg>
-                        <div class="guide-title" style="color: var(--accent-orange);">Racha de Frenesí (Evolutiva)</div>
-                        <div class="guide-text">Al llegar a <strong>5 aciertos seguidos</strong> entras en Modo Frenesí. En Clásico da +80 pts fijos. En <strong>Hardcore</strong> es un multiplicador global <strong>(x2, x3, x4)</strong> que sube cada 5 aciertos.</div>
+                        <div class="guide-title" style="color: var(--accent-orange);">Racha de Frenesí (Multiplicador)</div>
+                        <div class="guide-text">Al llegar a <strong>5 aciertos seguidos</strong> entras en Modo Frenesí. El multiplicador global sube <strong>(x2, x3, x4...)</strong> cada 5 aciertos consecutivos. ¡Pero un fallo lo resetea todo!</div>
                     </div>
                     <div class="guide-card full-width glass-panel">
                         <div class="guide-title" style="color: var(--text-primary);">Sistema de Rangos Base</div>
@@ -577,6 +572,13 @@
                 <div class="achievements-stats" id="achievements-progress-text">Desbloqueados: 0 / 100</div>
                 <div class="achievements-grid" id="full-achievements-grid" style="content-visibility: auto;"></div>
             </div>
+        </div>
+    </div>
+
+    <div id="countdown-screen" class="screen">
+        <div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:15px;">
+            <div id="countdown-number" style="font-size:clamp(8rem,25vw,14rem);font-weight:900;color:var(--rank-color);text-shadow:0 0 40px rgba(var(--rank-rgb),0.5);transition:all 0.3s var(--ease-spring);line-height:1;"></div>
+            <div id="countdown-label" style="font-size:clamp(0.8rem,2vw,1.1rem);font-weight:700;letter-spacing:4px;color:var(--text-secondary);text-transform:uppercase;"></div>
         </div>
     </div>
 
@@ -834,10 +836,10 @@
         
         // Progresión de acordes inspiradora (Am - F - C - G)
         const chordProgression = [
-          [57, 60, 64, 67], // Am: A3, C4, E4, G4
-          [53, 57, 60, 65], // F:  F3, A3, C4, F4
-          [48, 52, 55, 60], // C:  C3, E3, G3, C4
-          [55, 59, 62, 67]  // G:  G3, B3, D4, G4
+          , // Am
+          , // F
+          , // C
+            // G
         ];
         const currentChord = chordProgression[chordIndex];
         const midiToFreq = (m) => 440 * Math.pow(2, (m - 69) / 12);
@@ -862,7 +864,7 @@
              const filter = audioCtx.createBiquadFilter();
              
              osc.type = 'sawtooth';
-             osc.frequency.setValueAtTime(midiToFreq(currentChord - 12), time);
+             osc.frequency.setValueAtTime(midiToFreq(currentChord[0] - 12), time);
              
              filter.type = 'lowpass';
              filter.frequency.setValueAtTime(isFrenzy ? 800 : 350, time);
@@ -877,7 +879,7 @@
 
         // 3. Arpegiador Principal
         const arpPattern = [0, 2, 1, 3, 0, 3, 2, 1, 0, 2, 3, 1, 2, 0, 1, 3]; 
-        const noteMidi = currentChord[arpPattern[musicSeqStep]] + (isFrenzy ? 12 : 0);
+        const noteMidi = currentChord[arpPattern[musicSeqStep % arpPattern.length]] + (isFrenzy ? 12 : 0);
         
         const oscArp = audioCtx.createOscillator();
         const gainArp = audioCtx.createGain();
@@ -923,7 +925,8 @@
     function openSettings() {
         initAudio(); SFX.click();
         document.getElementById('op-music').value = playerStats.musicVol; document.getElementById('op-sfx').value = playerStats.sfxVol; 
-        document.getElementById('op-particles').value = playerStats.particleOpacity; document.getElementById('op-fps').value = playerStats.maxFps;
+        document.getElementById('op-particles').value = playerStats.particleOpacity; 
+        document.getElementById('op-fps').value = FPS_VALUES.indexOf(playerStats.maxFps) >= 0 ? FPS_VALUES.indexOf(playerStats.maxFps) : 2;
         document.getElementById('val-music').innerText = Math.round(playerStats.musicVol*100)+'%'; document.getElementById('val-sfx').innerText = Math.round(playerStats.sfxVol*100)+'%'; 
         document.getElementById('val-particles').innerText = Math.round(playerStats.particleOpacity*100)+'%'; document.getElementById('val-fps').innerText = playerStats.maxFps+' FPS';
         switchScreen('settings-screen');
@@ -932,7 +935,13 @@
     document.getElementById('op-music').addEventListener('input', (e) => { playerStats.musicVol = parseFloat(e.target.value); document.getElementById('val-music').innerText = Math.round(playerStats.musicVol*100)+'%'; updateVolumes(); saveStatsLocally(); });
     document.getElementById('op-sfx').addEventListener('input', (e) => { playerStats.sfxVol = parseFloat(e.target.value); document.getElementById('val-sfx').innerText = Math.round(playerStats.sfxVol*100)+'%'; updateVolumes(); saveStatsLocally(); });
     document.getElementById('op-particles').addEventListener('input', (e) => { playerStats.particleOpacity = parseFloat(e.target.value); document.getElementById('val-particles').innerText = Math.round(playerStats.particleOpacity*100)+'%'; saveStatsLocally(); });
-    document.getElementById('op-fps').addEventListener('input', (e) => { playerStats.maxFps = parseInt(e.target.value); fpsInterval = 1000/playerStats.maxFps; document.getElementById('val-fps').innerText = playerStats.maxFps+' FPS'; saveStatsLocally(); });
+    const FPS_VALUES = [15, 30, 60, 120, 240];
+    document.getElementById('op-fps').addEventListener('input', (e) => { 
+        playerStats.maxFps = FPS_VALUES[parseInt(e.target.value)]; 
+        fpsInterval = 1000/playerStats.maxFps; 
+        document.getElementById('val-fps').innerText = playerStats.maxFps+' FPS'; 
+        saveStatsLocally(); 
+    });
 
     // --- UI General Toasts ---
     function showToast(title, message, color, icon) {
@@ -1076,9 +1085,9 @@
     const frTiers = [1, 5, 15, 30, 60, 100, 200, 350]; 
     for(let i=0; i<8; i++) addAchs([{ id: `r${i+1}`, title: `Frenético ${i+1}`, desc: `Activa el poderoso Modo Frenesí en ${frTiers[i]} ocasiones diferentes.`, color: colors.orange, icon: SVG_FIRE }]);
     const pfTiers = [1, 3, 5, 10, 20, 35, 50, 75]; 
-    for(let i=0; i<8; i++) addAchs([{ id: `pf${i+1}`, title: `Perfección ${i+1}`, desc: `Completa ${pfTiers[i]} partidas sin cometer ni un solo error.`, color: colors.yellow, icon: SVG_TARGET }]);
+    for(let i=0; i<8; i++) addAchs([{ id: `pf${i+1}`, title: `Resistencia ${i+1}`, desc: `Llega a la pregunta ${pfTiers[i] * 10} o más en una sola partida sin perder todas las vidas.`, color: colors.yellow, icon: SVG_TARGET }]);
     const spdTiers = [5, 15, 30, 60, 100, 200, 350, 500]; 
-    for(let i=0; i<8; i++) addAchs([{ id: `sp${i+1}`, title: `Reflejos ${i+1}`, desc: `Responde correctamente antes de los 18 segundos en ${spdTiers[i]} ocasiones.`, color: colors.blue, icon: SVG_BOLT }]);
+    for(let i=0; i<8; i++) addAchs([{ id: `sp${i+1}`, title: `Reflejos ${i+1}`, desc: `Responde correctamente en los primeros 2 segundos en ${spdTiers[i]} ocasiones.`, color: colors.blue, icon: SVG_BOLT }]);
     const acTiers = [10, 50, 100, 250, 500, 1000, 2000, 5000]; 
     for(let i=0; i<8; i++) addAchs([{ id: `ac${i+1}`, title: `Cerebro ${i+1}`, desc: `Acumula un total histórico de ${acTiers[i]} respuestas correctas.`, color: colors.green, icon: SVG_CORRECT }]);
     
@@ -1091,22 +1100,22 @@
         { id: 'u6', title: 'Pro', desc: 'Alcanza el prestigioso rango de jugador Pro.', color: colors.blue, icon: SVG_TROPHY }, 
         { id: 'u7', title: 'Maestro', desc: 'Alcanza el formidable rango de jugador Maestro.', color: colors.red, icon: SVG_TROPHY }, 
         { id: 'u8', title: 'Leyenda', desc: 'Alcanza el codiciado y legendario rango Leyenda.', color: colors.yellow, icon: SVG_TROPHY }, 
-        { id: 'u9', title: 'Silencioso', desc: 'Consigue una partida perfecta donde todas las respuestas sean súper rápidas.', color: colors.purple, icon: SVG_SKULL }, 
-        { id: 'u10', title: 'Desastre', desc: 'Termina una partida con exactamente 0 puntos. Un desastre absoluto.', color: colors.dark, icon: SVG_SKULL }, 
-        { id: 'u11', title: 'Fénix', desc: 'Falla la primera pregunta de una partida, pero levántate y acierta las 19 restantes.', color: colors.orange, icon: SVG_FIRE }, 
-        { id: 'u12', title: 'Tragedia', desc: 'Logra una racha perfecta de 19, pero falla trágicamente en la última pregunta.', color: colors.dark, icon: SVG_INCORRECT }, 
-        { id: 'u13', title: 'Flash', desc: 'Acierta una pregunta en menos de 1 segundo de haber aparecido.', color: colors.yellow, icon: SVG_BOLT }, 
+        { id: 'u9', title: 'Inmortal', desc: 'Completa 50 preguntas seguidas sin perder ninguna vida.', color: colors.purple, icon: SVG_SHIELD }, 
+        { id: 'u10', title: 'Desastre', desc: 'Pierde las 3 vidas en las primeras 3 preguntas de una partida.', color: colors.dark, icon: SVG_SKULL }, 
+        { id: 'u11', title: 'Fénix', desc: 'Pierde 2 vidas al inicio pero llega a 30 aciertos consecutivos.', color: colors.orange, icon: SVG_FIRE }, 
+        { id: 'u12', title: 'Tragedia', desc: 'Pierde la última vida cuando llevabas una racha de 20 o más.', color: colors.dark, icon: SVG_INCORRECT }, 
+        { id: 'u13', title: 'Flash', desc: 'Responde correctamente en menos de 1 segundo desde que aparece la pregunta.', color: colors.yellow, icon: SVG_BOLT }, 
         { id: 'u14', title: 'Calculador', desc: 'Acierta estratégicamente dejando que el reloj baje hasta los 2 o 3 segundos.', color: colors.blue, icon: SVG_CLOCK }, 
-        { id: 'u15', title: 'Equilibrio', desc: 'Termina una partida con un balance perfecto: 10 aciertos y 10 fallos.', color: colors.green, icon: SVG_SHIELD }, 
-        { id: 'u16', title: 'Tardía', desc: 'Activa el Modo Frenesí al acertar de forma agónica tu vigésima y última pregunta.', color: colors.orange, icon: SVG_TARGET }, 
-        { id: 'u17', title: 'Reloj', desc: 'Termina una partida perfecta combinando exactamente 10 respuestas rápidas y 10 normales.', color: colors.blue, icon: SVG_CLOCK }, 
-        { id: 'u18', title: 'Blanco', desc: 'Quédate en blanco y deja agotar el tiempo en TODAS las 20 preguntas de una partida.', color: colors.dark, icon: SVG_SKULL }, 
-        { id: 'u19', title: 'Resurrección', desc: 'Obtén 0 puntos en una partida y redímete sacando más de 10,000 en la siguiente.', color: colors.yellow, icon: SVG_HEART }, 
-        { id: 'u20', title: 'Distraído', desc: 'Logra 19 aciertos pero arruina la perfección con 1 fallo por tiempo agotado.', color: colors.dark, icon: SVG_CLOCK }, 
-        { id: 'u21', title: 'Metralleta', desc: 'Responde correctamente todas las preguntas de una partida en los primeros 3 segundos.', color: colors.red, icon: SVG_BOLT }, 
-        { id: 'u22', title: 'Maratón', desc: 'Demuestra tu resistencia física y mental jugando 50 partidas en un solo día.', color: colors.purple, icon: SVG_HEART }, 
-        { id: 'u23', title: 'Doble Perf', desc: 'Demuestra tu consistencia logrando 2 partidas perfectas de forma consecutiva.', color: colors.yellow, icon: SVG_TARGET }, 
-        { id: 'u24', title: 'Extremis', desc: 'Vive al límite consiguiendo 3 aciertos de último segundo (Por los Pelos) en una misma partida.', color: colors.red, icon: SVG_SHIELD }
+        { id: 'u15', title: 'Superviviente', desc: 'Llega a 100 preguntas en una sola partida sin quedarte sin vidas.', color: colors.green, icon: SVG_SHIELD }, 
+        { id: 'u16', title: 'Frenesí Máximo', desc: 'Alcanza el multiplicador x4 o superior en una partida.', color: colors.orange, icon: SVG_FIRE }, 
+        { id: 'u17', title: 'Reloj de Arena', desc: 'Acumula 50 respuestas de último segundo (1-2 seg) a lo largo de tu carrera.', color: colors.blue, icon: SVG_CLOCK }, 
+        { id: 'u18', title: 'Suicida', desc: 'Pierde las 3 vidas en menos de 30 segundos de partida.', color: colors.dark, icon: SVG_SKULL }, 
+        { id: 'u19', title: 'Resurrección', desc: 'Pierde 2 vidas seguidas y luego encadena 10 aciertos consecutivos.', color: colors.yellow, icon: SVG_HEART }, 
+        { id: 'u20', title: 'Centinela', desc: 'Llega a la pregunta número 50 sin usar ningún fallo por tiempo agotado.', color: colors.dark, icon: SVG_CLOCK }, 
+        { id: 'u21', title: 'Metralleta', desc: 'Responde 10 preguntas seguidas en menos de 3 segundos cada una.', color: colors.red, icon: SVG_BOLT }, 
+        { id: 'u22', title: 'Maratón', desc: 'Juega 50 partidas en un solo día.', color: colors.purple, icon: SVG_HEART }, 
+        { id: 'u23', title: 'Imparable', desc: 'Encadena una racha de 25 aciertos o más en una sola partida.', color: colors.yellow, icon: SVG_TARGET }, 
+        { id: 'u24', title: 'Extremis', desc: 'Consigue 3 aciertos de último segundo (1 seg) en una misma partida.', color: colors.red, icon: SVG_SHIELD }
     ]);
 
     function processDailyLogin() {
@@ -1276,7 +1285,7 @@
         if (needsName) setTimeout(() => { document.getElementById('profile-name-input').focus(); document.getElementById('profile-name-input').classList.add('shake'); setTimeout(() => document.getElementById('profile-name-input').classList.remove('shake'), 400); }, 400);
     }
 
-    async function startGameCheck(mode) { 
+    async function startGameCheck() { 
         initAudio(); 
         if (!playerStats.playerName || playerStats.playerName === "JUGADOR") { 
             SFX.incorrect(); goToProfile(true); 
@@ -1289,7 +1298,7 @@
             await loadQuestions();
             btn.innerText = originalText; btn.style.opacity = "1";
         }
-        startGame(mode); 
+        startGame(); 
     }
 
     document.getElementById('profile-name-input').addEventListener('input', e => { e.target.value = e.target.value.replace(/[^a-zA-Z0-9ÁÉÍÓÚÑáéíóúñ ]/g, '').toUpperCase(); document.getElementById('profile-warning').style.opacity = e.target.value ? '0' : '1'; });
@@ -1315,71 +1324,86 @@
     }
 
     // --- Game Logic ---
-    let activeGameMode = 'classic';
-    let currentSessionQuestions = [], currentQuestionIndex = 0, score = 0, streak = 0, currentMaxStreak = 0, timerInterval, timeLeft = 20; 
-    let activeTimerLimit = 20;
-    const QUESTIONS_PER_GAME_CLASSIC = 20; 
+    let currentSessionQuestions = [], currentQuestionIndex = 0, score = 0, streak = 0, currentMaxStreak = 0, timerInterval, timeLeft = 15; 
+    const TIMER_LIMIT = 15;
     let currentFastAnswers = 0, currentWrongAnswers = 0, currentTimeoutAnswers = 0, isAnsweringAllowed = false, currentGameLog = [];
     let isGamePaused = false;
-    let hardcoreLives = 3;
-    let hardcoreMultiplier = 1;
+    let lives = 3;
+    let multiplier = 1;
+    // Tracked per-game for achievements
+    let lastSecondAnswers = 0; // count of answers at 1 sec remaining
+    let ultraFastStreak = 0;   // consecutive answers under 3 sec
 
-    function startGame(mode) {
+    function startGame() {
         initAudio(); SFX.gameStart();
-        activeGameMode = mode || 'classic';
-        activeTimerLimit = activeGameMode === 'hardcore' ? 15 : 20;
         
-        document.getElementById('player-name-display').innerText = playerStats.playerName && playerStats.playerName !== "JUGADOR" ? playerStats.playerName : "JUGADOR"; 
-        document.getElementById('final-name').innerText = document.getElementById('player-name-display').innerText;
+        document.getElementById('player-name-display').innerText = playerStats.playerName; 
+        document.getElementById('final-name').innerText = playerStats.playerName;
         
         currentSessionQuestions = shuffleArray([...quizDataPool]);
-        if(activeGameMode === 'classic') currentSessionQuestions = currentSessionQuestions.slice(0, QUESTIONS_PER_GAME_CLASSIC);
-        
         currentQuestionIndex = score = streak = currentMaxStreak = currentFastAnswers = currentWrongAnswers = currentTimeoutAnswers = 0; 
         currentGameLog = []; isGamePaused = false;
+        lives = 3; multiplier = 1;
+        lastSecondAnswers = 0; ultraFastStreak = 0;
         
-        // Setup Hardcore UI
-        hardcoreLives = 3;
-        hardcoreMultiplier = 1;
+        document.getElementById('lives-container').style.display = 'flex';
+        document.getElementById('progress-container').style.display = 'none';
+        document.getElementById('score-display').innerText = 0;
+        updateLivesUI(); updateMultiplierUI(); updateStreakVisuals();
         
-        const livesContainer = document.getElementById('lives-container');
-        const multBadge = document.getElementById('multiplier-badge');
-        if(activeGameMode === 'hardcore') {
-            livesContainer.style.display = 'flex';
-            document.getElementById('progress-container').style.display = 'none'; // Sin límite
-            updateLivesUI();
-            updateMultiplierUI();
-        } else {
-            livesContainer.style.display = 'none';
-            multBadge.style.display = 'none';
-            document.getElementById('progress-container').style.display = 'block';
-        }
+        showCountdown(() => {
+            switchScreen('question-screen');
+            setTimeout(loadQuestion, 200);
+        });
+    }
 
-        document.getElementById('score-display').innerText = score; updateStreakVisuals(); switchScreen('question-screen'); setTimeout(loadQuestion, 400); 
+    function showCountdown(callback) {
+        switchScreen('countdown-screen');
+        const numEl = document.getElementById('countdown-number');
+        const lblEl = document.getElementById('countdown-label');
+        const steps = [
+            { text: '3', label: 'Prepárate...' },
+            { text: '2', label: '¡Concéntrate!' },
+            { text: '1', label: '¡Ya casi!' },
+            { text: '¡YA!', label: '' }
+        ];
+        let i = 0;
+        function tick() {
+            if (i >= steps.length) { callback(); return; }
+            numEl.style.transform = 'scale(0.5)'; numEl.style.opacity = '0';
+            lblEl.style.opacity = '0';
+            setTimeout(() => {
+                numEl.textContent = steps[i].text;
+                lblEl.textContent = steps[i].label;
+                numEl.style.transform = 'scale(1)'; numEl.style.opacity = '1';
+                lblEl.style.opacity = '1';
+                SFX.tick();
+                i++;
+                setTimeout(tick, i < steps.length ? 800 : 400);
+            }, 150);
+        }
+        tick();
     }
 
     function updateLivesUI() {
         const c = document.getElementById('lives-container');
         c.innerHTML = '';
         for(let i = 0; i < 3; i++) {
-            let svgStr = SVG_BOLT;
             let el = document.createElement('div');
-            el.innerHTML = svgStr;
-            if(i >= hardcoreLives) el.classList.add('life-lost');
+            el.innerHTML = SVG_BOLT;
+            if(i >= lives) el.classList.add('life-lost');
             c.appendChild(el);
         }
     }
 
     function updateMultiplierUI() {
         const b = document.getElementById('multiplier-badge');
-        if(activeGameMode === 'hardcore') {
-            hardcoreMultiplier = Math.max(1, Math.floor(streak / 5) + 1);
-            if(hardcoreMultiplier > 1) {
-                b.style.display = 'block';
-                b.innerText = `x${hardcoreMultiplier}`;
-            } else {
-                b.style.display = 'none';
-            }
+        multiplier = Math.max(1, Math.floor(streak / 5) + 1);
+        if(multiplier > 1) {
+            b.style.display = 'block';
+            b.innerText = `x${multiplier}`;
+        } else {
+            b.style.display = 'none';
         }
     }
     
@@ -1391,8 +1415,7 @@
     }
 
     function getNextQuestion() {
-        if(activeGameMode === 'hardcore' && currentQuestionIndex >= currentSessionQuestions.length - 2) {
-            // Rellenar infinitamente
+        if(currentQuestionIndex >= currentSessionQuestions.length - 2) {
             currentSessionQuestions = currentSessionQuestions.concat(shuffleArray([...quizDataPool]));
         }
         return currentSessionQuestions[currentQuestionIndex];
@@ -1403,10 +1426,6 @@
         const timerPath = document.getElementById('timer-path');
         const timerText = document.getElementById('timer-display');
         
-        if(activeGameMode === 'classic') {
-            document.getElementById('global-progress').style.width = `${(currentQuestionIndex / QUESTIONS_PER_GAME_CLASSIC) * 100}%`; 
-        }
-        
         document.getElementById('question-text').innerText = currentQ.question;
         
         let mixedAnswers = currentQ.answers.map((text, idx) => ({ text: text, isCorrect: idx === currentQ.correctIndex }));
@@ -1416,15 +1435,16 @@
             if (mixedAnswers[i].isCorrect) currentQ.currentCorrectIndex = i;
         }
 
-        document.getElementById('answers-grid').classList.remove('answered'); document.querySelectorAll('.answer-btn').forEach(btn => btn.classList.remove('selected'));
-        isAnsweringAllowed = true; isGamePaused = false; timeLeft = activeTimerLimit; timerText.innerText = timeLeft; 
+        document.getElementById('answers-grid').classList.remove('answered'); 
+        document.querySelectorAll('.answer-btn').forEach(btn => btn.classList.remove('selected'));
+        isAnsweringAllowed = true; isGamePaused = false; timeLeft = TIMER_LIMIT; timerText.innerText = timeLeft; 
         
         timerPath.style.transition = 'none'; timerPath.style.strokeDashoffset = '0'; timerPath.style.stroke = 'var(--text-primary)'; timerText.style.color = 'var(--text-primary)'; void timerPath.offsetWidth; timerPath.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s ease';
         
         clearInterval(timerInterval); 
         timerInterval = setInterval(() => { 
             if (isGamePaused) return;
-            timeLeft--; timerText.innerText = timeLeft; timerPath.style.strokeDashoffset = 283 - (timeLeft/activeTimerLimit)*283; 
+            timeLeft--; timerText.innerText = timeLeft; timerPath.style.strokeDashoffset = 283 - (timeLeft/TIMER_LIMIT)*283; 
             if(timeLeft <= 5 && timeLeft > 0) { SFX.tick(); timerPath.style.stroke = 'var(--accent-red)'; timerText.style.color = 'var(--accent-red)'; } 
             if(timeLeft <= 0) handleTimeout(); 
         }, 1000);
@@ -1436,20 +1456,28 @@
         
         const q = getNextQuestion();
         const isCorrect = (selectedIndex === q.currentCorrectIndex); 
-        currentGameLog.push({ correct: isCorrect, time: timeLeft });
+        const answerTime = timeLeft;
+        currentGameLog.push({ correct: isCorrect, time: answerTime });
         
         if(isCorrect) { 
             playerStats.totalCorrect++; 
-            if(timeLeft >= activeTimerLimit - 2) { currentFastAnswers++; playerStats.fastAnswersTotal++; } 
+            if(answerTime >= TIMER_LIMIT - 2) { currentFastAnswers++; playerStats.fastAnswersTotal++; }
+            if(answerTime <= 1) lastSecondAnswers++;
+            // Track ultra-fast for Metralleta
+            if(answerTime >= TIMER_LIMIT - 3) { ultraFastStreak++; } else { ultraFastStreak = 0; }
         } else { 
-            playerStats.totalWrong++; currentWrongAnswers++; 
+            playerStats.totalWrong++; currentWrongAnswers++;
+            ultraFastStreak = 0;
         }
         
         saveStatsLocally(); setTimeout(() => showFeedback(isCorrect), 600);
     }
     
     function handleTimeout() {
-        if (!isAnsweringAllowed || isGamePaused) return; isAnsweringAllowed = false; clearInterval(timerInterval); playerStats.totalWrong++; playerStats.totalTimeouts++; currentTimeoutAnswers++; currentGameLog.push({ correct: false, timeout: true, time: 0 });
+        if (!isAnsweringAllowed || isGamePaused) return; isAnsweringAllowed = false; clearInterval(timerInterval); 
+        playerStats.totalWrong++; playerStats.totalTimeouts++; currentTimeoutAnswers++; 
+        currentGameLog.push({ correct: false, timeout: true, time: 0 });
+        ultraFastStreak = 0;
         saveStatsLocally(); document.getElementById('answers-grid').classList.add('answered'); setTimeout(() => showFeedback(false, true), 600);
     }
 
@@ -1470,17 +1498,11 @@
         document.getElementById('abandon-modal').classList.remove('active');
         isAnsweringAllowed = false;
         clearInterval(timerInterval);
-        
         initAudio(); SFX.incorrect(); 
-        
         const penalty = 1000; 
         playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
-        
-        saveStatsLocally();
-        submitLeaderboard(); 
-        
+        saveStatsLocally(); submitLeaderboard(); 
         showToast('Partida Abandonada', `Penalidad de -1000 pts.`, 'var(--text-secondary)', SVG_INCORRECT);
-
         document.getElementById('app').classList.remove('streak-active');
         streak = 0;
         switchScreen('start-screen');
@@ -1488,7 +1510,7 @@
 
     function replayGame() {
         SFX.click();
-        startGame(activeGameMode);
+        startGame();
     }
 
     function animateScore(target) {
@@ -1501,14 +1523,8 @@
         
         if (isCorrect) {
             SFX.correct(); scr.className = 'screen correct'; icon.innerHTML = SVG_CORRECT; title.innerText = "¡Excelente!";
-            let earned = 800 + Math.round((timeLeft / activeTimerLimit) * 800);
-            
-            if (activeGameMode === 'classic') {
-                earned += (streak * 80);
-            } else {
-                earned = earned * hardcoreMultiplier;
-            }
-            
+            let earned = 800 + Math.round((timeLeft / TIMER_LIMIT) * 800);
+            earned = earned * multiplier;
             score += earned; streak++; if(streak > currentMaxStreak) currentMaxStreak = streak;
             if (streak === 5) playerStats.frenziesTriggered++; 
             points.innerText = `+${earned}`; points.style.display = 'block';
@@ -1516,12 +1532,9 @@
             SFX.incorrect(); 
             if (isTimeout) { scr.className = 'screen timeout'; icon.innerHTML = SVG_TIMEOUT; title.innerText = "Tiempo Agotado"; } 
             else { scr.className = 'screen incorrect'; icon.innerHTML = SVG_INCORRECT; title.innerText = "Incorrecto"; }
-            
             streak = 0; points.style.display = 'none';
-            if(activeGameMode === 'hardcore') {
-                hardcoreLives--;
-                updateLivesUI();
-            }
+            lives--;
+            updateLivesUI();
         }
         
         updateMultiplierUI();
@@ -1533,60 +1546,38 @@
         
         setTimeout(() => { 
             currentQuestionIndex++;
-            if (activeGameMode === 'classic') {
-                currentQuestionIndex < QUESTIONS_PER_GAME_CLASSIC ? (switchScreen('question-screen'), setTimeout(loadQuestion, 400)) : endGame();
+            if(lives > 0) {
+                switchScreen('question-screen'); setTimeout(loadQuestion, 400);
             } else {
-                if(hardcoreLives > 0) {
-                    switchScreen('question-screen'); setTimeout(loadQuestion, 400);
-                } else {
-                    endGame();
-                }
+                endGame();
             }
         }, 2000);
     }
     
     function saveGameStats() {
-        playerStats.gamesPlayed++; playerStats.todayGames++; playerStats.totalScore += score; if(score > playerStats.bestScore) playerStats.bestScore = score; if(currentMaxStreak > playerStats.maxStreak) playerStats.maxStreak = currentMaxStreak;
-        
-        if(activeGameMode === 'classic') {
-            const isPerfect = (currentMaxStreak === QUESTIONS_PER_GAME_CLASSIC && currentWrongAnswers === 0 && currentTimeoutAnswers === 0);
-            if(score >= 20000) playerStats.maxScoreCount++; 
-            if(isPerfect) { playerStats.perfectStreak++; playerStats.perfectGames++; } else playerStats.perfectStreak = 0;
-        }
-
-        playerStats.previousGameScore = score; currentRankInfo = getRankInfo(playerStats); updateLogoDots(); saveStatsLocally(); checkAchievements();
+        playerStats.gamesPlayed++; playerStats.todayGames++; playerStats.totalScore += score; 
+        if(score > playerStats.bestScore) playerStats.bestScore = score; 
+        if(currentMaxStreak > playerStats.maxStreak) playerStats.maxStreak = currentMaxStreak;
+        if(score >= 20000) playerStats.maxScoreCount++;
+        playerStats.previousGameScore = score; 
+        currentRankInfo = getRankInfo(playerStats); updateLogoDots(); saveStatsLocally(); checkAchievements();
         submitLeaderboard(); 
     }
     
     function endGame() {
         document.getElementById('final-score-display').innerText = score; saveGameStats();
         
-        const isAllWrong = (activeGameMode === 'classic' && currentWrongAnswers === QUESTIONS_PER_GAME_CLASSIC);
-        const isAllTimeouts = (activeGameMode === 'classic' && currentTimeoutAnswers === QUESTIONS_PER_GAME_CLASSIC);
-
-        if (currentWrongAnswers === 0 && currentTimeoutAnswers === 0 && activeGameMode === 'classic') SFX.perfectGame(); 
-        else if (isAllWrong) SFX.allWrongGame(); 
-        else if (isAllTimeouts) SFX.allTimeoutGame(); 
-        else SFX.gameEnd();
+        SFX.gameEnd();
         
         const msg = document.getElementById('final-message'), icn = document.getElementById('results-icon-svg');
         const endPanel = document.getElementById('end-glass-panel');
 
-        // Determinar título
-        if (activeGameMode === 'hardcore') {
-            msg.innerText = score > 15000 ? "Superviviente Nato" : "Muerte Súbita";
-            icn.innerHTML = score > 15000 ? SVG_TROPHY : SVG_SKULL;
-            endPanel.style.borderTopColor = score > 15000 ? 'var(--accent-yellow)' : 'var(--accent-red)';
-        } else {
-            const maxExp = QUESTIONS_PER_GAME_CLASSIC * 1600;
-            if(score >= maxExp * 0.8) { msg.innerText = "Leyenda"; icn.innerHTML = SVG_TROPHY; endPanel.style.borderTopColor = 'var(--accent-yellow)';} 
-            else if (score >= maxExp * 0.5) { msg.innerText = "Buen Desempeño"; icn.innerHTML = SVG_STAR; endPanel.style.borderTopColor = 'var(--accent-blue)';} 
-            else { msg.innerText = "Sigue Practicando"; icn.innerHTML = SVG_TARGET; endPanel.style.borderTopColor = 'var(--text-secondary)';}
-        }
+        if(score > 15000) { msg.innerText = "Superviviente Nato"; icn.innerHTML = SVG_TROPHY; endPanel.style.borderTopColor = 'var(--accent-yellow)'; }
+        else if(score > 5000) { msg.innerText = "Buen Desempeño"; icn.innerHTML = SVG_STAR; endPanel.style.borderTopColor = 'var(--accent-blue)'; }
+        else { msg.innerText = "Sigue Practicando"; icn.innerHTML = SVG_TARGET; endPanel.style.borderTopColor = 'var(--text-secondary)'; }
 
-        document.getElementById('final-correct-label').innerText = activeGameMode === 'hardcore' ? 'Aciertos' : 'Aciertos';
-        document.getElementById('final-correct').innerText = activeGameMode === 'hardcore' ? currentQuestionIndex : `${QUESTIONS_PER_GAME_CLASSIC - currentWrongAnswers - currentTimeoutAnswers}/${QUESTIONS_PER_GAME_CLASSIC}`; 
-        
+        document.getElementById('final-correct-label').innerText = 'Aciertos';
+        document.getElementById('final-correct').innerText = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
         document.getElementById('final-streak').innerText = currentMaxStreak; 
         document.getElementById('final-speed').innerText = currentFastAnswers;
         
