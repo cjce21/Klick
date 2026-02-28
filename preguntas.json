@@ -265,7 +265,7 @@
   { "question": "Antónimo de 'pobre':", "answers": ["Rico", "Humilde", "Malo", "Triste"], "correctIndex": 0 },
   { "question": "El sustantivo 'España' es de tipo:", "answers": ["Propio", "Común", "Abstracto", "Colectivo"], "correctIndex": 0 },
   { "question": "Adjetivo derivado de 'rapidez':", "answers": ["Rápido", "Correr", "Mesa", "Luz"], "correctIndex": 0 }
-{ "question": "¿Cuál es el superlativo absoluto de la palabra 'bueno'?", "answers": ["Buenazo", "Buenísimo", "Óptimo", "Ambas B y C son correctas"], "correctIndex": 3 },
+  { "question": "¿Cuál es el superlativo absoluto de la palabra 'bueno'?", "answers": ["Buenazo", "Buenísimo", "Óptimo", "Ambas B y C son correctas"], "correctIndex": 3 },
   { "question": "¿Qué categoría gramatical es 'aunque' en la oración 'Iré aunque llueva'?", "answers": ["Preposición", "Conjunción adversativa", "Adverbio", "Sustantivo"], "correctIndex": 1 },
   { "question": "Identifica el pronombre indefinido en: 'Alguien dejó la puerta abierta'.", "answers": ["Alguien", "Dejó", "La", "Puerta"], "correctIndex": 0 },
   { "question": "¿Cómo se escribe correctamente el número 26?", "answers": ["Veinte y seis", "Veintiseis", "Veintiséis", "Venteiseis"], "correctIndex": 2 },
