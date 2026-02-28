@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Klick</title>
+    <title>Klick - Experiencia de Aprendizaje</title>
     <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ff66' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'%3E%3C/polygon%3E%3C/svg%3E">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap');
@@ -140,10 +140,10 @@
         .ach-title { font-size: clamp(0.65rem, 1vw, 0.8rem); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
 
         /* Guía y Rangos */
-        .guide-dashboard { justify-content: flex-start; gap: clamp(10px, 2vh, 20px); width: 100%; max-width: 1200px; padding-bottom: 20px; }
-        .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: clamp(12px, 2vw, 20px); width: 100%; }
-        .guide-card { padding: clamp(18px, 2.5vh, 28px); border-radius: var(--radius-md); border: 1px solid var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; transition: transform 0.3s; height: 100%; }
-        .guide-card:hover { transform: translateY(-3px); }
+        .guide-dashboard { justify-content: flex-start; gap: clamp(10px, 2vh, 20px); width: 100%; max-width: 1000px; padding: 0 0 30px 0; }
+        .guide-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(12px, 2vw, 18px); width: 100%; }
+        .guide-card { padding: clamp(18px, 2.5vh, 28px); border-radius: var(--radius-md); border: 1px solid var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; height: 100%; }
+        .guide-card:hover { }
         .guide-card.full-width { grid-column: 1 / -1; }
         .guide-icon { width: 35px; height: 35px; color: var(--text-primary); margin-bottom: 5px; }
         .guide-title { font-size: clamp(1rem, 1.5vw, 1.3rem); font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; text-transform: uppercase; }
@@ -163,10 +163,10 @@
         @media (min-width: 900px) { .achievements-grid { grid-template-columns: repeat(4, 1fr); } }
         @media (min-width: 1200px) { .achievements-grid { grid-template-columns: repeat(5, 1fr); } }
         @media (min-width: 1500px) { .achievements-grid { grid-template-columns: repeat(6, 1fr); } }
-        .ach-card { background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(10px); padding: 18px 14px; border-radius: var(--radius-md); border: 1px dashed var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; opacity: 0.5; filter: grayscale(1); transition: all 0.3s ease; position: relative; cursor: pointer; min-height: 140px; justify-content: center; }
-        .ach-card:hover { transform: scale(1.05); z-index: 5; } /* z-index superior para sobreponerse en el hover */
-        .ach-card.unlocked { border-style: solid; opacity: 1; filter: grayscale(0); background: rgba(25, 25, 25, 0.8); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .ach-card.pinned { box-shadow: 0 0 15px var(--accent-yellow) !important; border-color: var(--accent-yellow) !important; }
+        .ach-card { background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(10px); padding: 18px 14px; border-radius: var(--radius-md); border: 1px dashed var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; opacity: 0.5; filter: grayscale(1); transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease; position: relative; cursor: pointer; min-height: 140px; justify-content: center; transform: none !important; }
+        .ach-card:hover { border-color: rgba(255,255,255,0.25); }
+        .ach-card.unlocked { border-style: solid; opacity: 1; filter: grayscale(0); background: rgba(25, 25, 25, 0.8); }
+        .ach-card.pinned { box-shadow: 0 0 18px rgba(255,184,0,0.4) !important; border-color: var(--accent-yellow) !important; border-style: solid !important; }
         .ach-card .ach-icon { width: 36px; height: 36px; margin-bottom: 2px;}
         .ach-card .ach-title { font-size: 0.9rem; color: var(--text-primary); font-weight: 800; line-height: 1.2; }
         .ach-desc { font-size: 0.72rem; color: var(--text-secondary); line-height: 1.3; font-style: italic;}
@@ -220,7 +220,7 @@
         #lives-container svg { width: 16px; height: 16px; transition: all 0.3s; }
         .life-lost { opacity: 0.2; transform: scale(0.8); filter: grayscale(1); }
 
-        .multiplier-badge { background: transparent; color: var(--accent-red); font-weight: 900; font-size: 1.2rem; display: none; text-shadow: 0 0 10px rgba(255,42,95,0.5); }
+        .multiplier-badge { background: transparent; border: none !important; box-shadow: none !important; outline: none !important; color: var(--accent-red); font-weight: 900; font-size: 1.4rem; display: none; letter-spacing: -0.5px; padding: 0; }
 
         .score-badge { background: transparent; color: var(--text-primary); padding: 6px 15px; border-radius: 30px; border: 1px solid var(--text-secondary); font-variant-numeric: tabular-nums; font-weight: 800; display: flex; align-items: center; gap: 8px; }
         .score-badge::before { content: ''; display: inline-block; width: 8px; height: 8px; background: var(--accent-yellow); border-radius: 50%; box-shadow: 0 0 10px var(--accent-yellow); }
@@ -290,22 +290,20 @@
         .toast-name { font-size: 0.85rem; color: var(--text-primary); font-weight: 800; }
 
         /* --- Animaciones Frenesí Escalables --- */
-        @keyframes frenzy-pulse-x2 { 0%,100%{box-shadow:0 0 10px rgba(247,127,0,0.3);} 50%{box-shadow:0 0 25px rgba(247,127,0,0.6);} }
-        @keyframes frenzy-pulse-x3 { 0%,100%{box-shadow:0 0 15px rgba(255,42,95,0.4);transform:scale(1);} 50%{box-shadow:0 0 35px rgba(255,42,95,0.8);transform:scale(1.05);} }
-        @keyframes frenzy-pulse-x4 { 0%,100%{box-shadow:0 0 20px rgba(181,23,158,0.5);transform:scale(1) rotate(0deg);} 33%{box-shadow:0 0 45px rgba(181,23,158,1);transform:scale(1.1) rotate(-1deg);} 66%{box-shadow:0 0 45px rgba(255,42,95,1);transform:scale(1.1) rotate(1deg);} }
-        @keyframes frenzy-pulse-x5 { 0%{box-shadow:0 0 25px rgba(255,184,0,0.6);transform:scale(1);filter:hue-rotate(0deg);} 25%{box-shadow:0 0 55px rgba(255,184,0,1);transform:scale(1.15);filter:hue-rotate(30deg);} 75%{box-shadow:0 0 55px rgba(255,42,95,1);transform:scale(1.15);filter:hue-rotate(-30deg);} 100%{box-shadow:0 0 25px rgba(255,184,0,0.6);transform:scale(1);filter:hue-rotate(0deg);} }
-        @keyframes frenzy-neon-x6 { 0%,100%{box-shadow:0 0 30px #fff,0 0 60px var(--rank-color);transform:scale(1);letter-spacing:1.5px;} 50%{box-shadow:0 0 50px #fff,0 0 100px var(--rank-color);transform:scale(1.2);letter-spacing:3px;} }
-        .mult-x2 { color: var(--accent-orange); animation: frenzy-pulse-x2 1.2s ease-in-out infinite; }
+        @keyframes frenzy-pulse-x2 { 0%,100%{text-shadow:0 0 10px rgba(247,127,0,0.6);} 50%{text-shadow:0 0 20px rgba(247,127,0,1);} }
+        @keyframes frenzy-pulse-x3 { 0%,100%{text-shadow:0 0 12px rgba(255,42,95,0.7);} 50%{text-shadow:0 0 25px rgba(255,42,95,1);} }
+        @keyframes frenzy-pulse-x4 { 0%,100%{text-shadow:0 0 15px rgba(181,23,158,0.8);} 50%{text-shadow:0 0 30px rgba(181,23,158,1), 0 0 50px rgba(255,42,95,0.8);} }
+        @keyframes frenzy-pulse-x5 { 0%,100%{text-shadow:0 0 20px rgba(255,184,0,0.8);filter:hue-rotate(0deg);} 50%{text-shadow:0 0 35px rgba(255,184,0,1), 0 0 60px rgba(255,42,95,0.8);filter:hue-rotate(20deg);} }
+        @keyframes frenzy-neon-x6 { 0%,100%{text-shadow:0 0 20px #fff,0 0 40px var(--rank-color);letter-spacing:0px;} 50%{text-shadow:0 0 30px #fff,0 0 60px var(--rank-color);letter-spacing:2px;} }
+        .mult-x2 { color: var(--accent-orange); animation: frenzy-pulse-x2 1.2s ease-in-out infinite; transform: none !important; }
         .mult-x3 { color: var(--accent-red); animation: frenzy-pulse-x3 0.9s ease-in-out infinite; }
         .mult-x4 { color: var(--accent-purple); animation: frenzy-pulse-x4 0.7s ease-in-out infinite; }
         .mult-x5 { color: var(--accent-yellow); animation: frenzy-pulse-x5 0.5s ease-in-out infinite; }
         .mult-x6up { color: var(--rank-color); animation: frenzy-neon-x6 0.4s ease-in-out infinite; }
 
 
-        /* --- Logros fijados – botón de quitar --- */
-        .achievement-slot.unlocked .slot-unpin-btn { display: flex; }
-        .slot-unpin-btn { display: none; position: absolute; top: -8px; right: -8px; background: var(--accent-red); color: #ffffff; border: 2px solid var(--bg-surface); border-radius: 50%; width: 26px; height: 26px; align-items: center; justify-content: center; cursor: pointer; font-size: 0.85rem; font-weight: 900; transition: all 0.2s; line-height: 1; z-index: 20; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .slot-unpin-btn:hover { background: #ff003c; transform: scale(1.15); }
+        /* Ach pin indicator on profile */
+        .achievement-slot { cursor: default; }
 
         @media (max-width: 850px) {
             .btn-back span, .nav-spacer { width: 60px; } .btn-back span { display: none; }
@@ -313,6 +311,7 @@
             .answer-btn { padding: 15px; font-size: 1rem; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .guide-grid { grid-template-columns: 1fr; }
+            .profile-achievements-grid { grid-template-columns: repeat(3, 1fr); }
             .settings-grid { grid-template-columns: 1fr; }
             .toast-container { bottom: auto; top: 20px; right: 50%; transform: translateX(50%); width: 90%; }
             .toast-item { transform: translateY(-120%); }
@@ -459,7 +458,7 @@
                     <div class="stat-card glass-panel"><div class="stat-value" id="stat-streak">0</div><div class="stat-label">Racha Máx</div></div>
                     <div class="stat-card glass-panel"><div class="stat-value" id="stat-days">0</div><div class="stat-label">Días</div></div>
                 </div>
-                <div class="profile-achievements-title">Logros Fijados <span style="font-size:0.7em;color:var(--text-secondary);font-weight:500;letter-spacing:0;text-transform:none;">(toca la X de uno para quitarlo)</span></div>
+                <div class="profile-achievements-title">Logros Destacados</div>
                 <div class="profile-achievements-grid" id="profile-achievements-grid"></div>
             </div>
         </div>
@@ -528,7 +527,7 @@
                     <div class="guide-card glass-panel" style="border-color: var(--accent-yellow);">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-yellow);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                         <div class="guide-title" style="color: var(--accent-yellow);">Banco de Logros</div>
-                        <div class="guide-text">Hay <strong>252 logros</strong> para desbloquear. Algunos son escalables (por jugar más), otros son únicos y secretos. Puedes <strong>fijar hasta 3 logros</strong> en tu perfil. ¡Descúbrelos explorando todas las secciones del juego!</div>
+                        <div class="guide-text">Hay <strong>95 logros</strong> para desbloquear. Algunos son escalables (por jugar más), otros son únicos y secretos. Puedes <strong>fijar hasta 3 logros</strong> en tu perfil. ¡Descúbrelos explorando todas las secciones del juego!</div>
                     </div>
 
                     <!-- Power Level / Ranking -->
@@ -553,7 +552,7 @@
         </div>
         <div class="content-scroll no-scrollbar">
             <div class="achievements-wrapper">
-                <div class="achievements-stats" id="achievements-progress-text">Desbloqueados: 0 / 252</div>
+                <div class="achievements-stats" id="achievements-progress-text">Desbloqueados: 0 / 95</div>
                 <div class="achievements-grid" id="full-achievements-grid" style="content-visibility: auto;"></div>
             </div>
         </div>
@@ -1010,15 +1009,15 @@
         { id: 'm7',  title: 'Diseñador',       desc: 'Fija tu primer logro en el perfil.',                       color: colors.yellow, icon: SVG_STAR },
         { id: 'm8',  title: 'Coleccionista',   desc: 'Desbloquea 10 logros en total.',                           color: colors.green,  icon: SVG_STAR },
         { id: 'm9',  title: 'Completista',     desc: 'Alcanza el hito de 50 logros desbloqueados.',              color: colors.orange, icon: SVG_STAR },
-        { id: 'm10', title: 'Centenario',      desc: 'Consigue los primeros 100 logros.',                        color: colors.red,    icon: SVG_STAR },
+        { id: 'm10', title: 'Centenario',      desc: 'Consigue los primeros 90 logros.',                        color: colors.red,    icon: SVG_STAR },
     ]);
 
     // --- COLECCIÓN MAESTRA (4) ---
     addAchs([
-        { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 150 logros en total.',                         color: colors.yellow, icon: SVG_STAR },
-        { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 200 logros en total.',                         color: colors.orange, icon: SVG_STAR },
-        { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 225 logros.',                                  color: colors.purple, icon: SVG_STAR },
-        { id: 'master3', title: 'Dios Klick',   desc: 'Consigue los 250 logros del juego. Eres absoluto.',       color: colors.red,    icon: SVG_STAR },
+        { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 50 logros en total.',                         color: colors.yellow, icon: SVG_STAR },
+        { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 65 logros en total.',                         color: colors.orange, icon: SVG_STAR },
+        { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 80 logros.',                                  color: colors.purple, icon: SVG_STAR },
+        { id: 'master3', title: 'Dios Klick',   desc: 'Consigue los 95 logros del juego. Eres absoluto.',        color: colors.red,    icon: SVG_STAR },
     ]);
 
     // --- DÍAS DE ACTIVIDAD (10) ---
@@ -1199,7 +1198,7 @@
     const returnDayTiers=[3,7,15,30,60];
     for(let i=0;i<5;i++) addAchs([{ id:`ret${i+1}`, title:`Fiel ${i+1}`, desc:`Regresa a jugar ${returnDayTiers[i]} días diferentes en total.`, color:colors.green, icon:SVG_HEART }]);
 
-    // --- ÚNICOS FINALES Y MODOS PERFECCIÓN (7) ---
+    // --- ÚNICOS FINALES Y MODOS PERFECCIÓN (9) ---
     addAchs([
         { id: 'fin1', title: 'Nocturno',       desc: 'Juega una partida después de las 11:00 PM.',                 color: colors.dark,   icon: SVG_CLOCK },
         { id: 'fin2', title: 'Madrugador',     desc: 'Juega una partida antes de las 6:00 AM.',                   color: colors.blue,   icon: SVG_CLOCK },
@@ -1208,6 +1207,8 @@
         { id: 'fin5', title: 'Monarca',        desc: 'Alcanza simultáneamente el rango Leyenda y 200 logros.',    color: colors.yellow, icon: SVG_TROPHY },
         { id: 'np1',  title: 'Examen de Oro',  desc: 'Logra 10 aciertos seguidos sin perder ninguna vida.',       color: colors.yellow, icon: SVG_SHIELD },
         { id: 'np2',  title: 'Presumido',      desc: 'Fija 3 logros de color Rojo o Dorado en tu perfil.',        color: colors.red,    icon: SVG_STAR },
+        { id: 'np3',  title: 'Sin Límites',    desc: 'Completa una partida de más de 60 preguntas sin rendirte.', color: colors.purple, icon: SVG_BOLT },
+        { id: 'np4',  title: 'La Última Bala', desc: 'Consigue exactamente 1 acierto antes de perder todas las vidas.', color: colors.dark, icon: SVG_SKULL },
     ]);
 
 
@@ -1345,7 +1346,8 @@
             return; 
         }
         if (!playerStats.achievements.includes(achId)) return; SFX.click(); const index = playerStats.pinnedAchievements.indexOf(achId);
-        if (index > -1) playerStats.pinnedAchievements.splice(index, 1); else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); }
+        if (index > -1) { playerStats.pinnedAchievements.splice(index, 1); showToast('Quitado del perfil', 'Ya no aparecerá destacado.', 'var(--text-secondary)', SVG_PIN); } 
+        else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); showToast('Fijado en Perfil', ach_data.title, ach_data.color, ach_data.icon); }
         saveStatsLocally(); checkAchievements(); renderAchievements();
     }
     
@@ -1357,52 +1359,78 @@
         fullGrid.appendChild(fragment); isAchievementsInitialized = true;
     }
     
+    // Rarity score: how exclusive/rare is each achievement (higher = rarer)
+    const RARITY_SCORE = {master3:100,master4:95,master2:90,master1:85,fin5:82,u8:80,u7:78,u15:75,nm4:73,nm3:70,nm10:68,u9:65,u23:62,u11:60,u16:58,nm9:55,u19:52,u24:50,np1:48,np3:46,u21:44};
+    function getAchRarity(id) { return RARITY_SCORE[id] || 10; }
+
+    function getAutoProfileAchs() {
+        const pinned = [];
+        // Force tramposo first if present
+        if (playerStats.achievements.includes('tramposo')) pinned.push('tramposo');
+        // Respect manually pinned achievements
+        playerStats.pinnedAchievements.filter(id => id !== 'tramposo').forEach(id => {
+            if (pinned.length < 3 && playerStats.achievements.includes(id)) pinned.push(id);
+        });
+        // Fill remaining slots with rarest unlocked achievements
+        if (pinned.length < 3) {
+            const remaining = playerStats.achievements.filter(id => id !== 'tramposo' && !pinned.includes(id));
+            remaining.sort((a, b) => getAchRarity(b) - getAchRarity(a));
+            remaining.forEach(id => { if (pinned.length < 3) pinned.push(id); });
+        }
+        return pinned;
+    }
+
     function renderAchievements() {
         if (!isAchievementsInitialized) initializeAchievementsDOM();
-        const profileGrid = document.getElementById('profile-achievements-grid'); let unlockedCount = playerStats.achievements.filter(id => id !== 'tramposo').length;
+        const profileGrid = document.getElementById('profile-achievements-grid');
+        let unlockedCount = playerStats.achievements.filter(id => id !== 'tramposo').length;
+        const displayPinned = getAutoProfileAchs();
+
         ACHIEVEMENTS_DATA.forEach(ach => {
-            const isUnlocked = playerStats.achievements.includes(ach.id), isPinned = playerStats.pinnedAchievements.includes(ach.id), card = achCardElements[ach.id]; if(!card) return;
-            card.className = `ach-card ${isUnlocked ? 'unlocked' : ''} ${isPinned ? 'pinned' : ''}`;
-            if(isUnlocked && !isPinned) { card.style.borderColor = ach.color; card.style.boxShadow = `0 10px 20px ${ach.color.replace(')', ', 0.1)').replace('var(', 'rgba(')}`; } else { card.style.borderColor = ''; card.style.boxShadow = ''; }
-            card.innerHTML = `<div class="pin-hint" style="position:absolute;top:5px;right:5px;font-size:0.6rem;color:var(--accent-yellow);opacity:${isPinned?1:0}">${SVG_PIN}</div><div class="ach-icon" style="color: ${isUnlocked ? ach.color : 'var(--text-secondary)'};">${isUnlocked ? ach.icon : SVG_LOCK}</div><div class="ach-title">${ach.title}</div><div class="ach-desc">${isUnlocked ? ach.desc : 'Misterio... Sigue jugando para descubrirlo.'}</div>`;
+            const isUnlocked = playerStats.achievements.includes(ach.id);
+            const isPinned = playerStats.pinnedAchievements.includes(ach.id);
+            const card = achCardElements[ach.id]; if (!card) return;
+            card.className = `ach-card${isUnlocked ? ' unlocked' : ''}${isPinned ? ' pinned' : ''}`;
+            card.style.borderColor = isUnlocked ? ach.color : '';
+            card.style.boxShadow = isPinned ? `0 0 18px ${ach.color}55` : '';
+            const pinLabel = isPinned ? `<div style="position:absolute;top:5px;right:5px;width:14px;height:14px;color:var(--accent-yellow)">${SVG_PIN}</div>` : '';
+            card.innerHTML = `${pinLabel}<div class="ach-icon" style="color:${isUnlocked ? ach.color : 'var(--text-secondary)'}">${isUnlocked ? ach.icon : SVG_LOCK}</div><div class="ach-title">${ach.title}</div><div class="ach-desc">${isUnlocked ? ach.desc : 'Sigue jugando para descubrirlo.'}</div>`;
         });
+
         if (profileGrid) {
-            profileGrid.innerHTML = ''; const profFragment = document.createDocumentFragment(); let profileRendered = 0;
-            playerStats.pinnedAchievements.forEach(id => { 
-                if (profileRendered >= 3) return; 
-                let ach = ACHIEVEMENTS_DATA.find(a => a.id === id); 
+            profileGrid.innerHTML = '';
+            const profFragment = document.createDocumentFragment();
+            let profileRendered = 0;
+            displayPinned.forEach(id => {
+                if (profileRendered >= 3) return;
+                let ach = ACHIEVEMENTS_DATA.find(a => a.id === id);
                 if (id === 'tramposo') ach = CHEATER_ACHIEVEMENT;
-                if (ach) { appendProfileSlot(profFragment, ach, true); profileRendered++; } 
+                if (ach) {
+                    const slot = document.createElement('div');
+                    slot.className = 'achievement-slot unlocked';
+                    slot.style.borderColor = ach.color;
+                    slot.style.boxShadow = `0 0 10px ${ach.color}33`;
+                    slot.innerHTML = `<div class="ach-icon" style="color:${ach.color}">${ach.icon}</div><div class="ach-title">${ach.title}</div>`;
+                    profFragment.appendChild(slot);
+                    profileRendered++;
+                }
             });
-            [...playerStats.achievements].reverse().forEach(id => { 
-                if (profileRendered >= 3 || playerStats.pinnedAchievements.includes(id) || id === 'tramposo') return; 
-                const ach = ACHIEVEMENTS_DATA.find(a => a.id === id); 
-                if (ach) { appendProfileSlot(profFragment, ach, false); profileRendered++; } 
-            });
-            while (profileRendered < 3) { const slot = document.createElement('div'); slot.className = 'achievement-slot'; slot.innerHTML = `<div class="ach-icon" style="color: var(--text-secondary);">${SVG_LOCK}</div><div class="ach-title" style="color: var(--text-secondary);">Vacío</div>`; profFragment.appendChild(slot); profileRendered++; }
+            while (profileRendered < 3) {
+                const slot = document.createElement('div'); slot.className = 'achievement-slot';
+                slot.innerHTML = `<div class="ach-icon" style="color:var(--text-secondary)">${SVG_LOCK}</div><div class="ach-title" style="color:var(--text-secondary)">Vacío</div>`;
+                profFragment.appendChild(slot); profileRendered++;
+            }
             profileGrid.appendChild(profFragment);
         }
-        document.getElementById('achievements-progress-text').innerText = `Desbloqueados: ${unlockedCount} / 252`;
+        document.getElementById('achievements-progress-text').innerText = `Desbloqueados: ${unlockedCount} / 95`;
     }
-    
-    function appendProfileSlot(grid, ach, isPinned) {
-        const slot = document.createElement('div'); slot.className = `achievement-slot unlocked ${isPinned ? 'pinned' : ''}`; slot.style.borderColor = ach.color;
-        const canUnpin = isPinned && ach.id !== 'tramposo';
-        const unpinBtn = canUnpin ? `<button class="slot-unpin-btn" onclick="unpinFromSlot(event, '${ach.id}')" title="Quitar del perfil">✕</button>` : '';
-        slot.innerHTML = `${unpinBtn}<div class="ach-icon" style="color: ${ach.color};">${ach.icon}</div><div class="ach-title">${ach.title}</div>`; 
+
+    function appendProfileSlot(grid, ach) {
+        const slot = document.createElement('div'); slot.className = 'achievement-slot unlocked'; slot.style.borderColor = ach.color;
+        slot.innerHTML = `<div class="ach-icon" style="color:${ach.color}">${ach.icon}</div><div class="ach-title">${ach.title}</div>`;
         grid.appendChild(slot);
     }
 
-    function unpinFromSlot(e, achId) {
-        if(e) e.stopPropagation();
-        if (achId === 'tramposo') return; 
-        SFX.click();
-        const idx = playerStats.pinnedAchievements.indexOf(achId);
-        if (idx > -1) playerStats.pinnedAchievements.splice(idx, 1);
-        saveStatsLocally();
-        renderAchievements();
-        showToast('Logro Quitado', 'Has liberado un espacio.', 'var(--text-secondary)', SVG_PIN);
-    }
 
     // --- UI Flow ---
     function switchScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); setTimeout(() => document.getElementById(id).classList.add('active'), 50); }
