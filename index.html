@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Klick - Experiencia de Aprendizaje</title>
+    <title>Klick</title>
     <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ff66' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'%3E%3C/polygon%3E%3C/svg%3E">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap');
@@ -22,9 +22,6 @@
             --accent-purple: #b5179e;
             --accent-orange: #f77f00;
             
-            --bpd-gold: #f59e0b; 
-            --bpd-gold-light: #fbbf24;
-
             --radius-sm: 12px;
             --radius-md: 16px;
             --radius-lg: 24px;
@@ -67,9 +64,8 @@
         .logo-subtitle { font-size: clamp(0.7rem, 2vw, 0.9rem); font-weight: 600; letter-spacing: 4px; color: var(--text-secondary); margin-top: 5px; margin-bottom: 40px; display: block; text-transform: uppercase; text-align: center; }
 
         .menu-box { display: flex; flex-direction: column; gap: 15px; width: 90%; max-width: 360px; }
-        .btn-solid, .btn-outline, .btn-bpd { width: 100%; padding: clamp(14px, 2.5vh, 18px); font-size: 1rem; font-weight: 800; letter-spacing: 1.5px; border-radius: var(--radius-md); cursor: pointer; transition: all 0.3s ease-out; display: flex; justify-content: center; align-items: center; text-transform: uppercase; gap: 10px; }
+        .btn-solid, .btn-outline { width: 100%; padding: clamp(14px, 2.5vh, 18px); font-size: 1rem; font-weight: 800; letter-spacing: 1.5px; border-radius: var(--radius-md); cursor: pointer; transition: all 0.3s ease-out; display: flex; justify-content: center; align-items: center; text-transform: uppercase; gap: 10px; }
         
-        /* Botones del menú principal – blancos para legibilidad, BPD dorado */
         .btn-solid { color: #ffffff; background-color: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.7); }
         .btn-solid:hover { background-color: rgba(255,255,255,0.14); border-color: #ffffff; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,255,255,0.15); }
         .btn-solid:active { transform: scale(0.96); }
@@ -78,9 +74,6 @@
         .btn-outline:hover { color: #ffffff; border-color: rgba(255,255,255,0.7); background-color: rgba(255,255,255,0.06); transform: translateY(-2px); }
         .btn-outline:active { transform: scale(0.96); }
 
-        .btn-bpd { color: var(--bpd-gold); background-color: rgba(245, 158, 11, 0.06); border: 1.5px solid rgba(245, 158, 11, 0.5); }
-        .btn-bpd:hover:not(:disabled) { background-color: rgba(245, 158, 11, 0.15); border-color: var(--bpd-gold-light); color: var(--bpd-gold-light); transform: translateY(-2px); box-shadow: 0 5px 20px rgba(245, 158, 11, 0.25); }
-        .btn-bpd:active { transform: scale(0.96); }
 
         .top-nav { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--bg-elevated); background: rgba(5, 5, 5, 0.6); backdrop-filter: blur(15px); z-index: 10; flex-shrink: 0; }
         .btn-back { background: transparent; color: var(--text-secondary); border: 1px solid var(--bg-elevated); padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: all 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; width: 110px; }
@@ -99,10 +92,14 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: all 0.3s var(--ease-out); z-index: 100; }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         
-        /* --- Pantalla de Configuración --- */
-        .settings-dashboard { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: clamp(15px, 2vh, 30px); margin: 0 auto; justify-content: center; min-height: 100%; padding-bottom: 20px; }
-        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: clamp(15px, 2vw, 25px); width: 100%; }
-        .setting-card { padding: clamp(20px, 3vh, 30px); border-radius: var(--radius-lg); border: 1px solid var(--bg-elevated); display: flex; flex-direction: column; gap: 20px; transition: all 0.3s ease; }
+        /* --- Pantallas Generales (Expansivas) --- */
+        .settings-dashboard, .profile-dashboard, .guide-dashboard, .ranking-wrapper, .achievements-wrapper {
+            width: 100%; max-width: 100%; padding: 0 15px; display: flex; flex-direction: column; margin: 0 auto;
+        }
+
+        .settings-dashboard { max-width: 800px; justify-content: center; min-height: 100%; padding-bottom: 20px; gap: clamp(15px, 2vh, 30px); }
+        .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(15px, 2vw, 25px); width: 100%; }
+        .setting-card { padding: clamp(20px, 3vh, 30px); border-radius: var(--radius-lg); border: 1px solid var(--bg-elevated); display: flex; flex-direction: column; gap: 20px; transition: all 0.3s ease; height: 100%; }
         .setting-card:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .setting-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         .setting-title-box { display: flex; align-items: center; gap: 15px; }
@@ -118,16 +115,13 @@
         input[type=range]::-webkit-slider-thumb { 
             -webkit-appearance: none; height: 22px; width: 22px; border-radius: 50%; 
             background: var(--text-primary); margin-top: -8px; cursor: pointer;
-            border: 4px solid var(--bg-elevated);
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-            transition: all 0.3s var(--ease-spring);
+            border: 4px solid var(--bg-elevated); box-shadow: 0 0 10px rgba(255, 255, 255, 0.2); transition: all 0.3s var(--ease-spring);
         }
         input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); background: var(--rank-color); border-color: rgba(255,255,255,0.9); box-shadow: 0 0 15px rgba(var(--rank-rgb), 0.6); }
         input[type=range]::-webkit-slider-thumb:active { transform: scale(0.9); }
-        /* ------------------------------------------- */
 
         /* Perfil */
-        .profile-dashboard { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: clamp(10px, 2vh, 30px); height: 100%; justify-content: center; }
+        .profile-dashboard { justify-content: center; max-width: 1200px; gap: clamp(10px, 2vh, 30px); height: 100%; }
         .profile-hero { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: clamp(20px, 4vh, 40px); border-radius: var(--radius-lg); text-align: center; }
         .profile-rank { font-weight: 800; font-size: clamp(0.8rem, 1.5vw, 1rem); text-transform: uppercase; letter-spacing: 2px; }
         .profile-name-input { width: 100%; background: transparent; border: none; border-bottom: 2px solid var(--bg-elevated); color: var(--text-primary); font-size: clamp(1.8rem, 5vw, 3.5rem); font-weight: 900; text-align: center; padding: 5px 0; outline: none; text-transform: uppercase; transition: all 0.3s; }
@@ -139,74 +133,56 @@
         .stat-label { font-size: clamp(0.6rem, 1vw, 0.8rem); color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
         .profile-achievements-title { font-size: clamp(0.9rem, 2vw, 1.2rem); font-weight: 800; text-align: center; color: var(--text-primary); text-transform: uppercase; margin-top: 5px; letter-spacing: 1px; }
         .profile-achievements-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(10px, 2vw, 15px); width: 100%; }
-        .achievement-slot { background: rgba(17, 17, 17, 0.4); border: 1px dashed var(--bg-elevated); border-radius: var(--radius-md); padding: clamp(10px, 2vh, 20px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; opacity: 0.4; filter: grayscale(1); }
+        .achievement-slot { background: rgba(17, 17, 17, 0.4); border: 1px dashed var(--bg-elevated); border-radius: var(--radius-md); padding: clamp(10px, 2vh, 20px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; opacity: 0.4; filter: grayscale(1); position: relative; }
         .achievement-slot.unlocked { border-style: solid; opacity: 1; filter: grayscale(0); background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(10px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .ach-icon { width: clamp(24px, 4vw, 32px); height: clamp(24px, 4vw, 32px); }
         .ach-icon svg { width: 100%; height: 100%; }
         .ach-title { font-size: clamp(0.65rem, 1vw, 0.8rem); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
 
         /* Guía y Rangos */
-        .guide-dashboard { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: clamp(5px, 1.5vh, 15px); height: 100%; justify-content: center; }
-        .guide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(5px, 1.5vw, 15px); width: 100%; }
-        .guide-card { padding: clamp(15px, 2vh, 20px); border-radius: var(--radius-md); border: 1px solid var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 5px; }
+        .guide-dashboard { justify-content: flex-start; gap: clamp(10px, 2vh, 20px); width: 100%; max-width: 1200px; padding-bottom: 20px; }
+        .guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: clamp(12px, 2vw, 20px); width: 100%; }
+        .guide-card { padding: clamp(18px, 2.5vh, 28px); border-radius: var(--radius-md); border: 1px solid var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; transition: transform 0.3s; height: 100%; }
+        .guide-card:hover { transform: translateY(-3px); }
         .guide-card.full-width { grid-column: 1 / -1; }
-        .guide-icon { width: 30px; height: 30px; color: var(--text-primary); margin-bottom: 5px; }
-        .guide-title { font-size: clamp(0.9rem, 1.5vw, 1.2rem); font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; }
-        .guide-text { color: var(--text-secondary); font-size: clamp(0.75rem, 1.2vw, 0.9rem); line-height: 1.3; }
+        .guide-icon { width: 35px; height: 35px; color: var(--text-primary); margin-bottom: 5px; }
+        .guide-title { font-size: clamp(1rem, 1.5vw, 1.3rem); font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; text-transform: uppercase; }
+        .guide-text { color: var(--text-secondary); font-size: clamp(0.85rem, 1.2vw, 0.95rem); line-height: 1.4; }
         .guide-text strong { color: var(--text-primary); }
-        .rank-list { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; width: 100%; gap: 5px; margin-top: 5px; }
-        .rank-item { display: flex; flex-direction: column; align-items: center; padding: clamp(5px, 1vh, 10px); background: rgba(5,5,5,0.5); border-radius: var(--radius-sm); border: 1px solid var(--bg-elevated); flex: 1 1 30%; }
-        .rank-item-name { font-weight: 800; font-size: clamp(0.8rem, 1.2vw, 1rem); text-transform: uppercase; margin-bottom: 2px; }
-        .rank-item-pts { color: var(--text-secondary); font-size: clamp(0.65rem, 1vw, 0.8rem); line-height: 1.2; text-align: center; }
+        .rank-list { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; width: 100%; gap: 10px; margin-top: 10px; }
+        .rank-item { display: flex; flex-direction: column; align-items: center; padding: clamp(10px, 1.5vh, 15px); background: rgba(5,5,5,0.5); border-radius: var(--radius-sm); border: 1px solid var(--bg-elevated); flex: 1 1 30%; }
+        .rank-item-name { font-weight: 800; font-size: clamp(0.85rem, 1.2vw, 1.1rem); text-transform: uppercase; margin-bottom: 4px; }
+        .rank-item-pts { color: var(--text-secondary); font-size: clamp(0.7rem, 1vw, 0.85rem); line-height: 1.3; text-align: center; }
 
-        /* Zona Canje BPD */
-        .canje-dashboard { width: 100%; max-width: 900px; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; }
-        .cheque-container { background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(15px); border: 2px dashed var(--bpd-gold); border-radius: var(--radius-lg); padding: clamp(15px, 3vh, 25px) clamp(20px, 4vw, 40px); width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: clamp(8px, 1.5vh, 15px); position: relative; overflow: hidden; }
-        .cheque-top { display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid rgba(245,158,11,0.3); padding-bottom: 10px; margin-bottom: 5px; }
-        .cheque-top-left { display: flex; align-items: center; gap: 15px; }
-        .cheque-top svg { width: clamp(25px, 4vw, 35px); height: clamp(25px, 4vw, 35px); color: var(--bpd-gold); }
-        .cheque-title { font-size: clamp(1rem, 2.5vw, 1.5rem); font-weight: 900; color: var(--bpd-gold-light); text-transform: uppercase; letter-spacing: 1px; }
-        .cheque-serial { font-family: monospace; color: var(--text-secondary); font-size: clamp(0.7rem, 1.2vw, 0.9rem); }
         
-        .cheque-body { display: flex; flex-direction: column; gap: clamp(5px, 1vh, 10px); }
-        .c-row { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px dotted var(--bg-elevated); padding-bottom: 2px; }
-        .c-label { font-size: clamp(0.65rem, 1.2vw, 0.8rem); color: var(--text-secondary); text-transform: uppercase; font-weight: 800; letter-spacing: 1px; }
-        .c-value { font-size: clamp(0.9rem, 1.8vw, 1.2rem); font-weight: 900; color: var(--text-primary); font-family: monospace; text-align: right; text-transform: uppercase; }
-        .c-value.locked { color: var(--text-secondary); font-style: italic; }
-        .c-value.gold { color: var(--bpd-gold-light); text-shadow: 0 0 10px rgba(245,158,11,0.3); font-size: clamp(1.2rem, 2.2vw, 1.5rem); }
-        
-        .cheque-footer { display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 15px; margin-top: 5px; border-top: 1px solid rgba(245,158,11,0.2); padding-top: 10px; }
-        .canje-status-text { text-align: left; font-size: clamp(0.75rem, 1.2vw, 0.9rem); font-weight: 800; color: var(--text-primary); line-height: 1.4; }
-        .canje-status-sub { font-size: clamp(0.65rem, 1vw, 0.75rem); color: var(--text-secondary); display: block; font-weight: 500; margin-top: 2px; }
-        .c-instruction { display: none; font-size: clamp(0.7rem, 1.2vw, 0.85rem); color: var(--accent-green); text-align: left; font-weight: 600; padding: 10px; background: rgba(0,255,102,0.1); border: 1px solid rgba(0,255,102,0.2); border-radius: var(--radius-sm); margin-top: 0; flex: 1; }
-
         /* Banco de Logros */
-        .achievements-wrapper { width: 100%; max-width: 1400px; display: flex; flex-direction: column; gap: 20px; }
-        .achievements-stats { text-align: center; color: var(--text-secondary); font-weight: 600; font-size: 0.9rem; letter-spacing: 1px; }
-        .achievements-grid { display: grid; gap: 20px; width: 100%; }
-        @media (min-width: 650px) { .achievements-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 1100px) { .achievements-grid { grid-template-columns: repeat(4, 1fr); } }
-        @media (min-width: 1500px) { .achievements-grid { grid-template-columns: repeat(5, 1fr); } }
-        .ach-card { background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(10px); padding: 25px 20px; border-radius: var(--radius-md); border: 1px dashed var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; opacity: 0.5; filter: grayscale(1); transition: all 0.3s ease; position: relative; cursor: pointer; }
-        .ach-card:hover { transform: scale(1.02); }
-        .ach-card.unlocked { border-style: solid; opacity: 1; filter: grayscale(0); background: rgba(25, 25, 25, 0.8); }
+        .achievements-wrapper { gap: 15px; max-width: 1400px; padding: 10px 15px 30px; }
+        .achievements-stats { text-align: center; color: var(--text-secondary); font-weight: 600; font-size: 1rem; letter-spacing: 1px; padding-top: 10px;}
+        .achievements-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; width: 100%; padding: 5px 0 20px; }
+        @media (min-width: 600px) { .achievements-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 900px) { .achievements-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 1200px) { .achievements-grid { grid-template-columns: repeat(5, 1fr); } }
+        @media (min-width: 1500px) { .achievements-grid { grid-template-columns: repeat(6, 1fr); } }
+        .ach-card { background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(10px); padding: 18px 14px; border-radius: var(--radius-md); border: 1px dashed var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; opacity: 0.5; filter: grayscale(1); transition: all 0.3s ease; position: relative; cursor: pointer; min-height: 140px; justify-content: center; }
+        .ach-card:hover { transform: scale(1.05); z-index: 5; } /* z-index superior para sobreponerse en el hover */
+        .ach-card.unlocked { border-style: solid; opacity: 1; filter: grayscale(0); background: rgba(25, 25, 25, 0.8); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .ach-card.pinned { box-shadow: 0 0 15px var(--accent-yellow) !important; border-color: var(--accent-yellow) !important; }
-        .ach-card .ach-icon { width: 40px; height: 40px; margin-bottom: 5px;}
-        .ach-card .ach-title { font-size: 1.1rem; color: var(--text-primary); font-weight: 800; }
-        .ach-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; font-style: italic;}
+        .ach-card .ach-icon { width: 36px; height: 36px; margin-bottom: 2px;}
+        .ach-card .ach-title { font-size: 0.9rem; color: var(--text-primary); font-weight: 800; line-height: 1.2; }
+        .ach-desc { font-size: 0.72rem; color: var(--text-secondary); line-height: 1.3; font-style: italic;}
         .ach-card.unlocked .ach-desc { font-style: normal; }
 
-        /* --- RANKING GLOBAL --- */
-        .ranking-wrapper { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 15px; }
-        .ranking-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
-        .rank-card { display: grid; grid-template-columns: 50px 1fr auto; align-items: center; background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(10px); padding: 12px 20px; border-radius: var(--radius-md); border: 1px solid var(--bg-elevated); transition: all 0.3s ease; }
+        /* --- CLASIFICACIÓN GLOBAL --- */
+        .ranking-wrapper { gap: 15px; max-width: 1200px; padding: 20px;}
+        .ranking-list { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+        .rank-card { display: grid; grid-template-columns: 50px 1fr auto; align-items: center; background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(10px); padding: 15px 25px; border-radius: var(--radius-md); border: 1px solid var(--bg-elevated); transition: all 0.3s ease; }
         .rank-card:hover { background: rgba(255, 255, 255, 0.05); transform: translateX(5px); }
-        .rc-pos { font-size: 1.5rem; font-weight: 900; color: var(--text-secondary); text-align: center; }
-        .rc-info { display: flex; flex-direction: column; justify-content: center; gap: 2px; }
-        .rc-name { font-size: 1.1rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase; }
-        .rc-title { font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
-        .rc-score { font-size: 1.2rem; font-weight: 900; font-family: monospace; color: var(--accent-blue); text-align: right; }
-        .rc-score span { font-size: 0.6rem; color: var(--text-secondary); vertical-align: middle; margin-left: 2px;}
+        .rc-pos { font-size: 1.6rem; font-weight: 900; color: var(--text-secondary); text-align: center; }
+        .rc-info { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+        .rc-name { font-size: 1.2rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase; }
+        .rc-title { font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+        .rc-score { font-size: 1.3rem; font-weight: 900; font-family: monospace; color: var(--accent-blue); text-align: right; }
+        .rc-score span { font-size: 0.65rem; color: var(--text-secondary); vertical-align: middle; margin-left: 3px;}
 
         .rank-card.pos-1 { border-color: #ffd700; background: rgba(255, 215, 0, 0.05); }
         .rank-card.pos-1 .rc-pos { color: #ffd700; }
@@ -278,7 +254,7 @@
         .streak-box { font-size: 1rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; }
         .streak-box span { color: var(--accent-yellow); font-weight: 900; font-size: 1.2rem; }
 
-        /* --- PANTALLA DE FIN – pantalla completa con fondo propio --- */
+        /* --- PANTALLA DE FIN --- */
         #end-screen { justify-content: center; align-items: center; background: var(--bg-base); }
         #end-screen::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 40%, rgba(var(--rank-rgb), 0.12) 0%, transparent 65%); pointer-events: none; }
         .end-panel { 
@@ -325,48 +301,11 @@
         .mult-x5 { color: var(--accent-yellow); animation: frenzy-pulse-x5 0.5s ease-in-out infinite; }
         .mult-x6up { color: var(--rank-color); animation: frenzy-neon-x6 0.4s ease-in-out infinite; }
 
-        /* --- Zona BPD – nuevo diseño descriptivo --- */
-        .bpd-screen-wrap { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .bpd-zone { width: 90%; max-width: 680px; background: rgba(10,10,10,0.9); backdrop-filter: blur(20px); border: 1px solid rgba(245,158,11,0.35); border-top: 3px solid var(--bpd-gold); border-radius: var(--radius-lg); padding: clamp(25px,4vh,45px) clamp(25px,4vw,45px); display: flex; flex-direction: column; gap: clamp(14px,2.5vh,24px); box-shadow: 0 0 60px rgba(245,158,11,0.08), 0 25px 50px rgba(0,0,0,0.7); }
-        .bpd-header { display: flex; align-items: center; gap: 15px; padding-bottom: clamp(10px,2vh,18px); border-bottom: 1px solid rgba(245,158,11,0.2); }
-        .bpd-header-icon { width: 50px; height: 50px; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--bpd-gold); }
-        .bpd-header-icon svg { width: 26px; height: 26px; }
-        .bpd-header-text h2 { font-size: clamp(1rem,2vw,1.4rem); font-weight: 900; color: var(--bpd-gold-light); text-transform: uppercase; letter-spacing: 1px; margin: 0; }
-        .bpd-header-text p { font-size: clamp(0.65rem,1vw,0.8rem); color: var(--text-secondary); margin: 3px 0 0 0; font-weight: 500; }
-        .bpd-prize-box { background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.25); border-radius: var(--radius-md); padding: clamp(14px,2.5vh,22px); text-align: center; }
-        .bpd-prize-label { font-size: clamp(0.6rem,1vw,0.75rem); text-transform: uppercase; letter-spacing: 3px; color: var(--text-secondary); font-weight: 700; }
-        .bpd-prize-amount { font-size: clamp(2.5rem,7vw,4rem); font-weight: 900; color: var(--bpd-gold-light); text-shadow: 0 0 30px rgba(245,158,11,0.4); line-height: 1.1; }
-        .bpd-prize-currency { font-size: clamp(0.75rem,1.2vw,1rem); font-weight: 700; color: var(--bpd-gold); letter-spacing: 2px; margin-top: 2px; }
-        .bpd-reqs-title { font-size: clamp(0.7rem,1.2vw,0.85rem); font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
-        .bpd-reqs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .bpd-req-item { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
-        .bpd-req-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .bpd-req-icon svg { width: 16px; height: 16px; }
-        .bpd-req-text { font-size: clamp(0.7rem,1vw,0.82rem); color: var(--text-secondary); line-height: 1.3; }
-        .bpd-req-text strong { color: var(--text-primary); display: block; font-size: clamp(0.75rem,1.1vw,0.88rem); }
-        .bpd-req-item.done .bpd-req-icon { background: rgba(0,255,102,0.1); border: 1px solid rgba(0,255,102,0.3); color: var(--accent-green); }
-        .bpd-req-item.pending .bpd-req-icon { background: rgba(255,184,0,0.1); border: 1px solid rgba(255,184,0,0.25); color: var(--accent-yellow); }
-        .bpd-progress-bar-wrap { display: flex; flex-direction: column; gap: 5px; }
-        .bpd-progress-label { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); }
-        .bpd-progress-track { width: 100%; height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
-        .bpd-progress-fill { height: 100%; background: linear-gradient(90deg, var(--bpd-gold), var(--bpd-gold-light)); border-radius: 4px; transition: width 1s var(--ease-out); }
-
-        /* Pantalla de felicitación BPD ganada */
-        .bpd-won-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.95); z-index: 50; justify-content: center; align-items: center; flex-direction: column; gap: 20px; text-align: center; padding: 30px; }
-        .bpd-won-overlay.show { display: flex; animation: bpd-won-in 0.8s var(--ease-spring); }
-        @keyframes bpd-won-in { from{opacity:0;transform:scale(0.8);} to{opacity:1;transform:scale(1);} }
-        .bpd-won-star { font-size: 5rem; animation: bpd-spin 3s linear infinite; }
-        @keyframes bpd-spin { 0%{transform:rotate(0) scale(1);} 50%{transform:rotate(180deg) scale(1.1);} 100%{transform:rotate(360deg) scale(1);} }
-        .bpd-won-congrats { font-size: clamp(1.5rem,5vw,2.5rem); font-weight: 900; color: var(--bpd-gold-light); text-shadow: 0 0 40px rgba(245,158,11,0.6); letter-spacing: -1px; }
-        .bpd-won-amount { font-size: clamp(2rem,8vw,4rem); font-weight: 900; color: #ffffff; text-shadow: 0 0 30px rgba(245,158,11,0.8); }
-        .bpd-won-sub { font-size: clamp(0.75rem,1.5vw,1rem); color: var(--text-secondary); max-width: 400px; line-height: 1.5; }
-        .bpd-won-name { font-size: clamp(1rem,2vw,1.4rem); font-weight: 900; color: var(--bpd-gold); text-transform: uppercase; letter-spacing: 3px; }
 
         /* --- Logros fijados – botón de quitar --- */
-        .achievement-slot { position: relative; }
         .achievement-slot.unlocked .slot-unpin-btn { display: flex; }
-        .slot-unpin-btn { display: none; position: absolute; top: 5px; right: 5px; background: rgba(255,0,60,0.15); border: 1px solid rgba(255,0,60,0.3); color: var(--accent-red); border-radius: 50%; width: 20px; height: 20px; align-items: center; justify-content: center; cursor: pointer; font-size: 0.75rem; font-weight: 900; transition: all 0.2s; line-height: 1; }
-        .slot-unpin-btn:hover { background: rgba(255,0,60,0.4); transform: scale(1.1); }
+        .slot-unpin-btn { display: none; position: absolute; top: -8px; right: -8px; background: var(--accent-red); color: #ffffff; border: 2px solid var(--bg-surface); border-radius: 50%; width: 26px; height: 26px; align-items: center; justify-content: center; cursor: pointer; font-size: 0.85rem; font-weight: 900; transition: all 0.2s; line-height: 1; z-index: 20; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .slot-unpin-btn:hover { background: #ff003c; transform: scale(1.15); }
 
         @media (max-width: 850px) {
             .btn-back span, .nav-spacer { width: 60px; } .btn-back span { display: none; }
@@ -374,10 +313,11 @@
             .answer-btn { padding: 15px; font-size: 1rem; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .guide-grid { grid-template-columns: 1fr; }
+            .settings-grid { grid-template-columns: 1fr; }
             .toast-container { bottom: auto; top: 20px; right: 50%; transform: translateX(50%); width: 90%; }
             .toast-item { transform: translateY(-120%); }
             .toast-item.show { transform: translateY(0); }
-            .bpd-reqs-grid { grid-template-columns: 1fr; }
+            .achievements-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
         }
     </style>
 </head>
@@ -388,9 +328,8 @@
     <div class="toast-container" id="toast-container"></div>
 
     <div id="start-screen" class="screen active content-fit">
-        
         <div class="top-btn-container">
-            <button class="top-btn" onclick="goToRanking()" title="Ranking Global">
+            <button class="top-btn" onclick="goToRanking()" title="Clasificación Global">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"></rect><rect x="10" y="8" width="4" height="13"></rect><rect x="2" y="13" width="4" height="8"></rect></svg>
             </button>
             <button class="top-btn" onclick="openSettings()" title="Configuración">
@@ -402,14 +341,10 @@
         <div class="logo-subtitle">By Didac-Click Group</div>
 
         <div class="menu-box" id="menu-box">
-            <button class="btn-solid" onclick="startGameCheck()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                ¡Jugar!
-            </button>
+            <button class="btn-solid" onclick="startGameCheck()">¡Jugar!</button>
             <button class="btn-outline" onclick="goToProfile()" style="margin-top: 10px;">Mi Perfil</button>
             <button class="btn-outline" onclick="goToAchievements()">Banco de Logros</button>
             <button class="btn-outline" onclick="goToGuide()">Instrucciones</button>
-            <button class="btn-bpd" onclick="goToCanje()">Zona de Canje (BPD)</button>
         </div>
     </div>
 
@@ -495,7 +430,7 @@
     <div id="ranking-screen" class="screen nav-screen">
         <div class="top-nav">
             <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
-            <div class="nav-title">TOP 20 MUNDIAL</div><div class="nav-spacer"></div>
+            <div class="nav-title">CLASIFICACIÓN</div><div class="nav-spacer"></div>
         </div>
         <div class="content-scroll no-scrollbar">
             <div class="ranking-wrapper">
@@ -524,7 +459,7 @@
                     <div class="stat-card glass-panel"><div class="stat-value" id="stat-streak">0</div><div class="stat-label">Racha Máx</div></div>
                     <div class="stat-card glass-panel"><div class="stat-value" id="stat-days">0</div><div class="stat-label">Días</div></div>
                 </div>
-                <div class="profile-achievements-title">Logros Fijados <span style="font-size:0.7em;color:var(--text-secondary);font-weight:500;letter-spacing:0;text-transform:none;">(toca uno para quitarlo)</span></div>
+                <div class="profile-achievements-title">Logros Fijados <span style="font-size:0.7em;color:var(--text-secondary);font-weight:500;letter-spacing:0;text-transform:none;">(toca la X de uno para quitarlo)</span></div>
                 <div class="profile-achievements-grid" id="profile-achievements-grid"></div>
             </div>
         </div>
@@ -542,29 +477,29 @@
                     <!-- Objetivo del juego -->
                     <div class="guide-card glass-panel full-width" style="border-color: var(--accent-red); padding-bottom: 20px;">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-red);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                        <div class="guide-title" style="color: var(--accent-red);">🎯 Objetivo del Juego</div>
+                        <div class="guide-title" style="color: var(--accent-red);">Objetivo del Juego</div>
                         <div class="guide-text">Klick es un trivia de <strong>preguntas infinitas</strong>. Tienes <strong>15 segundos</strong> para responder cada pregunta y <strong>3 vidas</strong> para sobrevivir. Si fallas una respuesta o se te acaba el tiempo, pierdes una vida. Cuando pierdes las 3, la partida termina. ¡Tu objetivo es acumular el mayor puntaje posible!</div>
                     </div>
 
                     <!-- Puntuación -->
                     <div class="guide-card glass-panel" style="border-color: var(--accent-blue);">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-blue);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        <div class="guide-title" style="color: var(--accent-blue);">⏱ Puntuación por Velocidad</div>
+                        <div class="guide-title" style="color: var(--accent-blue);">Puntuación por Velocidad</div>
                         <div class="guide-text">Ganar puntos depende de <strong>qué tan rápido respondas</strong>. Una respuesta en los primeros segundos vale hasta <strong>1,600 pts</strong>, mientras que responder al límite vale solo <strong>800 pts</strong>. ¡La velocidad es clave!</div>
                     </div>
 
                     <!-- Modo Frenesí -->
                     <div class="guide-card glass-panel" style="border-color: var(--accent-orange);">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-orange);"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
-                        <div class="guide-title" style="color: var(--accent-orange);">🔥 Modo Frenesí</div>
+                        <div class="guide-title" style="color: var(--accent-orange);">Modo Frenesí</div>
                         <div class="guide-text">Al encadenar <strong>5 aciertos seguidos</strong> activas el Modo Frenesí. El fondo cambia, la música se acelera y obtienes un <strong>multiplicador de puntos (x2)</strong>. Cada 5 aciertos más, el multiplicador sube: <strong>x2 → x3 → x4 → x5…</strong>. ¡Un solo fallo lo resetea todo!</div>
                     </div>
 
                     <!-- Sistema de Rangos completo -->
                     <div class="guide-card full-width glass-panel" style="border-color: rgba(255,255,255,0.1);">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-primary);"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>
-                        <div class="guide-title">🏅 Sistema de Rangos</div>
-                        <div class="guide-text" style="margin-bottom: 10px;">Debes cumplir <strong>TODOS</strong> los requisitos a la vez para ascender. Los rangos desbloquean nuevas animaciones y colores en el menú.</div>
+                        <div class="guide-title">Sistema de Rangos</div>
+                        <div class="guide-text" style="margin-bottom: 10px;">Debes cumplir <strong>TODOS</strong> los requisitos a la vez para ascender. Los rangos demuestran tu estatus real en el juego.</div>
                         <div class="rank-list">
                             <div class="rank-item" style="border-color: rgba(0,255,102,0.3);">
                                 <span class="rank-item-name" style="color: var(--accent-green);">Novato</span>
@@ -583,8 +518,8 @@
                                 <span class="rank-item-pts">150,000 pts acum. · 50 partidas · Mult. x4</span>
                             </div>
                             <div class="rank-item" style="border-color: rgba(255,184,0,0.3); background: rgba(255,184,0,0.04);">
-                                <span class="rank-item-name" style="color: var(--accent-yellow);">⭐ Leyenda</span>
-                                <span class="rank-item-pts">400,000 pts acum. · 1,500 aciertos · 10 partidas largas · 10 perfectas</span>
+                                <span class="rank-item-name" style="color: var(--accent-yellow);">Leyenda</span>
+                                <span class="rank-item-pts">400,000 pts acum. · 1,500 aciertos · 10 partidas largas</span>
                             </div>
                         </div>
                     </div>
@@ -592,83 +527,24 @@
                     <!-- Logros -->
                     <div class="guide-card glass-panel" style="border-color: var(--accent-yellow);">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-yellow);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                        <div class="guide-title" style="color: var(--accent-yellow);">🏆 Banco de Logros</div>
-                        <div class="guide-text">Hay <strong>250 logros</strong> para desbloquear. Algunos son escalables (por jugar más), otros son únicos y secretos. Puedes <strong>fijar hasta 3 logros</strong> en tu perfil. ¡Descúbrelos explorando todas las secciones del juego!</div>
+                        <div class="guide-title" style="color: var(--accent-yellow);">Banco de Logros</div>
+                        <div class="guide-text">Hay <strong>252 logros</strong> para desbloquear. Algunos son escalables (por jugar más), otros son únicos y secretos. Puedes <strong>fijar hasta 3 logros</strong> en tu perfil. ¡Descúbrelos explorando todas las secciones del juego!</div>
                     </div>
 
                     <!-- Power Level / Ranking -->
                     <div class="guide-card glass-panel" style="border-color: var(--accent-purple);">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-purple);"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg>
-                        <div class="guide-title" style="color: var(--accent-purple);">🌐 Top 20 Mundial</div>
-                        <div class="guide-text">El ranking usa tu <strong>Nivel de Poder (PL)</strong>, calculado a partir de tu récord, racha máxima, partidas perfectas, logros y precisión. Compite con jugadores del mundo en <strong>tiempo real</strong>.</div>
+                        <div class="guide-title" style="color: var(--accent-purple);">Clasificación Global</div>
+                        <div class="guide-text">La clasificación usa tu <strong>Nivel de Poder (PL)</strong>, calculado a partir de tu récord, racha máxima, partidas perfectas, logros y precisión. Compite con jugadores del mundo en <strong>tiempo real</strong>.</div>
                     </div>
 
-                    <!-- BPD Prize -->
-                    <div class="guide-card full-width glass-panel" style="border-color: var(--bpd-gold);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--bpd-gold);"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        <div class="guide-title" style="color: var(--bpd-gold);">🎁 Zona BPD – El Gran Premio</div>
-                        <div class="guide-text">Si logras alcanzar el <strong>Rango Leyenda</strong> y desbloquear <strong>100 logros</strong>, accederás al premio del <strong>Banco del Pincel Dorado: 1,000,000 de Pinceles</strong>. Visita la Zona BPD en el menú para ver tu progreso en tiempo real.</div>
-                    </div>
+
 
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="canje-screen" class="screen nav-screen" style="position: relative;">
-        <div class="top-nav">
-            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
-            <div class="nav-title" style="color: var(--bpd-gold);">ZONA BPD</div><div class="nav-spacer"></div>
-        </div>
-        <div class="content-fit">
-            <div class="bpd-screen-wrap">
-                <div class="bpd-zone">
-                    <!-- Header -->
-                    <div class="bpd-header">
-                        <div class="bpd-header-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                        </div>
-                        <div class="bpd-header-text">
-                            <h2>Banco del Pincel Dorado</h2>
-                            <p>Tu progreso real hacia el premio máximo de Klick</p>
-                        </div>
-                    </div>
-                    <!-- Prize box -->
-                    <div class="bpd-prize-box">
-                        <div class="bpd-prize-label">Premio al completar los requisitos</div>
-                        <div class="bpd-prize-amount">1,000,000</div>
-                        <div class="bpd-prize-currency">✦ Pinceles Dorados ✦</div>
-                    </div>
-                    <!-- Requirements -->
-                    <div>
-                        <div class="bpd-reqs-title">¿Cómo Ganarlo?</div>
-                        <div class="bpd-reqs-grid" id="bpd-reqs-grid">
-                            <!-- Injected by JS -->
-                        </div>
-                    </div>
-                    <!-- Overall progress bar -->
-                    <div class="bpd-progress-bar-wrap">
-                        <div class="bpd-progress-label">
-                            <span>Progreso General</span>
-                            <span id="bpd-progress-pct">0%</span>
-                        </div>
-                        <div class="bpd-progress-track">
-                            <div class="bpd-progress-fill" id="bpd-progress-fill" style="width:0%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Overlay de felicitación – solo visible cuando se cumplen todos los requisitos -->
-        <div class="bpd-won-overlay" id="bpd-won-overlay">
-            <div class="bpd-won-star">🏆</div>
-            <div class="bpd-won-congrats">¡Felicidades!</div>
-            <div class="bpd-won-name" id="bpd-won-name">JUGADOR</div>
-            <div class="bpd-won-amount">1,000,000 Pinceles</div>
-            <div class="bpd-won-sub">Has ganado el máximo premio del Banco del Pincel Dorado. Preséntate con un administrador para reclamar tu recompensa.</div>
-            <button class="btn-back" onclick="goToMainMenu()" style="margin-top:10px;color:#fff;border-color:rgba(255,255,255,0.3);width:auto;padding:10px 30px;">Volver al Menú</button>
-        </div>
-    </div>
 
     <div id="achievements-screen" class="screen nav-screen">
         <div class="top-nav">
@@ -677,7 +553,7 @@
         </div>
         <div class="content-scroll no-scrollbar">
             <div class="achievements-wrapper">
-                <div class="achievements-stats" id="achievements-progress-text">Desbloqueados: 0 / 250</div>
+                <div class="achievements-stats" id="achievements-progress-text">Desbloqueados: 0 / 252</div>
                 <div class="achievements-grid" id="full-achievements-grid" style="content-visibility: auto;"></div>
             </div>
         </div>
@@ -800,7 +676,7 @@
         switchScreen('start-screen');
     }
 
-    // --- GENERACIÓN DE UUID (Para identificar jugadores unicos en el ranking) ---
+    // --- GENERACIÓN DE UUID ---
     function generateUUID() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -836,12 +712,12 @@
         rankingViews: 0, configViews: 0, fpsChanges: 0, allSectionsVisited: false,
         sectionsVisitedThisSession: new Set(), rankingPosition: 999,
         musicSetTo0: false, sfxSetTo0: false, particles0: false,
-        powerLevel: 0, totalWrong: 0, maxMult: 1, maxQuestionReached: 0,
+        powerLevel: 0, maxMult: 1, maxQuestionReached: 0, totalDaysPlayed: 0,
         profileViewedAfterGames: 0, guideViewedBeforeGame: false
     };
     
     const STORAGE_KEY = 'klick_player_data_permanent';
-    let savedData = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('klickStats_v9') || localStorage.getItem('klickStats_v8') || '{}';
+    let savedData = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('klickStats_v9') || '{}';
     let playerStats = { ...defaultStats, ...JSON.parse(savedData) };
     
     if(!playerStats.uuid) playerStats.uuid = generateUUID();
@@ -865,19 +741,14 @@
     function initAudio() {
         if (!audioCtx) { 
             audioCtx = new AudioContext(); 
-            
-            // Nodos Maestros
             masterMusicGain = audioCtx.createGain();
             masterSFXGain = audioCtx.createGain();
-            
-            // Analizador para reactividad de partículas
             audioAnalyser = audioCtx.createAnalyser();
-            audioAnalyser.fftSize = 64; // Pequeño para capturar bajos rápido
+            audioAnalyser.fftSize = 64; 
             audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
             
-            // Ruteo
             masterMusicGain.connect(audioAnalyser);
-            masterSFXGain.connect(audioCtx.destination); // SFX sin pasar por el analizador (para no alterar partículas con clics)
+            masterSFXGain.connect(audioCtx.destination); 
             audioAnalyser.connect(audioCtx.destination);
             
             updateVolumes();
@@ -895,14 +766,13 @@
         }
     }
 
-    // Funciones de utilidad para audio
     let currentAudioPulse = 0;
     function getAudioPulse() {
         if (!audioAnalyser) return 0;
         audioAnalyser.getByteFrequencyData(audioDataArray);
         let sum = 0;
-        for(let i = 0; i < 4; i++) sum += audioDataArray[i]; // Captura los graves
-        currentAudioPulse = sum / (4 * 255); // Valor normalizado 0 a 1
+        for(let i = 0; i < 4; i++) sum += audioDataArray[i];
+        currentAudioPulse = sum / (4 * 255); 
         return currentAudioPulse;
     }
 
@@ -931,7 +801,6 @@
     
     function nextNoteStep() { 
         const isFrenzy = streak >= 5; 
-        // 115 BPM base, 130 BPM Frenzy (Ritmo inspirador)
         nextNoteTime += 0.25 * (60.0 / (isFrenzy ? 130 : 115)); 
         musicSeqStep++; 
         if (musicSeqStep >= 16) { 
@@ -942,79 +811,41 @@
     
     function playMusicStep(time) {
         const isFrenzy = streak >= 5;
-        
-        // Progresión de acordes inspiradora (Am - F - C - G) en MIDI
-        const chordProgression = [
-            [57, 60, 64, 69], // Am: A3 C4 E4 A4
-            [53, 57, 60, 65], // F:  F3 A3 C4 F4
-            [48, 52, 55, 60], // C:  C3 E3 G3 C4
-            [55, 59, 62, 67]  // G:  G3 B3 D4 G4
-        ];
+        const chordProgression = [[60,64,67,72],[65,69,72,77],[67,71,74,79],[57,60,64,69]];
         const currentChord = chordProgression[chordIndex];
         const midiToFreq = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
-        // 1. Bombo (Kick)
         if (musicSeqStep % 4 === 0) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(120, time);
+            const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(120, time);
             osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.3);
-            gain.gain.setValueAtTime(0.8, time); 
-            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
-            osc.connect(gain); gain.connect(masterMusicGain);
-            osc.start(time); osc.stop(time + 0.3);
+            gain.gain.setValueAtTime(0.8, time); gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+            osc.connect(gain); gain.connect(masterMusicGain); osc.start(time); osc.stop(time + 0.3);
         }
         
-        // 2. Línea de Bajo (Warm Pad/Bass)
         if (musicSeqStep % 2 === 0) {
-             const osc = audioCtx.createOscillator();
-             const gain = audioCtx.createGain();
-             const filter = audioCtx.createBiquadFilter();
-             
-             osc.type = 'sawtooth';
-             osc.frequency.setValueAtTime(midiToFreq(currentChord[0] - 12), time);
-             
-             filter.type = 'lowpass';
-             filter.frequency.setValueAtTime(isFrenzy ? 800 : 350, time);
+             const osc = audioCtx.createOscillator(), gain = audioCtx.createGain(), filter = audioCtx.createBiquadFilter();
+             osc.type = 'sawtooth'; osc.frequency.setValueAtTime(midiToFreq(currentChord[0] - 12), time);
+             filter.type = 'lowpass'; filter.frequency.setValueAtTime(isFrenzy ? 800 : 350, time);
              filter.frequency.exponentialRampToValueAtTime(100, time + 0.2);
-
-             gain.gain.setValueAtTime(isFrenzy ? 0.5 : 0.35, time);
-             gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
-
-             osc.connect(filter); filter.connect(gain); gain.connect(masterMusicGain);
-             osc.start(time); osc.stop(time + 0.2);
+             gain.gain.setValueAtTime(isFrenzy ? 0.5 : 0.35, time); gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+             osc.connect(filter); filter.connect(gain); gain.connect(masterMusicGain); osc.start(time); osc.stop(time + 0.2);
         }
 
-        // 3. Arpegiador Principal
-        const arpPattern = [0, 2, 1, 3, 0, 3, 2, 1, 0, 2, 3, 1, 2, 0, 1, 3]; 
+        const arpPattern = [0,1,2,3,2,1,0,2,1,3,0,2,3,1,2,0];
         const noteMidi = currentChord[arpPattern[musicSeqStep % arpPattern.length]] + (isFrenzy ? 12 : 0);
         
-        const oscArp = audioCtx.createOscillator();
-        const gainArp = audioCtx.createGain();
-        const filterArp = audioCtx.createBiquadFilter();
-
-        oscArp.type = 'triangle'; 
-        oscArp.frequency.setValueAtTime(midiToFreq(noteMidi), time);
-
-        filterArp.type = 'lowpass';
-        filterArp.frequency.setValueAtTime(isFrenzy ? 2500 : 1000, time);
-
-        gainArp.gain.setValueAtTime(0.0, time);
-        gainArp.gain.linearRampToValueAtTime(isFrenzy ? 0.4 : 0.3, time + 0.02); 
+        const oscArp = audioCtx.createOscillator(), gainArp = audioCtx.createGain(), filterArp = audioCtx.createBiquadFilter();
+        oscArp.type = 'triangle'; oscArp.frequency.setValueAtTime(midiToFreq(noteMidi), time);
+        filterArp.type = 'lowpass'; filterArp.frequency.setValueAtTime(isFrenzy ? 2500 : 1000, time);
+        gainArp.gain.setValueAtTime(0.0, time); gainArp.gain.linearRampToValueAtTime(isFrenzy ? 0.4 : 0.3, time + 0.02); 
         gainArp.gain.exponentialRampToValueAtTime(0.001, time + (isFrenzy ? 0.15 : 0.25));
-
         oscArp.connect(filterArp); filterArp.connect(gainArp); gainArp.connect(masterMusicGain);
         oscArp.start(time); oscArp.stop(time + 0.3);
         
-        // 4. Percusión de ambiente en Frenesí
         if (isFrenzy) {
-            if (musicSeqStep % 2 !== 0) {
-                playNoiseAt(time, 0.05, 0.2, 7000); 
-            }
-            if (musicSeqStep === 4 || musicSeqStep === 12) {
-                playNoiseAt(time, 0.15, 0.3, 2000); 
-            }
+            if (musicSeqStep % 2 !== 0) playNoiseAt(time, 0.05, 0.2, 7000); 
+            if (musicSeqStep === 4 || musicSeqStep === 12) playNoiseAt(time, 0.15, 0.3, 2000); 
         }
     }
     
@@ -1023,9 +854,6 @@
         correct: () => { playTone(523.25, 'triangle', 0.2, 0.1); setTimeout(() => playTone(783.99, 'triangle', 0.4, 0.1), 100); }, incorrect: () => playTone(150, 'sawtooth', 0.4, 0.1),
         streakTrigger: () => { playTone(440, 'sine', 0.1, 0.1); setTimeout(() => playTone(659.25, 'sine', 0.1, 0.1), 100); setTimeout(() => playTone(880, 'sine', 0.4, 0.15), 200); },
         achievement: () => { playTone(880, 'sine', 0.1, 0.1); setTimeout(() => playTone(1108.73, 'sine', 0.1, 0.1), 100); setTimeout(() => playTone(1318.51, 'sine', 0.3, 0.1), 200); },
-        perfectGame: () => { playTone(440, 'sine', 0.2, 0.15); setTimeout(() => playTone(554.37, 'sine', 0.2, 0.15), 150); setTimeout(() => playTone(659.25, 'sine', 0.2, 0.15), 300); setTimeout(() => playTone(880, 'sine', 0.6, 0.2), 450); },
-        allWrongGame: () => { playTone(300, 'sawtooth', 0.3, 0.15); setTimeout(() => playTone(250, 'sawtooth', 0.3, 0.15), 300); setTimeout(() => playTone(200, 'sawtooth', 0.6, 0.2), 600); },
-        allTimeoutGame: () => { playTone(100, 'square', 0.1, 0.1); setTimeout(() => playTone(100, 'square', 0.1, 0.1), 300); setTimeout(() => playTone(100, 'square', 0.3, 0.15), 600); },
         gameStart: () => { playTone(300, 'sine', 0.1, 0.1); setTimeout(() => playTone(400, 'sine', 0.1, 0.1), 100); setTimeout(() => playTone(600, 'sine', 0.3, 0.15), 200); },
         gameEnd: () => { playTone(500, 'triangle', 0.15, 0.1); setTimeout(() => playTone(700, 'triangle', 0.15, 0.1), 150); setTimeout(() => playTone(900, 'triangle', 0.4, 0.15), 300); }
     };
@@ -1076,7 +904,6 @@
         saveStatsLocally(); 
     });
 
-    // --- UI General Toasts ---
     function showToast(title, message, color, icon) {
         const container = document.getElementById('toast-container');
         if (!container) return;
@@ -1089,7 +916,7 @@
         setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, 3500);
     }
 
-    // --- Módulo: Ranking Global (Google Apps Script) ---
+    // --- Módulo: Clasificación Global ---
     const GAS_URL = "https://script.google.com/macros/s/AKfycbxbLrjL45NYaQsRaSlZJXHKlQj-1Qh4f-CPxz4KsOMpfMI4jwwYC1UrNpnm_-f6ISeCww/exec"; 
     
     function calculatePowerLevel(stats) {
@@ -1104,36 +931,18 @@
 
     async function submitLeaderboard() {
         if (!playerStats.playerName || playerStats.playerName === "JUGADOR" || GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") return;
-        
         playerStats.powerLevel = calculatePowerLevel(playerStats);
-        
         const payload = {
-            uuid: playerStats.uuid,
-            name: playerStats.playerName,
-            rankTitle: getRankInfo(playerStats).title,
-            powerLevel: calculatePowerLevel(playerStats),
-            totalScore: playerStats.totalScore,
-            maxStreak: playerStats.maxStreak
+            uuid: playerStats.uuid, name: playerStats.playerName, rankTitle: getRankInfo(playerStats).title,
+            powerLevel: calculatePowerLevel(playerStats), totalScore: playerStats.totalScore, maxStreak: playerStats.maxStreak
         };
 
-        try {
-            await fetch(GAS_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify(payload)
-            });
-        } catch(e) {
-            console.log("Error al sincronizar ranking:", e);
-        }
+        try { await fetch(GAS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) });
+        } catch(e) {}
     }
 
     async function fetchLeaderboard() {
-        if(GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") {
-            document.getElementById('ranking-list').innerHTML = `<div class="ranking-loading">Debes configurar la URL de Google Apps Script en el código HTML.</div>`;
-            return;
-        }
-
+        if(GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") return;
         try {
             const res = await fetch(GAS_URL);
             const topPlayers = await res.json();
@@ -1142,10 +951,7 @@
             topPlayers.forEach((p, index) => {
                 const pos = index + 1;
                 const isMe = p.uuid === playerStats.uuid;
-                if(isMe) { 
-                    playerStats.rankingPosition = pos; 
-                    saveStatsLocally(); checkAchievements(); 
-                }
+                if(isMe) { playerStats.rankingPosition = pos; saveStatsLocally(); checkAchievements(); }
                 let classPos = pos <= 3 ? `pos-${pos}` : ``;
                 if(isMe) classPos += " is-me";
                 
@@ -1159,24 +965,17 @@
                     <div class="rc-score">${p.powerLevel.toLocaleString()} <span>PL</span></div>
                 </div>`;
             });
-            
             document.getElementById('ranking-list').innerHTML = html;
         } catch(e) {
             if(document.getElementById('ranking-list').innerHTML.includes('ranking-loading')) {
                document.getElementById('ranking-list').innerHTML = `<div class="ranking-loading">Error al conectar con la base de datos global. Reintentando...</div>`;
             }
-            console.log("Error fetching leaderboard", e);
         }
     }
-
-    setInterval(() => {
-        submitLeaderboard();
-        fetchLeaderboard();
-    }, 60000);
+    setInterval(() => { submitLeaderboard(); fetchLeaderboard(); }, 60000);
 
     // --- SISTEMA DE PREGUNTAS MASIVAS (JSON EXTERNO) ---
     let quizDataPool = [];
-    
     async function loadQuestions() {
         try {
             const response = await fetch('preguntas.json');
@@ -1184,7 +983,7 @@
             quizDataPool = await response.json();
         } catch (error) {
             quizDataPool = [
-                { "question": "⚠️ ERROR: No se pudo cargar 'preguntas.json'. ¿Estás abriendo el HTML directamente (file://) en vez de usar un servidor local?", "answers": ["Sí, ese es el error", "Debo usar Live Server", "Falta el archivo JSON", "Todas las anteriores"], "correctIndex": 3 }
+                { "question": "ERROR: No se pudo cargar 'preguntas.json'. ¿Estás abriendo el HTML directamente (file://) en vez de usar un servidor local?", "answers": ["Sí, ese es el error", "Debo usar Live Server", "Falta el archivo JSON", "Todas las anteriores"], "correctIndex": 3 }
             ];
             while(quizDataPool.length < 20) {
                 quizDataPool.push({ "question": "Por favor, carga el juego en un servidor web o súbelo a GitHub Pages para que el JSON funcione.", "answers": ["Entendido", "Ok", "Comprendo", "Solucionar"], "correctIndex": 0 });
@@ -1192,7 +991,7 @@
         }
     }
 
-    // --- Data 250 Logros ---
+    // --- Data Logros ---
     const ACHIEVEMENTS_DATA = [];
     const colors = { blue: 'var(--accent-blue)', green: 'var(--accent-green)', yellow: 'var(--accent-yellow)', orange: 'var(--accent-orange)', red: 'var(--accent-red)', purple: 'var(--accent-purple)', dark: 'var(--text-secondary)' };
     
@@ -1218,45 +1017,46 @@
     addAchs([
         { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 150 logros en total.',                         color: colors.yellow, icon: SVG_STAR },
         { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 200 logros en total.',                         color: colors.orange, icon: SVG_STAR },
-        { id: 'master3', title: 'Dios Klick',   desc: 'Consigue los 250 logros del juego. Eres absoluto.',       color: colors.red,    icon: SVG_STAR },
         { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 225 logros.',                                  color: colors.purple, icon: SVG_STAR },
+        { id: 'master3', title: 'Dios Klick',   desc: 'Consigue los 250 logros del juego. Eres absoluto.',       color: colors.red,    icon: SVG_STAR },
     ]);
 
-    // --- DÍAS CONSECUTIVOS (10) ---
-    const daysTiers  = [1, 2, 3, 5, 7, 15, 21, 30, 60, 90];
+    // --- DÍAS DE ACTIVIDAD (10) ---
+    const daysTiers  = [1,2,3,5,7,15,21,30,60,90];
     const daysTitles = ['Hola Mundo','Doble','Triple','Cinco','Semana Activa','Quincena','Tres Semanas','Un Mes','Bimestre','Trimestre Fuego'];
-    for(let i=0;i<10;i++) addAchs([{ id:`d${i+1}`, title:daysTitles[i], desc:`Inicia sesión durante ${daysTiers[i]} días consecutivos.`, color:colors.green, icon:SVG_CLOCK }]);
+    for(let i=0;i<5;i++) addAchs([{ id:`d${i+1}`, title:daysTitles[i], desc:`Inicia sesión durante ${daysTiers[i]} días consecutivos.`, color:colors.green, icon:SVG_CLOCK }]);
+    for(let i=5;i<10;i++) addAchs([{ id:`d${i+1}`, title:daysTitles[i], desc:`Juega en ${daysTiers[i]} días distintos en total.`, color:colors.green, icon:SVG_CLOCK }]);
 
     // --- PARTIDAS JUGADAS (8) ---
-    const ptTiers=[1,10,25,50,100,200,350,500];
+    const ptTiers=[1,5,10,25,50,100,200,500];
     for(let i=0;i<8;i++) addAchs([{ id:`p${i+1}`, title:`Jugador ${i+1}`, desc:`Acumula ${ptTiers[i]} partidas jugadas.`, color:colors.blue, icon:SVG_TARGET }]);
 
     // --- PUNTOS TOTALES (8) ---
-    const ptsTiers=[5000,25000,75000,150000,300000,600000,1000000,2000000];
+    const ptsTiers=[1000,5000,20000,50000,100000,250000,500000,1000000];
     for(let i=0;i<8;i++) addAchs([{ id:`pt${i+1}`, title:`Ahorrador ${i+1}`, desc:`Acumula ${ptsTiers[i].toLocaleString()} puntos totales en tu carrera.`, color:colors.green, icon:SVG_STAR }]);
 
     // --- RÉCORDS PERFECTOS (8) ---
-    const hsCountTiers=[1,3,5,10,20,35,50,75];
+    const hsCountTiers=[1,3,5,10,20,35,50,100];
     for(let i=0;i<8;i++) addAchs([{ id:`hs${i+1}`, title:`Récord ${i+1}`, desc:`Supera 20,000 puntos en ${hsCountTiers[i]} partidas distintas.`, color:colors.purple, icon:SVG_FIRE }]);
 
     // --- FRENESÍ (8) ---
-    const frTiers=[1,5,15,30,60,100,200,350];
+    const frTiers=[1,5,10,25,50,100,200,500];
     for(let i=0;i<8;i++) addAchs([{ id:`r${i+1}`, title:`Frenético ${i+1}`, desc:`Activa el Modo Frenesí en ${frTiers[i]} ocasiones.`, color:colors.orange, icon:SVG_FIRE }]);
 
-    // --- PARTIDAS PERFECTAS (8) – pregunta alcanzada (pf6=60, pf7=80, pf8=100) ---
-    const pfTiers=[10,20,30,40,50,60,80,100];
+    // --- PARTIDAS PERFECTAS (8) ---
+    const pfTiers=[5,10,15,20,25,30,40,50];
     for(let i=0;i<8;i++) addAchs([{ id:`pf${i+1}`, title:`Resistencia ${i+1}`, desc:`Llega a la pregunta ${pfTiers[i]} sin perder todas las vidas.`, color:colors.yellow, icon:SVG_TARGET }]);
 
-    // --- VELOCIDAD (8) – sp8 ahora 1,000 respuestas rápidas ---
-    const spdTiers=[5,15,30,60,100,200,350,1000];
+    // --- VELOCIDAD (8) ---
+    const spdTiers=[5,15,30,60,100,200,350,500];
     for(let i=0;i<8;i++) addAchs([{ id:`sp${i+1}`, title:`Reflejos ${i+1}`, desc:`Responde correctamente en los primeros 2s en ${spdTiers[i]} ocasiones.`, color:colors.blue, icon:SVG_BOLT }]);
 
     // --- ACIERTOS TOTALES (8) ---
-    const acTiers=[10,50,100,250,500,1000,2000,5000];
+    const acTiers=[10,50,100,250,500,1000,2500,5000];
     for(let i=0;i<8;i++) addAchs([{ id:`ac${i+1}`, title:`Cerebro ${i+1}`, desc:`Acumula ${acTiers[i]} respuestas correctas en total.`, color:colors.green, icon:SVG_CORRECT }]);
 
     // --- RACHA MÁX ACUMULADA (8 escalables) ---
-    const strkTiers=[5,10,15,20,30,40,50,75];
+    const strkTiers=[3,5,8,10,15,20,30,50];
     for(let i=0;i<8;i++) addAchs([{ id:`sk${i+1}`, title:`Encadenado ${i+1}`, desc:`Alcanza una racha de ${strkTiers[i]} aciertos seguidos en alguna partida.`, color:colors.orange, icon:SVG_BOLT }]);
 
     // --- MULTIPLICADOR MÁX (5 escalables) ---
@@ -1264,19 +1064,19 @@
     for(let i=0;i<5;i++) addAchs([{ id:`mx${i+1}`, title:`Multiplicador x${multTiers[i]}`, desc:`Alcanza el multiplicador x${multTiers[i]} en una partida.`, color:colors.red, icon:SVG_FIRE }]);
 
     // --- VISITAS A RANKING (5 escalables) ---
-    const rankVisTiers=[1,5,10,25,50];
-    for(let i=0;i<5;i++) addAchs([{ id:`rv${i+1}`, title:`Espía de Ranking ${i+1}`, desc:`Visita el Top 20 Mundial ${rankVisTiers[i]} veces.`, color:colors.blue, icon:SVG_TROPHY }]);
+    const rankVisTiers=[1,5,15,30,60];
+    for(let i=0;i<5;i++) addAchs([{ id:`rv${i+1}`, title:`Espía de Clasificación ${i+1}`, desc:`Visita la Clasificación Global ${rankVisTiers[i]} veces.`, color:colors.blue, icon:SVG_TROPHY }]);
 
     // --- VISITAS A CONFIGURACIÓN (5 escalables) ---
-    const cfgVisTiers=[1,3,10,25,50];
+    const cfgVisTiers=[1,5,15,30,60];
     for(let i=0;i<5;i++) addAchs([{ id:`cv${i+1}`, title:`Ajustador ${i+1}`, desc:`Abre el menú de Configuración ${cfgVisTiers[i]} veces.`, color:colors.purple, icon:SVG_USER }]);
 
     // --- VISITAS AL MANUAL (5 escalables) ---
-    const guideVisTiers=[1,3,10,25,50];
+    const guideVisTiers=[1,5,10,25,50];
     for(let i=0;i<5;i++) addAchs([{ id:`gv${i+1}`, title:`Estudiante ${i+1}`, desc:`Visita las Instrucciones del juego ${guideVisTiers[i]} veces.`, color:colors.green, icon:SVG_TARGET }]);
 
     // --- TIEMPO SIN FALLOS (5 escalables) ---
-    const noTimoutTiers=[5,10,20,40,80];
+    const noTimoutTiers=[5,10,20,35,50];
     for(let i=0;i<5;i++) addAchs([{ id:`nt${i+1}`, title:`Puntual ${i+1}`, desc:`Responde ${noTimoutTiers[i]} preguntas seguidas sin que se acabe el tiempo.`, color:colors.yellow, icon:SVG_CLOCK }]);
 
     // --- LOGROS ÚNICOS (24) ---
@@ -1307,21 +1107,21 @@
         { id: 'u24', title: 'Extremis',        desc: 'Consigue 3 aciertos de último segundo (1 seg) en una partida.',   color: colors.red,    icon: SVG_SHIELD },
     ]);
 
-    // --- MODO DE JUEGO (nuevo modo oculto – interacciones con el ranking) (10) ---
+    // --- MODO DE JUEGO (oculto – interacciones con el ranking) (10) ---
     addAchs([
-        { id: 'nm1', title: 'Primera Sangre',     desc: 'Aparece por primera vez en el Top 20 Mundial.',                  color: colors.red,    icon: SVG_TROPHY },
-        { id: 'nm2', title: 'Top 10',             desc: 'Entra en el Top 10 del ranking global.',                        color: colors.orange, icon: SVG_TROPHY },
-        { id: 'nm3', title: 'Podio',              desc: 'Entra en el Top 3 del ranking global.',                         color: colors.yellow, icon: SVG_TROPHY },
-        { id: 'nm4', title: 'El Primero',         desc: 'Llega al primer lugar del ranking global.',                     color: colors.yellow, icon: SVG_STAR },
-        { id: 'nm5', title: 'Vigilia',            desc: 'Sube al ranking en 3 días consecutivos.',                       color: colors.blue,   icon: SVG_CLOCK },
+        { id: 'nm1', title: 'Primera Sangre',     desc: 'Aparece por primera vez en la Clasificación Global.',            color: colors.red,    icon: SVG_TROPHY },
+        { id: 'nm2', title: 'Top 10',             desc: 'Entra en el Top 10 de la Clasificación.',                       color: colors.orange, icon: SVG_TROPHY },
+        { id: 'nm3', title: 'Podio',              desc: 'Entra en el Top 3 de la Clasificación.',                        color: colors.yellow, icon: SVG_TROPHY },
+        { id: 'nm4', title: 'El Primero',         desc: 'Llega al primer lugar de la Clasificación.',                    color: colors.yellow, icon: SVG_STAR },
+        { id: 'nm5', title: 'Vigilia',            desc: 'Sube en la Clasificación en 3 días consecutivos.',              color: colors.blue,   icon: SVG_CLOCK },
         { id: 'nm6', title: 'Impostado',          desc: 'Supera a otro jugador que tenía más de 1,000 PL que tú.',       color: colors.purple, icon: SVG_BOLT },
         { id: 'nm7', title: 'Remontada',          desc: 'Estabas en puesto 15+ y ascendiste al Top 5 en una partida.',   color: colors.orange, icon: SVG_FIRE },
-        { id: 'nm8', title: 'PL 10,000',          desc: 'Alcanza 10,000 Puntos de Poder (nivel inicial tras ~5 partidas).',color: colors.green,  icon: SVG_STAR },
-        { id: 'nm9', title: 'PL 100,000',         desc: 'Alcanza 100,000 Puntos de Poder (nivel intermedio, Rango Pro).', color: colors.blue,   icon: SVG_STAR },
+        { id: 'nm8', title: 'PL 10,000',          desc: 'Alcanza 10,000 Puntos de Poder (Nivel inicial).',               color: colors.green,  icon: SVG_STAR },
+        { id: 'nm9', title: 'PL 100,000',         desc: 'Alcanza 100,000 Puntos de Poder (Nivel Intermedio, Rango Pro).',color: colors.blue,   icon: SVG_STAR },
         { id: 'nm10',title: 'PL 1,000,000',       desc: 'Alcanza 1,000,000 de Puntos de Poder. Meta del Top Mundial.',   color: colors.yellow, icon: SVG_STAR },
     ]);
 
-    // --- OCULTOS: INTERACCIÓN CON CONFIGURACIÓN (8) ---
+    // --- OCULTOS: CONFIGURACIÓN (8) ---
     addAchs([
         { id: 'cfg1', title: 'Silencio Total',     desc: 'Pon la música en 0% desde Configuración.',                     color: colors.dark,   icon: SVG_CLOCK },
         { id: 'cfg2', title: 'Oídos Abiertos',    desc: 'Sube la música al 100% desde Configuración.',                  color: colors.green,  icon: SVG_STAR },
@@ -1333,51 +1133,40 @@
         { id: 'cfg8', title: 'Purpurina',          desc: 'Pon las partículas en 100% y la música en 100% al mismo tiempo.',color: colors.purple, icon: SVG_STAR },
     ]);
 
-    // --- OCULTOS: INTERACCIÓN CON RANKING E INTERFAZ (10) ---
+    // --- OCULTOS: INTERFAZ Y CLASIFICACIÓN (10) ---
     addAchs([
         { id: 'ui1',  title: 'Explorador',         desc: 'Visita todas las secciones del menú en una misma sesión.',     color: colors.blue,   icon: SVG_TARGET },
         { id: 'ui2',  title: 'Vuelvo en Un Segundo',desc: 'Entra y sal del menú de Configuración en menos de 3 segundos.',color: colors.yellow, icon: SVG_BOLT },
         { id: 'ui3',  title: 'La Guía No Miente',  desc: 'Lee el Manual y luego completa 5 aciertos en una partida.',   color: colors.green,  icon: SVG_SHIELD },
-        { id: 'ui4',  title: 'Canje en Mente',     desc: 'Visita la Zona de Canje sin cumplir aún los requisitos.',     color: colors.orange, icon: SVG_TROPHY },
         { id: 'ui5',  title: 'El Perfil Importa',  desc: 'Visita tu perfil después de cada una de tus primeras 5 partidas.',color: colors.blue, icon: SVG_USER },
-        { id: 'ui6',  title: 'Fan del Ranking',    desc: 'Visita el Top 20 mientras hay menos de 5 jugadores en él.',   color: colors.dark,   icon: SVG_TROPHY },
+        { id: 'ui6',  title: 'Fan de Clasificación',desc: 'Visita la Clasificación mientras hay menos de 5 jugadores.',   color: colors.dark,   icon: SVG_TROPHY },
         { id: 'ui7',  title: 'Nuevo en el Barrio', desc: 'Juega tu primera partida con nombre registrado.',             color: colors.green,  icon: SVG_USER },
-        { id: 'ui8',  title: 'Bien Conectado',     desc: 'El ranking global carga sin errores 10 veces.',               color: colors.blue,   icon: SVG_TARGET },
+        { id: 'ui8',  title: 'Bien Conectado',     desc: 'La clasificación global carga sin errores 10 veces.',         color: colors.blue,   icon: SVG_TARGET },
         { id: 'ui9',  title: 'Puntaje en Mente',   desc: 'Revisa tu perfil inmediatamente después de un puntaje récord.',color: colors.yellow, icon: SVG_STAR },
-        { id: 'ui10', title: 'El Circuito',        desc: 'Navega por las 6 secciones (Perfil, Logros, Manual, Ranking, Canje, Config.) en orden.', color: colors.purple, icon: SVG_FIRE },
+        { id: 'ui10', title: 'El Circuito',        desc: 'Navega por las 5 secciones del juego en orden secuencial.',   color: colors.purple, icon: SVG_FIRE },
     ]);
 
-    // --- ESCALABLES: FALLOS TOTALES (5) ---
-    const wrnTiers=[100,250,500,1000,2000];
+    // --- ESCALABLES: FALLOS, TIMEOUTS, PARTIDAS HOY (15) ---
+    const wrnTiers=[10,50,100,250,500];
     for(let i=0;i<5;i++) addAchs([{ id:`wr${i+1}`, title:`Torpeza ${i+1}`, desc:`Acumula ${wrnTiers[i]} respuestas incorrectas en tu carrera.`, color:colors.dark, icon:SVG_INCORRECT }]);
-
-    // --- ESCALABLES: TIMEOUTS TOTALES (5) ---
-    const toTiers=[50,150,350,750,1500];
+    const toTiers=[5,20,50,100,250];
     for(let i=0;i<5;i++) addAchs([{ id:`to${i+1}`, title:`Ausente ${i+1}`, desc:`Deja el reloj llegar a cero ${toTiers[i]} veces.`, color:colors.dark, icon:SVG_CLOCK }]);
-
-    // --- ESCALABLES: PARTIDAS HOY (5) ---
-    const todayTiers=[5,10,20,35,50];
+    const todayTiers=[3,5,8,10,15];
     for(let i=0;i<5;i++) addAchs([{ id:`td${i+1}`, title:`Intenso ${i+1}`, desc:`Juega ${todayTiers[i]} partidas en un solo día.`, color:colors.orange, icon:SVG_FIRE }]);
 
-    // --- ESCALABLES: PUNTAJE RECORD (8) – bs6=50k, bs7=150k, bs8=500k ---
-    const bestScoreTiers=[1000,3000,6000,10000,20000,50000,150000,500000];
+    // --- ESCALABLES: PUNTAJE RECORD (8) ---
+    const bestScoreTiers=[1000,5000,10000,15000,18000,19000,19500,20000];
     const bestScoreTitles=['Primera Marca','Principiante','Prometedor','Serio','Elite','Extraordinario','Casi Perfecto','Puntaje Máximo'];
     for(let i=0;i<8;i++) addAchs([{ id:`bs${i+1}`, title:bestScoreTitles[i], desc:`Alcanza un puntaje récord de ${bestScoreTiers[i].toLocaleString()} puntos en una partida.`, color:colors.yellow, icon:SVG_TROPHY }]);
 
-    // --- ESCALABLES: DÍAS VISITADOS (NO CONSECUTIVOS) (5) ---
-    const totalDaysTiers=[3,7,15,30,60];
+    // --- ESCALABLES VARIOS (20) ---
+    const totalDaysTiers=[5,10,20,30,60];
     for(let i=0;i<5;i++) addAchs([{ id:`td2${i+1}`, title:`Asiduo ${i+1}`, desc:`Juega en ${totalDaysTiers[i]} días distintos en total (no necesariamente seguidos).`, color:colors.green, icon:SVG_CLOCK }]);
-
-    // --- ESCALABLES: VECES QUE SE FIjaron LOGROS (5) ---
-    const pinTiers=[1,5,10,20,30];
+    const pinTiers=[1,5,10,20,50];
     for(let i=0;i<5;i++) addAchs([{ id:`pin${i+1}`, title:`Curador ${i+1}`, desc:`Fija logros en el perfil ${pinTiers[i]} veces en total.`, color:colors.blue, icon:SVG_PIN }]);
-
-    // --- ESCALABLES: LOGROS CONSEGUIDOS EN UN SOLO DÍA (5) ---
-    const dailyAchTiers=[3,5,10,15,20];
+    const dailyAchTiers=[1,3,5,8,12];
     for(let i=0;i<5;i++) addAchs([{ id:`da${i+1}`, title:`Productivo ${i+1}`, desc:`Desbloquea ${dailyAchTiers[i]} logros nuevos en un mismo día.`, color:colors.purple, icon:SVG_STAR }]);
-
-    // --- ESCALABLES: RACHAS DE FRENESÍ (tiempo continuo en modo frenesí) (5) ---
-    const frenzyTimeTiers=[5,15,30,60,100];
+    const frenzyTimeTiers=[3,5,8,12,20];
     for(let i=0;i<5;i++) addAchs([{ id:`ft${i+1}`, title:`Frenesí Eterno ${i+1}`, desc:`Mantén el Modo Frenesí activo durante ${frenzyTimeTiers[i]} preguntas consecutivas.`, color:colors.red, icon:SVG_FIRE }]);
 
     // --- ÚNICOS EXTRA JUGABILIDAD (20) ---
@@ -1401,43 +1190,31 @@
         { id: 'x17', title: 'Veterano',         desc: 'Acumula más de 100 partidas jugadas.',                      color: colors.blue,   icon: SVG_TROPHY },
         { id: 'x18', title: 'El Clásico',       desc: 'Usa el mismo nombre de jugador por 30 días seguidos.',      color: colors.purple, icon: SVG_USER },
         { id: 'x19', title: 'Espectacular',     desc: 'Consigue 5 respuestas Flash (< 1 seg) en una partida.',    color: colors.yellow, icon: SVG_BOLT },
-        { id: 'x20', title: 'Pura Determinación',desc:'Juega 20 partidas en un día con al menos 1 logro desbloqueado en cada una.', color:colors.red, icon:SVG_FIRE },
+        { id: 'x20', title: 'Pura Determinación',desc:'Juega 20 partidas en un día con al menos 1 logro desbloqueado en cada.', color:colors.red, icon:SVG_FIRE },
     ]);
 
-    // --- ESCALABLES: VISITAS AL PERFIL (5) ---
+    // --- MÁS ESCALABLES (15) ---
     const profileVisTiers=[1,5,15,30,60];
     for(let i=0;i<5;i++) addAchs([{ id:`pv${i+1}`, title:`Egocéntrico ${i+1}`, desc:`Visita tu perfil ${profileVisTiers[i]} veces.`, color:colors.purple, icon:SVG_USER }]);
+    const returnDayTiers=[3,7,15,30,60];
+    for(let i=0;i<5;i++) addAchs([{ id:`ret${i+1}`, title:`Fiel ${i+1}`, desc:`Regresa a jugar ${returnDayTiers[i]} días diferentes en total.`, color:colors.green, icon:SVG_HEART }]);
 
-    // --- ESCALABLES: VISITAS AL CANJE (5) ---
-    const canjeVisTiers=[1,3,7,15,30];
-    for(let i=0;i<5;i++) addAchs([{ id:`cj${i+1}`, title:`Aspirante ${i+1}`, desc:`Visita la Zona de Canje BPD ${canjeVisTiers[i]} veces.`, color:colors.yellow, icon:SVG_TROPHY }]);
-
-    // --- ESCALABLES: SESIONES CONSECUTIVAS (dias que has vuelto, 5) ---
-    const returnDayTiers=[2,5,10,20,30];
-    for(let i=0;i<5;i++) addAchs([{ id:`ret${i+1}`, title:`Fiel ${i+1}`, desc:`Regresa a jugar ${returnDayTiers[i]} días diferentes (sin necesidad de ser consecutivos).`, color:colors.green, icon:SVG_HEART }]);
-
-    // --- ÚNICOS BPD / CANJE (2) ---
-    addAchs([
-        { id: 'bpd1', title: 'En la Mira',    desc: 'Visita la Zona BPD por primera vez.',                         color: colors.yellow, icon: SVG_TROPHY },
-        { id: 'bpd2', title: 'Seleccionado',  desc: 'Visita el BPD teniendo exactamente 99 logros desbloqueados.', color: colors.orange, icon: SVG_STAR },
-    ]);
-
-    // --- ÚNICOS FINALES (5 para llegar a 250) ---
+    // --- ÚNICOS FINALES Y MODOS PERFECCIÓN (7) ---
     addAchs([
         { id: 'fin1', title: 'Nocturno',       desc: 'Juega una partida después de las 11:00 PM.',                 color: colors.dark,   icon: SVG_CLOCK },
         { id: 'fin2', title: 'Madrugador',     desc: 'Juega una partida antes de las 6:00 AM.',                   color: colors.blue,   icon: SVG_CLOCK },
         { id: 'fin3', title: 'Momento Épico',  desc: 'Entra en Modo Frenesí y luego consigue 20 aciertos más.',   color: colors.red,    icon: SVG_FIRE },
         { id: 'fin4', title: 'El Pacto',       desc: 'Juega durante 7 días seguidos y alcanza el rango Junior.',  color: colors.green,  icon: SVG_SHIELD },
         { id: 'fin5', title: 'Monarca',        desc: 'Alcanza simultáneamente el rango Leyenda y 200 logros.',    color: colors.yellow, icon: SVG_TROPHY },
+        { id: 'np1',  title: 'Examen de Oro',  desc: 'Logra 10 aciertos seguidos sin perder ninguna vida.',       color: colors.yellow, icon: SVG_SHIELD },
+        { id: 'np2',  title: 'Presumido',      desc: 'Fija 3 logros de color Rojo o Dorado en tu perfil.',        color: colors.red,    icon: SVG_STAR },
     ]);
 
 
-
-
     function processDailyLogin() {
-        const now = new Date(); const todayStr = now.toISOString().split('T')[0];
+        const now = new Date(); const todayStr = now.toISOString().split('T');
         if (playerStats.lastLoginDate !== todayStr) {
-            const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1); const yesterdayStr = yesterday.toISOString().split('T')[0];
+            const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1); const yesterdayStr = yesterday.toISOString().split('T');
             if (playerStats.lastLoginDate === yesterdayStr) { playerStats.currentLoginStreak++; playerStats.maxLoginStreak = Math.max(playerStats.maxLoginStreak, playerStats.currentLoginStreak); } 
             else { playerStats.currentLoginStreak = 1; if(playerStats.maxLoginStreak === 0) playerStats.maxLoginStreak = 1; }
             playerStats.lastLoginDate = todayStr; playerStats.todayGames = 0; saveStatsLocally(); checkAchievements();
@@ -1446,13 +1223,9 @@
     function shuffleArray(array) { let current = array.length, random; while (current !== 0) { random = Math.floor(Math.random() * current); current--; [array[current], array[random]] = [array[random], array[current]]; } return array; }
 
     function getRankInfo(stats) {
-        // Leyenda: 400k pts acum · 1,500 aciertos · 10 partidas largas (perfectGames) · sin req de racha
         if (stats.totalScore >= 400000 && stats.totalCorrect >= 1500 && stats.perfectGames >= 10) return { title: "Leyenda", color: "var(--accent-yellow)", rgb: "255, 184, 0" };
-        // Maestro: 150k pts acum · 50 partidas · mult x4 alcanzado
         if (stats.totalScore >= 150000 && stats.gamesPlayed >= 50 && (stats.maxMult||1) >= 4) return { title: "Maestro", color: "var(--accent-red)", rgb: "255, 42, 95" };
-        // Pro: 60k pts acum · 200 aciertos · racha de 12
         if (stats.totalScore >= 60000 && stats.totalCorrect >= 200 && stats.maxStreak >= 12) return { title: "Pro", color: "var(--accent-blue)", rgb: "0, 212, 255" };
-        // Junior: 15k pts récord · 5 partidas
         if (stats.bestScore >= 15000 && stats.gamesPlayed >= 5) return { title: "Junior", color: "var(--accent-orange)", rgb: "247, 127, 0" };
         return { title: "Novato", color: "var(--accent-green)", rgb: "0, 255, 102" };
     }
@@ -1481,36 +1254,28 @@
         if (normalAchs >= 10) unlock('m8'); if (normalAchs >= 50) unlock('m9'); if (normalAchs >= 100) unlock('m10');
         if (normalAchs >= 150) unlock('master1'); if (normalAchs >= 200) unlock('master2'); if (normalAchs >= 225) unlock('master4'); if (normalAchs >= 250) unlock('master3');
 
-        // DÍAS
-        const days = playerStats.maxLoginStreak; for(let i=0;i<10;i++) if(days>=daysTiers[i]) unlock(`d${i+1}`);
+        // DÍAS (Consecutivos vs Totales)
+        const days = playerStats.maxLoginStreak; 
+        for(let i=0;i<5;i++) if(days>=daysTiers[i]) unlock(`d${i+1}`);
+        const totalDays = playerStats.totalDaysPlayed || 0;
+        for(let i=5;i<10;i++) if(totalDays>=daysTiers[i]) unlock(`d${i+1}`);
+
         // PARTIDAS
         const pts = playerStats.gamesPlayed; for(let i=0;i<8;i++) if(pts>=ptTiers[i]) unlock(`p${i+1}`);
-        // PUNTOS TOTALES
         const tot = playerStats.totalScore; for(let i=0;i<8;i++) if(tot>=ptsTiers[i]) unlock(`pt${i+1}`);
-        // RÉCORDS
         const hsc = playerStats.maxScoreCount; for(let i=0;i<8;i++) if(hsc>=hsCountTiers[i]) unlock(`hs${i+1}`);
-        // FRENESÍ
         const fr = playerStats.frenziesTriggered; for(let i=0;i<8;i++) if(fr>=frTiers[i]) unlock(`r${i+1}`);
-        // RESISTENCIA (preguntas alcanzadas)
         const pf = playerStats.maxQuestionReached||0; for(let i=0;i<8;i++) if(pf>=pfTiers[i]) unlock(`pf${i+1}`);
-        // VELOCIDAD
         const sp = playerStats.fastAnswersTotal; for(let i=0;i<8;i++) if(sp>=spdTiers[i]) unlock(`sp${i+1}`);
-        // ACIERTOS
         const ac = playerStats.totalCorrect; for(let i=0;i<8;i++) if(ac>=acTiers[i]) unlock(`ac${i+1}`);
-        // RACHAS
         const sk = playerStats.maxStreak; for(let i=0;i<8;i++) if(sk>=strkTiers[i]) unlock(`sk${i+1}`);
-        // MULTIPLICADORES
         const mx = playerStats.maxMult||1; for(let i=0;i<5;i++) if(mx>=multTiers[i]) unlock(`mx${i+1}`);
-        // VISITAS RANKING
         const rv = playerStats.rankingViews||0; for(let i=0;i<5;i++) if(rv>=rankVisTiers[i]) unlock(`rv${i+1}`);
-        // VISITAS CONFIG
         const cv = playerStats.configViews||0; for(let i=0;i<5;i++) if(cv>=cfgVisTiers[i]) unlock(`cv${i+1}`);
-        // VISITAS MANUAL
         const gv = playerStats.guideViews||0; for(let i=0;i<5;i++) if(gv>=guideVisTiers[i]) unlock(`gv${i+1}`);
-        // NO TIMEOUTS SEGUIDOS
         const nt = playerStats.maxNoTimeoutStreak||0; for(let i=0;i<5;i++) if(nt>=noTimoutTiers[i]) unlock(`nt${i+1}`);
 
-        // ÚNICOS DE JUEGO
+        // ÚNICOS
         if (playerStats.totalWrong > 0) unlock('u1'); if (playerStats.totalWrong >= 100) unlock('u2'); 
         if (playerStats.totalTimeouts > 0) unlock('u3'); if (playerStats.totalTimeouts >= 50) unlock('u4'); 
         if (playerStats.todayGames >= 50) unlock('u22'); if (playerStats.perfectStreak >= 2) unlock('u23');
@@ -1519,43 +1284,31 @@
         if (rank==="Maestro"||rank==="Leyenda") unlock('u7'); 
         if (rank==="Leyenda") unlock('u8');
 
-        // FALLOS ESCALABLES
+        // ESCALABLES GENERALES
         const wr = playerStats.totalWrong||0; for(let i=0;i<5;i++) if(wr>=wrnTiers[i]) unlock(`wr${i+1}`);
-        // TIMEOUTS ESCALABLES
         const to = playerStats.totalTimeouts||0; for(let i=0;i<5;i++) if(to>=toTiers[i]) unlock(`to${i+1}`);
-        // PARTIDAS HOY
         const td = playerStats.todayGames||0; for(let i=0;i<5;i++) if(td>=todayTiers[i]) unlock(`td${i+1}`);
 
-        // RANKING
+        // CLASIFICACIÓN
         const pl = playerStats.powerLevel||0; 
         if(pl>=10000) unlock('nm8'); if(pl>=100000) unlock('nm9'); if(pl>=1000000) unlock('nm10');
         const rp = playerStats.rankingPosition||999;
         if(rp<=20) unlock('nm1'); if(rp<=10) unlock('nm2'); if(rp<=3) unlock('nm3'); if(rp===1) unlock('nm4');
 
-        // CONFIG OCULTOS
+        // CONFIG Y UI
         if(playerStats.musicSetTo0) unlock('cfg1');
-        if((playerStats.musicVol||1)>=1.0 && (playerStats.sfxVol||1)>=1.0) {}  // handled on slider
         if(playerStats.musicSetTo0 && playerStats.sfxSetTo0) unlock('cfg3');
         if((playerStats.fpsChanges||0)>=5) unlock('cfg4');
         if(playerStats.maxFps===240) unlock('cfg5');
         if(playerStats.maxFps===15) unlock('cfg6');
         if(playerStats.particles0) unlock('cfg7');
-
-        // UI OCULTOS
-        if((playerStats.rankingViews||0)>=1) unlock('ui1');  // simplificado
+        if((playerStats.rankingViews||0)>=1) unlock('ui1');
         if(playerStats.nameChanges>=1 && playerStats.gamesPlayed>=1) unlock('ui7');
 
-        // VISITAS AL PERFIL
         const pvv = playerStats.profileViews||0; for(let i=0;i<5;i++) if(pvv>=profileVisTiers[i]) unlock(`pv${i+1}`);
-        // VISITAS AL CANJE
-        const cjv = playerStats.canjeViews||0; for(let i=0;i<5;i++) if(cjv>=canjeVisTiers[i]) unlock(`cj${i+1}`);
-        // DÍAS DE REGRESO
         const retv = playerStats.totalDaysPlayed||0; for(let i=0;i<5;i++) if(retv>=returnDayTiers[i]) unlock(`ret${i+1}`);
-        // BPD
-        if((playerStats.canjeViews||0)>=1) unlock('bpd1');
-        if((playerStats.canjeViews||0)>=1 && playerStats.achievements.filter(id=>id!=='tramposo').length===99) unlock('bpd2');
 
-        // ESCALABLES NUEVAS
+
         const bsv = playerStats.bestScore||0; for(let i=0;i<8;i++) if(bsv>=bestScoreTiers[i]) unlock(`bs${i+1}`);
         const fts = playerStats.maxFrenzyStreak||0; for(let i=0;i<5;i++) if(fts>=frenzyTimeTiers[i]) unlock(`ft${i+1}`);
 
@@ -1566,12 +1319,22 @@
         if(rank==='Leyenda' && normalAchs>=200) unlock('fin5');
         if(days>=7 && (getRankInfo(playerStats).title!=='Novato')) unlock('fin4');
 
-        // TIEMPO DEL DÍA
         const hora = new Date().getHours();
         if(hora>=23||hora<1) { if(!playerStats.playedNocturno) playerStats.playedNocturno=true; }
         if(hora<6) { if(!playerStats.playedMadrugador) playerStats.playedMadrugador=true; }
         if(playerStats.playedNocturno) unlock('fin1');
         if(playerStats.playedMadrugador) unlock('fin2');
+
+        // MODO PERFECCIÓN
+        if (streak >= 10 && lives === 3) unlock('np1');
+        let redGoldCount = 0;
+        playerStats.pinnedAchievements.forEach(id => {
+            const ach = ACHIEVEMENTS_DATA.find(a => a.id === id);
+            if (ach && (ach.color === colors.red || ach.color === colors.yellow || ach.color === colors.orange)) {
+                redGoldCount++;
+            }
+        });
+        if (redGoldCount >= 3) unlock('np2');
 
         if (newlyUnlocked.length > 0) { saveStatsLocally(); renderAchievements(); newlyUnlocked.forEach((ach, index) => { setTimeout(() => { SFX.achievement(); showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon); }, index * 1300); }); }
     }
@@ -1585,12 +1348,15 @@
         if (index > -1) playerStats.pinnedAchievements.splice(index, 1); else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); }
         saveStatsLocally(); checkAchievements(); renderAchievements();
     }
+    
     let isAchievementsInitialized = false; const achCardElements = {};
+    
     function initializeAchievementsDOM() {
         const fullGrid = document.getElementById('full-achievements-grid'); if(!fullGrid) return; fullGrid.innerHTML = ''; const fragment = document.createDocumentFragment();
         ACHIEVEMENTS_DATA.forEach(ach => { const card = document.createElement('div'); card.id = `ach-card-${ach.id}`; card.className = 'ach-card'; card.onclick = () => togglePin(ach.id); achCardElements[ach.id] = card; fragment.appendChild(card); });
         fullGrid.appendChild(fragment); isAchievementsInitialized = true;
     }
+    
     function renderAchievements() {
         if (!isAchievementsInitialized) initializeAchievementsDOM();
         const profileGrid = document.getElementById('profile-achievements-grid'); let unlockedCount = playerStats.achievements.filter(id => id !== 'tramposo').length;
@@ -1616,24 +1382,26 @@
             while (profileRendered < 3) { const slot = document.createElement('div'); slot.className = 'achievement-slot'; slot.innerHTML = `<div class="ach-icon" style="color: var(--text-secondary);">${SVG_LOCK}</div><div class="ach-title" style="color: var(--text-secondary);">Vacío</div>`; profFragment.appendChild(slot); profileRendered++; }
             profileGrid.appendChild(profFragment);
         }
-        document.getElementById('achievements-progress-text').innerText = `Desbloqueados: ${unlockedCount} / 250`;
+        document.getElementById('achievements-progress-text').innerText = `Desbloqueados: ${unlockedCount} / 252`;
     }
+    
     function appendProfileSlot(grid, ach, isPinned) {
         const slot = document.createElement('div'); slot.className = `achievement-slot unlocked ${isPinned ? 'pinned' : ''}`; slot.style.borderColor = ach.color;
         const canUnpin = isPinned && ach.id !== 'tramposo';
-        const unpinBtn = canUnpin ? `<button class="slot-unpin-btn" onclick="unpinFromSlot('${ach.id}')" title="Quitar del perfil">✕</button>` : '';
+        const unpinBtn = canUnpin ? `<button class="slot-unpin-btn" onclick="unpinFromSlot(event, '${ach.id}')" title="Quitar del perfil">✕</button>` : '';
         slot.innerHTML = `${unpinBtn}<div class="ach-icon" style="color: ${ach.color};">${ach.icon}</div><div class="ach-title">${ach.title}</div>`; 
         grid.appendChild(slot);
     }
 
-    function unpinFromSlot(achId) {
-        if (achId === 'tramposo') return; // Cannot unpin tramposo
+    function unpinFromSlot(e, achId) {
+        if(e) e.stopPropagation();
+        if (achId === 'tramposo') return; 
         SFX.click();
         const idx = playerStats.pinnedAchievements.indexOf(achId);
         if (idx > -1) playerStats.pinnedAchievements.splice(idx, 1);
         saveStatsLocally();
         renderAchievements();
-        showToast('Logro Quitado', 'Slot de perfil liberado.', 'var(--text-secondary)', SVG_PIN);
+        showToast('Logro Quitado', 'Has liberado un espacio.', 'var(--text-secondary)', SVG_PIN);
     }
 
     // --- UI Flow ---
@@ -1649,63 +1417,7 @@
         switchScreen('ranking-screen');
     }
 
-    function goToCanje() {
-        initAudio(); SFX.click();
-        playerStats.canjeViews = (playerStats.canjeViews||0) + 1;
-        saveStatsLocally(); checkAchievements();
-        renderBPDZone();
-        switchScreen('canje-screen');
-    }
-    
-    function renderBPDZone() {
-        const unlocked = playerStats.achievements.filter(id => id !== 'tramposo').length;
-        const isLeyenda = currentRankInfo.title === "Leyenda";
-        const hasBoth = unlocked >= 100 && isLeyenda;
 
-        // Requirements grid
-        const reqs = [
-            { label: 'Rango Leyenda', desc: `Rango actual: ${currentRankInfo.title}`, done: isLeyenda, detail: 'Alcanza 400k pts totales, 1,500 aciertos y 10 partidas largas.' },
-            { label: '100 Logros', desc: `${unlocked} / 100 desbloqueados`, done: unlocked >= 100, detail: 'Completa misiones escalables, únicas y secretas.' },
-        ];
-        const reqIcons = [SVG_TROPHY, SVG_STAR];
-        const grid = document.getElementById('bpd-reqs-grid');
-        if(grid) {
-            grid.innerHTML = reqs.map((r, i) => `
-                <div class="bpd-req-item ${r.done ? 'done' : 'pending'}">
-                    <div class="bpd-req-icon">${reqIcons[i]}</div>
-                    <div class="bpd-req-text"><strong>${r.label}</strong>${r.desc}<br><em style="font-size:0.7em;opacity:0.7">${r.detail}</em></div>
-                </div>
-            `).join('');
-        }
-
-        // Progress bar – combined: 50% logros + 50% rango
-        const logPct = Math.min(100, (unlocked / 100) * 100);
-        const rPct = isLeyenda ? 100 : (currentRankInfo.title === 'Maestro' ? 60 : currentRankInfo.title === 'Pro' ? 35 : currentRankInfo.title === 'Junior' ? 15 : 0);
-        const totalPct = Math.round((logPct + rPct) / 2);
-        const fill = document.getElementById('bpd-progress-fill'), pct = document.getElementById('bpd-progress-pct');
-        if(fill) fill.style.width = totalPct + '%';
-        if(pct) pct.innerText = totalPct + '%';
-
-        // Won overlay
-        const overlay = document.getElementById('bpd-won-overlay');
-        const nameEl = document.getElementById('bpd-won-name');
-        if(overlay) {
-            if(hasBoth) {
-                if(nameEl) nameEl.innerText = playerStats.playerName || 'JUGADOR';
-                overlay.classList.add('show');
-                SFX.achievement();
-            } else {
-                overlay.classList.remove('show');
-            }
-        }
-    }
-    
-    function revelarCheque() {
-        // Legacy: kept for achievement tracking only
-        playerStats.chequerevealed = true;
-        saveStatsLocally(); checkAchievements();
-    }
-    
     function goToProfile(needsName = false) {
         initAudio(); SFX.click();
         playerStats.profileViews = (playerStats.profileViews||0) + 1;
@@ -1762,21 +1474,17 @@
     let isGamePaused = false;
     let lives = 3;
     let multiplier = 1;
-    // Tracked per-game for achievements
-    let lastSecondAnswers = 0; // count of answers at 1 sec remaining
-    let ultraFastStreak = 0;   // consecutive answers under 3 sec
+    let lastSecondAnswers = 0; 
+    let ultraFastStreak = 0;   
 
     function startGame() {
         initAudio(); SFX.gameStart();
         
-        // Hora del día para logros
         const hora = new Date().getHours();
         if(hora>=23||hora<1) playerStats.playedNocturno=true;
         if(hora<6) playerStats.playedMadrugador=true;
         
-        // Total days tracking
-        const todayStr2 = new Date().toISOString().split('T')[0];
-        if(!playerStats.totalDaysSet) playerStats.totalDaysSet = new Set();
+        const todayStr2 = new Date().toISOString().split('T');
         if(!playerStats.totalDaysPlayed) playerStats.totalDaysPlayed = 0;
         if(!playerStats.lastPlayedDay || playerStats.lastPlayedDay !== todayStr2) {
             playerStats.lastPlayedDay = todayStr2;
@@ -1849,7 +1557,6 @@
         if(multiplier > 1) {
             b.style.display = 'block';
             b.innerText = `x${multiplier}`;
-            // Animated class based on level
             b.className = 'multiplier-badge ' + (
                 multiplier === 2 ? 'mult-x2' :
                 multiplier === 3 ? 'mult-x3' :
@@ -1918,7 +1625,6 @@
             playerStats.totalCorrect++; 
             if(answerTime >= TIMER_LIMIT - 2) { currentFastAnswers++; playerStats.fastAnswersTotal++; }
             if(answerTime <= 1) lastSecondAnswers++;
-            // Track ultra-fast for Metralleta
             if(answerTime >= TIMER_LIMIT - 3) { ultraFastStreak++; } else { ultraFastStreak = 0; }
         } else { 
             playerStats.totalWrong++; currentWrongAnswers++;
@@ -2017,9 +1723,7 @@
         if(score > playerStats.bestScore) playerStats.bestScore = score; 
         if(currentMaxStreak > playerStats.maxStreak) playerStats.maxStreak = currentMaxStreak;
         if(score >= 20000) playerStats.maxScoreCount++;
-        // Track max question reached for pf achievements
         if(!playerStats.maxQuestionReached || currentQuestionIndex > playerStats.maxQuestionReached) playerStats.maxQuestionReached = currentQuestionIndex;
-        // Also increment perfectGames when long game reached (legacy for rank requirement)
         if(currentQuestionIndex >= 50) playerStats.perfectGames = (playerStats.perfectGames||0) + 1;
         playerStats.previousGameScore = score; 
         currentRankInfo = getRankInfo(playerStats); updateLogoDots(); saveStatsLocally(); checkAchievements();
@@ -2048,7 +1752,7 @@
         document.getElementById('app').classList.remove('streak-active'); streak = 0; switchScreen('end-screen');
     }
 
-    // --- FPS Controlled Particles Reactivas ---
+    // --- FPS Controlled Particles ---
     const canvas = document.getElementById('particle-canvas'); const ctx = canvas.getContext('2d'); let particlesArray = [];
     let fpsInterval = 1000 / playerStats.maxFps; let then = performance.now();
     
@@ -2062,7 +1766,6 @@
         constructor(x, y, dx, dy, s) { this.x = x; this.y = y; this.dx = dx; this.dy = dy; this.s = s; this.baseS = s;} 
         draw(pulse) { 
             ctx.beginPath(); 
-            // Las partículas crecen con los bajos de la música
             const dynamicSize = this.s + (pulse * 5); 
             ctx.arc(this.x, this.y, dynamicSize, 0, Math.PI*2); 
             ctx.fillStyle = `rgba(${currentRankInfo.rgb}, ${(streak >= 5 ? 0.8 : 0.5) * playerStats.particleOpacity})`; 
@@ -2073,7 +1776,6 @@
             if(this.x > canvas.width || this.x < 0) this.dx = -this.dx; 
             if(this.y > canvas.height || this.y < 0) this.dy = -this.dy; 
             
-            // Reacción rápida al audio: Aceleración extra
             const speedBoost = 1 + (pulse * 2.5);
             this.x += this.dx * m * timeScale * speedBoost; 
             this.y += this.dy * m * timeScale * speedBoost; 
@@ -2089,12 +1791,10 @@
                 let dist = ((particlesArray[a].x - particlesArray[b].x)**2) + ((particlesArray[a].y - particlesArray[b].y)**2);
                 let cDist = (canvas.width/10) * (canvas.height/10); 
                 
-                // Si la música golpea fuerte, conectan desde más lejos
                 cDist = cDist * (1 + pulse);
 
                 if (dist < cDist) { 
                     ctx.strokeStyle = `rgba(${currentRankInfo.rgb}, ${(1 - (dist / cDist)) * (isStreak ? 0.6 : 0.3) * playerStats.particleOpacity})`; 
-                    // Grosor de la línea reacciona al audio
                     ctx.lineWidth = 1 + (pulse * 3); 
                     ctx.beginPath(); 
                     ctx.moveTo(particlesArray[a].x, particlesArray[a].y); 
@@ -2115,7 +1815,7 @@
             let timeScale = elapsed / 16.666;
             if (timeScale > 10) timeScale = 10;
             
-            const pulse = getAudioPulse(); // Extraemos la fuerza de la música
+            const pulse = getAudioPulse(); 
 
             for(let i=0; i<particlesArray.length; i++) particlesArray[i].update(timeScale, pulse); 
             connectParticles(pulse); 
