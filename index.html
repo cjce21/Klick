@@ -714,7 +714,7 @@
         maxLoginStreak: 0, todayGames: 0, maxScoreCount: 0, perfectStreak: 0, previousGameScore: -1,
         musicVol: 1.0, sfxVol: 1.0, particleOpacity: 1.0, maxFps: 60,
         rankingViews: 0, configViews: 0, fpsChanges: 0, allSectionsVisited: false,
-        sectionsVisitedThisSession: new Set(), rankingPosition: 999,
+        sectionsVisitedThisSession: [], rankingPosition: 999,
         musicSetTo0: false, sfxSetTo0: false, particles0: false,
         powerLevel: 0, maxMult: 1, maxQuestionReached: 0, totalDaysPlayed: 0,
         profileViewedAfterGames: 0, guideViewedBeforeGame: false
@@ -934,6 +934,7 @@
     function openSettings() {
         initAudio(); SFX.click();
         playerStats.configViews = (playerStats.configViews||0) + 1;
+        trackSectionVisit('settings');
         saveStatsLocally(); checkAchievements();
         document.getElementById('op-music').value = playerStats.musicVol; document.getElementById('op-sfx').value = playerStats.sfxVol; 
         document.getElementById('op-particles').value = playerStats.particleOpacity; 
@@ -948,7 +949,8 @@
         document.getElementById('val-music').innerText = Math.round(playerStats.musicVol*100)+'%'; 
         updateVolumes(); 
         if(playerStats.musicVol===0) { playerStats.musicSetTo0=true; checkAchievements(); }
-        if(playerStats.musicVol>=1.0 && (playerStats.particleOpacity||1)>=1.0) { unlock_cfg8(); }
+        if(playerStats.musicVol>=1.0) { playerStats.musicAt100=true; checkAchievements(); }
+        if(playerStats.musicVol>=1.0 && (playerStats.particleOpacity||1)>=1.0) { playerStats.particles100=true; checkAchievements(); }
         saveStatsLocally(); 
     });
     document.getElementById('op-sfx').addEventListener('input', (e) => { 
@@ -962,10 +964,11 @@
         playerStats.particleOpacity = parseFloat(e.target.value); 
         document.getElementById('val-particles').innerText = Math.round(playerStats.particleOpacity*100)+'%'; 
         if(playerStats.particleOpacity===0) { playerStats.particles0=true; checkAchievements(); }
-        if(playerStats.musicVol>=1.0 && playerStats.particleOpacity>=1.0) { unlock_cfg8(); }
+        if(playerStats.particleOpacity>=1.0) { playerStats.particles100=true; }
+        if(playerStats.musicVol>=1.0 && playerStats.particleOpacity>=1.0) { playerStats.musicAt100=true; playerStats.particles100=true; checkAchievements(); }
         saveStatsLocally(); 
     });
-    function unlock_cfg8() { if(!playerStats.achievements.includes('cfg8')) { playerStats.achievements.push('cfg8'); SFX.achievement(); showToast('Logro Desbloqueado','Purpurina',colors.purple,SVG_STAR); saveStatsLocally(); renderAchievements(); } }
+    // unlock_cfg8 ya integrado en checkAchievements vía flags musicAt100 + particles100
     const FPS_VALUES = [15, 30, 60, 120, 240];
     document.getElementById('op-fps').addEventListener('input', (e) => { 
         playerStats.maxFps = FPS_VALUES[parseInt(e.target.value)]; 
@@ -1082,15 +1085,15 @@
         { id: 'm7',  title: 'Diseñador',       desc: 'Fija tu primer logro en el perfil.',                       color: colors.yellow, icon: SVG_STAR },
         { id: 'm8',  title: 'Coleccionista',   desc: 'Desbloquea 10 logros en total.',                           color: colors.green,  icon: SVG_STAR },
         { id: 'm9',  title: 'Completista',     desc: 'Alcanza el hito de 50 logros desbloqueados.',              color: colors.orange, icon: SVG_STAR },
-        { id: 'm10', title: 'Centenario',      desc: 'Consigue los primeros 90 logros.',                        color: colors.red,    icon: SVG_STAR },
+        { id: 'm10', title: 'Centenario',      desc: 'Consigue 100 logros desbloqueados.',                      color: colors.red,    icon: SVG_STAR },
     ]);
 
     // --- COLECCIÓN MAESTRA (4) ---
     addAchs([
-        { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 50 logros en total.',                         color: colors.yellow, icon: SVG_STAR },
-        { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 65 logros en total.',                         color: colors.orange, icon: SVG_STAR },
-        { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 80 logros.',                                  color: colors.purple, icon: SVG_STAR },
-        { id: 'master3', title: 'Dios Klick',   desc: 'Consigue los 247 logros del juego. Eres absoluto.',        color: colors.red,    icon: SVG_STAR },
+        { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 150 logros en total.',                        color: colors.yellow, icon: SVG_STAR },
+        { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 200 logros en total.',                        color: colors.orange, icon: SVG_STAR },
+        { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 225 logros en total.',                        color: colors.purple, icon: SVG_STAR },
+        { id: 'master3', title: 'Dios Klick',   desc: 'Consigue los 242 logros del juego. Eres absoluto.',      color: colors.red,    icon: SVG_STAR },
     ]);
 
     // --- DÍAS DE ACTIVIDAD (10) ---
@@ -1352,7 +1355,7 @@
         // ÚNICOS
         if (playerStats.totalWrong > 0) unlock('u1'); if (playerStats.totalWrong >= 100) unlock('u2'); 
         if (playerStats.totalTimeouts > 0) unlock('u3'); if (playerStats.totalTimeouts >= 50) unlock('u4'); 
-        if (playerStats.todayGames >= 50) unlock('u22'); if (playerStats.perfectStreak >= 2) unlock('u23');
+        if (playerStats.todayGames >= 50) unlock('u22'); if ((playerStats.maxStreak||0) >= 25) unlock('u23');
         const rank = getRankInfo(playerStats).title; 
         if (rank==="Pro"||rank==="Maestro"||rank==="Leyenda") unlock('u6'); 
         if (rank==="Maestro"||rank==="Leyenda") unlock('u7'); 
@@ -1371,12 +1374,14 @@
 
         // CONFIG Y UI
         if(playerStats.musicSetTo0) unlock('cfg1');
+        if(playerStats.musicAt100) unlock('cfg2');
         if(playerStats.musicSetTo0 && playerStats.sfxSetTo0) unlock('cfg3');
         if((playerStats.fpsChanges||0)>=5) unlock('cfg4');
         if(playerStats.maxFps===240) unlock('cfg5');
         if(playerStats.maxFps===15) unlock('cfg6');
         if(playerStats.particles0) unlock('cfg7');
-        if((playerStats.rankingViews||0)>=1) unlock('ui1');
+        if(playerStats.musicAt100 && playerStats.particles100) unlock('cfg8');
+        if(playerStats.allSectionsVisited) unlock('ui1');
         if(playerStats.nameChanges>=1 && playerStats.gamesPlayed>=1) unlock('ui7');
 
         const pvv = playerStats.profileViews||0; for(let i=0;i<5;i++) if(pvv>=profileVisTiers[i]) unlock(`pv${i+1}`);
@@ -1391,7 +1396,7 @@
         if(playerStats.gamesPlayed>=100) unlock('x17');
         if(playerStats.nameChanges===0 && playerStats.maxLoginStreak>=30) unlock('x18');
         if(rank==='Leyenda' && normalAchs>=200) unlock('fin5');
-        if(days>=7 && (getRankInfo(playerStats).title!=='Novato')) unlock('fin4');
+        if(days>=7 && (rank==='Junior'||rank==='Pro'||rank==='Maestro'||rank==='Leyenda')) unlock('fin4');
 
         const hora = new Date().getHours();
         if(hora>=23||hora<1) { if(!playerStats.playedNocturno) playerStats.playedNocturno=true; }
@@ -1400,7 +1405,7 @@
         if(playerStats.playedMadrugador) unlock('fin2');
 
         // MODO PERFECCIÓN
-        if (streak >= 10 && lives === 3) unlock('np1');
+        // np1 se chequea solo desde showFeedback (in-game), no aquí
         let redGoldCount = 0;
         playerStats.pinnedAchievements.forEach(id => {
             const ach = ACHIEVEMENTS_DATA.find(a => a.id === id);
@@ -1420,7 +1425,7 @@
         }
         if (!playerStats.achievements.includes(achId)) return; SFX.click(); const index = playerStats.pinnedAchievements.indexOf(achId);
         if (index > -1) { playerStats.pinnedAchievements.splice(index, 1); showToast('Quitado del perfil', 'Ya no aparecerá destacado.', 'var(--text-secondary)', SVG_PIN); } 
-        else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); showToast('Fijado en Perfil', ach_data.title, ach_data.color, ach_data.icon); }
+        else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); const ach_data = ACHIEVEMENTS_DATA.find(a => a.id === achId); showToast('Fijado en Perfil', ach_data ? ach_data.title : achId, ach_data ? ach_data.color : '', ach_data ? ach_data.icon : ''); }
         saveStatsLocally(); checkAchievements(); renderAchievements();
     }
     
@@ -1522,7 +1527,7 @@
         }
 
         const el = document.getElementById('achievements-progress-text');
-        if (el) el.innerText = `Desbloqueados: ${unlockedCount} / 247`;
+        if (el) el.innerText = `Desbloqueados: ${unlockedCount} / ${ACHIEVEMENTS_DATA.length}`;
     }
 
     function appendProfileSlot(grid, ach) {
@@ -1537,12 +1542,25 @@
     // --- UI Flow ---
     function switchScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); setTimeout(() => document.getElementById(id).classList.add('active'), 50); }
     function goToMainMenu() { SFX.click(); switchScreen('start-screen'); }
-    function goToGuide() { initAudio(); SFX.click(); playerStats.guideViews++; saveStatsLocally(); checkAchievements(); switchScreen('guide-screen'); }
-    function goToAchievements() { initAudio(); SFX.click(); playerStats.achViews++; saveStatsLocally(); checkAchievements(); renderAchievements(); switchScreen('achievements-screen'); }
+    // Helper: marca una sección visitada en sesión y verifica si se han visitado todas
+    function trackSectionVisit(section) {
+        if (!Array.isArray(playerStats.sectionsVisitedThisSession)) playerStats.sectionsVisitedThisSession = [];
+        if (!playerStats.sectionsVisitedThisSession.includes(section)) {
+            playerStats.sectionsVisitedThisSession.push(section);
+        }
+        const ALL_SECTIONS = ['profile', 'achievements', 'ranking', 'guide', 'settings'];
+        if (!playerStats.allSectionsVisited && ALL_SECTIONS.every(s => playerStats.sectionsVisitedThisSession.includes(s))) {
+            playerStats.allSectionsVisited = true;
+        }
+    }
+
+    function goToGuide() { initAudio(); SFX.click(); playerStats.guideViews++; trackSectionVisit('guide'); saveStatsLocally(); checkAchievements(); switchScreen('guide-screen'); }
+    function goToAchievements() { initAudio(); SFX.click(); playerStats.achViews++; trackSectionVisit('achievements'); saveStatsLocally(); checkAchievements(); renderAchievements(); switchScreen('achievements-screen'); }
     
     function goToRanking() { 
         initAudio(); SFX.click();
         playerStats.rankingViews = (playerStats.rankingViews||0) + 1;
+        trackSectionVisit('ranking');
         saveStatsLocally(); checkAchievements();
         switchScreen('ranking-screen');
     }
@@ -1551,6 +1569,7 @@
     function goToProfile(needsName = false) {
         initAudio(); SFX.click();
         playerStats.profileViews = (playerStats.profileViews||0) + 1;
+        trackSectionVisit('profile');
         document.getElementById('stat-games').innerText = playerStats.gamesPlayed; document.getElementById('stat-score').innerText = playerStats.bestScore; document.getElementById('stat-streak').innerText = playerStats.maxStreak; document.getElementById('stat-days').innerText = playerStats.maxLoginStreak;
         document.getElementById('profile-name-input').value = (playerStats.playerName === "JUGADOR") ? "" : playerStats.playerName;
         document.getElementById('profile-warning').style.opacity = needsName ? '1' : '0';
@@ -1766,16 +1785,17 @@
     
     function handleTimeout() {
         if (!isAnsweringAllowed || isGamePaused) return; isAnsweringAllowed = false; clearInterval(timerInterval); 
-        playerStats.totalWrong++; playerStats.totalTimeouts++; currentTimeoutAnswers++; 
+        playerStats.totalTimeouts++; currentTimeoutAnswers++; 
         currentGameLog.push({ correct: false, timeout: true, time: 0 });
         ultraFastStreak = 0;
         saveStatsLocally(); document.getElementById('answers-grid').classList.add('answered'); setTimeout(() => showFeedback(false, true), 600);
     }
 
     function abandonGame() {
-        if(!isAnsweringAllowed) return;
+        if(lives <= 0) return; // partida ya terminada
         SFX.click();
         isGamePaused = true;
+        clearInterval(timerInterval);
         document.getElementById('abandon-modal').classList.add('active');
     }
 
@@ -1817,8 +1837,16 @@
             let earned = 800 + Math.round((timeLeft / TIMER_LIMIT) * 800);
             earned = earned * multiplier;
             score += earned; streak++; if(streak > currentMaxStreak) currentMaxStreak = streak;
-            if (streak === 5) { playerStats.frenziesTriggered++; playerStats.currentFrenzyStreak = (playerStats.currentFrenzyStreak||0) + 1; }
-            if (streak > 5 && streak % 5 !== 0) { playerStats.currentFrenzyStreak = (playerStats.currentFrenzyStreak||0) + 1; }
+            // np1: 10 aciertos seguidos con las 3 vidas intactas — solo válido in-game
+            if (streak >= 10 && lives === 3) {
+                if (!playerStats.achievements.includes('np1')) {
+                    playerStats.achievements.push('np1');
+                    SFX.achievement();
+                    showToast('Logro Desbloqueado', 'Examen de Oro', colors.yellow, SVG_SHIELD);
+                    saveStatsLocally(); renderAchievements();
+                }
+            }
+            if (streak > 0 && streak % 5 === 0) { playerStats.frenziesTriggered++; playerStats.currentFrenzyStreak = (playerStats.currentFrenzyStreak||0) + 1; }
             if ((playerStats.currentFrenzyStreak||0) > (playerStats.maxFrenzyStreak||0)) playerStats.maxFrenzyStreak = playerStats.currentFrenzyStreak;
             points.innerText = `+${earned}`; points.style.display = 'block';
         } else {
