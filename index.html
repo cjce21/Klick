@@ -158,19 +158,19 @@
         /* Banco de Logros */
         .achievements-wrapper { gap: 15px; max-width: 1400px; padding: 10px 15px 30px; }
         .achievements-stats { text-align: center; color: var(--text-secondary); font-weight: 600; font-size: 1rem; letter-spacing: 1px; padding-top: 10px;}
-        .achievements-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; width: 100%; padding: 5px 0 20px; }
+        .achievements-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; width: 100%; padding: 5px 0 20px; contain: content; }
         @media (min-width: 600px) { .achievements-grid { grid-template-columns: repeat(3, 1fr); } }
         @media (min-width: 900px) { .achievements-grid { grid-template-columns: repeat(4, 1fr); } }
         @media (min-width: 1200px) { .achievements-grid { grid-template-columns: repeat(5, 1fr); } }
         @media (min-width: 1500px) { .achievements-grid { grid-template-columns: repeat(6, 1fr); } }
-        .ach-card { background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(10px); padding: 18px 14px; border-radius: var(--radius-md); border: 1px dashed var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; opacity: 0.5; filter: grayscale(1); transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease; position: relative; cursor: pointer; min-height: 140px; justify-content: center; transform: none !important; }
+        .ach-card { background: rgba(17, 17, 17, 0.85); padding: 18px 14px; border-radius: var(--radius-md); border: 1px dashed var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; opacity: 0.5; filter: grayscale(1); transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease; position: relative; cursor: pointer; min-height: 140px; justify-content: center; transform: none !important; will-change: auto; }
         .ach-card:hover { border-color: rgba(255,255,255,0.25); }
         .ach-pin-badge { position: absolute; top: 5px; right: 6px; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; line-height: 1; pointer-events: none; }
         .ach-pin-manual { color: var(--accent-yellow); }
         .ach-pin-manual svg { width: 14px; height: 14px; }
         .ach-pin-auto { color: rgba(255,255,255,0.45); font-size: 13px; }
         .ach-card.in-profile { border-style: solid; }
-        .ach-card.unlocked { border-style: solid; opacity: 1; filter: grayscale(0); background: rgba(25, 25, 25, 0.8); }
+        .ach-card.unlocked { border-style: solid; opacity: 1; filter: grayscale(0); background: rgba(25, 25, 25, 0.95); }
         .ach-card.pinned { box-shadow: 0 0 18px rgba(255,184,0,0.4) !important; border-color: var(--accent-yellow) !important; border-style: solid !important; }
         .ach-card .ach-icon { width: 36px; height: 36px; margin-bottom: 2px;}
         .ach-card .ach-title { font-size: 0.9rem; color: var(--text-primary); font-weight: 800; line-height: 1.2; }
@@ -824,6 +824,55 @@
     function saveStatsLocally() { 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(playerStats)); 
     }
+    // Versión debounced para guardados frecuentes durante gameplay (no bloquea el hilo principal)
+    let _saveTimeout = null;
+    function saveStatsDebounced() {
+        clearTimeout(_saveTimeout);
+        _saveTimeout = setTimeout(saveStatsLocally, 800);
+    }
+
+    // ── Revoca logros obtenidos por bugs/errores de lógica ──────────────────────
+    // Función pública: puede llamarse en cualquier momento para limpiar logros inválidos.
+    function revokeInvalidAchievements() {
+        const before = playerStats.achievements.length;
+        const toRevoke = new Set();
+
+        // fin1 (Nocturno): solo válido si se jugó en ese horario (flag real)
+        if (!playerStats.playedNocturno && playerStats.achievements.includes('fin1')) toRevoke.add('fin1');
+        // fin2 (Madrugador): solo válido si se jugó antes de las 6am (flag real)
+        if (!playerStats.playedMadrugador && playerStats.achievements.includes('fin2')) toRevoke.add('fin2');
+        // ret1–ret5 (Fiel): solo válidos si totalDaysPlayed >= umbral (bug: split devolvía array)
+        const retTiers = [3,7,15,30,60];
+        retTiers.forEach((t,i) => { 
+            if ((playerStats.totalDaysPlayed||0) < t && playerStats.achievements.includes(`ret${i+1}`)) toRevoke.add(`ret${i+1}`); 
+        });
+        // bs1–bs8: requieren bestScore real
+        const bsTiers2 = [5000,25000,75000,150000,300000,600000,1000000,2000000];
+        bsTiers2.forEach((t,i) => { 
+            if ((playerStats.bestScore||0) < t && playerStats.achievements.includes(`bs${i+1}`)) toRevoke.add(`bs${i+1}`);
+        });
+        // hs1–hs8: requieren haber superado 100k, no 20k
+        if ((playerStats.bestScore||0) < 100000) {
+            for(let i=0;i<8;i++) { if(playerStats.achievements.includes(`hs${i+1}`)) toRevoke.add(`hs${i+1}`); }
+        }
+        // x1 (Primer Día): siempre válido si hay datos (no revocar)
+        // x18 (El Clásico): solo válido si nameChanges===0 y maxLoginStreak>=30
+        if (!( playerStats.nameChanges===0 && (playerStats.maxLoginStreak||0)>=30 ) && playerStats.achievements.includes('x18')) toRevoke.add('x18');
+
+        if (toRevoke.size > 0) {
+            playerStats.achievements = playerStats.achievements.filter(id => !toRevoke.has(id));
+            playerStats.pinnedAchievements = playerStats.pinnedAchievements.filter(id => !toRevoke.has(id));
+            // Invalidar cache del renderizador para forzar re-render de cards afectadas
+            toRevoke.forEach(id => { delete _achCardState[id]; });
+            saveStatsLocally();
+            const revokedCount = before - playerStats.achievements.length;
+            if (revokedCount > 0) {
+                showToast('Logros Corregidos', `Se retiraron ${revokedCount} logro(s) obtenido(s) por errores.`, 'var(--accent-orange)', SVG_SHIELD);
+                renderAchievements();
+            }
+        }
+        return toRevoke.size;
+    }
 
     window.addEventListener('beforeunload', () => {
         saveStatsLocally();
@@ -1409,9 +1458,17 @@
 
     function checkAchievements() {
         let newlyUnlocked = [];
-        const unlock = (id) => { if (!playerStats.achievements.includes(id)) { playerStats.achievements.push(id); const f = ACHIEVEMENTS_DATA.find(a => a.id === id); if(f) newlyUnlocked.push(f); } };
+        const achSet = new Set(playerStats.achievements);
+        const unlock = (id) => { 
+            if (!achSet.has(id)) { 
+                achSet.add(id);
+                playerStats.achievements.push(id); 
+                const f = ACHIEVEMENTS_DATA.find(a => a.id === id); 
+                if(f) newlyUnlocked.push(f); 
+            } 
+        };
         
-        if (playerStats.achievements.includes('tramposo')) {
+        if (achSet.has('tramposo')) {
             if (!playerStats.pinnedAchievements.includes('tramposo')) {
                 playerStats.pinnedAchievements.unshift('tramposo');
                 if (playerStats.pinnedAchievements.length > 3) playerStats.pinnedAchievements.pop();
@@ -1486,34 +1543,36 @@
         const pvv = playerStats.profileViews||0; for(let i=0;i<5;i++) if(pvv>=profileVisTiers[i]) unlock(`pv${i+1}`);
         const retv = playerStats.totalDaysPlayed||0; for(let i=0;i<5;i++) if(retv>=returnDayTiers[i]) unlock(`ret${i+1}`);
 
-
         const bsv = playerStats.bestScore||0; for(let i=0;i<8;i++) if(bsv>=bestScoreTiers[i]) unlock(`bs${i+1}`);
         const fts = playerStats.maxFrenzyStreak||0; for(let i=0;i<5;i++) if(fts>=frenzyTimeTiers[i]) unlock(`ft${i+1}`);
 
         // ÚNICOS EXTRA
         if(playerStats.gamesPlayed>=1) unlock('x3');
-        if(playerStats.gamesPlayed>=1 || playerStats.maxLoginStreak>=1) unlock('x1'); // Primer Día: inicia sesión por primera vez
+        if(playerStats.gamesPlayed>=1 || playerStats.maxLoginStreak>=1) unlock('x1');
         if(playerStats.gamesPlayed>=100) unlock('x17');
         if(playerStats.nameChanges===0 && playerStats.maxLoginStreak>=30) unlock('x18');
         if(rank==='Leyenda' && normalAchs>=200) unlock('fin5');
         if(days>=7 && (rank==='Junior'||rank==='Pro'||rank==='Maestro'||rank==='Leyenda')) unlock('fin4');
-        if((playerStats.maxMult||1)>=4) unlock('u16'); // Frenesí Máximo: multiplicador x4 o superior
+        if((playerStats.maxMult||1)>=4) unlock('u16');
 
         if(playerStats.playedNocturno) unlock('fin1');
         if(playerStats.playedMadrugador) unlock('fin2');
 
         // MODO PERFECCIÓN
-        // np1 se chequea solo desde showFeedback (in-game), no aquí
         let redGoldCount = 0;
         playerStats.pinnedAchievements.forEach(id => {
             const ach = ACHIEVEMENTS_DATA.find(a => a.id === id);
-            if (ach && (ach.color === colors.red || ach.color === colors.yellow || ach.color === colors.orange)) {
-                redGoldCount++;
-            }
+            if (ach && (ach.color === colors.red || ach.color === colors.yellow || ach.color === colors.orange)) redGoldCount++;
         });
         if (redGoldCount >= 3) unlock('np2');
 
-        if (newlyUnlocked.length > 0) { saveStatsLocally(); renderAchievements(); newlyUnlocked.forEach((ach, index) => { setTimeout(() => { SFX.achievement(); showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon); }, index * 1300); }); }
+        if (newlyUnlocked.length > 0) { 
+            saveStatsLocally(); 
+            renderAchievements(); 
+            newlyUnlocked.forEach((ach, index) => { 
+                setTimeout(() => { SFX.achievement(); showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon); }, index * 1300); 
+            }); 
+        }
     }
 
     function togglePin(achId) {
@@ -1524,6 +1583,8 @@
         if (!playerStats.achievements.includes(achId)) return; SFX.click(); const index = playerStats.pinnedAchievements.indexOf(achId);
         if (index > -1) { playerStats.pinnedAchievements.splice(index, 1); showToast('Quitado del perfil', 'Ya no aparecerá destacado.', 'var(--text-secondary)', SVG_PIN); } 
         else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); const ach_data = ACHIEVEMENTS_DATA.find(a => a.id === achId); showToast('Fijado en Perfil', ach_data ? ach_data.title : achId, ach_data ? ach_data.color : '', ach_data ? ach_data.icon : ''); }
+        // Invalidar cache de los dos cards afectados para forzar re-render
+        delete _achCardState[achId];
         saveStatsLocally(); checkAchievements(); renderAchievements();
     }
     
@@ -1555,19 +1616,28 @@
         return result;
     }
 
+    // ── Cache para renderAchievements: evita reconstruir innerHTML si nada cambió ──
+    const _achCardState = {}; // id -> last rendered state key
+
     function renderAchievements() {
         if (!isAchievementsInitialized) initializeAchievementsDOM();
         const profileGrid  = document.getElementById('profile-achievements-grid');
         const unlockedCount = playerStats.achievements.filter(id => id !== 'tramposo').length;
-        const displayPinned = getAutoProfileAchs();   // IDs actually shown in profile right now
+        const displayPinned = getAutoProfileAchs();
         const manualPinned  = playerStats.pinnedAchievements;
+        const achSet = new Set(playerStats.achievements);
 
         ACHIEVEMENTS_DATA.forEach(ach => {
-            const isUnlocked  = playerStats.achievements.includes(ach.id);
+            const isUnlocked  = achSet.has(ach.id);
             const isManualPin = manualPinned.includes(ach.id);
             const isInProfile = displayPinned.includes(ach.id);
             const card = achCardElements[ach.id];
             if (!card) return;
+
+            // Crear una clave de estado para detectar cambios — si es igual, saltar
+            const stateKey = `${isUnlocked?1:0}${isManualPin?1:0}${isInProfile?1:0}`;
+            if (_achCardState[ach.id] === stateKey) return; // sin cambios, no tocar el DOM
+            _achCardState[ach.id] = stateKey;
 
             // ── Classes ──
             let cls = 'ach-card';
@@ -1582,9 +1652,6 @@
             else if (isInProfile)  card.style.boxShadow = `0 0 7px ${ach.color}33`;
             else                   card.style.boxShadow = '';
 
-            // ── Profile indicator badge (always visible when in profile) ──
-            // Gold SVG pin = manually fixed by player
-            // White star   = auto-selected as rarest achievement
             let badge = '';
             if (isManualPin) {
                 badge = `<div class="ach-pin-badge ach-pin-manual" title="Fijado manualmente en perfil">${SVG_PIN}</div>`;
@@ -1598,7 +1665,7 @@
                 `<div class="ach-desc">${isUnlocked ? ach.desc : 'Sigue jugando para descubrirlo.'}</div>`;
         });
 
-        // ── Profile grid ──
+        // ── Profile grid (solo 3 slots, siempre actualizar) ──
         if (profileGrid) {
             profileGrid.innerHTML = '';
             const frag = document.createDocumentFragment();
@@ -1638,7 +1705,14 @@
 
 
     // --- UI Flow ---
-    function switchScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); setTimeout(() => document.getElementById(id).classList.add('active'), 50); }
+    let _currentScreen = null;
+    function switchScreen(id) { 
+        if (_currentScreen) _currentScreen.classList.remove('active');
+        const next = document.getElementById(id);
+        setTimeout(() => { if(next) { next.classList.add('active'); _currentScreen = next; } }, 50); 
+    }
+    // Initialize current screen
+    _currentScreen = document.querySelector('.screen.active');
     function goToMainMenu() { SFX.click(); switchScreen('start-screen'); }
     // Helper: marca una sección visitada en sesión y verifica si se han visitado todas
     function trackSectionVisit(section) {
@@ -1878,7 +1952,7 @@
             ultraFastStreak = 0;
         }
         
-        saveStatsLocally(); setTimeout(() => showFeedback(isCorrect), 600);
+        saveStatsDebounced(); setTimeout(() => showFeedback(isCorrect), 600);
     }
     
     function handleTimeout() {
@@ -1886,7 +1960,7 @@
         playerStats.totalTimeouts++; currentTimeoutAnswers++; 
         currentGameLog.push({ correct: false, timeout: true, time: 0 });
         ultraFastStreak = 0;
-        saveStatsLocally(); document.getElementById('answers-grid').classList.add('answered'); setTimeout(() => showFeedback(false, true), 600);
+        saveStatsDebounced(); document.getElementById('answers-grid').classList.add('answered'); setTimeout(() => showFeedback(false, true), 600);
     }
 
     function abandonGame() {
@@ -2008,50 +2082,74 @@
         document.getElementById('app').classList.remove('streak-active'); streak = 0; switchScreen('end-screen');
     }
 
-    // --- FPS Controlled Particles ---
-    const canvas = document.getElementById('particle-canvas'); const ctx = canvas.getContext('2d'); let particlesArray = [];
+    // --- FPS Controlled Particles (optimized: batched canvas draws) ---
+    const canvas = document.getElementById('particle-canvas'); 
+    const ctx = canvas.getContext('2d', { alpha: true }); 
+    let particlesArray = [];
     let fpsInterval = 1000 / playerStats.maxFps; let then = performance.now();
     
     function initParticles() { 
         canvas.width = window.innerWidth; canvas.height = window.innerHeight; particlesArray = []; 
-        let num = Math.min((canvas.width * canvas.height) / 10000, window.innerWidth < 768 ? 50 : 100); 
-        for (let i = 0; i < num; i++) particlesArray.push(new Particle(Math.random() * innerWidth, Math.random() * innerHeight, (Math.random()*1)-0.5, (Math.random()*1)-0.5, (Math.random()*2)+1)); 
+        const isMobile = window.innerWidth < 768;
+        let num = Math.min((canvas.width * canvas.height) / 12000, isMobile ? 40 : 80); 
+        for (let i = 0; i < num; i++) {
+            particlesArray.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                dx: (Math.random() - 0.5) * 0.8,
+                dy: (Math.random() - 0.5) * 0.8,
+                s: Math.random() * 1.5 + 0.5
+            });
+        }
     }
     
-    class Particle { 
-        constructor(x, y, dx, dy, s) { this.x = x; this.y = y; this.dx = dx; this.dy = dy; this.s = s; this.baseS = s;} 
-        draw(pulse) { 
-            ctx.beginPath(); 
-            const dynamicSize = this.s + (pulse * 5); 
-            ctx.arc(this.x, this.y, dynamicSize, 0, Math.PI*2); 
-            ctx.fillStyle = `rgba(${currentRankInfo.rgb}, ${(streak >= 5 ? 0.8 : 0.5) * playerStats.particleOpacity})`; 
-            ctx.fill(); 
-        } 
-        update(timeScale, pulse) { 
-            const m = streak >= 5 ? 3.5 : 1; 
-            if(this.x > canvas.width || this.x < 0) this.dx = -this.dx; 
-            if(this.y > canvas.height || this.y < 0) this.dy = -this.dy; 
-            
-            const speedBoost = 1 + (pulse * 2.5);
-            this.x += this.dx * m * timeScale * speedBoost; 
-            this.y += this.dy * m * timeScale * speedBoost; 
-            
-            this.draw(pulse); 
-        } 
+    function updateAndDrawParticles(timeScale, pulse) {
+        const m = streak >= 5 ? 2.5 : 1;
+        const speedBoost = 1 + (pulse * 1.8);
+        const dynamicOpacity = (streak >= 5 ? 0.75 : 0.45) * playerStats.particleOpacity;
+        const rgb = currentRankInfo.rgb;
+        const W = canvas.width, H = canvas.height;
+        
+        // Batch all particle circles into one path
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(${rgb}, ${dynamicOpacity})`;
+        
+        for (let i = 0; i < particlesArray.length; i++) {
+            const p = particlesArray[i];
+            // Bounce off walls
+            if (p.x > W || p.x < 0) p.dx = -p.dx;
+            if (p.y > H || p.y < 0) p.dy = -p.dy;
+            // Move
+            p.x += p.dx * m * timeScale * speedBoost;
+            p.y += p.dy * m * timeScale * speedBoost;
+            // Draw as sub-path
+            const r = p.s + pulse * 3;
+            ctx.moveTo(p.x + r, p.y);
+            ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        }
+        ctx.fill();
     }
     
     function connectParticles(pulse) { 
-        const isStreak = streak >= 5; 
-        for(let a = 0; a < particlesArray.length; a++) { 
-            for(let b = a; b < particlesArray.length; b++) { 
-                let dist = ((particlesArray[a].x - particlesArray[b].x)**2) + ((particlesArray[a].y - particlesArray[b].y)**2);
-                let cDist = (canvas.width/10) * (canvas.height/10); 
-                
-                cDist = cDist * (1 + pulse);
-
-                if (dist < cDist) { 
-                    ctx.strokeStyle = `rgba(${currentRankInfo.rgb}, ${(1 - (dist / cDist)) * (isStreak ? 0.6 : 0.3) * playerStats.particleOpacity})`; 
-                    ctx.lineWidth = 1 + (pulse * 3); 
+        const isStreak = streak >= 5;
+        const baseOpacity = isStreak ? 0.55 : 0.25;
+        const rgb = currentRankInfo.rgb;
+        const maxDistSq = (canvas.width / 10) * (canvas.height / 10) * (1 + pulse * 0.5);
+        const pOp = playerStats.particleOpacity;
+        const n = particlesArray.length;
+        
+        // Group lines by approximate opacity bucket to minimize ctx state changes
+        // Use a simpler approach: draw all lines, accept some state changes
+        ctx.lineWidth = 1 + pulse * 2;
+        
+        for (let a = 0; a < n; a++) { 
+            for (let b = a + 1; b < n; b++) { 
+                const dx = particlesArray[a].x - particlesArray[b].x;
+                const dy = particlesArray[a].y - particlesArray[b].y;
+                const distSq = dx * dx + dy * dy;
+                if (distSq < maxDistSq) { 
+                    const alpha = (1 - distSq / maxDistSq) * baseOpacity * pOp;
+                    ctx.strokeStyle = `rgba(${rgb},${alpha.toFixed(2)})`; 
                     ctx.beginPath(); 
                     ctx.moveTo(particlesArray[a].x, particlesArray[a].y); 
                     ctx.lineTo(particlesArray[b].x, particlesArray[b].y); 
@@ -2063,19 +2161,16 @@
     
     function animateParticles(now) { 
         requestAnimationFrame(animateParticles); 
-        let elapsed = now - then; 
+        const elapsed = now - then; 
         if (elapsed > fpsInterval) { 
-            // Reset 'then' to current time to prevent accumulated debt causing speed bursts
-            then = now;
-            // Clamp timeScale: never let particles teleport due to long frame gaps
-            let timeScale = elapsed / 16.666;
-            if (timeScale > 3) timeScale = 3; // max 3x speed cap to prevent jumps
+            then = now; // Reset cleanly — no debt accumulation
+            // Clamp timeScale to prevent jump on tab focus restore
+            let timeScale = Math.min(elapsed / 16.666, 2.5);
             
-            ctx.clearRect(0, 0, innerWidth, innerHeight); 
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
             
             const pulse = getAudioPulse(); 
-
-            for(let i=0; i<particlesArray.length; i++) particlesArray[i].update(timeScale, pulse); 
+            updateAndDrawParticles(timeScale, pulse);
             connectParticles(pulse); 
         } 
     }
@@ -2089,7 +2184,7 @@
         }
     });
 
-    setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); }, 500);
+    setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); }, 500);
 </script>
 </body>
 </html>
