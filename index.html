@@ -155,26 +155,21 @@
         .rank-item-pts { color: var(--text-secondary); font-size: clamp(0.7rem, 1vw, 0.85rem); line-height: 1.3; text-align: center; }
 
         
-        /* Banco de Logros */
-        .achievements-wrapper { gap: 15px; max-width: 1400px; padding: 10px 15px 30px; }
-        .achievements-stats { text-align: center; color: var(--text-secondary); font-weight: 600; font-size: 1rem; letter-spacing: 1px; padding-top: 10px;}
-        .achievements-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; width: 100%; padding: 5px 0 20px; contain: content; }
-        @media (min-width: 600px) { .achievements-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media (min-width: 900px) { .achievements-grid { grid-template-columns: repeat(4, 1fr); } }
-        @media (min-width: 1200px) { .achievements-grid { grid-template-columns: repeat(5, 1fr); } }
-        @media (min-width: 1500px) { .achievements-grid { grid-template-columns: repeat(6, 1fr); } }
-        .ach-card { background: rgba(17, 17, 17, 0.85); padding: 18px 14px; border-radius: var(--radius-md); border: 1px dashed var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; opacity: 0.5; filter: grayscale(1); transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease; position: relative; cursor: pointer; min-height: 140px; justify-content: center; transform: none !important; will-change: auto; }
-        .ach-card:hover { border-color: rgba(255,255,255,0.25); }
+        /* Banco de Logros - Virtual Scroller */
+        #achievements-screen { flex-direction: column; }
+        .ach-vrow { display: grid; gap: 12px; padding: 0; }
+        .ach-card { background: #111; padding: 16px 12px; border-radius: var(--radius-md); border: 1px dashed var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 7px; opacity: 0.45; filter: grayscale(1); position: relative; cursor: pointer; height: 148px; justify-content: center; box-sizing: border-box; transition: border-color 0.12s, box-shadow 0.12s, opacity 0.12s; }
+        .ach-card:hover { border-color: rgba(255,255,255,0.2); }
+        .ach-card.unlocked { border-style: solid; opacity: 1; filter: none; background: #191919; }
+        .ach-card.pinned { box-shadow: 0 0 14px rgba(255,184,0,0.45) !important; border-color: var(--accent-yellow) !important; border-style: solid !important; }
+        .ach-card.in-profile { border-style: solid; }
         .ach-pin-badge { position: absolute; top: 5px; right: 6px; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; line-height: 1; pointer-events: none; }
         .ach-pin-manual { color: var(--accent-yellow); }
         .ach-pin-manual svg { width: 14px; height: 14px; }
         .ach-pin-auto { color: rgba(255,255,255,0.45); font-size: 13px; }
-        .ach-card.in-profile { border-style: solid; }
-        .ach-card.unlocked { border-style: solid; opacity: 1; filter: grayscale(0); background: rgba(25, 25, 25, 0.95); }
-        .ach-card.pinned { box-shadow: 0 0 18px rgba(255,184,0,0.4) !important; border-color: var(--accent-yellow) !important; border-style: solid !important; }
-        .ach-card .ach-icon { width: 36px; height: 36px; margin-bottom: 2px;}
-        .ach-card .ach-title { font-size: 0.9rem; color: var(--text-primary); font-weight: 800; line-height: 1.2; }
-        .ach-desc { font-size: 0.72rem; color: var(--text-secondary); line-height: 1.3; font-style: italic;}
+        .ach-card .ach-icon { width: 34px; height: 34px; margin-bottom: 2px; }
+        .ach-card .ach-title { font-size: 0.88rem; color: var(--text-primary); font-weight: 800; line-height: 1.2; }
+        .ach-desc { font-size: 0.7rem; color: var(--text-secondary); line-height: 1.3; font-style: italic; }
         .ach-card.unlocked .ach-desc { font-style: normal; }
 
         /* --- CLASIFICACIÓN GLOBAL --- */
@@ -555,10 +550,11 @@
             <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
             <div class="nav-title">LOGROS</div><div class="nav-spacer"></div>
         </div>
-        <div class="content-scroll no-scrollbar">
-            <div class="achievements-wrapper">
-                <div class="achievements-stats" id="achievements-progress-text">Desbloqueados: 0 / 247</div>
-                <div class="achievements-grid" id="full-achievements-grid" style="content-visibility: auto;"></div>
+        <div class="achievements-stats" id="achievements-progress-text" style="text-align:center;color:var(--text-secondary);font-weight:600;font-size:1rem;letter-spacing:1px;padding:12px 0 8px;flex-shrink:0;">Desbloqueados: 0 / 247</div>
+        <!-- Virtual scroller: solo se renderizan las tarjetas visibles -->
+        <div id="vscroll-container" style="flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;">
+            <div id="vscroll-spacer" style="position:relative;width:100%;">
+                <div id="vscroll-content" style="position:absolute;left:0;right:0;top:0;padding:0 15px 40px;"></div>
             </div>
         </div>
     </div>
@@ -862,8 +858,6 @@
         if (toRevoke.size > 0) {
             playerStats.achievements = playerStats.achievements.filter(id => !toRevoke.has(id));
             playerStats.pinnedAchievements = playerStats.pinnedAchievements.filter(id => !toRevoke.has(id));
-            // Invalidar cache del renderizador para forzar re-render de cards afectadas
-            toRevoke.forEach(id => { delete _achCardState[id]; });
             saveStatsLocally();
             const revokedCount = before - playerStats.achievements.length;
             if (revokedCount > 0) {
@@ -1583,18 +1577,10 @@
         if (!playerStats.achievements.includes(achId)) return; SFX.click(); const index = playerStats.pinnedAchievements.indexOf(achId);
         if (index > -1) { playerStats.pinnedAchievements.splice(index, 1); showToast('Quitado del perfil', 'Ya no aparecerá destacado.', 'var(--text-secondary)', SVG_PIN); } 
         else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); const ach_data = ACHIEVEMENTS_DATA.find(a => a.id === achId); showToast('Fijado en Perfil', ach_data ? ach_data.title : achId, ach_data ? ach_data.color : '', ach_data ? ach_data.icon : ''); }
-        // Invalidar cache de los dos cards afectados para forzar re-render
-        delete _achCardState[achId];
         saveStatsLocally(); checkAchievements(); renderAchievements();
     }
     
-    let isAchievementsInitialized = false; const achCardElements = {};
-    
-    function initializeAchievementsDOM() {
-        const fullGrid = document.getElementById('full-achievements-grid'); if(!fullGrid) return; fullGrid.innerHTML = ''; const fragment = document.createDocumentFragment();
-        ACHIEVEMENTS_DATA.forEach(ach => { const card = document.createElement('div'); card.id = `ach-card-${ach.id}`; card.className = 'ach-card'; card.onclick = () => togglePin(ach.id); achCardElements[ach.id] = card; fragment.appendChild(card); });
-        fullGrid.appendChild(fragment); isAchievementsInitialized = true;
-    }
+    // togglePin y revokeInvalidAchievements usan el virtual scroller automáticamente
     
     // Rarity score: how exclusive/rare is each achievement (higher = rarer)
     // ── Rarity score for auto-profile fill ──────────────────────────────────
@@ -1616,61 +1602,168 @@
         return result;
     }
 
-    // ── Cache para renderAchievements: evita reconstruir innerHTML si nada cambió ──
-    const _achCardState = {}; // id -> last rendered state key
+    // ══════════════════════════════════════════════════════════════════
+    //  VIRTUAL SCROLLER — solo renderiza las tarjetas visibles en pantalla
+    //  Elimina el lag al hacer scroll por los 247 logros.
+    // ══════════════════════════════════════════════════════════════════
+    const CARD_HEIGHT   = 148;  // px — debe coincidir con el CSS
+    const CARD_GAP      = 12;   // px gap entre cards
+    const ROW_PAD_PX    = 15;   // padding lateral del contenedor
+    const OVERSCAN_ROWS = 2;    // filas extra arriba/abajo para suavidad
 
-    function renderAchievements() {
-        if (!isAchievementsInitialized) initializeAchievementsDOM();
-        const profileGrid  = document.getElementById('profile-achievements-grid');
-        const unlockedCount = playerStats.achievements.filter(id => id !== 'tramposo').length;
-        const displayPinned = getAutoProfileAchs();
-        const manualPinned  = playerStats.pinnedAchievements;
-        const achSet = new Set(playerStats.achievements);
+    let _vsColCount   = 2;      // columnas actuales (se recalcula)
+    let _vsRowHeight  = CARD_HEIGHT + CARD_GAP;
+    let _vsRendered   = new Map(); // rowIndex -> DOM row element
+    let _vsAchSet     = null;   // Set live de logros desbloqueados
+    let _vsPinned     = [];
+    let _vsDisplayPin = [];
+    let _vsScrollEl   = null;
+    let _vsSpacerEl   = null;
+    let _vsContentEl  = null;
+    let _vsInitialized = false;
+    let _vsScrollRAF  = null;
 
-        ACHIEVEMENTS_DATA.forEach(ach => {
-            const isUnlocked  = achSet.has(ach.id);
-            const isManualPin = manualPinned.includes(ach.id);
-            const isInProfile = displayPinned.includes(ach.id);
-            const card = achCardElements[ach.id];
-            if (!card) return;
+    function _vsGetCols() {
+        const w = window.innerWidth;
+        if (w >= 1500) return 6;
+        if (w >= 1200) return 5;
+        if (w >= 900)  return 4;
+        if (w >= 600)  return 3;
+        return 2;
+    }
 
-            // Crear una clave de estado para detectar cambios — si es igual, saltar
-            const stateKey = `${isUnlocked?1:0}${isManualPin?1:0}${isInProfile?1:0}`;
-            if (_achCardState[ach.id] === stateKey) return; // sin cambios, no tocar el DOM
-            _achCardState[ach.id] = stateKey;
+    function _vsCardHTML(ach, isUnlocked, isManualPin, isInProfile) {
+        let cls = 'ach-card';
+        if (isUnlocked)   cls += ' unlocked';
+        if (isManualPin)  cls += ' pinned';
+        else if (isInProfile) cls += ' in-profile';
 
-            // ── Classes ──
-            let cls = 'ach-card';
-            if (isUnlocked)  cls += ' unlocked';
-            if (isManualPin) cls += ' pinned';
-            else if (isInProfile) cls += ' in-profile';
-            card.className = cls;
+        const bdrColor = isUnlocked ? ach.color : '';
+        let shadow = '';
+        if (isManualPin)       shadow = `0 0 14px ${ach.color}66`;
+        else if (isInProfile)  shadow = `0 0 7px ${ach.color}33`;
 
-            // ── Colors ──
-            card.style.borderColor = isUnlocked ? ach.color : '';
-            if (isManualPin)       card.style.boxShadow = `0 0 14px ${ach.color}66`;
-            else if (isInProfile)  card.style.boxShadow = `0 0 7px ${ach.color}33`;
-            else                   card.style.boxShadow = '';
+        let badge = '';
+        if (isManualPin)      badge = `<div class="ach-pin-badge ach-pin-manual">${SVG_PIN}</div>`;
+        else if (isInProfile) badge = `<div class="ach-pin-badge ach-pin-auto">★</div>`;
 
-            let badge = '';
-            if (isManualPin) {
-                badge = `<div class="ach-pin-badge ach-pin-manual" title="Fijado manualmente en perfil">${SVG_PIN}</div>`;
-            } else if (isInProfile) {
-                badge = `<div class="ach-pin-badge ach-pin-auto" title="En perfil (automático)">★</div>`;
-            }
+        const iconColor = isUnlocked ? ach.color : 'var(--text-secondary)';
+        const iconSVG   = isUnlocked ? ach.icon  : SVG_LOCK;
+        const desc      = isUnlocked ? ach.desc  : 'Sigue jugando para descubrirlo.';
 
-            card.innerHTML = badge +
-                `<div class="ach-icon" style="color:${isUnlocked ? ach.color : 'var(--text-secondary)'}">${isUnlocked ? ach.icon : SVG_LOCK}</div>` +
-                `<div class="ach-title">${ach.title}</div>` +
-                `<div class="ach-desc">${isUnlocked ? ach.desc : 'Sigue jugando para descubrirlo.'}</div>`;
+        return `<div class="${cls}" style="border-color:${bdrColor};box-shadow:${shadow}" onclick="togglePin('${ach.id}')">`+
+            badge +
+            `<div class="ach-icon" style="color:${iconColor}">${iconSVG}</div>`+
+            `<div class="ach-title">${ach.title}</div>`+
+            `<div class="ach-desc">${desc}</div>`+
+            `</div>`;
+    }
+
+    function _vsRenderRow(rowIdx) {
+        if (_vsRendered.has(rowIdx)) return;
+        const cols   = _vsColCount;
+        const start  = rowIdx * cols;
+        const end    = Math.min(start + cols, ACHIEVEMENTS_DATA.length);
+        if (start >= ACHIEVEMENTS_DATA.length) return;
+
+        const rowEl = document.createElement('div');
+        rowEl.className = 'ach-vrow';
+        rowEl.style.cssText = `position:absolute;left:${ROW_PAD_PX}px;right:${ROW_PAD_PX}px;top:${rowIdx * _vsRowHeight}px;grid-template-columns:repeat(${cols},1fr);`;
+
+        let html = '';
+        for (let i = start; i < end; i++) {
+            const ach         = ACHIEVEMENTS_DATA[i];
+            const isUnlocked  = _vsAchSet.has(ach.id);
+            const isManualPin = _vsPinned.includes(ach.id);
+            const isInProfile = _vsDisplayPin.includes(ach.id);
+            html += _vsCardHTML(ach, isUnlocked, isManualPin, isInProfile);
+        }
+        rowEl.innerHTML = html;
+        _vsContentEl.appendChild(rowEl);
+        _vsRendered.set(rowIdx, rowEl);
+    }
+
+    function _vsRemoveRow(rowIdx) {
+        const el = _vsRendered.get(rowIdx);
+        if (el) { el.remove(); _vsRendered.delete(rowIdx); }
+    }
+
+    function _vsOnScroll() {
+        if (_vsScrollRAF) return;
+        _vsScrollRAF = requestAnimationFrame(() => {
+            _vsScrollRAF = null;
+            _vsUpdate();
         });
+    }
 
-        // ── Profile grid (solo 3 slots, siempre actualizar) ──
+    function _vsUpdate() {
+        if (!_vsScrollEl || !_vsSpacerEl) return;
+        const scrollTop    = _vsScrollEl.scrollTop;
+        const viewHeight   = _vsScrollEl.clientHeight;
+        const totalRows    = Math.ceil(ACHIEVEMENTS_DATA.length / _vsColCount);
+
+        const firstRow = Math.max(0, Math.floor(scrollTop / _vsRowHeight) - OVERSCAN_ROWS);
+        const lastRow  = Math.min(totalRows - 1, Math.ceil((scrollTop + viewHeight) / _vsRowHeight) + OVERSCAN_ROWS);
+
+        // Remove rows that scrolled out
+        for (const [idx] of _vsRendered) {
+            if (idx < firstRow || idx > lastRow) _vsRemoveRow(idx);
+        }
+        // Add rows that scrolled in
+        for (let r = firstRow; r <= lastRow; r++) _vsRenderRow(r);
+    }
+
+    function _vsRefreshAll() {
+        // Flush all rendered rows and re-render visible ones
+        for (const [, el] of _vsRendered) el.remove();
+        _vsRendered.clear();
+        _vsUpdate();
+    }
+
+    function _vsSetup() {
+        _vsScrollEl  = document.getElementById('vscroll-container');
+        _vsSpacerEl  = document.getElementById('vscroll-spacer');
+        _vsContentEl = document.getElementById('vscroll-content');
+        if (!_vsScrollEl) return;
+
+        _vsScrollEl.addEventListener('scroll', _vsOnScroll, { passive: true });
+        window.addEventListener('resize', () => {
+            const newCols = _vsGetCols();
+            if (newCols !== _vsColCount) {
+                _vsColCount = newCols;
+                const totalRows = Math.ceil(ACHIEVEMENTS_DATA.length / _vsColCount);
+                const totalH    = totalRows * _vsRowHeight;
+                _vsSpacerEl.style.height = totalH + 'px';
+                _vsRefreshAll();
+            }
+        });
+        _vsInitialized = true;
+    }
+
+    // Actualiza el estado y dispara re-render de filas afectadas
+    function renderAchievements() {
+        if (!_vsInitialized) _vsSetup();
+        if (!_vsScrollEl)    return;
+
+        _vsAchSet    = new Set(playerStats.achievements);
+        _vsPinned    = playerStats.pinnedAchievements;
+        _vsDisplayPin = getAutoProfileAchs();
+        _vsColCount  = _vsGetCols();
+
+        const totalRows = Math.ceil(ACHIEVEMENTS_DATA.length / _vsColCount);
+        const totalH    = totalRows * _vsRowHeight;
+        _vsSpacerEl.style.height = totalH + 'px';
+
+        // Flush rendered rows so they rebuild with fresh state
+        _vsRefreshAll();
+
+        // Profile grid (solo 3 slots)
+        const profileGrid = document.getElementById('profile-achievements-grid');
         if (profileGrid) {
             profileGrid.innerHTML = '';
             const frag = document.createDocumentFragment();
             let n = 0;
-            displayPinned.forEach(id => {
+            _vsDisplayPin.forEach(id => {
                 if (n >= 3) return;
                 let ach = ACHIEVEMENTS_DATA.find(a => a.id === id);
                 if (id === 'tramposo') ach = CHEATER_ACHIEVEMENT;
@@ -1692,19 +1785,12 @@
         }
 
         const el = document.getElementById('achievements-progress-text');
-        if (el) el.innerText = `Desbloqueados: ${unlockedCount} / ${ACHIEVEMENTS_DATA.length}`;
+        if (el) el.innerText = `Desbloqueados: ${_vsAchSet.size - (_vsAchSet.has('tramposo') ? 1 : 0)} / ${ACHIEVEMENTS_DATA.length}`;
     }
 
-    function appendProfileSlot(grid, ach) {
-        const slot = document.createElement('div');
-        slot.className = 'achievement-slot unlocked';
-        slot.style.borderColor = ach.color;
-        slot.innerHTML = `<div class="ach-icon" style="color:${ach.color}">${ach.icon}</div><div class="ach-title">${ach.title}</div>`;
-        grid.appendChild(slot);
-    }
-
-
-    // --- UI Flow ---
+    // initializeAchievementsDOM y achCardElements ya no son necesarios con el virtual scroller
+    let isAchievementsInitialized = true; // siempre true, setup es lazy
+    const achCardElements = {};           // mantenido vacío para compatibilidad con código existente
     let _currentScreen = null;
     function switchScreen(id) { 
         if (_currentScreen) _currentScreen.classList.remove('active');
