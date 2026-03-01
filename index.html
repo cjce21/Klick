@@ -726,6 +726,77 @@
     
     if(!playerStats.uuid) playerStats.uuid = generateUUID();
 
+    // ── MIGRACIÓN v2: retira logros que el jugador no ha ganado realmente ──
+    // Se ejecuta UNA vez por perfil (marca con migratedV2=true al terminar).
+    // Compara stats reales contra los nuevos umbrales del modo infinito y
+    // elimina del array achievements cualquier id que ya no se cumpla.
+    (function migrateAchievementsV2() {
+        if (playerStats.migratedV2) return;
+
+        const bs  = playerStats.bestScore    || 0;
+        const tot = playerStats.totalScore   || 0;
+        const msc = playerStats.maxScoreCount|| 0; // ahora umbral 100k
+        const pf  = playerStats.maxQuestionReached || 0;
+        const sk  = playerStats.maxStreak    || 0;
+
+        // Umbrales NUEVOS indexados por id de logro
+        const newBsTiers  = [5000,25000,75000,150000,300000,600000,1000000,2000000];
+        const newPtsTiers = [10000,50000,200000,500000,1000000,2500000,5000000,10000000];
+        const newPfTiers  = [10,20,30,50,75,100,150,200];
+        const newSkTiers  = [5,10,15,20,25,30,40,50];
+        // hs ahora requiere superar 100k por partida; maxScoreCount se recalcula
+        // → cualquier hs ganado con el umbral de 20k se revoca salvo que
+        //   playerStats.maxScore sea ≥ 100k (al menos 1 partida lo cumple).
+        //   Para los de conteo múltiple no podemos saber cuántas veces,
+        //   así que revocamos todo hs y dejamos que checkAchievements los reotorgue.
+        const newHsCountTiers = [1,3,5,10,20,35,50,100];
+
+        const toRevoke = [];
+
+        // bs1-bs8
+        for(let i=0;i<8;i++) if(bs < newBsTiers[i]) toRevoke.push(`bs${i+1}`);
+        // pt1-pt8
+        for(let i=0;i<8;i++) if(tot < newPtsTiers[i]) toRevoke.push(`pt${i+1}`);
+        // hs1-hs8: revocamos todos; checkAchievements reotorgará los que correspondan
+        // usando el nuevo maxScoreCount (que aún puede estar inflado por el umbral viejo
+        // de 20k → no podemos confiar en él; lo reseteamos si bestScore < 100k)
+        if(bs < 100000) {
+            // Nunca superó 100k → maxScoreCount inflado con 20k, lo limpiamos
+            playerStats.maxScoreCount = 0;
+            for(let i=0;i<8;i++) toRevoke.push(`hs${i+1}`);
+        }
+        // Si bestScore >= 100k, sabemos que al menos hs1 es válido pero no cuántos.
+        // Lo más justo: dejamos maxScoreCount en 1 mínimo y revocamos hs2+.
+        else {
+            playerStats.maxScoreCount = Math.max(1, 0);
+            for(let i=1;i<8;i++) toRevoke.push(`hs${i+1}`); // revoca hs2..hs8
+        }
+        // pf1-pf8
+        for(let i=0;i<8;i++) if(pf < newPfTiers[i]) toRevoke.push(`pf${i+1}`);
+        // sk1-sk8
+        for(let i=0;i<8;i++) if(sk < newSkTiers[i]) toRevoke.push(`sk${i+1}`);
+
+        // x4: ahora requiere 75k dos veces seguidas — no podemos verificar
+        //     el histórico de partidas, revocamos si bestScore < 75k
+        if(bs < 75000) toRevoke.push('x4');
+        // x6: consistente ahora es 25k x5 partidas — revocamos si bestScore < 25k
+        if(bs < 25000) toRevoke.push('x6');
+        // x7: 3k primera pregunta — si bestScore < 3k (imposible tenerlo en realidad)
+        if(bs < 3000) toRevoke.push('x7');
+        // x12: 50k primera partida del día — revocamos si bestScore < 50k
+        if(bs < 50000) toRevoke.push('x12');
+        // x15: exactamente 100k ±500 — revocamos si bestScore < 99500
+        if(bs < 99500) toRevoke.push('x15');
+
+        if(toRevoke.length > 0) {
+            playerStats.achievements = playerStats.achievements.filter(id => !toRevoke.includes(id));
+            playerStats.pinnedAchievements = playerStats.pinnedAchievements.filter(id => !toRevoke.includes(id));
+        }
+
+        playerStats.migratedV2 = true;
+        saveStatsLocally();
+    })();
+
     function saveStatsLocally() { 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(playerStats)); 
     }
@@ -1107,20 +1178,20 @@
     for(let i=0;i<8;i++) addAchs([{ id:`p${i+1}`, title:`Jugador ${i+1}`, desc:`Acumula ${ptTiers[i]} partidas jugadas.`, color:colors.blue, icon:SVG_TARGET }]);
 
     // --- PUNTOS TOTALES (8) ---
-    const ptsTiers=[1000,5000,20000,50000,100000,250000,500000,1000000];
+    const ptsTiers=[10000,50000,200000,500000,1000000,2500000,5000000,10000000];
     for(let i=0;i<8;i++) addAchs([{ id:`pt${i+1}`, title:`Ahorrador ${i+1}`, desc:`Acumula ${ptsTiers[i].toLocaleString()} puntos totales en tu carrera.`, color:colors.green, icon:SVG_STAR }]);
 
     // --- RÉCORDS PERFECTOS (8) ---
     const hsCountTiers=[1,3,5,10,20,35,50,100];
-    for(let i=0;i<8;i++) addAchs([{ id:`hs${i+1}`, title:`Récord ${i+1}`, desc:`Supera 20,000 puntos en ${hsCountTiers[i]} partidas distintas.`, color:colors.purple, icon:SVG_FIRE }]);
+    for(let i=0;i<8;i++) addAchs([{ id:`hs${i+1}`, title:`Récord ${i+1}`, desc:`Supera 100,000 puntos en ${hsCountTiers[i]} partidas distintas.`, color:colors.purple, icon:SVG_FIRE }]);
 
     // --- FRENESÍ (8) ---
     const frTiers=[1,5,10,25,50,100,200,500];
     for(let i=0;i<8;i++) addAchs([{ id:`r${i+1}`, title:`Frenético ${i+1}`, desc:`Activa el Modo Frenesí en ${frTiers[i]} ocasiones.`, color:colors.orange, icon:SVG_FIRE }]);
 
     // --- PARTIDAS PERFECTAS (8) ---
-    const pfTiers=[5,10,15,20,25,30,40,50];
-    for(let i=0;i<8;i++) addAchs([{ id:`pf${i+1}`, title:`Resistencia ${i+1}`, desc:`Llega a la pregunta ${pfTiers[i]} sin perder todas las vidas.`, color:colors.yellow, icon:SVG_TARGET }]);
+    const pfTiers=[10,20,30,50,75,100,150,200];
+    for(let i=0;i<8;i++) addAchs([{ id:`pf${i+1}`, title:`Resistencia ${i+1}`, desc:`Llega a la pregunta ${pfTiers[i]} en una sola partida.`, color:colors.yellow, icon:SVG_TARGET }]);
 
     // --- VELOCIDAD (8) ---
     const spdTiers=[5,15,30,60,100,200,350,500];
@@ -1131,7 +1202,7 @@
     for(let i=0;i<8;i++) addAchs([{ id:`ac${i+1}`, title:`Cerebro ${i+1}`, desc:`Acumula ${acTiers[i]} respuestas correctas en total.`, color:colors.green, icon:SVG_CORRECT }]);
 
     // --- RACHA MÁX ACUMULADA (8 escalables) ---
-    const strkTiers=[3,5,8,10,15,20,30,50];
+    const strkTiers=[5,10,15,20,25,30,40,50];
     for(let i=0;i<8;i++) addAchs([{ id:`sk${i+1}`, title:`Encadenado ${i+1}`, desc:`Alcanza una racha de ${strkTiers[i]} aciertos seguidos en alguna partida.`, color:colors.orange, icon:SVG_BOLT }]);
 
     // --- MULTIPLICADOR MÁX (5 escalables) ---
@@ -1230,8 +1301,8 @@
     for(let i=0;i<5;i++) addAchs([{ id:`td${i+1}`, title:`Intenso ${i+1}`, desc:`Juega ${todayTiers[i]} partidas en un solo día.`, color:colors.orange, icon:SVG_FIRE }]);
 
     // --- ESCALABLES: PUNTAJE RECORD (8) ---
-    const bestScoreTiers=[1000,5000,10000,15000,18000,19000,19500,20000];
-    const bestScoreTitles=['Primera Marca','Principiante','Prometedor','Serio','Elite','Extraordinario','Casi Perfecto','Puntaje Máximo'];
+    const bestScoreTiers=[5000,25000,75000,150000,300000,600000,1000000,2000000];
+    const bestScoreTitles=['Primera Marca','Principiante','Prometedor','Serio','Élite','Extraordinario','El Millón','Leyenda Viva'];
     for(let i=0;i<8;i++) addAchs([{ id:`bs${i+1}`, title:bestScoreTitles[i], desc:`Alcanza un puntaje récord de ${bestScoreTiers[i].toLocaleString()} puntos en una partida.`, color:colors.yellow, icon:SVG_TROPHY }]);
 
     // --- ESCALABLES VARIOS (20) ---
@@ -1249,18 +1320,18 @@
         { id: 'x1',  title: 'Primer Día',      desc: 'Inicia sesión por primera vez.',                              color: colors.blue,   icon: SVG_CLOCK },
         { id: 'x2',  title: 'Paciente',         desc: 'Espera 10 segundos en el menú principal sin hacer nada.',    color: colors.dark,   icon: SVG_CLOCK },
         { id: 'x3',  title: 'Aprendiz',         desc: 'Completa tu primera partida (sin importar el puntaje).',     color: colors.green,  icon: SVG_TARGET },
-        { id: 'x4',  title: 'Doble Victoria',   desc: 'Gana más de 15,000 puntos dos partidas seguidas.',           color: colors.yellow, icon: SVG_TROPHY },
+        { id: 'x4',  title: 'Doble Victoria',   desc: 'Supera 75,000 puntos dos partidas seguidas.',              color: colors.yellow, icon: SVG_TROPHY },
         { id: 'x5',  title: 'La Revancha',      desc: 'Después de una partida con 0 aciertos, consigue más de 10 aciertos.', color: colors.orange, icon: SVG_FIRE },
-        { id: 'x6',  title: 'Consistente',      desc: 'Termina 5 partidas seguidas con al menos 5,000 puntos.',    color: colors.blue,   icon: SVG_SHIELD },
-        { id: 'x7',  title: 'Un Golpe Certero', desc: 'Acumula 1,000 puntos en la primera pregunta.',               color: colors.yellow, icon: SVG_BOLT },
+        { id: 'x6',  title: 'Consistente',      desc: 'Termina 5 partidas seguidas con al menos 25,000 puntos.',  color: colors.blue,   icon: SVG_SHIELD },
+        { id: 'x7',  title: 'Un Golpe Certero', desc: 'Acumula 3,000 puntos en la primera pregunta.',             color: colors.yellow, icon: SVG_BOLT },
         { id: 'x8',  title: 'Sin Prisa',        desc: 'Termina una partida usando menos de 5 respuestas rápidas.', color: colors.dark,   icon: SVG_CLOCK },
         { id: 'x9',  title: 'Todo Gas',         desc: 'Responde las primeras 10 preguntas en menos de 3 segundos cada una.', color: colors.red, icon: SVG_BOLT },
         { id: 'x10', title: 'Economía',         desc: 'Completa 20 preguntas sin perder ninguna vida.',             color: colors.green,  icon: SVG_HEART },
         { id: 'x11', title: 'El Último Chance', desc: 'Responde correctamente estando en la última vida.',          color: colors.orange, icon: SVG_SHIELD },
-        { id: 'x12', title: 'Principiante Letal',desc:'Consigue 10,000 puntos en tu primera partida del día.',     color: colors.blue,   icon: SVG_STAR },
+        { id: 'x12', title: 'Principiante Letal',desc:'Consigue 50,000 puntos en tu primera partida del día.',     color: colors.blue,   icon: SVG_STAR },
         { id: 'x13', title: 'Noche de Fuego',   desc: 'Juega más de 10 partidas en un único día.',                 color: colors.red,    icon: SVG_FIRE },
-        { id: 'x14', title: 'Invicto',          desc: 'Termina una partida de 30 preguntas sin perder una vida.',  color: colors.green,  icon: SVG_SHIELD },
-        { id: 'x15', title: 'Punto de Quiebre', desc: 'Alcanza exactamente 10,000 puntos (±50).',                  color: colors.purple, icon: SVG_TARGET },
+        { id: 'x14', title: 'Invicto',          desc: 'Llega a la pregunta 30 sin perder una vida.',               color: colors.green,  icon: SVG_SHIELD },
+        { id: 'x15', title: 'Punto de Quiebre', desc: 'Alcanza exactamente 100,000 puntos (±500).',                color: colors.purple, icon: SVG_TARGET },
         { id: 'x16', title: 'Regreso Triunfal', desc: 'Después de no jugar por un día, supera tu último récord.',  color: colors.yellow, icon: SVG_TROPHY },
         { id: 'x17', title: 'Veterano',         desc: 'Acumula más de 100 partidas jugadas.',                      color: colors.blue,   icon: SVG_TROPHY },
         { id: 'x18', title: 'El Clásico',       desc: 'Usa el mismo nombre de jugador por 30 días seguidos.',      color: colors.purple, icon: SVG_USER },
@@ -1880,7 +1951,7 @@
         playerStats.gamesPlayed++; playerStats.todayGames++; playerStats.totalScore += score; 
         if(score > playerStats.bestScore) playerStats.bestScore = score; 
         if(currentMaxStreak > playerStats.maxStreak) playerStats.maxStreak = currentMaxStreak;
-        if(score >= 20000) playerStats.maxScoreCount++;
+        if(score >= 100000) playerStats.maxScoreCount++;
         if(!playerStats.maxQuestionReached || currentQuestionIndex > playerStats.maxQuestionReached) playerStats.maxQuestionReached = currentQuestionIndex;
         if(currentQuestionIndex >= 50) playerStats.perfectGames = (playerStats.perfectGames||0) + 1;
         playerStats.previousGameScore = score; 
@@ -1896,9 +1967,9 @@
         const msg = document.getElementById('final-message'), icn = document.getElementById('results-icon-svg');
         const endPanel = document.getElementById('end-glass-panel');
 
-        if(score > 50000) { msg.innerText = "¡Leyenda!"; icn.innerHTML = SVG_STAR; endPanel.style.borderTopColor = 'var(--accent-yellow)'; }
-        else if(score > 15000) { msg.innerText = "Superviviente Nato"; icn.innerHTML = SVG_TROPHY; endPanel.style.borderTopColor = 'var(--accent-blue)'; }
-        else if(score > 5000) { msg.innerText = "Buen Desempeño"; icn.innerHTML = SVG_STAR; endPanel.style.borderTopColor = 'var(--accent-green)'; }
+        if(score > 300000) { msg.innerText = "¡Leyenda!"; icn.innerHTML = SVG_STAR; endPanel.style.borderTopColor = 'var(--accent-yellow)'; }
+        else if(score > 100000) { msg.innerText = "Superviviente Nato"; icn.innerHTML = SVG_TROPHY; endPanel.style.borderTopColor = 'var(--accent-blue)'; }
+        else if(score > 25000) { msg.innerText = "Buen Desempeño"; icn.innerHTML = SVG_STAR; endPanel.style.borderTopColor = 'var(--accent-green)'; }
         else { msg.innerText = "Sigue Practicando"; icn.innerHTML = SVG_TARGET; endPanel.style.borderTopColor = 'rgba(255,255,255,0.2)'; }
 
         document.getElementById('final-name').innerText = playerStats.playerName || 'ESTUDIANTE';
