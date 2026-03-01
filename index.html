@@ -731,7 +731,21 @@
     // Compara stats reales contra los nuevos umbrales del modo infinito y
     // elimina del array achievements cualquier id que ya no se cumpla.
     (function migrateAchievementsV2() {
-        if (playerStats.migratedV2) return;
+        if (playerStats.migratedV2) {
+            // ── Migración v2b: revoca fin1/fin2 si se ganaron sin el flag real ──
+            if (!playerStats.migratedV2b) {
+                const toRevoke2b = [];
+                if (playerStats.achievements.includes('fin1') && !playerStats.playedNocturno) toRevoke2b.push('fin1');
+                if (playerStats.achievements.includes('fin2') && !playerStats.playedMadrugador) toRevoke2b.push('fin2');
+                if (toRevoke2b.length > 0) {
+                    playerStats.achievements = playerStats.achievements.filter(id => !toRevoke2b.includes(id));
+                    playerStats.pinnedAchievements = playerStats.pinnedAchievements.filter(id => !toRevoke2b.includes(id));
+                }
+                playerStats.migratedV2b = true;
+                saveStatsLocally();
+            }
+            return;
+        }
 
         const bs  = playerStats.bestScore    || 0;
         const tot = playerStats.totalScore   || 0;
@@ -768,7 +782,7 @@
         // Si bestScore >= 100k, sabemos que al menos hs1 es válido pero no cuántos.
         // Lo más justo: dejamos maxScoreCount en 1 mínimo y revocamos hs2+.
         else {
-            playerStats.maxScoreCount = Math.max(1, 0);
+            playerStats.maxScoreCount = Math.max(1, playerStats.maxScoreCount);
             for(let i=1;i<8;i++) toRevoke.push(`hs${i+1}`); // revoca hs2..hs8
         }
         // pf1-pf8
@@ -793,7 +807,17 @@
             playerStats.pinnedAchievements = playerStats.pinnedAchievements.filter(id => !toRevoke.includes(id));
         }
 
+        // También revoca fin1/fin2 si se ganaron sin el flag real (bug del check de hora en checkAchievements)
+        const toRevokeFin = [];
+        if (playerStats.achievements.includes('fin1') && !playerStats.playedNocturno) toRevokeFin.push('fin1');
+        if (playerStats.achievements.includes('fin2') && !playerStats.playedMadrugador) toRevokeFin.push('fin2');
+        if (toRevokeFin.length > 0) {
+            playerStats.achievements = playerStats.achievements.filter(id => !toRevokeFin.includes(id));
+            playerStats.pinnedAchievements = playerStats.pinnedAchievements.filter(id => !toRevokeFin.includes(id));
+        }
+
         playerStats.migratedV2 = true;
+        playerStats.migratedV2b = true; // mark v2b done too since we handled it here
         saveStatsLocally();
     })();
 
@@ -855,12 +879,16 @@
     }
 
     let currentAudioPulse = 0;
+    let smoothedPulse = 0;
     function getAudioPulse() {
         if (!audioAnalyser) return 0;
         audioAnalyser.getByteFrequencyData(audioDataArray);
         let sum = 0;
         for (let i = 0; i < 4; i++) sum += audioDataArray[i];
-        currentAudioPulse = sum / (4 * 255);
+        const rawPulse = sum / (4 * 255);
+        // Smooth the pulse with lerp to avoid sudden jumps
+        smoothedPulse += (rawPulse - smoothedPulse) * 0.15;
+        currentAudioPulse = smoothedPulse;
         return currentAudioPulse;
     }
 
@@ -1360,9 +1388,9 @@
 
 
     function processDailyLogin() {
-        const now = new Date(); const todayStr = now.toISOString().split('T');
+        const now = new Date(); const todayStr = now.toISOString().split('T')[0];
         if (playerStats.lastLoginDate !== todayStr) {
-            const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1); const yesterdayStr = yesterday.toISOString().split('T');
+            const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1); const yesterdayStr = yesterday.toISOString().split('T')[0];
             if (playerStats.lastLoginDate === yesterdayStr) { playerStats.currentLoginStreak++; playerStats.maxLoginStreak = Math.max(playerStats.maxLoginStreak, playerStats.currentLoginStreak); } 
             else { playerStats.currentLoginStreak = 1; if(playerStats.maxLoginStreak === 0) playerStats.maxLoginStreak = 1; }
             playerStats.lastLoginDate = todayStr; playerStats.todayGames = 0; saveStatsLocally(); checkAchievements();
@@ -1464,14 +1492,13 @@
 
         // ÚNICOS EXTRA
         if(playerStats.gamesPlayed>=1) unlock('x3');
+        if(playerStats.gamesPlayed>=1 || playerStats.maxLoginStreak>=1) unlock('x1'); // Primer Día: inicia sesión por primera vez
         if(playerStats.gamesPlayed>=100) unlock('x17');
         if(playerStats.nameChanges===0 && playerStats.maxLoginStreak>=30) unlock('x18');
         if(rank==='Leyenda' && normalAchs>=200) unlock('fin5');
         if(days>=7 && (rank==='Junior'||rank==='Pro'||rank==='Maestro'||rank==='Leyenda')) unlock('fin4');
+        if((playerStats.maxMult||1)>=4) unlock('u16'); // Frenesí Máximo: multiplicador x4 o superior
 
-        const hora = new Date().getHours();
-        if(hora>=23||hora<1) { if(!playerStats.playedNocturno) playerStats.playedNocturno=true; }
-        if(hora<6) { if(!playerStats.playedMadrugador) playerStats.playedMadrugador=true; }
         if(playerStats.playedNocturno) unlock('fin1');
         if(playerStats.playedMadrugador) unlock('fin2');
 
@@ -1704,7 +1731,7 @@
         if(hora>=23||hora<1) playerStats.playedNocturno=true;
         if(hora<6) playerStats.playedMadrugador=true;
         
-        const todayStr2 = new Date().toISOString().split('T');
+        const todayStr2 = new Date().toISOString().split('T')[0];
         if(!playerStats.totalDaysPlayed) playerStats.totalDaysPlayed = 0;
         if(!playerStats.lastPlayedDay || playerStats.lastPlayedDay !== todayStr2) {
             playerStats.lastPlayedDay = todayStr2;
@@ -2038,11 +2065,13 @@
         requestAnimationFrame(animateParticles); 
         let elapsed = now - then; 
         if (elapsed > fpsInterval) { 
-            then = now - (elapsed % fpsInterval); 
-            ctx.clearRect(0, 0, innerWidth, innerHeight); 
-            
+            // Reset 'then' to current time to prevent accumulated debt causing speed bursts
+            then = now;
+            // Clamp timeScale: never let particles teleport due to long frame gaps
             let timeScale = elapsed / 16.666;
-            if (timeScale > 10) timeScale = 10;
+            if (timeScale > 3) timeScale = 3; // max 3x speed cap to prevent jumps
+            
+            ctx.clearRect(0, 0, innerWidth, innerHeight); 
             
             const pulse = getAudioPulse(); 
 
@@ -2052,6 +2081,13 @@
     }
     
     window.addEventListener('resize', () => initParticles()); initParticles(); requestAnimationFrame(animateParticles);
+
+    // Reset particle timer when tab becomes visible to prevent accumulated frame debt causing speed burst
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            then = performance.now();
+        }
+    });
 
     setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); }, 500);
 </script>
