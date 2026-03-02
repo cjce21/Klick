@@ -226,10 +226,12 @@
         body.light-mode .rank-item-pts { color: #4a5568; }
 
         /* Rangos exclusivos de podio — colores legibles en modo claro */
-        body.light-mode .rank-item [style*="color:#ff0090"],
-        body.light-mode .rank-item [style*="color: #ff0090"] { color: #b8006e !important; }
-        body.light-mode .rank-item [style*="color:rgba(255,0,144"],
-        body.light-mode .rank-item [style*="color: rgba(255,0,144"] { color: #b8006e !important; }
+        body.light-mode .rank-item [style*="color:#6e8fad"],
+        body.light-mode .rank-item [style*="color: #6e8fad"] { color: #3d5f80 !important; }
+        body.light-mode .rank-item [style*="color:rgba(110,143,173"],
+        body.light-mode .rank-item [style*="color: rgba(110,143,173"] { color: #3d5f80 !important; }
+        body.light-mode .rank-item [style*="border-color:rgba(90,115,145"],
+        body.light-mode .rank-item [style*="border-color: rgba(90,115,145"] { border-color: rgba(61,95,128,0.35) !important; }
         body.light-mode .rank-item [style*="color:#ff5e00"],
         body.light-mode .rank-item [style*="color: #ff5e00"] { color: #b84000 !important; }
         body.light-mode .rank-item [style*="color:rgba(255,94,0"],
@@ -238,8 +240,8 @@
         body.light-mode .rank-item [style*="color: #ccff00"] { color: #5a7a00 !important; }
         body.light-mode .rank-item [style*="color:rgba(204,255,0"],
         body.light-mode .rank-item [style*="color: rgba(204,255,0"] { color: #5a7a00 !important; }
-        body.light-mode .rank-item [style*="border-color:rgba(255,0,144"],
-        body.light-mode .rank-item [style*="border-color: rgba(255,0,144"] { border-color: rgba(184,0,110,0.35) !important; }
+        body.light-mode .rank-item [style*="border-color:rgba(255,94,0"],
+        body.light-mode .rank-item [style*="border-color: rgba(255,94,0"] { border-color: rgba(184,64,0,0.35) !important; }
         body.light-mode .rank-item [style*="border-color:rgba(204,255,0"],
         body.light-mode .rank-item [style*="border-color: rgba(204,255,0"] { border-color: rgba(90,122,0,0.35) !important; }
 
@@ -834,11 +836,11 @@
         }
         .rl-label {
             font-size: 0.65rem; font-weight: 700; letter-spacing: 4px;
-            color: var(--text-secondary); text-transform: uppercase;
+            color: rgba(255,255,255,0.55); text-transform: uppercase;
         }
         .rl-title {
             font-size: clamp(1.6rem, 5vw, 2.2rem);
-            font-weight: 900; color: var(--text-primary);
+            font-weight: 900; color: #ffffff;
             letter-spacing: -1px; text-align: center;
         }
         .rl-title span { color: var(--accent-yellow); }
@@ -943,7 +945,7 @@
             text-align: center;
         }
         .rl-result-desc {
-            font-size: 0.8rem; color: var(--text-secondary);
+            font-size: 0.8rem; color: rgba(255,255,255,0.7);
             font-weight: 600; text-align: center; line-height: 1.4;
             opacity: 0; transform: translateY(8px);
             transition: opacity 0.4s 0.08s var(--ease-spring), transform 0.4s 0.08s var(--ease-spring);
@@ -1214,7 +1216,7 @@
 
                     <!-- Objetivo del juego -->
                     <div class="guide-card glass-panel full-width" style="border-color: rgba(255,255,255,0.12); padding-bottom: 20px;">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-primary);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                         <div class="guide-title">Objetivo del Juego</div>
                         <div class="guide-text">Klick es un trivia de <strong>preguntas sobre Lengua Española</strong>. Tienes <strong>15 segundos</strong> para responder cada pregunta y <strong>3 vidas</strong> para sobrevivir. Si fallas una respuesta o se te acaba el tiempo, pierdes una vida. Cuando pierdes las 3, la partida termina. ¡Tu objetivo es acumular el mayor puntaje posible!</div>
                     </div>
@@ -1234,26 +1236,57 @@
                     </div>
 
                     <!-- Ruleta de Recompensas -->
-                    <div class="guide-card full-width glass-panel" style="border-color: rgba(255,184,0,0.2);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-yellow);"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M3.05 11a9 9 0 1 1 .5 4"/></svg>
-                        <div class="guide-title" style="color: var(--accent-yellow);">Ruleta de Recompensas</div>
-                        <div class="guide-text" style="text-align:left;line-height:1.8;width:100%;max-width:680px;">Al acumular aciertos durante la partida, aparece una <strong>ruleta de premios</strong>. Puedes mezclar y girar para obtener una recompensa aleatoria. Los premios tienen distintas raridades — los más raros aparecen con menor frecuencia.<br><br>
-                            <strong>Vida Extra</strong> — Recuperas una vida perdida.<br>
-                            <strong>Escudo</strong> — Protección si fallas la siguiente pregunta.<br>
-                            <strong>Frenesi</strong> — Activa el Modo Frenesí inmediatamente.<br>
-                            <strong>Jackpot x4</strong> — La próxima pregunta vale x4 puntos.<br>
-                            <strong>Puntos x2</strong> — La próxima pregunta vale el doble.<br>
-                            <strong>Turbo x3</strong> — La próxima pregunta vale x3 puntos.<br>
-                            <strong>Tiempo +8</strong> — La próxima pregunta tiene 8 segundos extra.<br>
-                            <strong>Pista</strong> — Elimina una respuesta incorrecta.<br>
-                            <strong>Tiempo +5</strong> — La próxima pregunta tiene 5 segundos extra.<br>
-                            <strong>Racha Salvada</strong> — Si fallas, tu racha no se resetea.
+                    <div class="guide-card full-width glass-panel" style="border-color: rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M3.05 11a9 9 0 1 1 .5 4"/></svg>
+                        <div class="guide-title">Ruleta de Recompensas</div>
+                        <div class="guide-text" style="margin-bottom:14px;">Al acumular aciertos durante la partida, aparece una <strong>ruleta de premios</strong>. Puedes mezclar y girar para obtener una recompensa aleatoria. Los premios tienen distintas <strong>raridades</strong> — los más raros aparecen con menor frecuencia.</div>
+                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:100%;max-width:640px;">
+                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
+                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Vida Extra</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">Recuperas una vida perdida.</span></div>
+                            </div>
+                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
+                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Escudo</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">Protección si fallas la siguiente pregunta.</span></div>
+                            </div>
+                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
+                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
+                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Frenesí</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">Activa el Modo Frenesí inmediatamente.</span></div>
+                            </div>
+                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
+                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Jackpot x4</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">La próxima pregunta vale x4 puntos.</span></div>
+                            </div>
+                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
+                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Puntos x2</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">La próxima pregunta vale el doble.</span></div>
+                            </div>
+                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
+                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Turbo x3</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">La próxima pregunta vale x3 puntos.</span></div>
+                            </div>
+                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
+                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Tiempo +8</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">La próxima pregunta tiene 8 segundos extra.</span></div>
+                            </div>
+                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
+                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Tiempo +5</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">La próxima pregunta tiene 5 segundos extra.</span></div>
+                            </div>
+                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
+                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="4"/></svg>
+                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Pista</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">Elimina una respuesta incorrecta.</span></div>
+                            </div>
+                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
+                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Racha Salvada</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">Si fallas, tu racha no se resetea.</span></div>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Sistema de Rangos completo -->
                     <div class="guide-card full-width glass-panel" style="border-color: rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-primary);"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>
                         <div class="guide-title">Sistema de Rangos</div>
                         <div class="guide-text" style="margin-bottom: 10px;">Debes cumplir <strong>TODOS</strong> los requisitos a la vez para ascender. Los rangos demuestran tu estatus real en el juego.</div>
                         <div class="rank-list">
@@ -1283,9 +1316,9 @@
                             <div style="font-size:0.7rem;font-weight:800;color:var(--accent-yellow);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center;">Rangos Exclusivos de Podio — Solo Top 3 + Leyenda</div>
                             <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;text-align:center;">Estos títulos <strong style="color:var(--text-primary);">solo existen para los 3 primeros del ranking global</strong> que, además, ya tengan el rango <strong style="color:var(--accent-yellow);">Leyenda</strong>. Si dejas el podio o pierdes el rango Leyenda, el título desaparece. Son los únicos rangos del juego que no se obtienen por progreso individual sino por posición en el ranking.</div>
                             <div class="rank-list" style="gap:8px;">
-                                <div class="rank-item" style="border-color:rgba(255,0,144,0.45);background:rgba(255,0,144,0.06);flex:1 1 30%;position:relative;">
-                                    <span class="rank-item-name" style="color:#ff0090;font-size:1rem;">Rey Klick</span>
-                                    <span class="rank-item-pts" style="color:rgba(255,0,144,0.7);">Leyenda + 1.º del Ranking</span>
+                                <div class="rank-item" style="border-color:rgba(90,115,145,0.55);background:rgba(90,115,145,0.07);flex:1 1 30%;position:relative;">
+                                    <span class="rank-item-name" style="color:#6e8fad;font-size:1rem;">Rey Klick</span>
+                                    <span class="rank-item-pts" style="color:rgba(110,143,173,0.75);">Leyenda + 1.º del Ranking</span>
                                 </div>
                                 <div class="rank-item" style="border-color:rgba(255,94,0,0.45);background:rgba(255,94,0,0.05);flex:1 1 30%;">
                                     <span class="rank-item-name" style="color:#ff5e00;font-size:0.95rem;">Señor Klick</span>
@@ -1303,7 +1336,7 @@
                     <div class="guide-card glass-panel" style="border-color: rgba(255,255,255,0.1);">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                         <div class="guide-title">Banco de Logros</div>
-                        <div class="guide-text">Hay <strong>248 logros</strong> para desbloquear. Algunos son escalables (por jugar más), otros son únicos y secretos. Puedes <strong>fijar hasta 3 logros</strong> en tu perfil. ¡Descúbrelos explorando todas las secciones del juego!</div>
+                        <div class="guide-text">Hay <strong>270 logros</strong> para desbloquear. Algunos son escalables (por jugar más), otros son únicos y secretos. Puedes <strong>fijar hasta 3 logros</strong> en tu perfil. ¡Descúbrelos explorando todas las secciones del juego!</div>
                     </div>
 
                     <!-- Power Level / Ranking -->
@@ -1439,7 +1472,7 @@
             <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
             <div class="nav-title">LOGROS</div><div class="nav-spacer"></div>
         </div>
-        <div class="achievements-stats" id="achievements-progress-text" style="text-align:center;color:var(--text-secondary);font-weight:600;font-size:1rem;letter-spacing:1px;padding:12px 0 8px;flex-shrink:0;">Desbloqueados: 0 / 247</div>
+        <div class="achievements-stats" id="achievements-progress-text" style="text-align:center;color:var(--text-secondary);font-weight:600;font-size:1rem;letter-spacing:1px;padding:12px 0 8px;flex-shrink:0;">Desbloqueados: 0 / 270</div>
         <!-- Virtual scroller: solo se renderizan las tarjetas visibles -->
         <div id="vscroll-container" style="flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;">
             <div id="vscroll-spacer" style="position:relative;width:100%;">
@@ -1476,7 +1509,7 @@
         <div class="question-container">
             <div class="timer-wrapper">
                 <svg class="timer-svg" viewBox="0 0 100 100"><circle class="timer-bg" cx="50" cy="50" r="45"></circle><circle class="timer-path" id="timer-path" cx="50" cy="50" r="45"></circle></svg>
-                <div class="timer-text" id="timer-display">20</div>
+                <div class="timer-text" id="timer-display">15</div>
             </div>
             <div class="question-text" id="question-text">Cargando...</div>
         </div>
@@ -2601,7 +2634,7 @@
         { id: 'mx8',  title: 'Multiplicador x8',   desc: 'Alcanza el multiplicador x8 en una partida.',                  color: colors.red,   icon: SVG_BOLT },
         { id: 'mx9',  title: 'Multiplicador x9',   desc: 'Alcanza el multiplicador x9 en una partida.',                  color: colors.yellow,icon: SVG_BOLT },
         { id: 'mx10', title: 'Multiplicador x10 — MÁXIMO', desc: 'Alcanza el multiplicador máximo x10. Eres imparable.', color: colors.yellow,icon: SVG_TROPHY },
-        { id: 'pod1', title: 'Rey Klick',          desc: 'Eres Leyenda y ocupas el 1.er lugar de la clasificación.',     color: '#ff0090',    icon: SVG_TROPHY },
+        { id: 'pod1', title: 'Rey Klick',          desc: 'Eres Leyenda y ocupas el 1.er lugar de la clasificación.',     color: '#6e8fad',    icon: SVG_TROPHY },
         { id: 'pod2', title: 'Señor Klick',        desc: 'Eres Leyenda y ocupas el 2.º lugar de la clasificación.',      color: '#ff5e00',    icon: SVG_TROPHY },
         { id: 'pod3', title: 'Caballero Klick',    desc: 'Eres Leyenda y ocupas el 3.er lugar de la clasificación.',     color: '#ccff00',    icon: SVG_TROPHY },
     ]);
@@ -2879,7 +2912,7 @@
 
     // ══════════════════════════════════════════════════════════════════
     //  VIRTUAL SCROLLER — solo renderiza las tarjetas visibles en pantalla
-    //  Elimina el lag al hacer scroll por los 247 logros.
+    //  Elimina el lag al hacer scroll por los 270 logros.
     // ══════════════════════════════════════════════════════════════════
     const CARD_HEIGHT   = 148;  // px — debe coincidir con el CSS
     const CARD_GAP      = 12;   // px gap entre cards
@@ -3249,13 +3282,13 @@
             card.querySelector('.rl-card-bg').style.background = prize.color;
             card.querySelector('.rl-card-bg').style.opacity = isLight ? (isCenter ? '0.12' : '0.06') : (isCenter ? '0.25' : '0.14');
             card.querySelector('.rl-card-rarity').textContent = prize.rarity.toUpperCase();
-            card.querySelector('.rl-card-rarity').style.color = displayColor;
+            card.querySelector('.rl-card-rarity').style.color = isCenter ? displayColor : 'rgba(255,255,255,0.5)';
             card.querySelector('.rl-card-icon').innerHTML = PRIZE_ICONS[prize.id] || '';
             card.querySelector('.rl-card-icon').style.background = prize.color + (isLight ? '18' : '22');
             card.querySelector('.rl-card-icon').style.borderColor = prize.color + (isLight ? '44' : '55');
             card.querySelector('.rl-card-icon svg') && (card.querySelector('.rl-card-icon svg').style.color = displayColor);
             card.querySelector('.rl-card-name').textContent = prize.label;
-            card.querySelector('.rl-card-name').style.color = isCenter ? displayColor : 'var(--text-secondary)';
+            card.querySelector('.rl-card-name').style.color = isCenter ? displayColor : 'rgba(255,255,255,0.75)';
 
             // Center card class
             card.classList.toggle('center', isCenter);
@@ -3458,9 +3491,16 @@
             activeBoostNextQ = 'jackpot';
             showToast('JACKPOT x4', 'La proxima pregunta vale x4 puntos.', '#ff0090', SVG_STAR);
         } else if (prize.id === 'frenzy') {
-            if (streak < 5) { streak = 5; updateMultiplierUI(); updateStreakVisuals(); }
-            else { multiplier = Math.min(multiplier + 1, 10); updateMultiplierUI(); }
-            playerStats.rouletteFrenzyWins = (playerStats.rouletteFrenzyWins||0) + 1;
+            // Forzar al menos multiplicador x2 (streak >= 5).
+            // Si ya está en frenesí, subir un nivel más (streak += 5) hasta el tope de x10 (streak 45).
+            if (streak < 5) {
+                streak = 5;
+            } else {
+                streak = Math.min(streak + 5, 45);
+            }
+            if (streak > currentMaxStreak) currentMaxStreak = streak;
+            updateMultiplierUI();
+            updateStreakVisuals();
             showToast('FRENESI ACTIVADO', 'Modo Frenesí activado por la ruleta.', '#b5179e', SVG_FIRE);
         } else if (prize.id === 'time') {
             extraTimeActive = 5;
@@ -3548,7 +3588,37 @@
         if (!playerStats.playerName || playerStats.playerName === "JUGADOR") { 
             SFX.incorrect(); goToProfile(true); 
             return;
-        } 
+        }
+
+        // ── Anti-trampa: detectar condiciones sospechosas ANTES de iniciar ──────
+        // 1. Documento oculto o en segundo plano
+        if (document.visibilityState === 'hidden' || document.hidden) {
+            showToast('No se puede iniciar', 'La ventana no está en primer plano.', 'var(--accent-red)', SVG_SKULL);
+            return;
+        }
+        // 2. Picture-in-Picture activo
+        if (document.pictureInPictureElement) {
+            showToast('No se puede iniciar', 'Desactiva el modo Picture-in-Picture.', 'var(--accent-red)', SVG_SKULL);
+            return;
+        }
+        // 3. Pantalla dividida o ventana muy reducida (ancho < 30% del screenWidth indica split-screen)
+        const winRatio = window.innerWidth / window.screen.width;
+        if (winRatio < 0.45 && window.screen.width > 600) {
+            showToast('No se puede iniciar', 'Detectada pantalla dividida o ventana parcial. Abre el juego en pantalla completa.', 'var(--accent-red)', SVG_SKULL);
+            return;
+        }
+        // 4. DocumentPictureInPicture (Chrome API)
+        if (typeof documentPictureInPicture !== 'undefined' && documentPictureInPicture.window) {
+            showToast('No se puede iniciar', 'Desactiva el modo Picture-in-Picture.', 'var(--accent-red)', SVG_SKULL);
+            return;
+        }
+        // 5. La ventana no tiene el foco (podría estar cubierta por otra ventana)
+        if (!document.hasFocus()) {
+            showToast('No se puede iniciar', 'El juego no tiene el foco. Haz clic en la ventana del juego.', 'var(--accent-red)', SVG_SKULL);
+            return;
+        }
+        // ── Fin detección ──────────────────────────────────────────────────────
+
         if (quizDataPool.length === 0) {
             const btn = document.querySelector('.btn-solid');
             const originalText = btn.innerText;
@@ -3765,13 +3835,12 @@
             const pool = notRecent.length >= 10 ? notRecent : fresh;
             currentSessionQuestions = currentSessionQuestions.concat(pool);
         }
-        const q = currentSessionQuestions[currentQuestionIndex];
-        if (q) _markUsed(q);
-        return q;
+        return currentSessionQuestions[currentQuestionIndex] || null;
     }
     
     function loadQuestion() {
         const currentQ = getNextQuestion();
+        if (currentQ) _markUsed(currentQ);
         const timerPath = document.getElementById('timer-path');
         const timerText = document.getElementById('timer-display');
         
@@ -3797,10 +3866,11 @@
         
         timerPath.style.transition = 'none'; timerPath.style.strokeDashoffset = '0'; timerPath.style.stroke = 'var(--text-primary)'; timerText.style.color = 'var(--text-primary)'; void timerPath.offsetWidth; timerPath.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s ease';
         
+        const timerTotal = questionTime; // capture the actual total for this question
         clearInterval(timerInterval); 
         timerInterval = setInterval(() => { 
             if (isGamePaused) return;
-            timeLeft--; timerText.innerText = timeLeft; timerPath.style.strokeDashoffset = 283 - (timeLeft/TIMER_LIMIT)*283; 
+            timeLeft--; timerText.innerText = timeLeft; timerPath.style.strokeDashoffset = 283 - (timeLeft/timerTotal)*283; 
             if(timeLeft <= 5 && timeLeft > 0) { SFX.tick(); timerPath.style.stroke = 'var(--accent-red)'; timerText.style.color = 'var(--accent-red)'; } 
             if(timeLeft <= 0) handleTimeout(); 
         }, 1000);
@@ -3833,20 +3903,21 @@
     
     function applyHint() {
         loadQuestion();
-        // After question loads, disable one wrong answer button
+        // After question loads, disable one WRONG answer button (never the correct one)
         setTimeout(() => {
+            const q = getNextQuestion();
+            const correctIdx = q ? q.currentCorrectIndex : -1;
             const btns = document.querySelectorAll('.answer-btn');
-            // Find wrong buttons and hide one visually
             let hidden = false;
-            btns.forEach(btn => {
-                if (!hidden) {
+            btns.forEach((btn, i) => {
+                if (!hidden && i !== correctIdx) {
                     btn.style.opacity = '0.2';
                     btn.style.pointerEvents = 'none';
                     btn.style.filter = 'grayscale(1)';
                     hidden = true;
                 }
             });
-        }, 500);
+        }, 150);
     }
 
     function handleTimeout() {
@@ -3854,6 +3925,12 @@
         playerStats.totalTimeouts++; currentTimeoutAnswers++; 
         currentGameLog.push({ correct: false, timeout: true, time: 0 });
         ultraFastStreak = 0; currentNoTimeoutStreak = 0;
+        // Shield from roulette also protects against timeouts
+        if (shieldActive) {
+            shieldActive = false;
+            playerStats.rouletteShieldUsed = true;
+            saveStatsDebounced();
+        }
         saveStatsDebounced(); document.getElementById('answers-grid').classList.add('answered'); setTimeout(() => showFeedback(false, true), 600);
     }
 
@@ -3977,6 +4054,8 @@
                 points.style.display = 'block';
                 // Don't lose life, don't reset streak
             } else {
+                // Boost powers are lost on a wrong answer / timeout (no carry-over)
+                activeBoostNextQ = null;
                 SFX.incorrect(); 
                 if (isTimeout) { scr.className = 'screen timeout'; icon.innerHTML = SVG_TIMEOUT; title.innerText = "TIEMPO"; } 
                 else { scr.className = 'screen incorrect'; icon.innerHTML = SVG_INCORRECT; title.innerText = "INCORRECTO"; }
@@ -4032,7 +4111,7 @@
                     showRoulette();
                 } else {
                     switchScreen('question-screen'); 
-                    // Apply hint: remove one wrong answer
+                    // Apply hint on EVERY next question (correct or incorrect)
                     if (hintActive) { setTimeout(() => { applyHint(); hintActive = false; }, 450); }
                     else { setTimeout(loadQuestion, 400); }
                 }
