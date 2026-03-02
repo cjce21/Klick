@@ -38,43 +38,361 @@
             user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
             -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; 
         }
-        body, html { width: 100%; height: 100%; overflow: hidden; background-color: var(--bg-base); color: var(--text-primary); transition: background-color 0.5s ease, color 0.5s ease; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background-color: var(--bg-base); color: var(--text-primary); transition: background-color 0.4s ease, color 0.4s ease; }
 
-        /* ---- MODO CLARO ---- */
+        /* ════════════════════════════════════════════
+           MODO CLARO — cobertura total de la interfaz
+           ════════════════════════════════════════════ */
         body.light-mode {
-            --bg-base: #f0f0f0;
-            --bg-surface: #e0e0e0;
-            --bg-elevated: #c8c8c8;
-            --text-primary: #111111;
-            --text-secondary: #555555;
+            --bg-base: #f2f4f7;
+            --bg-surface: #e4e8ef;
+            --bg-elevated: #cdd3de;
+            --text-primary: #0d1117;
+            --text-secondary: #4a5568;
         }
-        body.light-mode #app { background: radial-gradient(circle at 50% -20%, rgba(0,0,0,0.04) 0%, transparent 70%); }
-        body.light-mode .glass-panel { background: rgba(220,220,220,0.85); border-color: rgba(0,0,0,0.1); }
-        body.light-mode .setting-card { background: rgba(200,200,200,0.7); border-color: rgba(0,0,0,0.1); }
-        body.light-mode .answer-btn { background-color: rgba(230,230,230,0.9); border-color: rgba(0,0,0,0.3); color: #111; }
-        body.light-mode .top-bar { background: rgba(220,220,220,0.85); }
-        body.light-mode .top-nav { background: rgba(220,220,220,0.85); }
-        body.light-mode .toast-item { background: rgba(230,230,230,0.95); border-color: rgba(0,0,0,0.15); }
-        body.light-mode .ach-card { background: #e8e8e8; }
-        body.light-mode .ach-card.unlocked { background: #d8d8d8; }
-        body.light-mode .rank-card { background: rgba(220,220,220,0.8); border-color: rgba(0,0,0,0.1); }
-        body.light-mode .score-badge { border-color: rgba(0,0,0,0.3); }
-        body.light-mode input[type=range]::-webkit-slider-runnable-track { background: rgba(0,0,0,0.15); }
-        body.light-mode input[type=range]::-webkit-slider-thumb { background: #333; border-color: #aaa; }
-        body.light-mode .btn-solid { border-color: rgba(0,0,0,0.7); color: #111; background-color: rgba(0,0,0,0.06); }
-        body.light-mode .btn-solid:hover { background-color: rgba(0,0,0,0.14); }
-        body.light-mode .btn-outline { color: rgba(0,0,0,0.75); border-color: rgba(0,0,0,0.3); }
-        body.light-mode .btn-outline:hover { color: #000; border-color: rgba(0,0,0,0.7); background-color: rgba(0,0,0,0.06); }
-        body.light-mode .btn-back { border-color: rgba(0,0,0,0.2); color: #555; }
-        body.light-mode .btn-back:hover { color: #111; border-color: #111; }
-        body.light-mode #countdown-screen { background: rgba(240,240,240,0.95); }
-        body.light-mode .end-fullscreen::before { background: none; }
-        body.light-mode #end-screen::before { background: radial-gradient(circle at 50% 40%, rgba(var(--rank-rgb),0.12) 0%, rgba(240,240,240,0.85) 70%); }
-        body.light-mode .question-text { background: rgba(220,220,220,0.7); }
-        body.light-mode #app.streak-active { background: radial-gradient(circle at 50% 50%, rgba(var(--rank-rgb), 0.1) 0%, #f0f0f0 80%); }
-        /* Ruleta modo claro */
-        body.light-mode #roulette-overlay { background: rgba(0,0,0,0.5); }
-        body.light-mode .roulette-panel { background: #f5f5f5; border-color: rgba(0,0,0,0.2); }
+
+        /* Fondos generales */
+        body.light-mode,
+        body.light-mode body,
+        body.light-mode html { background-color: #f2f4f7; }
+
+        body.light-mode #app {
+            background: radial-gradient(circle at 50% -20%, rgba(0,120,255,0.05) 0%, transparent 70%);
+        }
+        body.light-mode #app.streak-active {
+            background: radial-gradient(circle at 50% 50%, rgba(var(--rank-rgb), 0.08) 0%, #f2f4f7 75%);
+        }
+
+        /* Pantalla de inicio */
+        body.light-mode #start-screen { background: transparent; }
+        body.light-mode .logo-container { color: #0d1117; }
+        body.light-mode .logo-subtitle { color: #4a5568; }
+
+        /* Botones superiores (ranking, settings) */
+        body.light-mode .top-btn { color: #4a5568; }
+        body.light-mode .top-btn:hover { color: #0d1117; background: rgba(0,0,0,0.08); }
+
+        /* Botones principales del menú */
+        body.light-mode .btn-solid {
+            color: #0d1117;
+            background-color: rgba(0,0,0,0.05);
+            border-color: rgba(0,0,0,0.65);
+        }
+        body.light-mode .btn-solid:hover {
+            background-color: rgba(0,0,0,0.12);
+            border-color: #0d1117;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        body.light-mode .btn-outline {
+            color: #4a5568;
+            border-color: rgba(0,0,0,0.25);
+            background: transparent;
+        }
+        body.light-mode .btn-outline:hover {
+            color: #0d1117;
+            border-color: rgba(0,0,0,0.6);
+            background-color: rgba(0,0,0,0.05);
+        }
+
+        /* Glass panel — el componente base de casi todas las tarjetas */
+        body.light-mode .glass-panel {
+            background: rgba(255,255,255,0.82);
+            backdrop-filter: blur(12px);
+            border-color: rgba(0,0,0,0.1);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05);
+        }
+
+        /* Navegación superior de pantallas interiores */
+        body.light-mode .top-nav {
+            background: rgba(242,244,247,0.92);
+            border-bottom-color: rgba(0,0,0,0.1);
+            backdrop-filter: blur(16px);
+        }
+        body.light-mode .nav-title { color: #0d1117; }
+        body.light-mode .btn-back {
+            color: #4a5568;
+            border-color: rgba(0,0,0,0.18);
+            background: transparent;
+        }
+        body.light-mode .btn-back:hover {
+            color: #0d1117;
+            border-color: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.05);
+        }
+
+        /* Scrollbars */
+        body.light-mode .content-scroll::-webkit-scrollbar-thumb { background: #cdd3de; }
+
+        /* ── Configuración ── */
+        body.light-mode .setting-card {
+            background: rgba(255,255,255,0.75);
+            border-color: rgba(0,0,0,0.1);
+        }
+        body.light-mode .setting-card:hover {
+            border-color: rgba(0,0,0,0.2);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        }
+        body.light-mode .setting-icon {
+            background: rgba(0,0,0,0.04);
+            border-color: rgba(0,0,0,0.08);
+        }
+        body.light-mode .setting-icon svg { color: #0d1117; }
+        body.light-mode .setting-label { color: #0d1117; }
+        body.light-mode .setting-desc { color: #4a5568; }
+        body.light-mode .setting-value {
+            color: #0d1117;
+            background: rgba(0,0,0,0.05);
+            border-color: rgba(0,0,0,0.12);
+        }
+        body.light-mode input[type=range]::-webkit-slider-runnable-track {
+            background: rgba(0,0,0,0.12);
+            border-color: rgba(0,0,0,0.08);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        body.light-mode input[type=range]::-webkit-slider-thumb {
+            background: #0d1117;
+            border-color: #f2f4f7;
+            box-shadow: 0 0 8px rgba(0,0,0,0.2);
+        }
+
+        /* Track selector */
+        body.light-mode #track-selector > div { color: #0d1117 !important; }
+
+        /* Theme selector buttons inside settings */
+        body.light-mode #theme-dark-btn,
+        body.light-mode #theme-light-btn { color: #0d1117; }
+
+        /* ── Perfil ── */
+        body.light-mode .profile-hero { background: rgba(255,255,255,0.75); }
+        body.light-mode .profile-name-input {
+            color: #0d1117;
+            border-bottom-color: rgba(0,0,0,0.2);
+        }
+        body.light-mode .profile-name-input::placeholder { color: rgba(0,0,0,0.25); }
+        body.light-mode .profile-name-input:focus { border-bottom-color: #0d1117; }
+        body.light-mode .profile-rank { color: #4a5568; }
+        body.light-mode .stat-card {
+            background: rgba(255,255,255,0.75);
+            border-color: rgba(0,0,0,0.1);
+        }
+        body.light-mode .stat-value { color: #0d1117; }
+        body.light-mode .stat-label { color: #4a5568; }
+        body.light-mode .profile-achievements-title { color: #0d1117; }
+        body.light-mode .achievement-slot {
+            background: rgba(255,255,255,0.6);
+            border-color: rgba(0,0,0,0.15);
+        }
+
+        /* ── Logros ── */
+        body.light-mode .ach-card {
+            background: rgba(255,255,255,0.75) !important;
+            border-color: rgba(0,0,0,0.14) !important;
+        }
+        body.light-mode .ach-card:hover { border-color: rgba(0,0,0,0.28) !important; }
+        body.light-mode .ach-card.unlocked {
+            background: rgba(255,255,255,0.92) !important;
+            border-color: rgba(0,0,0,0.18) !important;
+        }
+        body.light-mode .ach-card.pinned { box-shadow: 0 0 14px rgba(255,184,0,0.4) !important; }
+        body.light-mode .ach-title { color: #0d1117; }
+        body.light-mode .ach-desc { color: #4a5568; }
+        body.light-mode #achievements-progress-text { color: #4a5568; }
+
+        /* ── Instrucciones / Guía ── */
+        body.light-mode .guide-card {
+            background: rgba(255,255,255,0.78);
+            border-color: rgba(0,0,0,0.1);
+        }
+        body.light-mode .guide-title { color: #0d1117; }
+        body.light-mode .guide-text { color: #4a5568; }
+        body.light-mode .guide-text strong { color: #0d1117; }
+        body.light-mode .guide-icon { color: #4a5568; }
+        body.light-mode .rank-item {
+            background: rgba(255,255,255,0.65);
+            border-color: rgba(0,0,0,0.1) !important;
+        }
+        body.light-mode .rank-item-pts { color: #4a5568; }
+
+        /* ── Clasificación / Ranking ── */
+        body.light-mode .rank-card {
+            background: rgba(255,255,255,0.8);
+            border-color: rgba(0,0,0,0.08);
+        }
+        body.light-mode .rank-card::before { background: #0d1117; }
+        body.light-mode .rank-card:hover { background: rgba(255,255,255,0.95); border-color: rgba(0,0,0,0.18); }
+        body.light-mode .rc-pos { color: #4a5568; }
+        body.light-mode .rank-card.pos-1 .rc-pos,
+        body.light-mode .rank-card.pos-2 .rc-pos { color: #0d1117; }
+        body.light-mode .rc-name { color: #0d1117; }
+        body.light-mode .rc-title { color: #4a5568; }
+        body.light-mode .rc-score { color: #0d1117; }
+        body.light-mode .rc-score span { color: #4a5568; }
+        body.light-mode .ranking-loading { color: #4a5568; }
+
+        /* ── Pantalla de pregunta ── */
+        body.light-mode .top-bar {
+            background: rgba(242,244,247,0.92);
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+        }
+        body.light-mode #player-name-display { color: #0d1117; }
+        body.light-mode .score-badge {
+            color: #0d1117;
+            border-color: rgba(0,0,0,0.25);
+            background: rgba(255,255,255,0.6);
+        }
+        body.light-mode .multiplier-badge { color: var(--accent-red); }
+        body.light-mode .question-text {
+            background: rgba(255,255,255,0.85);
+            color: #0d1117;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        body.light-mode .answer-btn {
+            background-color: rgba(255,255,255,0.82);
+            border-color: rgba(0,0,0,0.18);
+            color: #0d1117;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        body.light-mode .answer-btn:hover { background-color: rgba(255,255,255,0.95); border-color: rgba(0,0,0,0.35); }
+        body.light-mode .timer-text { color: #0d1117; }
+        body.light-mode .timer-bg { stroke: rgba(0,0,0,0.1); }
+        body.light-mode .timer-path { stroke: #0d1117; }
+        body.light-mode .btn-abandon {
+            color: var(--accent-red);
+            border-color: rgba(255,42,95,0.4);
+        }
+        body.light-mode .progress-bar-container { background: rgba(0,0,0,0.1); }
+        body.light-mode .progress-bar { background-color: #0d1117; }
+
+        /* ── Feedback ── */
+        body.light-mode #feedback-screen { background: #f2f4f7; }
+        body.light-mode .feedback-points {
+            color: #0d1117;
+            border-color: rgba(0,0,0,0.2);
+            background: rgba(255,255,255,0.6);
+        }
+        body.light-mode .streak-box { color: #4a5568; }
+
+        /* ── Cuenta atrás ── */
+        body.light-mode #countdown-screen { background: #f2f4f7; }
+
+        /* ── Pantalla final ── */
+        body.light-mode #end-screen { background: #f2f4f7; }
+        body.light-mode #end-screen::before {
+            background: radial-gradient(circle at 50% 40%, rgba(var(--rank-rgb),0.1) 0%, rgba(242,244,247,0.9) 65%);
+        }
+        body.light-mode .end-rank-label { color: #4a5568; }
+        body.light-mode .end-message { color: #0d1117; }
+        body.light-mode .end-name { color: #4a5568; }
+        body.light-mode .end-score-label { color: #4a5568; }
+        body.light-mode .end-stat-label { color: #4a5568; }
+        body.light-mode .end-stat-val { color: #0d1117; }
+        body.light-mode .end-stats-grid { border-top-color: rgba(0,0,0,0.1); }
+        body.light-mode .btn-end-menu {
+            color: #4a5568;
+            border-color: rgba(0,0,0,0.2);
+            background: rgba(255,255,255,0.5);
+        }
+        body.light-mode .btn-end-menu:hover { color: #0d1117; border-color: rgba(0,0,0,0.4); background: rgba(255,255,255,0.8); }
+        /* Feedback timeout title */
+        body.light-mode #feedback-screen.timeout .feedback-title { color: #4a5568 !important; }
+
+        /* ── Modal de abandono ── */
+        body.light-mode .modal-overlay { background: rgba(0,0,0,0.5); }
+        body.light-mode .settings-card {
+            background: rgba(255,255,255,0.95) !important;
+            border-color: rgba(0,0,0,0.1) !important;
+            color: #0d1117 !important;
+        }
+
+        /* ── Toast ── */
+        body.light-mode .toast-item {
+            background: rgba(255,255,255,0.95);
+            border-color: rgba(0,0,0,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+        body.light-mode .toast-name { color: #0d1117; }
+        body.light-mode .toast-title { color: #4a5568; }
+
+        /* ── Ruleta ── */
+        body.light-mode #roulette-overlay { background: rgba(0,0,0,0.55); }
+        body.light-mode .roulette-panel {
+            background: #ffffff;
+            border-color: rgba(0,0,0,0.15);
+            box-shadow: 0 0 60px rgba(0,0,0,0.15), 0 30px 60px rgba(0,0,0,0.1);
+        }
+        body.light-mode .roulette-title { color: var(--accent-yellow); }
+        body.light-mode .roulette-subtitle { color: #4a5568; }
+        body.light-mode .roulette-result-msg { color: #0d1117; }
+        body.light-mode #roulette-spin-btn {
+            background: rgba(255,184,0,0.12);
+            color: #b38000;
+            border-color: #b38000;
+        }
+        body.light-mode #roulette-spin-btn:hover:not(:disabled) {
+            background: rgba(255,184,0,0.25);
+            box-shadow: 0 8px 30px rgba(255,184,0,0.2);
+        }
+
+        /* ── Contenedores inline con estilos hardcoded ── */
+        /* Backgrounds oscuros → blancos suaves */
+        body.light-mode [style*="background:rgba(5,5,5"],
+        body.light-mode [style*="background: rgba(5,5,5"] { background: rgba(0,0,0,0.04) !important; }
+        body.light-mode [style*="background:rgba(17,17,17"],
+        body.light-mode [style*="background: rgba(17,17,17"] { background: rgba(0,0,0,0.06) !important; }
+        body.light-mode [style*="background:rgba(255,255,255,0.0"],
+        body.light-mode [style*="background: rgba(255,255,255,0.0"] { background: rgba(0,0,0,0.04) !important; }
+        body.light-mode [style*="background:rgba(255,255,255,0.1"],
+        body.light-mode [style*="background: rgba(255,255,255,0.1"] { background: rgba(0,0,0,0.05) !important; }
+        body.light-mode [style*="background:rgba(255,255,255,0.2"],
+        body.light-mode [style*="background: rgba(255,255,255,0.2"] { background: rgba(0,0,0,0.07) !important; }
+        body.light-mode [style*="background:rgba(255,255,255,0.3"],
+        body.light-mode [style*="background: rgba(255,255,255,0.3"] { background: rgba(0,0,0,0.09) !important; }
+        /* Bordes blancos → oscuros */
+        body.light-mode [style*="border:1px solid rgba(255,255,255"],
+        body.light-mode [style*="border: 1px solid rgba(255,255,255"],
+        body.light-mode [style*="border:2px solid rgba(255,255,255"],
+        body.light-mode [style*="border: 2px solid rgba(255,255,255"],
+        body.light-mode [style*="border-color:rgba(255,255,255"],
+        body.light-mode [style*="border-color: rgba(255,255,255"] { border-color: rgba(0,0,0,0.12) !important; }
+        /* Colores de texto inline */
+        body.light-mode [style*="color:var(--text-secondary)"],
+        body.light-mode [style*="color: var(--text-secondary)"] { color: #4a5568 !important; }
+        body.light-mode [style*="color:var(--text-primary)"],
+        body.light-mode [style*="color: var(--text-primary)"] { color: #0d1117 !important; }
+        body.light-mode [style*="color:#fff"],
+        body.light-mode [style*="color: #fff"],
+        body.light-mode [style*="color:white"],
+        body.light-mode [style*="color: white"] { color: #0d1117 !important; }
+        body.light-mode [style*="color:rgba(255,255,255,0.5"],
+        body.light-mode [style*="color: rgba(255,255,255,0.5"] { color: #4a5568 !important; }
+        body.light-mode [style*="color:rgba(255,255,255,0.6"],
+        body.light-mode [style*="color: rgba(255,255,255,0.6"],
+        body.light-mode [style*="color:rgba(255,255,255,0.7"],
+        body.light-mode [style*="color: rgba(255,255,255,0.7"],
+        body.light-mode [style*="color:rgba(255,255,255,0.8"],
+        body.light-mode [style*="color: rgba(255,255,255,0.8"] { color: #0d1117 !important; }
+
+        /* Texto sombra de la pregunta → claro */
+        body.light-mode .question-text { text-shadow: 0 1px 4px rgba(0,0,0,0.15) !important; }
+
+        /* Guide: todos los textos dentro de cards */
+        body.light-mode .guide-card { color: #0d1117; }
+
+        /* Roulette prize badge */
+        body.light-mode .roulette-prize-badge { background: rgba(0,0,0,0.05) !important; }
+
+        /* Vscroll container */
+        body.light-mode #vscroll-container { background: transparent; }
+        
+        /* Modal abandono */
+        body.light-mode .modal-overlay { background: rgba(0,0,0,0.5) !important; }
+        body.light-mode .modal-overlay > div { background: #ffffff !important; border-color: rgba(0,0,0,0.12) !important; color: #0d1117 !important; }
+        body.light-mode .modal-overlay > div * { color: #0d1117 !important; }
+        body.light-mode .settings-card { background: rgba(255,255,255,0.96) !important; border-color: rgba(0,0,0,0.12) !important; }
+        
+        /* Track selector en settings */
+        body.light-mode #track-selector .track-option { background: rgba(0,0,0,0.04) !important; border-color: rgba(0,0,0,0.1) !important; color: #0d1117 !important; }
+        body.light-mode #track-selector .track-option.selected { background: rgba(0,0,0,0.08) !important; border-color: rgba(0,0,0,0.3) !important; }
 
         #app { width: 100%; height: 100%; position: relative; background: radial-gradient(circle at 50% -20%, rgba(255,255,255,0.03) 0%, transparent 70%); transition: background 0.5s ease; }
         #app.streak-active { background: radial-gradient(circle at 50% 50%, rgba(var(--rank-rgb), 0.15) 0%, var(--bg-base) 80%); animation: streak-pulse 1.5s infinite alternate ease-out; }
@@ -574,11 +892,11 @@
                         </div>
                         <div style="display:flex;gap:10px;">
                             <div onclick="setTheme('dark')" id="theme-dark-btn" style="flex:1;padding:12px 15px;border-radius:var(--radius-md);border:1.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.07);cursor:pointer;text-align:center;transition:all 0.25s;">
-                                <div style="font-size:0.85rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;">🌙 Oscuro</div>
+                                <div style="font-size:0.85rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;">Oscuro</div>
                                 <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:3px;">Predeterminado</div>
                             </div>
                             <div onclick="setTheme('light')" id="theme-light-btn" style="flex:1;padding:12px 15px;border-radius:var(--radius-md);border:1.5px solid rgba(255,255,255,0.1);background:transparent;cursor:pointer;text-align:center;transition:all 0.25s;">
-                                <div style="font-size:0.85rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;">☀️ Claro</div>
+                                <div style="font-size:0.85rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;">Claro</div>
                                 <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:3px;">Fondo blanco</div>
                             </div>
                         </div>
@@ -945,7 +1263,7 @@
                 <canvas id="roulette-canvas" width="280" height="280"></canvas>
             </div>
             <div class="roulette-result-msg" id="roulette-result-msg"></div>
-            <button id="roulette-spin-btn" onclick="spinRoulette()">🎰 GIRAR</button>
+            <button id="roulette-spin-btn" onclick="spinRoulette()">GIRAR</button>
         </div>
     </div>
 
@@ -1344,7 +1662,7 @@
         container.innerHTML = MUSIC_TRACKS.map(t => {
             const isSelected = t.id === currentTrack;
             return `
-            <div onclick="selectTrack('${t.id}')" style="
+            <div onclick="selectTrack('${t.id}')" class="track-option${isSelected ? ' selected' : ''}" style="
                 flex:1;min-width:120px;padding:12px 15px;border-radius:var(--radius-md);
                 border:1.5px solid ${isSelected ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)'};
                 background:${isSelected ? 'rgba(255,255,255,0.07)' : 'transparent'};
@@ -1628,6 +1946,18 @@
         const currentTheme = playerStats.theme || 'dark';
         const valThemeEl = document.getElementById('val-theme');
         if (valThemeEl) valThemeEl.innerText = currentTheme === 'light' ? 'Claro' : 'Oscuro';
+        // Sync theme buttons state
+        const _darkBtn = document.getElementById('theme-dark-btn');
+        const _lightBtn = document.getElementById('theme-light-btn');
+        if (_darkBtn && _lightBtn) {
+            if (currentTheme === 'light') {
+                _lightBtn.style.borderColor = 'rgba(0,0,0,0.4)'; _lightBtn.style.background = 'rgba(0,0,0,0.05)'; _lightBtn.firstElementChild.style.color = 'var(--text-primary)';
+                _darkBtn.style.borderColor = 'rgba(0,0,0,0.1)'; _darkBtn.style.background = 'transparent'; _darkBtn.firstElementChild.style.color = 'var(--text-secondary)';
+            } else {
+                _darkBtn.style.borderColor = 'rgba(255,255,255,0.5)'; _darkBtn.style.background = 'rgba(255,255,255,0.07)'; _darkBtn.firstElementChild.style.color = 'var(--text-primary)';
+                _lightBtn.style.borderColor = 'rgba(255,255,255,0.1)'; _lightBtn.style.background = 'transparent'; _lightBtn.firstElementChild.style.color = 'var(--text-secondary)';
+            }
+        }
         renderTrackSelector();
         switchScreen('settings-screen');
     }
@@ -1904,6 +2234,7 @@
         { id: 'cfg6', title: 'Ahorro de Batería',  desc: 'Activa 15 FPS en Configuración.',                            color: colors.dark,   icon: SVG_CLOCK },
         { id: 'cfg7', title: 'Fantasma',           desc: 'Pon las partículas en 0%.',                                  color: colors.dark,   icon: SVG_SKULL },
         { id: 'cfg8', title: 'Purpurina',          desc: 'Pon las partículas en 100% y la música en 100% al mismo tiempo.',color: colors.purple, icon: SVG_STAR },
+        { id: 'cfg9', title: 'Luz del Dia',        desc: 'Activa el Modo Claro desde Configuración.',                   color: colors.yellow, icon: SVG_BOLT },
     ]);
 
     // --- OCULTOS: INTERFAZ Y CLASIFICACIÓN (10) ---
@@ -2152,6 +2483,7 @@
         if(playerStats.maxFps===15) unlock('cfg6');
         if(playerStats.particles0) unlock('cfg7');
         if(playerStats.musicAt100 && playerStats.particles100) unlock('cfg8');
+        if(playerStats.usedLightMode) unlock('cfg9');
         if(playerStats.allSectionsVisited) unlock('ui1');
         if(playerStats.nameChanges>=1 && playerStats.gamesPlayed>=1) unlock('ui7');
 
@@ -2425,7 +2757,11 @@
     // --- SISTEMA DE TEMA (CLARO / OSCURO) ---
     function setTheme(theme) {
         playerStats.theme = theme;
+        if (theme === 'light') {
+            playerStats.usedLightMode = true;
+        }
         saveStatsLocally();
+        checkAchievements();
         if (theme === 'light') {
             document.body.classList.add('light-mode');
         } else {
@@ -2438,17 +2774,17 @@
             if (theme === 'dark') {
                 darkBtn.style.borderColor = 'rgba(255,255,255,0.5)';
                 darkBtn.style.background = 'rgba(255,255,255,0.07)';
-                darkBtn.querySelector('div').style.color = 'var(--text-primary)';
+                darkBtn.firstElementChild.style.color = 'var(--text-primary)';
                 lightBtn.style.borderColor = 'rgba(255,255,255,0.1)';
                 lightBtn.style.background = 'transparent';
-                lightBtn.querySelector('div').style.color = 'var(--text-secondary)';
+                lightBtn.firstElementChild.style.color = 'var(--text-secondary)';
             } else {
-                lightBtn.style.borderColor = 'rgba(255,255,255,0.5)';
-                lightBtn.style.background = 'rgba(255,255,255,0.07)';
-                lightBtn.querySelector('div').style.color = 'var(--text-primary)';
-                darkBtn.style.borderColor = 'rgba(255,255,255,0.1)';
+                lightBtn.style.borderColor = 'rgba(0,0,0,0.4)';
+                lightBtn.style.background = 'rgba(0,0,0,0.05)';
+                lightBtn.firstElementChild.style.color = 'var(--text-primary)';
+                darkBtn.style.borderColor = 'rgba(0,0,0,0.1)';
                 darkBtn.style.background = 'transparent';
-                darkBtn.querySelector('div').style.color = 'var(--text-secondary)';
+                darkBtn.firstElementChild.style.color = 'var(--text-secondary)';
             }
         }
         const valTheme = document.getElementById('val-theme');
@@ -2465,13 +2801,21 @@
     //  RULETA DE RECOMPENSAS — cada 10 aciertos (no consecutivos)
     // ══════════════════════════════════════════════════════════
     const ROULETTE_PRIZES = [
-        { id: 'life',       label: 'VIDA EXTRA',        emoji: '❤️',  color: '#ff2a5f', rarity: 'legendary', weight: 5,  desc: 'Recuperas una vida perdida.' },
-        { id: 'shield',     label: 'ESCUDO',            emoji: '🛡️',  color: '#00d4ff', rarity: 'epic',      weight: 10, desc: 'Protección si fallas la próxima pregunta.' },
-        { id: 'boost',      label: 'PUNTOS x2',         emoji: '⭐',  color: '#ffb800', rarity: 'rare',      weight: 18, desc: 'La próxima pregunta vale puntos dobles.' },
-        { id: 'frenzy',     label: 'FRENESÍ',           emoji: '🔥',  color: '#b5179e', rarity: 'epic',      weight: 12, desc: 'Activa Modo Frenesí x2 en la siguiente pregunta.' },
-        { id: 'time',       label: '+5 SEG',            emoji: '⏱️',  color: '#00ff66', rarity: 'uncommon',  weight: 25, desc: 'La próxima pregunta tendrá 5 segundos extra.' },
-        { id: 'hint',       label: 'PISTA',             emoji: '💡',  color: '#f77f00', rarity: 'uncommon',  weight: 20, desc: 'Elimina una respuesta incorrecta de la pantalla.' },
-        { id: 'doublelife', label: 'TURBO',             emoji: '⚡',  color: '#ccff00', rarity: 'rare',      weight: 10, desc: 'La próxima pregunta vale puntos x3.' },
+        // Legendario (rarísimo)
+        { id: 'life',       label: 'VIDA EXTRA',    short: '+VIDA',   color: '#ff2a5f', rarity: 'Legendario', weight: 5,  desc: 'Recuperas una vida perdida.' },
+        // Épicos
+        { id: 'shield',     label: 'ESCUDO',         short: 'ESCUDO',  color: '#00d4ff', rarity: 'Épico',      weight: 8,  desc: 'Protección si fallas la próxima pregunta.' },
+        { id: 'frenzy',     label: 'FRENESI',        short: 'FRENESI', color: '#b5179e', rarity: 'Épico',      weight: 9,  desc: 'Activa Modo Frenesí en la siguiente pregunta.' },
+        { id: 'jackpot',    label: 'JACKPOT x4',     short: 'x4',      color: '#ff0090', rarity: 'Épico',      weight: 6,  desc: 'La próxima pregunta vale x4 puntos.' },
+        // Raros
+        { id: 'boost',      label: 'PUNTOS x2',      short: 'x2 PTS',  color: '#ffb800', rarity: 'Raro',       weight: 15, desc: 'La próxima pregunta vale puntos dobles.' },
+        { id: 'doublelife', label: 'TURBO x3',        short: 'x3 PTS',  color: '#ccff00', rarity: 'Raro',       weight: 12, desc: 'La próxima pregunta vale x3 puntos.' },
+        { id: 'freeze',     label: 'TIEMPO +8',      short: '+8 SEG',  color: '#00ffcc', rarity: 'Raro',       weight: 14, desc: 'La próxima pregunta tendrá 8 segundos extra.' },
+        // Poco comunes
+        { id: 'hint',       label: 'PISTA',           short: 'PISTA',   color: '#f77f00', rarity: 'Normal',     weight: 18, desc: 'Elimina una respuesta incorrecta.' },
+        { id: 'time',       label: 'TIEMPO +5',      short: '+5 SEG',  color: '#00ff66', rarity: 'Normal',     weight: 20, desc: 'La próxima pregunta tendrá 5 segundos extra.' },
+        // Común
+        { id: 'streak',     label: 'RACHA SALVADA',  short: 'RACHA',   color: '#aaaaff', rarity: 'Basico',     weight: 23, desc: 'Si fallas no se resetea tu racha esta vez.' },
     ];
 
     let rouletteActive = false;
@@ -2481,7 +2825,8 @@
     let activeBoostNextQ = null; // current active power-up for next question
     let shieldActive = false;
     let hintActive = false;
-    let extraTimeActive = false;
+    let extraTimeActive = 0;
+    let streakShieldActive = false;
     let totalCorrectThisGame = 0; // counts all corrects in game for roulette trigger
     let nextRouletteTrigger = 10; // fire roulette when this many corrects reached
 
@@ -2489,51 +2834,79 @@
         const canvas = document.getElementById('roulette-canvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        const cx = 140, cy = 140, r = 130;
+        const cx = 140, cy = 140, r = 128;
         const total = ROULETTE_PRIZES.reduce((s, p) => s + p.weight, 0);
         let startAngle = rotation;
         ctx.clearRect(0, 0, 280, 280);
 
+        // Outer shadow ring
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#000'; ctx.fill();
+        ctx.restore();
+
         ROULETTE_PRIZES.forEach((prize, i) => {
             const slice = (prize.weight / total) * Math.PI * 2;
+            const bright = i % 2 === 0 ? 'dd' : 'aa';
             ctx.beginPath();
             ctx.moveTo(cx, cy);
             ctx.arc(cx, cy, r, startAngle, startAngle + slice);
             ctx.closePath();
-            ctx.fillStyle = i % 2 === 0 ? prize.color + 'cc' : prize.color + '88';
+            ctx.fillStyle = prize.color + bright;
             ctx.fill();
             ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 1.5;
             ctx.stroke();
 
-            // Label
+            // Text labels (two lines: rarity + short label)
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(startAngle + slice / 2);
-            ctx.textAlign = 'right';
-            ctx.font = 'bold 11px Inter, sans-serif';
-            ctx.fillStyle = '#fff';
-            ctx.shadowColor = 'rgba(0,0,0,0.7)';
+            const lx = r * 0.60;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            // Rarity badge text
+            ctx.font = '600 7px Inter, sans-serif';
+            ctx.fillStyle = 'rgba(0,0,0,0.55)';
+            ctx.fillText(prize.rarity.toUpperCase(), lx, -7);
+            // Main short label
+            ctx.font = 'bold 10px Inter, sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = 'rgba(0,0,0,0.9)';
             ctx.shadowBlur = 4;
-            ctx.fillText(prize.emoji + ' ' + prize.label, r - 8, 4);
+            ctx.fillText(prize.short, lx, 5);
             ctx.restore();
 
             startAngle += slice;
         });
 
-        // Center circle
+        // Outer border
         ctx.beginPath();
-        ctx.arc(cx, cy, 22, 0, Math.PI * 2);
-        ctx.fillStyle = '#111';
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Center hub gradient
+        const grad = ctx.createRadialGradient(cx - 4, cy - 4, 0, cx, cy, 24);
+        grad.addColorStop(0, '#444');
+        grad.addColorStop(1, '#0d0d0d');
+        ctx.beginPath();
+        ctx.arc(cx, cy, 24, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
         ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.22)';
         ctx.lineWidth = 2;
         ctx.stroke();
+        // K letter in center
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 14px Inter';
+        ctx.font = 'bold 900 16px Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('🎰', cx, cy);
+        ctx.shadowColor = 'transparent';
+        ctx.fillText('K', cx, cy);
     }
 
     function getPrizeAtAngle(finalAngle) {
@@ -2562,7 +2935,7 @@
         msg.innerText = '';
         msg.className = 'roulette-result-msg';
         btn.disabled = false;
-        btn.innerText = '🎰 GIRAR';
+        btn.innerText = 'GIRAR';
         rouletteAngle = 0;
         drawRouletteWheel(rouletteAngle);
         overlay.classList.add('active');
@@ -2576,7 +2949,7 @@
     function spinRoulette() {
         const btn = document.getElementById('roulette-spin-btn');
         btn.disabled = true;
-        btn.innerText = '⏳ Girando...';
+        btn.innerText = 'Girando...';
 
         const totalSpins = Math.PI * 2 * (6 + Math.random() * 5); // 6-11 vueltas
         const duration = 3500 + Math.random() * 1000; // 3.5-4.5s
@@ -2611,7 +2984,7 @@
         const btn = document.getElementById('roulette-spin-btn');
         msg.innerHTML = `<div style="margin-bottom:6px;font-size:0.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;">¡Obtuviste!</div><div class="roulette-prize-badge" style="color:${prize.color};border-color:${prize.color};background:${prize.color}22">${prize.emoji} ${prize.label}</div><div style="margin-top:6px;font-size:0.75rem;color:var(--text-secondary);">${prize.desc}</div>`;
         msg.className = 'roulette-result-msg show';
-        btn.innerText = '✅ ¡Cobrar Premio!';
+        btn.innerText = 'COBRAR PREMIO';
         btn.disabled = false;
         btn.onclick = collectRoulettePrize;
 
@@ -2628,7 +3001,7 @@
         playerStats.rouletteSpins = (playerStats.rouletteSpins||0) + 1;
         if (prize.id === 'life')   playerStats.rouletteLifeWins   = (playerStats.rouletteLifeWins||0) + 1;
         if (prize.id === 'shield') playerStats.rouletteShieldWins = (playerStats.rouletteShieldWins||0) + 1;
-        if (prize.id === 'boost' || prize.id === 'doublelife') playerStats.rouletteBoostWins = (playerStats.rouletteBoostWins||0) + 1;
+        if (prize.id === 'boost' || prize.id === 'doublelife' || prize.id === 'jackpot') playerStats.rouletteBoostWins = (playerStats.rouletteBoostWins||0) + 1;
         if (prize.id === 'frenzy') playerStats.rouletteFrenzyWins = (playerStats.rouletteFrenzyWins||0) + 1;
         if (currentMaxStreak >= 20) playerStats.rouletteComboSpecial = true;
         saveStatsDebounced();
@@ -2652,6 +3025,8 @@
         }
     }
 
+    // streakShieldActive declared above with other roulette state vars
+
     function collectRoulettePrize() {
         const prize = currentPrize;
         if (!prize) return;
@@ -2660,28 +3035,37 @@
 
         // Apply prize effect
         if (prize.id === 'life') {
-            if (lives < 3) { lives++; updateLivesUI(); showToast('❤️ Vida Extra', 'Has recuperado una vida.', '#ff2a5f', SVG_HEART); }
-            else { showToast('❤️ Vidas Completas', 'Ya tienes todas las vidas.', '#ff2a5f', SVG_HEART); }
+            if (lives < 3) { lives++; updateLivesUI(); showToast('VIDA EXTRA', 'Has recuperado una vida.', '#ff2a5f', SVG_HEART); }
+            else { showToast('VIDAS AL MAXIMO', 'Ya tienes todas las vidas.', '#ff2a5f', SVG_HEART); }
         } else if (prize.id === 'shield') {
             shieldActive = true;
-            showToast('🛡️ Escudo Activo', 'Protegido ante un fallo.', '#00d4ff', SVG_SHIELD);
+            showToast('ESCUDO ACTIVO', 'Protegido ante un fallo en la siguiente pregunta.', '#00d4ff', SVG_SHIELD);
         } else if (prize.id === 'boost') {
             activeBoostNextQ = 'boost';
-            showToast('⭐ Puntos x2', 'La próxima pregunta vale el doble.', '#ffb800', SVG_STAR);
+            showToast('PUNTOS x2', 'La proxima pregunta vale el doble.', '#ffb800', SVG_STAR);
         } else if (prize.id === 'doublelife') {
             activeBoostNextQ = 'triple';
-            showToast('⚡ Turbo x3', 'La próxima pregunta vale x3 puntos.', '#ccff00', SVG_BOLT);
+            showToast('TURBO x3', 'La proxima pregunta vale x3 puntos.', '#ccff00', SVG_BOLT);
+        } else if (prize.id === 'jackpot') {
+            activeBoostNextQ = 'jackpot';
+            showToast('JACKPOT x4', 'La proxima pregunta vale x4 puntos.', '#ff0090', SVG_STAR);
         } else if (prize.id === 'frenzy') {
             if (streak < 5) { streak = 5; updateMultiplierUI(); updateStreakVisuals(); }
             else { multiplier = Math.min(multiplier + 1, 10); updateMultiplierUI(); }
             playerStats.rouletteFrenzyWins = (playerStats.rouletteFrenzyWins||0) + 1;
-            showToast('🔥 Frenesí Activado', 'Modo Frenesí activado por la ruleta.', '#b5179e', SVG_FIRE);
+            showToast('FRENESI ACTIVADO', 'Modo Frenesí activado por la ruleta.', '#b5179e', SVG_FIRE);
         } else if (prize.id === 'time') {
-            extraTimeActive = true;
-            showToast('⏱️ +5 Segundos', 'La próxima pregunta tendrá tiempo extra.', '#00ff66', SVG_CLOCK);
+            extraTimeActive = 5;
+            showToast('+5 SEGUNDOS', 'La proxima pregunta tendra tiempo extra.', '#00ff66', SVG_CLOCK);
+        } else if (prize.id === 'freeze') {
+            extraTimeActive = 8;
+            showToast('+8 SEGUNDOS', 'La proxima pregunta tendra mucho tiempo extra.', '#00ffcc', SVG_CLOCK);
         } else if (prize.id === 'hint') {
             hintActive = true;
-            showToast('💡 Pista Activada', 'Se eliminará una respuesta incorrecta.', '#f77f00', SVG_BOLT);
+            showToast('PISTA ACTIVADA', 'Se eliminara una respuesta incorrecta.', '#f77f00', SVG_BOLT);
+        } else if (prize.id === 'streak') {
+            streakShieldActive = true;
+            showToast('RACHA PROTEGIDA', 'Si fallas la siguiente, tu racha no se resetea.', '#aaaaff', SVG_SHIELD);
         }
 
         closeRoulette();
@@ -2846,7 +3230,7 @@
         lastSecondAnswers = 0; ultraFastStreak = 0;
         // Reset roulette state for new game
         totalCorrectThisGame = 0; nextRouletteTrigger = 10;
-        activeBoostNextQ = null; shieldActive = false; hintActive = false; extraTimeActive = false;
+        activeBoostNextQ = null; shieldActive = false; hintActive = false; extraTimeActive = 0; streakShieldActive = false;
         
         document.getElementById('lives-container').style.display = 'flex';
         document.getElementById('progress-container').style.display = 'none';
@@ -2981,7 +3365,7 @@
         
         // Apply extra time from roulette
         let questionTime = TIMER_LIMIT;
-        if (extraTimeActive) { questionTime = TIMER_LIMIT + 5; extraTimeActive = false; }
+        if (extraTimeActive) { questionTime = TIMER_LIMIT + extraTimeActive; extraTimeActive = 0; }
         isAnsweringAllowed = true; isGamePaused = false; timeLeft = questionTime; timerText.innerText = timeLeft;
         
         timerPath.style.transition = 'none'; timerPath.style.strokeDashoffset = '0'; timerPath.style.stroke = 'var(--text-primary)'; timerText.style.color = 'var(--text-primary)'; void timerPath.offsetWidth; timerPath.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s ease';
@@ -3092,6 +3476,7 @@
             let boostMult = multiplier;
             if (activeBoostNextQ === 'boost') { boostMult = multiplier * 2; activeBoostNextQ = null; }
             else if (activeBoostNextQ === 'triple') { boostMult = multiplier * 3; activeBoostNextQ = null; }
+            else if (activeBoostNextQ === 'jackpot') { boostMult = multiplier * 4; activeBoostNextQ = null; }
             earned = earned * boostMult;
             score += earned; streak++; if(streak > currentMaxStreak) currentMaxStreak = streak;
             totalCorrectThisGame++;
@@ -3124,8 +3509,16 @@
                 SFX.incorrect(); 
                 if (isTimeout) { scr.className = 'screen timeout'; icon.innerHTML = SVG_TIMEOUT; title.innerText = "TIEMPO"; } 
                 else { scr.className = 'screen incorrect'; icon.innerHTML = SVG_INCORRECT; title.innerText = "INCORRECTO"; }
-                streak = 0; points.style.display = 'none';
-                playerStats.currentFrenzyStreak = 0;
+                // Streak shield from roulette: protect racha on one mistake
+                if (streakShieldActive) {
+                    streakShieldActive = false;
+                    showToast('RACHA PROTEGIDA', 'Tu racha ha sido salvada.', '#aaaaff', SVG_SHIELD);
+                    // Don't reset streak, but do lose a life
+                } else {
+                    streak = 0;
+                    playerStats.currentFrenzyStreak = 0;
+                }
+                points.style.display = 'none';
                 lives--;
                 updateLivesUI();
             }
