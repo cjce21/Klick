@@ -258,15 +258,57 @@
             border-color: rgba(0,0,0,0.08);
         }
         body.light-mode .rank-card::before { background: #0d1117; }
-        body.light-mode .rank-card:hover { background: rgba(255,255,255,0.95); border-color: rgba(0,0,0,0.18); }
-        body.light-mode .rc-pos { color: #4a5568; }
+        body.light-mode .rank-card:hover { background: rgba(255,255,255,0.95); border-color: rgba(0,0,0,0.18); transform: translateX(4px); }
+        body.light-mode .rank-card.pos-1 { background: rgba(255,255,255,0.96); border-color: rgba(0,0,0,0.16); }
+        body.light-mode .rank-card.pos-2 { background: rgba(255,255,255,0.9); border-color: rgba(0,0,0,0.12); }
+        body.light-mode .rank-card.pos-3 { background: rgba(255,255,255,0.85); border-color: rgba(0,0,0,0.1); }
+        body.light-mode .rank-card.is-me { background: rgba(255,255,255,0.96); border-color: rgba(0,0,0,0.2); }
         body.light-mode .rank-card.pos-1 .rc-pos,
         body.light-mode .rank-card.pos-2 .rc-pos { color: #0d1117; }
+        body.light-mode .rc-pos { color: #4a5568; }
         body.light-mode .rc-name { color: #0d1117; }
         body.light-mode .rc-title { color: #4a5568; }
         body.light-mode .rc-score { color: #0d1117; }
         body.light-mode .rc-score span { color: #4a5568; }
         body.light-mode .ranking-loading { color: #4a5568; }
+
+        /* ── Fin de partida ── */
+        body.light-mode .btn-end-replay {
+            background: rgba(var(--rank-rgb), 0.07);
+            color: var(--text-primary);
+            border-color: rgba(var(--rank-rgb), 0.3);
+            filter: brightness(0.65) saturate(0.9);
+        }
+        body.light-mode .btn-end-replay:hover { box-shadow: none; }
+
+        /* ── Slider neon hover ── */
+        body.light-mode input[type=range]::-webkit-slider-thumb:hover {
+            background: #0d1117;
+            box-shadow: 0 0 6px rgba(0,0,0,0.3);
+            border-color: #f2f4f7;
+        }
+
+        /* ── Frenzy multiplier badge ── */
+        body.light-mode .mult-x6 { color: var(--text-primary); animation: none; }
+        body.light-mode .multiplier-badge { filter: brightness(0.7) saturate(0.85); }
+
+        /* ── Logo dots (JS sets textShadow inline) ── */
+        body.light-mode .logo-dot { text-shadow: none !important; filter: brightness(0.65) saturate(0.85); }
+
+        /* ── Guide rank-item borders (inline neon rgba) ── */
+        body.light-mode .rank-list .rank-item[style*="border-color"] { border-color: rgba(0,0,0,0.12) !important; }
+
+        /* ── Achievement slots in profile (JS sets borderColor inline) ── */
+        body.light-mode .achievement-slot.unlocked { background: rgba(255,255,255,0.8) !important; border-color: rgba(0,0,0,0.2) !important; }
+        
+        /* ── Inline neon text-shadow in guide ── */
+        body.light-mode [style*="text-shadow:0 0"] { text-shadow: none !important; }
+        body.light-mode [style*="text-shadow: 0 0"] { text-shadow: none !important; }
+
+        /* ── Inline neon box-shadow dots in guide ── */
+        body.light-mode [style*="box-shadow:0 0 8px rgba(255,215,0"] { box-shadow: none !important; }
+        body.light-mode [style*="box-shadow:0 0 8px rgba(192,192,192"] { box-shadow: none !important; }
+        body.light-mode [style*="box-shadow:0 0 8px rgba(205,127,50"] { box-shadow: none !important; }
 
         /* ── Pantalla de pregunta ── */
         body.light-mode .top-bar {
@@ -2804,17 +2846,21 @@
         if (isManualPin)  cls += ' pinned';
         else if (isInProfile) cls += ' in-profile';
 
-        const bdrColor = isUnlocked ? ach.color : '';
+        const isLight = document.body.classList.contains('light-mode');
+        const displayColor = isUnlocked ? (isLight ? darkenHex(ach.color, 0.4) : ach.color) : '';
+        const bdrColor = isUnlocked ? (isLight ? 'rgba(0,0,0,0.2)' : ach.color) : '';
         let shadow = '';
-        if (isManualPin)       shadow = `0 0 14px ${ach.color}66`;
-        else if (isInProfile)  shadow = `0 0 7px ${ach.color}33`;
+        if (!isLight) {
+            if (isManualPin)       shadow = `0 0 14px ${ach.color}66`;
+            else if (isInProfile)  shadow = `0 0 7px ${ach.color}33`;
+        }
 
         let badge = '';
         if (isManualPin)      badge = `<div class="ach-pin-badge ach-pin-manual">${SVG_PIN}</div>`;
         else if (isInProfile) badge = `<div class="ach-pin-badge ach-pin-auto">★</div>`;
 
         const isHidden = ach.hidden && !isUnlocked;
-        const iconColor = isUnlocked ? ach.color : 'var(--text-secondary)';
+        const iconColor = isUnlocked ? (isLight ? darkenHex(ach.color, 0.4) : ach.color) : 'var(--text-secondary)';
         const iconSVG   = isUnlocked ? ach.icon  : SVG_LOCK;
         const title     = isHidden ? '???' : ach.title;
         const desc      = isUnlocked ? ach.desc  : (isHidden ? 'Logro secreto — descúbrelo tú mismo.' : 'Sigue jugando para descubrirlo.');
@@ -2938,9 +2984,11 @@
                 if (!ach) return;
                 const slot = document.createElement('div');
                 slot.className = 'achievement-slot unlocked';
-                slot.style.borderColor = ach.color;
-                slot.style.boxShadow = `0 0 12px ${ach.color}44`;
-                slot.innerHTML = `<div class="ach-icon" style="color:${ach.color}">${ach.icon}</div><div class="ach-title">${ach.title}</div>`;
+                const isLight = document.body.classList.contains('light-mode');
+                const achDisplayColor = isLight ? darkenHex(ach.color, 0.4) : ach.color;
+                slot.style.borderColor = isLight ? 'rgba(0,0,0,0.2)' : ach.color;
+                slot.style.boxShadow = isLight ? 'none' : `0 0 12px ${ach.color}44`;
+                slot.innerHTML = `<div class="ach-icon" style="color:${achDisplayColor}">${ach.icon}</div><div class="ach-title">${ach.title}</div>`;
                 frag.appendChild(slot); n++;
             });
             while (n < 3) {
@@ -3419,7 +3467,7 @@
         document.getElementById('stat-games').innerText = playerStats.gamesPlayed; document.getElementById('stat-score').innerText = playerStats.bestScore; document.getElementById('stat-streak').innerText = playerStats.maxStreak; document.getElementById('stat-days').innerText = playerStats.maxLoginStreak;
         document.getElementById('profile-name-input').value = (playerStats.playerName === "JUGADOR") ? "" : playerStats.playerName;
         document.getElementById('profile-warning').style.opacity = needsName ? '1' : '0';
-        currentRankInfo = getRankInfo(playerStats); updateLogoDots(); document.getElementById('profile-rank-display').innerText = `Rango: ${currentRankInfo.title}`; document.getElementById('profile-rank-display').style.color = currentRankInfo.color;
+        currentRankInfo = getRankInfo(playerStats); updateLogoDots(); document.getElementById('profile-rank-display').innerText = `Rango: ${currentRankInfo.title}`; { const isLight = document.body.classList.contains('light-mode'); document.getElementById('profile-rank-display').style.color = isLight ? darkenHex(currentRankInfo.color, 0.4) : currentRankInfo.color; }
         renderAchievements(); switchScreen('profile-screen');
         if (needsName) setTimeout(() => { document.getElementById('profile-name-input').focus(); document.getElementById('profile-name-input').classList.add('shake'); setTimeout(() => document.getElementById('profile-name-input').classList.remove('shake'), 400); }, 400);
     }
@@ -3464,7 +3512,11 @@
     function updateLogoDots() { 
         document.documentElement.style.setProperty('--rank-rgb', currentRankInfo.rgb); 
         document.documentElement.style.setProperty('--rank-color', currentRankInfo.color); 
-        document.querySelectorAll('.logo-dot').forEach(d => { d.style.color = currentRankInfo.color; d.style.textShadow = `0 0 15px rgba(${currentRankInfo.rgb}, 0.5)`; }); 
+        const isLight = document.body.classList.contains('light-mode');
+        document.querySelectorAll('.logo-dot').forEach(d => { 
+            d.style.color = currentRankInfo.color; 
+            d.style.textShadow = isLight ? 'none' : `0 0 15px rgba(${currentRankInfo.rgb}, 0.5)`; 
+        }); 
         
         const favicon = document.getElementById('dynamic-favicon');
         if(favicon) {
