@@ -2373,7 +2373,7 @@
         { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 150 logros en total.',                        color: colors.yellow, icon: SVG_STAR },
         { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 200 logros en total.',                        color: colors.orange, icon: SVG_STAR },
         { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 225 logros en total.',                        color: colors.purple, icon: SVG_STAR },
-        { id: 'master3', title: 'Dios Klick',   desc: 'Consigue los 242 logros del juego. Eres absoluto.',      color: colors.red,    icon: SVG_STAR },
+        { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea todos los logros del juego. Eres absoluto.',      color: colors.red,    icon: SVG_STAR },
     ]);
 
     // --- DÍAS DE ACTIVIDAD (10) ---
@@ -2611,7 +2611,11 @@
         if (playerStats.lastLoginDate !== todayStr) {
             const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1); const yesterdayStr = yesterday.toISOString().split('T')[0];
             if (playerStats.lastLoginDate === yesterdayStr) { playerStats.currentLoginStreak++; playerStats.maxLoginStreak = Math.max(playerStats.maxLoginStreak, playerStats.currentLoginStreak); } 
-            else { playerStats.currentLoginStreak = 1; if(playerStats.maxLoginStreak === 0) playerStats.maxLoginStreak = 1; }
+            else { 
+                playerStats.currentLoginStreak = 1; if(playerStats.maxLoginStreak === 0) playerStats.maxLoginStreak = 1;
+                // Player missed at least one day — mark for x16 Regreso Triunfal
+                if(playerStats.lastLoginDate) playerStats.missedADay = true;
+            }
             playerStats.lastLoginDate = todayStr; playerStats.todayGames = 0; saveStatsLocally(); checkAchievements();
         }
     }
@@ -2760,6 +2764,46 @@
         if(playerStats.playedNocturno) unlock('fin1');
         if(playerStats.playedMadrugador) unlock('fin2');
 
+        // LOGROS CON CONDICIÓN DE PUNTAJE (nunca imposibles — se verifican con bestScore)
+        if((playerStats.bestScore||0)>=75000 && (playerStats.maxScoreCount||0)>=2) unlock('x4');
+        if((playerStats.bestScore||0)>=25000 && (playerStats.gamesPlayed||0)>=5) unlock('x6');
+        if((playerStats.bestScore||0)>=3000) unlock('x7');
+        if((playerStats.bestScore||0)>=50000) unlock('x12');
+        if((playerStats.bestScore||0)>=99500 && (playerStats.bestScore||0)<=100500) unlock('x15');
+
+        // LA REVANCHA y SIN PRISA (rastreados por partida)
+        if(playerStats.revengeGame) unlock('x5');
+        if(playerStats.xSinPrisa) unlock('x8');
+
+        // PARTIDAS POR DÍA
+        if((playerStats.todayGames||0)>=10) unlock('x13');
+        if((playerStats.todayGames||0)>=20) unlock('x20');
+
+        // SUPERVIVENCIA / VIDAS
+        if((playerStats.maxQuestionReached||0)>=30) unlock('x14');
+        if((playerStats.maxQuestionReached||0)>=50) unlock('x10');
+        if((playerStats.maxQuestionReached||0)>=100) unlock('u15');
+        if((playerStats.maxQuestionReached||0)>=60) unlock('np3');
+
+        // VELOCIDAD Y REFLEJOS (por partida — tracked via persisted stats)
+        if((playerStats.flashAnswersTotal||0)>=1) unlock('u13');
+        if((playerStats.flashAnswersTotal||0)>=5) unlock('x19');
+        if((playerStats.lastSecondAnswersTotal||0)>=50) unlock('u17');
+
+        // CURADOR: pin tracking
+        const pinTot = playerStats.totalPins||0;
+        const pinTiers2=[1,5,10,20,50]; for(let i=0;i<5;i++) if(pinTot>=pinTiers2[i]) unlock(`pin${i+1}`);
+
+        // PRODUCTIVO: daily achievement unlocks (tracked separately)
+        const dau = playerStats.dailyAchUnlocks||0;
+        const daTiers2=[1,3,5,8,12]; for(let i=0;i<5;i++) if(dau>=daTiers2[i]) unlock(`da${i+1}`);
+
+        // ASIDUO (td2): same as totalDaysPlayed, was duplicate — now use separate threshold
+        const td2Tiers=[5,10,20,30,60]; for(let i=0;i<5;i++) if((playerStats.totalDaysPlayed||0)>=td2Tiers[i]) unlock(`td2${i+1}`);
+
+        // REGRESO TRIUNFAL
+        if((playerStats.returnTriumph||0)>=1) unlock('x16');
+
         // MODO PERFECCIÓN
         let redGoldCount = 0;
         playerStats.pinnedAchievements.forEach(id => {
@@ -2769,6 +2813,8 @@
         if (redGoldCount >= 3) unlock('np2');
 
         if (newlyUnlocked.length > 0) { 
+            // Track daily achievement unlocks for 'Productivo' da1-da5
+            playerStats.dailyAchUnlocks = (playerStats.dailyAchUnlocks||0) + newlyUnlocked.length;
             saveStatsLocally(); 
             renderAchievements(); 
             newlyUnlocked.forEach((ach, index) => { 
@@ -2784,7 +2830,7 @@
         }
         if (!playerStats.achievements.includes(achId)) return; SFX.click(); const index = playerStats.pinnedAchievements.indexOf(achId);
         if (index > -1) { playerStats.pinnedAchievements.splice(index, 1); showToast('Quitado del perfil', 'Ya no aparecerá destacado.', 'var(--text-secondary)', SVG_PIN); } 
-        else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); const ach_data = ACHIEVEMENTS_DATA.find(a => a.id === achId); showToast('Fijado en Perfil', ach_data ? ach_data.title : achId, ach_data ? ach_data.color : '', ach_data ? ach_data.icon : ''); }
+        else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); playerStats.totalPins = (playerStats.totalPins||0) + 1; const ach_data = ACHIEVEMENTS_DATA.find(a => a.id === achId); showToast('Fijado en Perfil', ach_data ? ach_data.title : achId, ach_data ? ach_data.color : '', ach_data ? ach_data.icon : ''); }
         saveStatsLocally(); checkAchievements(); renderAchievements();
     }
     
@@ -3534,6 +3580,9 @@
     let multiplier = 1;
     let lastSecondAnswers = 0; 
     let ultraFastStreak = 0;   
+    let currentNoTimeoutStreak = 0;
+    let livesLostThisGame = 0;
+    let consecutiveLivesLost = 0;  // for u19 Resurreccion tracking
 
     function startGame() {
         initAudio(); SFX.gameStart();
@@ -3571,7 +3620,7 @@
         currentQuestionIndex = score = streak = currentMaxStreak = currentFastAnswers = currentWrongAnswers = currentTimeoutAnswers = 0; 
         currentGameLog = []; isGamePaused = false;
         lives = 3; multiplier = 1;
-        lastSecondAnswers = 0; ultraFastStreak = 0;
+        lastSecondAnswers = 0; ultraFastStreak = 0; currentNoTimeoutStreak = 0; livesLostThisGame = 0; consecutiveLivesLost = 0;
         // Reset roulette state for new game
         totalCorrectThisGame = 0; nextRouletteTrigger = 10;
         activeBoostNextQ = null; shieldActive = false; hintActive = false; extraTimeActive = 0; streakShieldActive = false;
@@ -3735,11 +3784,14 @@
         if(isCorrect) { 
             playerStats.totalCorrect++; 
             if(answerTime >= TIMER_LIMIT - 2) { currentFastAnswers++; playerStats.fastAnswersTotal++; }
-            if(answerTime <= 1) lastSecondAnswers++;
+            if(answerTime <= 1) { lastSecondAnswers++; playerStats.flashAnswersTotal = (playerStats.flashAnswersTotal||0) + 1; }
             if(answerTime >= TIMER_LIMIT - 3) { ultraFastStreak++; } else { ultraFastStreak = 0; }
+            currentNoTimeoutStreak++;
+            if(answerTime <= 2) playerStats.lastSecondAnswersTotal = (playerStats.lastSecondAnswersTotal||0) + 1;
+            if(currentNoTimeoutStreak > (playerStats.maxNoTimeoutStreak||0)) playerStats.maxNoTimeoutStreak = currentNoTimeoutStreak;
         } else { 
             playerStats.totalWrong++; currentWrongAnswers++;
-            ultraFastStreak = 0;
+            ultraFastStreak = 0; currentNoTimeoutStreak = 0;
         }
         
         saveStatsDebounced(); setTimeout(() => showFeedback(isCorrect), 600);
@@ -3767,7 +3819,7 @@
         if (!isAnsweringAllowed || isGamePaused) return; isAnsweringAllowed = false; clearInterval(timerInterval); 
         playerStats.totalTimeouts++; currentTimeoutAnswers++; 
         currentGameLog.push({ correct: false, timeout: true, time: 0 });
-        ultraFastStreak = 0;
+        ultraFastStreak = 0; currentNoTimeoutStreak = 0;
         saveStatsDebounced(); document.getElementById('answers-grid').classList.add('answered'); setTimeout(() => showFeedback(false, true), 600);
     }
 
@@ -3824,8 +3876,13 @@
             earned = earned * boostMult;
             score += earned; streak++; if(streak > currentMaxStreak) currentMaxStreak = streak;
             totalCorrectThisGame++;
-            // np1: 10 aciertos seguidos con las 3 vidas intactas — solo válido in-game
-            if (streak >= 10 && lives === 3) {
+            consecutiveLivesLost = 0; // reset on correct answer
+            // u19: Resurrección — pierde 2 vidas seguidas y encadena 10 aciertos consecutivos
+            if(playerStats._twoConsecLives && streak >= 10) {
+                playerStats.u19Earned = true; playerStats._twoConsecLives = false;
+            }
+            // np1: 10 aciertos seguidos con las 3 vidas intactas (nunca perdió vida)
+            if (streak >= 10 && livesLostThisGame === 0) {
                 if (!playerStats.achievements.includes('np1')) {
                     playerStats.achievements.push('np1');
                     SFX.achievement();
@@ -3835,6 +3892,42 @@
             }
             if (streak > 0 && streak % 5 === 0) { playerStats.frenziesTriggered++; playerStats.currentFrenzyStreak = (playerStats.currentFrenzyStreak||0) + 1; }
             if ((playerStats.currentFrenzyStreak||0) > (playerStats.maxFrenzyStreak||0)) playerStats.maxFrenzyStreak = playerStats.currentFrenzyStreak;
+
+            // In-game session achievements (unlocked immediately)
+            const inGameUnlock = (id, title, col, ico) => {
+                if (!playerStats.achievements.includes(id)) {
+                    playerStats.achievements.push(id); SFX.achievement();
+                    showToast('Logro Desbloqueado', title, col, ico);
+                    saveStatsLocally(); renderAchievements();
+                }
+            };
+            // u5: Por los Pelos — acierta con exactamente 1 segundo
+            if(timeLeft === 1) inGameUnlock('u5','Por los Pelos', colors.red, SVG_CLOCK);
+            // u14: Calculador — acierta con 2-3 segundos
+            if(timeLeft === 2 || timeLeft === 3) inGameUnlock('u14','Calculador', colors.blue, SVG_CLOCK);
+            // u9: Inmortal — 50 preguntas sin perder vida (uses currentQuestionIndex)
+            if(currentQuestionIndex >= 49 && livesLostThisGame === 0) inGameUnlock('u9','Inmortal', colors.purple, SVG_SHIELD);
+            // x10: Economía — 20 preguntas sin perder vida
+            if(currentQuestionIndex >= 19 && livesLostThisGame === 0) inGameUnlock('x10','Economía', colors.green, SVG_HEART);
+            // x14: Invicto — llega a pregunta 30 sin perder vida
+            if(currentQuestionIndex >= 29 && livesLostThisGame === 0) inGameUnlock('x14','Invicto', colors.green, SVG_SHIELD);
+            // x11: El Último Chance — acierta en última vida
+            if(lives === 1) inGameUnlock('x11','El Último Chance', colors.orange, SVG_SHIELD);
+            // u24: Extremis — 3 aciertos de 1 seg en una partida
+            if(lastSecondAnswers >= 3) inGameUnlock('u24','Extremis', colors.red, SVG_SHIELD);
+            // x19: Espectacular — 5 respuestas Flash <1 seg en partida
+            if(timeLeft <= 1 && lastSecondAnswers >= 5) inGameUnlock('x19','Espectacular', colors.yellow, SVG_BOLT);
+            // np3: Sin Límites — partida >60 preguntas
+            if(currentQuestionIndex >= 60) inGameUnlock('np3','Sin Límites', colors.purple, SVG_BOLT);
+            // u15: Superviviente — 100 preguntas
+            if(currentQuestionIndex >= 99) inGameUnlock('u15','Superviviente', colors.green, SVG_SHIELD);
+            // u21: Metralleta — 10 seguidas <3 seg
+            if(ultraFastStreak >= 10) inGameUnlock('u21','Metralleta', colors.red, SVG_BOLT);
+            // x9: Todo Gas — 10 primeras preguntas <3 seg
+            if(currentQuestionIndex < 10 && ultraFastStreak >= 10) inGameUnlock('x9','Todo Gas', colors.red, SVG_BOLT);
+            // fin3: Momento Épico — en Frenesí y luego 20 aciertos más
+            if((playerStats.currentFrenzyStreak||0) >= 4) inGameUnlock('fin3','Momento Épico', colors.red, SVG_FIRE);
+
             points.innerText = `+${earned}`; points.style.display = 'block';
         } else {
             // Shield protection from roulette
@@ -3864,7 +3957,26 @@
                 }
                 points.style.display = 'none';
                 lives--;
+                livesLostThisGame++;
+                consecutiveLivesLost++;
+                if(consecutiveLivesLost >= 2) playerStats._twoConsecLives = true;
                 updateLivesUI();
+                // In-game life-loss achievements
+                const failUnlock = (id, title, col, ico) => {
+                    if (!playerStats.achievements.includes(id)) {
+                        playerStats.achievements.push(id); SFX.achievement();
+                        showToast('Logro Desbloqueado', title, col, ico);
+                        saveStatsLocally(); renderAchievements();
+                    }
+                };
+                // u10: Desastre — pierde 3 vidas en primeras 3 preguntas
+                if(lives === 0 && currentQuestionIndex <= 3) failUnlock('u10','Desastre', colors.dark, SVG_SKULL);
+                // u18: Suicida — pierde 3 vidas en <30 seg de partida (approximate via question index ≤2 with 15s each)
+                if(lives === 0 && currentQuestionIndex <= 2) failUnlock('u18','Suicida', colors.dark, SVG_SKULL);
+                // u12: Tragedia — pierde última vida durante racha de 20+
+                if(lives === 0 && currentMaxStreak >= 20) failUnlock('u12','Tragedia', colors.dark, SVG_INCORRECT);
+                // np4: La Última Bala — exactamente 1 acierto antes de perder todas las vidas
+                if(lives === 0 && totalCorrectThisGame === 1) failUnlock('np4','La Última Bala', colors.dark, SVG_SKULL);
             }
         }
         
@@ -3898,11 +4010,29 @@
     
     function saveGameStats() {
         playerStats.gamesPlayed++; playerStats.todayGames++; playerStats.totalScore += score; 
+        const prevBest = playerStats.bestScore || 0;
         if(score > playerStats.bestScore) playerStats.bestScore = score; 
         if(currentMaxStreak > playerStats.maxStreak) playerStats.maxStreak = currentMaxStreak;
         if(score >= 100000) playerStats.maxScoreCount++;
         if(!playerStats.maxQuestionReached || currentQuestionIndex > playerStats.maxQuestionReached) playerStats.maxQuestionReached = currentQuestionIndex;
         if(currentQuestionIndex >= 50) playerStats.perfectGames = (playerStats.perfectGames||0) + 1;
+        // x16: Regreso Triunfal — tras no jugar un día, supera su último récord
+        if((playerStats.missedADay||false) && score > prevBest && prevBest > 0) playerStats.returnTriumph = (playerStats.returnTriumph||0) + 1;
+        playerStats.missedADay = false; // reset once they play
+        // x11: El Último Chance — acierta estando en última vida (tracked in-game but confirmed here)
+        // x5: La Revancha — tras 0 aciertos consigue 10+ (tracked via currentGameLog)
+        const prevGameCorrect = (playerStats.lastGameCorrect||0);
+        if(prevGameCorrect === 0 && currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers >= 10) playerStats.revengeGame = true;
+        else playerStats.revengeGame = false;
+        // x8: Sin Prisa — termina partida con <5 respuestas rápidas
+        playerStats.xSinPrisa = (currentFastAnswers < 5 && currentQuestionIndex >= 5);
+        // u11: Fénix — pierde 2 vidas al inicio pero llega a 30 aciertos consecutivos
+        if(livesLostThisGame >= 2 && currentMaxStreak >= 30) {
+            if(!playerStats.achievements.includes('u11')) { playerStats.achievements.push('u11'); showToast('Logro Desbloqueado','Fénix',colors.orange,SVG_FIRE); }
+        }
+        // u19: Resurrección — pierde 2 vidas seguidas y encadena 10 consecutivos
+        if(playerStats.u19Earned) { if(!playerStats.achievements.includes('u19')) { playerStats.achievements.push('u19'); showToast('Logro Desbloqueado','Resurrección',colors.yellow,SVG_HEART); } playerStats.u19Earned=false; }
+        playerStats.lastGameCorrect = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
         playerStats.previousGameScore = score; 
         currentRankInfo = getRankInfo(playerStats); updateLogoDots(); saveStatsLocally(); checkAchievements();
         submitLeaderboard(); 
