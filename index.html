@@ -185,27 +185,28 @@
         .rank-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--text-secondary); opacity: 0.25; transition: opacity 0.25s; }
         .rank-card:hover { background: rgba(255,255,255,0.04); transform: translateX(4px); border-color: rgba(255,255,255,0.12); }
         .rank-card:hover::before { opacity: 0.7; }
-        .rc-pos { font-size: 1.5rem; font-weight: 900; color: var(--text-secondary); text-align: center; font-variant-numeric: tabular-nums; }
+        .rc-pos { font-size: 1.3rem; font-weight: 900; color: var(--text-secondary); text-align: center; font-variant-numeric: tabular-nums; }
         .rc-info { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding-left: 10px; }
         .rc-name { font-size: 1.05rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px; }
-        .rc-title { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
-        .rc-score { font-size: 1.2rem; font-weight: 900; font-family: monospace; text-align: right; }
+        .rc-title { font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; }
+        .rc-score { font-size: 1.1rem; font-weight: 900; font-family: monospace; text-align: right; color: var(--text-primary); }
         .rc-score span { font-size: 0.58rem; color: var(--text-secondary); display: block; letter-spacing: 1px; margin-top: 2px; text-align: right; }
 
-        .rank-card.pos-1 { border-color: rgba(255,215,0,0.22); background: rgba(255,215,0,0.04); }
-        .rank-card.pos-1::before { background: #ffd700; opacity: 1; width: 4px; }
-        .rank-card.pos-1 .rc-pos { color: #ffd700; text-shadow: 0 0 12px rgba(255,215,0,0.5); }
-        
-        .rank-card.pos-2 { border-color: rgba(192,192,192,0.18); background: rgba(192,192,192,0.03); }
-        .rank-card.pos-2::before { background: #c0c0c0; opacity: 0.85; }
-        .rank-card.pos-2 .rc-pos { color: #c0c0c0; }
-        
-        .rank-card.pos-3 { border-color: rgba(205,127,50,0.18); background: rgba(205,127,50,0.03); }
-        .rank-card.pos-3::before { background: #cd7f32; opacity: 0.85; }
-        .rank-card.pos-3 .rc-pos { color: #cd7f32; }
+        /* Posiciones top-3: ligero realce neutro */
+        .rank-card.pos-1 { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.14); }
+        .rank-card.pos-1::before { background: var(--text-primary); opacity: 0.7; width: 4px; }
+        .rank-card.pos-1 .rc-pos { color: var(--text-primary); }
 
-        .rank-card.is-me { border-color: rgba(var(--rank-rgb), 0.28); background: rgba(var(--rank-rgb), 0.04); }
-        .rank-card.is-me::before { background: var(--rank-color); opacity: 0.75; }
+        .rank-card.pos-2 { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.10); }
+        .rank-card.pos-2::before { background: var(--text-secondary); opacity: 0.6; }
+        .rank-card.pos-2 .rc-pos { color: var(--text-primary); opacity: 0.85; }
+
+        .rank-card.pos-3 { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.08); }
+        .rank-card.pos-3::before { background: var(--text-secondary); opacity: 0.45; }
+        .rank-card.pos-3 .rc-pos { color: var(--text-secondary); }
+
+        .rank-card.is-me { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); }
+        .rank-card.is-me::before { background: var(--text-primary); opacity: 0.5; }
 
         .ranking-loading { text-align: center; color: var(--text-secondary); padding: 40px; font-weight: 600; font-size: 1rem; letter-spacing: 1px; }
         #countdown-screen { justify-content: center; align-items: center; }
@@ -336,6 +337,26 @@
             .achievements-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
         }
     </style>
+    <script>
+    // ANTI-FLASH: aplica el color de rango correcto antes del primer render
+    (function() {
+        try {
+            var raw = localStorage.getItem('klick_player_data_permanent')
+                   || localStorage.getItem('klickStats_v9') || '{}';
+            var s = JSON.parse(raw);
+            var ts = s.totalScore||0, tc = s.totalCorrect||0, pf = s.perfectGames||0;
+            var gp = s.gamesPlayed||0, mx = s.maxMult||1, sk = s.maxStreak||0, bs = s.bestScore||0;
+            var color, rgb;
+            if (ts>=400000 && tc>=1500 && pf>=10)      { color='#ffb800'; rgb='255,184,0'; }
+            else if (ts>=150000 && gp>=50 && mx>=4)    { color='#b5179e'; rgb='181,23,158'; }
+            else if (ts>=60000 && tc>=200 && sk>=12)   { color='#ff2a5f'; rgb='255,42,95'; }
+            else if (bs>=15000 && gp>=5)               { color='#00d4ff'; rgb='0,212,255'; }
+            else                                       { color='#00ff66'; rgb='0,255,102'; }
+            document.documentElement.style.setProperty('--rank-color', color);
+            document.documentElement.style.setProperty('--rank-rgb', rgb);
+        } catch(e) {}
+    })();
+    </script>
 </head>
 <body ondragstart="return false;" ondrop="return false;">
 
@@ -1548,38 +1569,24 @@
                 let classPos = pos <= 3 ? `pos-${pos}` : ``;
                 if(isMe) classPos += " is-me";
 
-                // Determine podium rank title (only if player is Leyenda AND in top 3)
+                // Podio titles (solo texto, sin colores)
                 let rankTitle = p.rankTitle;
                 const podiumTitles = { 1: 'Rey Klick', 2: 'Señor Klick', 3: 'Caballero Klick' };
-                if (pos <= 3 && p.rankTitle === 'Leyenda') {
-                    rankTitle = podiumTitles[pos];
-                }
-                // Colores completamente únicos por rango y podio (sin repeticiones ni similitudes)
-                // Rangos base: Novato=verde#00ff66, Junior=azul#00d4ff, Pro=rojo#ff2a5f, Maestro=morado#b5179e, Leyenda=amarillo#ffb800
-                // Podio exclusivo (colores nunca usados en rangos normales):
-                //   Rey Klick   = #ff0090 (aguamarina — distinto de verde y azul)
-                //   Señor Klick = #ff5e00 (naranja quemado — distinto de rojo y amarillo)
-                //   Caballero   = #ccff00 (lima eléctrica — distinto de verde de Novato)
-                const rankColorMap = {
-                    'Novato':          'var(--accent-green)',
-                    'Junior':          'var(--accent-blue)',
-                    'Pro':             'var(--accent-red)',
-                    'Maestro':         'var(--accent-purple)',
-                    'Leyenda':         'var(--accent-yellow)',
-                    'Rey Klick':       '#ff0090',
-                    'Señor Klick':     '#ff5e00',
-                    'Caballero Klick': '#ccff00'
-                };
-                const cardColor = rankColorMap[rankTitle] || '#888888';
-                
+                if (pos <= 3 && p.rankTitle === 'Leyenda') rankTitle = podiumTitles[pos];
+
+                // Posición visual — top3 ligeramente diferenciados, todos en paleta neutra
+                const posClass = pos <= 3 ? 'pos-' + pos : '';
+                const meClass  = isMe ? 'is-me' : '';
+                const nameCss  = isMe ? 'color:var(--text-primary);font-weight:900;' : '';
+
                 html += `
-                <div class="rank-card ${pos <= 3 ? 'pos-'+pos : ''} ${isMe ? 'is-me' : ''}" style="border-color:${cardColor}33;background:${cardColor}0a;">
-                    <div class="rc-pos" style="color:${cardColor}">${pos}</div>
+                <div class="rank-card ${posClass} ${meClass}">
+                    <div class="rc-pos">${pos}</div>
                     <div class="rc-info">
-                        <div class="rc-name" style="color:${isMe ? cardColor : 'var(--text-primary)'}">${p.name}</div>
-                        <div class="rc-title" style="color:${cardColor}cc">${rankTitle}</div>
+                        <div class="rc-name" style="${nameCss}">${p.name}</div>
+                        <div class="rc-title">${rankTitle}</div>
                     </div>
-                    <div class="rc-score" style="color:${cardColor}">${p.powerLevel.toLocaleString()} <span>PL</span></div>
+                    <div class="rc-score">${p.powerLevel.toLocaleString()} <span>PL</span></div>
                 </div>`;
             });
             document.getElementById('ranking-list').innerHTML = html;
@@ -2774,4 +2781,3 @@
 </script>
 </body>
 </html>
-
