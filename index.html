@@ -857,6 +857,22 @@
         #countdown-number { transition: transform 0.25s var(--ease-spring), opacity 0.25s ease; }
         #countdown-label { transition: opacity 0.25s ease; }
 
+        /* --- Animación entre preguntas --- */
+        @keyframes q-slide-in {
+            from { opacity: 0; transform: translateY(28px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0)   scale(1); }
+        }
+        @keyframes q-slide-out {
+            from { opacity: 1; transform: translateY(0)    scale(1); }
+            to   { opacity: 0; transform: translateY(-18px) scale(0.97); }
+        }
+        .question-text.q-enter { animation: q-slide-in 0.38s var(--ease-spring) both; }
+        .question-text.q-exit  { animation: q-slide-out 0.22s ease-in both; }
+        
+        /* Botones de respuesta — entrada escalonada por pregunta */
+        .answer-btn.q-enter { animation: q-slide-in var(--q-dur, 0.38s) var(--ease-spring) var(--q-delay, 0s) both; }
+        .answer-btn.q-exit  { animation: q-slide-out 0.18s ease-in var(--q-delay, 0s) both; }
+
         /* --- Pantalla de Pregunta --- */
         #question-screen { justify-content: space-between; }
         
@@ -886,8 +902,8 @@
         .timer-text { font-size: 1.4rem; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
         .question-text { font-size: clamp(1.4rem, 4vw, 2.5rem); font-weight: 800; text-align: center; line-height: 1.2; width: 100%; letter-spacing: -1px; background: rgba(5,5,5,0.45); padding: 16px 22px; border-radius: 14px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
         .answers-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px; padding: 10px 20px 30px 20px; flex: 0 0 45vh; max-width: 1400px; width: 100%; margin: 0 auto; z-index: 5; }
-        .answer-btn { position: relative; background-color: rgba(8,8,8,0.72); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); border: 1px solid var(--text-secondary); border-radius: var(--radius-lg); color: var(--text-primary); font-size: clamp(1rem, 2vw, 1.2rem); font-weight: 600; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; opacity: 0; transform: translateY(20px); transition: transform 0.4s var(--ease-spring), opacity 0.4s var(--ease-out), background-color 0.2s, border-color 0.2s;; will-change: transform; }
-        .screen.active .answer-btn { opacity: 1; transform: translateY(0); }
+        .answer-btn { position: relative; background-color: rgba(8,8,8,0.72); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); border: 1px solid var(--text-secondary); border-radius: var(--radius-lg); color: var(--text-primary); font-size: clamp(1rem, 2vw, 1.2rem); font-weight: 600; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; opacity: 1; transition: background-color 0.2s, border-color 0.2s, transform 0.15s; will-change: transform, opacity; }
+        .screen.active .answer-btn { opacity: 1; transform: none; }
         .color-red { border-bottom: 2px solid var(--accent-red); } .color-blue { border-bottom: 2px solid var(--accent-blue); } .color-yellow { border-bottom: 2px solid var(--accent-yellow); } .color-green { border-bottom: 2px solid var(--accent-green); }
         .answer-btn:active { transform: scale(0.96); -webkit-transform: scale(0.96); }
         .answers-grid.answered .answer-btn:not(.selected) { opacity: 0.2; transform: scale(0.95); filter: grayscale(1); pointer-events: none; }
@@ -898,12 +914,51 @@
 
         /* --- Pantallas Extra --- */
         #feedback-screen { justify-content: center; align-items: center; text-align: center; }
-        #feedback-screen.correct .feedback-title { color: var(--rank-color); } 
-        #feedback-screen.incorrect .feedback-title { color: var(--accent-red); }
-        #feedback-screen.timeout .feedback-title { color: rgba(255,255,255,0.6); }
-        #feedback-screen.correct .feedback-points { border-color: rgba(var(--rank-rgb), 0.4); color: var(--rank-color); }
-        #feedback-screen.correct #feedback-icon-container svg { stroke: var(--rank-color); filter: drop-shadow(0 0 8px rgba(var(--rank-rgb),0.4)); }
-        #feedback-screen.incorrect #feedback-icon-container svg { stroke: var(--accent-red); filter: drop-shadow(0 0 6px rgba(255,42,95,0.4)); }
+
+        /* CORRECTO — icono y título comparten el mismo color neón exacto */
+        #feedback-screen.correct .feedback-title {
+            color: var(--rank-color);
+            text-shadow: 0 0 20px rgba(var(--rank-rgb), 0.7), 0 0 40px rgba(var(--rank-rgb), 0.35);
+        }
+        #feedback-screen.correct #feedback-icon-container svg {
+            stroke: var(--rank-color);
+            filter: drop-shadow(0 0 10px rgba(var(--rank-rgb), 0.7)) drop-shadow(0 0 20px rgba(var(--rank-rgb), 0.4));
+        }
+        #feedback-screen.correct .feedback-points {
+            border-color: rgba(var(--rank-rgb), 0.45);
+            color: var(--rank-color);
+            text-shadow: 0 0 12px rgba(var(--rank-rgb), 0.5);
+        }
+
+        /* INCORRECTO — icono y título mismo rojo neón */
+        #feedback-screen.incorrect .feedback-title {
+            color: var(--accent-red);
+            text-shadow: 0 0 20px rgba(255,42,95,0.7), 0 0 40px rgba(255,42,95,0.35);
+        }
+        #feedback-screen.incorrect #feedback-icon-container svg {
+            stroke: var(--accent-red);
+            filter: drop-shadow(0 0 10px rgba(255,42,95,0.7)) drop-shadow(0 0 20px rgba(255,42,95,0.4));
+        }
+
+        /* TIMEOUT — icono y título mismo gris apagado */
+        #feedback-screen.timeout .feedback-title {
+            color: rgba(255,255,255,0.55);
+            text-shadow: none;
+        }
+        #feedback-screen.timeout #feedback-icon-container svg {
+            stroke: rgba(255,255,255,0.55);
+            filter: none;
+        }
+
+        /* ESCUDO — icono y título mismo azul cian neón */
+        #feedback-screen.shield .feedback-title {
+            color: #00d4ff;
+            text-shadow: 0 0 20px rgba(0,212,255,0.7), 0 0 40px rgba(0,212,255,0.35);
+        }
+        #feedback-screen.shield #feedback-icon-container svg {
+            stroke: #00d4ff;
+            filter: drop-shadow(0 0 10px rgba(0,212,255,0.7)) drop-shadow(0 0 20px rgba(0,212,255,0.4));
+        }
         .feedback-content { display: flex; flex-direction: column; align-items: center; transform: scale(0.9); -webkit-transform: scale(0.9); opacity: 0; transition: transform 0.5s var(--ease-spring), opacity 0.5s ease; -webkit-transition: -webkit-transform 0.5s var(--ease-spring), opacity 0.5s ease; }
         .screen.active .feedback-content { transform: scale(1); -webkit-transform: scale(1); opacity: 1; }
         #feedback-icon-container svg { width: 80px; height: 80px; margin-bottom: 15px; }
@@ -1762,6 +1817,11 @@
                 <div class="score-badge" id="score-display">0</div>
             </div>
         </div>
+        <!-- Indicador de recompensa activa de la ruleta -->
+        <div id="active-reward-bar" style="display:none;width:100%;padding:4px 16px;background:rgba(0,0,0,0.35);border-bottom:1px solid rgba(255,255,255,0.06);align-items:center;justify-content:center;gap:8px;font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:#fff;position:relative;z-index:2;">
+            <span id="active-reward-icon" style="font-size:1rem;"></span>
+            <span id="active-reward-text"></span>
+        </div>
         <div class="question-container">
             <div class="timer-wrapper">
                 <svg class="timer-svg" viewBox="0 0 100 100"><circle class="timer-bg" cx="50" cy="50" r="45"></circle><circle class="timer-path" id="timer-path" cx="50" cy="50" r="45"></circle></svg>
@@ -1851,9 +1911,6 @@
         
         const penalty = 2000; 
         playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
-        playerStats.bestScore = Math.max(0, playerStats.bestScore - penalty);
-        playerStats.maxStreak = Math.max(0, playerStats.maxStreak - 5);
-        playerStats.perfectGames = Math.max(0, playerStats.perfectGames - 1);
         
         // --- LOGRO OCULTO TRAMPOSO ---
         if (!playerStats.achievements.includes('tramposo')) {
@@ -2030,11 +2087,20 @@
     function saveStatsLocally() {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(playerStats)); } catch(e) { /* Safari private mode */ }
     }
-    // Versión debounced para guardados frecuentes durante gameplay (no bloquea el hilo principal)
+    // Versión debounced para guardados frecuentes durante gameplay (evita bloquear el hilo principal)
+    // Usa 1500ms de delay — suficiente para batear ráfagas de checkAchievements mid-game
     let _saveTimeout = null;
-    function saveStatsDebounced() {
+    let _saveLastForced = 0;
+    function saveStatsDebounced(force = false) {
         clearTimeout(_saveTimeout);
-        _saveTimeout = setTimeout(saveStatsLocally, 800);
+        const now = Date.now();
+        // Si ha pasado más de 10s desde el último guardado forzado, guardar de inmediato
+        if (force || (now - _saveLastForced) > 10000) {
+            _saveLastForced = now;
+            saveStatsLocally();
+            return;
+        }
+        _saveTimeout = setTimeout(() => { _saveLastForced = Date.now(); saveStatsLocally(); }, 1500);
     }
 
     // ── Revoca logros obtenidos por bugs/errores de lógica ──────────────────────
@@ -2584,16 +2650,22 @@
         return Math.floor(base + best + streak + perf + achs + winRate);
     }
 
+    let _submitDebounceTimer = null;
     async function submitLeaderboard() {
         if (!playerStats.playerName || playerStats.playerName === "JUGADOR" || GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") return;
-        playerStats.powerLevel = calculatePowerLevel(playerStats);
-        const payload = {
-            uuid: playerStats.uuid, name: playerStats.playerName, rankTitle: getRankInfo(playerStats).title,
-            powerLevel: calculatePowerLevel(playerStats), totalScore: playerStats.totalScore, maxStreak: playerStats.maxStreak
-        };
-
-        try { await fetch(GAS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) });
-        } catch(e) {}
+        // Debounce: avoid multiple rapid submits (e.g. saveGameStats + setInterval overlap)
+        clearTimeout(_submitDebounceTimer);
+        _submitDebounceTimer = setTimeout(async () => {
+            const pl = calculatePowerLevel(playerStats);
+            playerStats.powerLevel = pl;
+            const payload = {
+                uuid: playerStats.uuid, name: playerStats.playerName,
+                rankTitle: getRankInfo(playerStats).title,
+                powerLevel: pl, totalScore: playerStats.totalScore, maxStreak: playerStats.maxStreak
+            };
+            try { await fetch(GAS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) });
+            } catch(e) {}
+        }, 1200);
     }
 
     async function fetchLeaderboard() {
@@ -2647,7 +2719,11 @@
             }
         }
     }
-    setInterval(() => { submitLeaderboard(); fetchLeaderboard(); }, 60000);
+    setInterval(() => { 
+        if (document.visibilityState !== 'hidden') {
+            submitLeaderboard(); fetchLeaderboard();
+        }
+    }, 60000);
 
     // --- SISTEMA DE PREGUNTAS MASIVAS (JSON EXTERNO) ---
     let quizDataPool = [];
@@ -2666,6 +2742,28 @@
         }
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  BANCO DE LOGROS — orden temático y por dificultad creciente
+    //
+    //  Bloques (de más accesible a más difícil / oculto):
+    //   1. BIENVENIDA       — primer día, nombre, primera partida            (fáciles)
+    //   2. PARTIDAS         — partidas jugadas y por día                     (progresión)
+    //   3. DÍAS & FIDELIDAD — rachas de login, días totales, retornos        (constancia)
+    //   4. PUNTUACIÓN       — récords por partida y totales de carrera       (habilidad)
+    //   5. SUPERVIVENCIA    — preguntas alcanzadas, sin perder vidas         (resistencia)
+    //   6. RACHA & MULT     — racha máx, multiplicadores                    (combo)
+    //   7. VELOCIDAD        — respuestas rápidas, Flash, sin timeout        (reflejos)
+    //   8. FRENESÍ          — activaciones de frenesí y frenesí eterno      (intensidad)
+    //   9. ACIERTOS         — aciertos acumulados en carrera                (volumen)
+    //  10. ERRORES          — fallos e intentos fallidos                    (humor/ironía)
+    //  11. RULETA           — premios de la ruleta de recompensas           (suerte)
+    //  12. INTERFAZ         — logros de navegación, perfil, guía, ranking   (exploración)
+    //  13. CONFIGURACIÓN    — música, FPS, partículas, temas                (tweaker)
+    //  14. CLASIFICACIÓN    — ranking global, PL, podio                     (competitivo)
+    //  15. ESPECIALES       — únicos narrativos, raros y secretos           (difíciles)
+    //  16. MAESTROS         — coleccionismo extremo                         (platino)
+    // ═══════════════════════════════════════════════════════════════════════════
+
     // --- Data Logros ---
     const ACHIEVEMENTS_DATA = [];
     const colors = { blue: 'var(--accent-blue)', green: 'var(--accent-green)', yellow: 'var(--accent-yellow)', orange: 'var(--accent-orange)', red: 'var(--accent-red)', purple: 'var(--accent-purple)', dark: 'var(--text-secondary)' };
@@ -2674,265 +2772,266 @@
 
     function addAchs(arr) { arr.forEach(a => ACHIEVEMENTS_DATA.push(a)); }
 
-    // --- META (10) ---
+    // ─── 1. BIENVENIDA (8) ────────────────────────────────────────────────────
     addAchs([
-        { id: 'm1',  title: 'Bautizado',      desc: 'Configura tu nombre de jugador por primera vez.',           color: colors.blue,   icon: SVG_USER },
-        { id: 'm2',  title: 'Agente Secreto', desc: 'Cambia tu nombre de jugador 5 veces.',                     color: colors.purple, icon: SVG_USER },
-        { id: 'm3',  title: 'Identidad Falsa',desc: 'Cambia tu nombre de jugador 20 veces.',                    color: colors.red,    icon: SVG_USER },
-        { id: 'm4',  title: 'Curioso',         desc: 'Abre el Banco de Logros por primera vez.',                 color: colors.orange, icon: SVG_TROPHY },
-        { id: 'm5',  title: 'Investigador',    desc: 'Visita el Banco de Logros 10 veces.',                      color: colors.blue,   icon: SVG_TROPHY },
-        { id: 'm6',  title: 'Obsesivo',        desc: 'Visita el Banco de Logros 50 veces.',                      color: colors.purple, icon: SVG_TROPHY },
-        { id: 'm7',  title: 'Diseñador',       desc: 'Fija tu primer logro en el perfil.',                       color: colors.yellow, icon: SVG_STAR },
-        { id: 'm8',  title: 'Coleccionista',   desc: 'Desbloquea 10 logros en total.',                           color: colors.green,  icon: SVG_STAR },
-        { id: 'm9',  title: 'Completista',     desc: 'Alcanza el hito de 50 logros desbloqueados.',              color: colors.orange, icon: SVG_STAR },
-        { id: 'm10', title: 'Centenario',      desc: 'Consigue 100 logros desbloqueados.',                      color: colors.red,    icon: SVG_STAR },
+        { id: 'x1',       title: 'Primer Día',        desc: 'Inicia sesión por primera vez.',                               color: colors.blue,   icon: SVG_CLOCK },
+        { id: 'm1',       title: 'Bautizado',          desc: 'Configura tu nombre de jugador por primera vez.',             color: colors.blue,   icon: SVG_USER },
+        { id: 'ui7',      title: 'Nuevo en el Barrio', desc: 'Juega tu primera partida con nombre registrado.',             color: colors.green,  icon: SVG_USER },
+        { id: 'x3',       title: 'Aprendiz',           desc: 'Completa tu primera partida (sin importar el puntaje).',      color: colors.green,  icon: SVG_TARGET },
+        { id: 'x2',       title: 'Paciente',           desc: 'Espera 10 segundos en el menú principal sin hacer nada.',     color: colors.dark,   icon: SVG_CLOCK },
+        { id: 'u1',       title: 'Error Inicial',      desc: 'Equivócate al responder por primera vez.',                   color: colors.dark,   icon: SVG_INCORRECT },
+        { id: 'u3',       title: 'Dormilón',           desc: 'Deja que el reloj llegue a cero en una pregunta.',            color: colors.dark,   icon: SVG_CLOCK },
+        { id: 'secret_logo', title: '¡Klick!',         desc: 'Hiciste clic en el nombre del juego en la pantalla principal.', color: colors.yellow, icon: SVG_BOLT, hidden: true },
     ]);
 
-    // --- COLECCIÓN MAESTRA (4) ---
+    // ─── 2. PARTIDAS JUGADAS (8 escalables + partidas por día 5+5) ───────────
+    const ptTiers=[1,5,10,25,50,100,200,500];
+    for(let i=0;i<8;i++) addAchs([{ id:`p${i+1}`, title:`Jugador ${i+1}`, desc:`Acumula ${ptTiers[i]} partidas jugadas.`, color:colors.blue, icon:SVG_TARGET }]);
+
+    const todayTiers=[3,5,8,10,15];
+    for(let i=0;i<5;i++) addAchs([{ id:`td${i+1}`, title:`Intenso ${i+1}`, desc:`Juega ${todayTiers[i]} partidas en un solo día.`, color:colors.orange, icon:SVG_FIRE }]);
     addAchs([
-        { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 150 logros en total.',                        color: colors.yellow, icon: SVG_STAR },
-        { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 200 logros en total.',                        color: colors.orange, icon: SVG_STAR },
-        { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 225 logros en total.',                        color: colors.purple, icon: SVG_STAR },
-        { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea todos los logros del juego. Eres absoluto.',      color: colors.red,    icon: SVG_STAR },
+        { id: 'x13', title: 'Noche de Fuego',    desc: 'Juega 10 partidas o más en un único día.',                         color: colors.red,    icon: SVG_FIRE },
+        { id: 'x20', title: 'Pura Determinación',desc: 'Juega 20 partidas en un día con al menos 1 logro desbloqueado en cada.', color: colors.red, icon: SVG_FIRE },
+        { id: 'u22', title: 'Maratón',           desc: 'Juega 50 partidas en un solo día.',                                color: colors.purple, icon: SVG_HEART },
     ]);
 
-    // --- DÍAS DE ACTIVIDAD (10) ---
+    // ─── 3. DÍAS Y FIDELIDAD (10 días + 5 asiduo + 5 fiel) ───────────────────
     const daysTiers  = [1,2,3,5,7,15,21,30,60,90];
     const daysTitles = ['Hola Mundo','Doble','Triple','Cinco','Semana Activa','Quincena','Tres Semanas','Un Mes','Bimestre','Trimestre Fuego'];
     for(let i=0;i<5;i++) addAchs([{ id:`d${i+1}`, title:daysTitles[i], desc:`Inicia sesión durante ${daysTiers[i]} días consecutivos.`, color:colors.green, icon:SVG_CLOCK }]);
     for(let i=5;i<10;i++) addAchs([{ id:`d${i+1}`, title:daysTitles[i], desc:`Juega en ${daysTiers[i]} días distintos en total.`, color:colors.green, icon:SVG_CLOCK }]);
+    const totalDaysTiers=[5,10,20,30,60];
+    for(let i=0;i<5;i++) addAchs([{ id:`td2${i+1}`, title:`Asiduo ${i+1}`, desc:`Juega en ${totalDaysTiers[i]} días distintos en total.`, color:colors.green, icon:SVG_CLOCK }]);
+    const returnDayTiers=[3,7,15,30,60];
+    for(let i=0;i<5;i++) addAchs([{ id:`ret${i+1}`, title:`Fiel ${i+1}`, desc:`Regresa a jugar ${returnDayTiers[i]} días diferentes en total.`, color:colors.green, icon:SVG_HEART }]);
+    addAchs([
+        { id: 'x16', title: 'Regreso Triunfal', desc: 'Después de no jugar por un día, supera tu último récord.',           color: colors.yellow, icon: SVG_TROPHY },
+        { id: 'x18', title: 'El Clásico',       desc: 'Usa el mismo nombre de jugador por 30 días seguidos.',               color: colors.purple, icon: SVG_USER },
+    ]);
 
-    // --- PARTIDAS JUGADAS (8) ---
-    const ptTiers=[1,5,10,25,50,100,200,500];
-    for(let i=0;i<8;i++) addAchs([{ id:`p${i+1}`, title:`Jugador ${i+1}`, desc:`Acumula ${ptTiers[i]} partidas jugadas.`, color:colors.blue, icon:SVG_TARGET }]);
-
-    // --- PUNTOS TOTALES (8) ---
+    // ─── 4. PUNTUACIÓN (8 récord + 8 totales + logros de puntaje) ────────────
+    const bestScoreTiers=[5000,25000,75000,150000,300000,600000,1000000,2000000];
+    const bestScoreTitles=['Primera Marca','Principiante','Prometedor','Serio','Élite','Extraordinario','El Millón','Leyenda Viva'];
+    for(let i=0;i<8;i++) addAchs([{ id:`bs${i+1}`, title:bestScoreTitles[i], desc:`Alcanza un puntaje récord de ${bestScoreTiers[i].toLocaleString()} puntos en una partida.`, color:colors.yellow, icon:SVG_TROPHY }]);
     const ptsTiers=[10000,50000,200000,500000,1000000,2500000,5000000,10000000];
     for(let i=0;i<8;i++) addAchs([{ id:`pt${i+1}`, title:`Ahorrador ${i+1}`, desc:`Acumula ${ptsTiers[i].toLocaleString()} puntos totales en tu carrera.`, color:colors.green, icon:SVG_STAR }]);
-
-    // --- RÉCORDS PERFECTOS (8) ---
     const hsCountTiers=[1,3,5,10,20,35,50,100];
     for(let i=0;i<8;i++) addAchs([{ id:`hs${i+1}`, title:`Récord ${i+1}`, desc:`Supera 100,000 puntos en ${hsCountTiers[i]} partidas distintas.`, color:colors.purple, icon:SVG_FIRE }]);
+    addAchs([
+        { id: 'x7',  title: 'Un Golpe Certero', desc: 'Consigue más de 3,000 puntos en las primeras 3 preguntas.',          color: colors.yellow, icon: SVG_BOLT },
+        { id: 'x12', title: 'Principiante Letal',desc: 'Consigue 50,000 puntos en tu primera partida del día.',             color: colors.blue,   icon: SVG_STAR },
+        { id: 'x4',  title: 'Doble Victoria',    desc: 'Supera 75,000 puntos dos partidas seguidas.',                       color: colors.yellow, icon: SVG_TROPHY },
+        { id: 'x6',  title: 'Consistente',       desc: 'Termina 5 partidas seguidas con al menos 25,000 puntos.',           color: colors.blue,   icon: SVG_SHIELD },
+        { id: 'x15', title: 'Punto de Quiebre',  desc: 'Alcanza exactamente 100,000 puntos (±500).',                        color: colors.purple, icon: SVG_TARGET },
+        { id: 'extra2', title: 'Precisionista',  desc: 'Termina una partida con 100% de precisión (mín. 5 respuestas).',   color: colors.yellow, icon: SVG_TARGET },
+    ]);
 
-    // --- FRENESÍ (8) ---
-    const frTiers=[1,5,10,25,50,100,200,500];
-    for(let i=0;i<8;i++) addAchs([{ id:`r${i+1}`, title:`Frenético ${i+1}`, desc:`Activa el Modo Frenesí en ${frTiers[i]} ocasiones.`, color:colors.orange, icon:SVG_FIRE }]);
-
-    // --- PARTIDAS PERFECTAS (8) ---
+    // ─── 5. SUPERVIVENCIA (8 preguntas alcanzadas + logros sin perder vidas) ─
     const pfTiers=[10,20,30,50,75,100,150,200];
     for(let i=0;i<8;i++) addAchs([{ id:`pf${i+1}`, title:`Resistencia ${i+1}`, desc:`Llega a la pregunta ${pfTiers[i]} en una sola partida.`, color:colors.yellow, icon:SVG_TARGET }]);
+    addAchs([
+        { id: 'x10',  title: 'Economía',         desc: 'Completa 20 preguntas sin perder ninguna vida.',                    color: colors.green,  icon: SVG_HEART },
+        { id: 'x14',  title: 'Invicto',          desc: 'Llega a la pregunta 30 sin perder una vida.',                       color: colors.green,  icon: SVG_SHIELD },
+        { id: 'np1',  title: 'Examen de Oro',    desc: 'Logra 10 aciertos seguidos sin perder ninguna vida.',               color: colors.yellow, icon: SVG_SHIELD },
+        { id: 'u9',   title: 'Inmortal',         desc: 'Completa 50 preguntas seguidas sin perder ninguna vida.',           color: colors.purple, icon: SVG_SHIELD },
+        { id: 'np3',  title: 'Sin Límites',      desc: 'Completa una partida de más de 60 preguntas sin rendirte.',         color: colors.purple, icon: SVG_BOLT },
+        { id: 'extra3', title: 'Maratonista',    desc: 'Supera las 80 preguntas en una sola partida.',                      color: colors.green,  icon: SVG_SHIELD },
+        { id: 'u15',  title: 'Superviviente',    desc: 'Llega a 100 preguntas en una sola partida.',                        color: colors.green,  icon: SVG_SHIELD },
+        { id: 'x11',  title: 'El Último Chance', desc: 'Responde correctamente estando en la última vida.',                 color: colors.orange, icon: SVG_SHIELD },
+    ]);
 
-    // --- VELOCIDAD (8) ---
+    // ─── 6. RACHA Y MULTIPLICADOR (8 racha + 10 mult) ────────────────────────
+    const strkTiers=[5,10,15,20,25,30,40,50];
+    for(let i=0;i<8;i++) addAchs([{ id:`sk${i+1}`, title:`Encadenado ${i+1}`, desc:`Alcanza una racha de ${strkTiers[i]} aciertos seguidos en alguna partida.`, color:colors.orange, icon:SVG_BOLT }]);
+    addAchs([
+        { id: 'u23', title: 'Imparable', desc: 'Encadena una racha de 25 aciertos o más en una partida.', color: colors.yellow, icon: SVG_TARGET },
+    ]);
+    const multTiers=[2,3,4,5,6];
+    for(let i=0;i<5;i++) addAchs([{ id:`mx${i+1}`, title:`Multiplicador x${multTiers[i]}`, desc:`Alcanza el multiplicador x${multTiers[i]} en una partida.`, color:colors.red, icon:SVG_FIRE }]);
+    addAchs([
+        { id: 'mx6',  title: 'Multiplicador x6',           desc: 'Alcanza el multiplicador x6 en una partida.',             color: colors.purple, icon: SVG_FIRE },
+        { id: 'mx7',  title: 'Multiplicador x7',           desc: 'Alcanza el multiplicador x7 en una partida.',             color: colors.red,    icon: SVG_FIRE },
+        { id: 'mx8',  title: 'Multiplicador x8',           desc: 'Alcanza el multiplicador x8 en una partida.',             color: colors.red,    icon: SVG_BOLT },
+        { id: 'mx9',  title: 'Multiplicador x9',           desc: 'Alcanza el multiplicador x9 en una partida.',             color: colors.yellow, icon: SVG_BOLT },
+        { id: 'mx10', title: 'Multiplicador x10 — MÁXIMO', desc: 'Alcanza el multiplicador máximo x10. Eres imparable.',    color: colors.yellow, icon: SVG_TROPHY },
+        { id: 'u16',  title: 'Frenesí Máximo',             desc: 'Alcanza el multiplicador x4 o superior.',                 color: colors.orange, icon: SVG_FIRE },
+    ]);
+
+    // ─── 7. VELOCIDAD Y REFLEJOS (8 velocidad + racha sin timeout + únicos) ──
     const spdTiers=[5,15,30,60,100,200,350,500];
     for(let i=0;i<8;i++) addAchs([{ id:`sp${i+1}`, title:`Reflejos ${i+1}`, desc:`Responde correctamente en los primeros 2s en ${spdTiers[i]} ocasiones.`, color:colors.blue, icon:SVG_BOLT }]);
+    const noTimoutTiers=[5,10,20,35,50];
+    for(let i=0;i<5;i++) addAchs([{ id:`nt${i+1}`, title:`Puntual ${i+1}`, desc:`Responde ${noTimoutTiers[i]} preguntas seguidas sin que se acabe el tiempo.`, color:colors.yellow, icon:SVG_CLOCK }]);
+    addAchs([
+        { id: 'u13',  title: 'Flash',         desc: 'Responde correctamente en menos de 1 segundo.',                       color: colors.yellow, icon: SVG_BOLT },
+        { id: 'u5',   title: 'Por los Pelos', desc: 'Acierta una pregunta cuando el reloj marque exactamente 1 segundo.',  color: colors.red,    icon: SVG_CLOCK },
+        { id: 'u14',  title: 'Calculador',    desc: 'Acierta dejando que el reloj baje a 2-3 segundos.',                   color: colors.blue,   icon: SVG_CLOCK },
+        { id: 'u17',  title: 'Reloj de Arena',desc: 'Acumula 50 respuestas de último segundo (1-2 seg).',                  color: colors.blue,   icon: SVG_CLOCK },
+        { id: 'u24',  title: 'Extremis',      desc: 'Consigue 3 aciertos de último segundo (1 seg) en una partida.',      color: colors.red,    icon: SVG_SHIELD },
+        { id: 'x19',  title: 'Espectacular',  desc: 'Consigue 5 respuestas Flash (< 1 seg) en una partida.',              color: colors.yellow, icon: SVG_BOLT },
+        { id: 'u21',  title: 'Metralleta',    desc: 'Responde 10 preguntas seguidas en menos de 3 segundos cada una.',     color: colors.red,    icon: SVG_BOLT },
+        { id: 'x9',   title: 'Todo Gas',      desc: 'Responde las primeras 10 preguntas en menos de 3 segundos cada una.', color: colors.red,    icon: SVG_BOLT },
+        { id: 'x8',   title: 'Sin Prisa',     desc: 'Termina una partida usando menos de 5 respuestas rápidas.',           color: colors.dark,   icon: SVG_CLOCK },
+        { id: 'u20',  title: 'Centinela',     desc: 'Llega a la pregunta 50 sin usar ningún fallo por tiempo.',            color: colors.dark,   icon: SVG_CLOCK },
+    ]);
 
-    // --- ACIERTOS TOTALES (8) ---
+    // ─── 8. FRENESÍ (8 conteo + 5 eterno) ────────────────────────────────────
+    const frTiers=[1,5,10,25,50,100,200,500];
+    for(let i=0;i<8;i++) addAchs([{ id:`r${i+1}`, title:`Frenético ${i+1}`, desc:`Activa el Modo Frenesí en ${frTiers[i]} ocasiones.`, color:colors.orange, icon:SVG_FIRE }]);
+    const frenzyTimeTiers=[3,5,8,12,20];
+    for(let i=0;i<5;i++) addAchs([{ id:`ft${i+1}`, title:`Frenesí Eterno ${i+1}`, desc:`Mantén el Modo Frenesí activo durante ${frenzyTimeTiers[i]} preguntas consecutivas.`, color:colors.red, icon:SVG_FIRE }]);
+    addAchs([
+        { id: 'extra1', title: 'Doble Frenesí', desc: 'Activa el Modo Frenesí dos veces en la misma partida.',              color: colors.red,    icon: SVG_FIRE },
+        { id: 'fin3',   title: 'Momento Épico', desc: 'Entra en Modo Frenesí y luego consigue 20 aciertos más.',            color: colors.red,    icon: SVG_FIRE },
+    ]);
+
+    // ─── 9. ACIERTOS TOTALES (8 escalables) ──────────────────────────────────
     const acTiers=[10,50,100,250,500,1000,2500,5000];
     for(let i=0;i<8;i++) addAchs([{ id:`ac${i+1}`, title:`Cerebro ${i+1}`, desc:`Acumula ${acTiers[i]} respuestas correctas en total.`, color:colors.green, icon:SVG_CORRECT }]);
 
-    // --- RACHA MÁX ACUMULADA (8 escalables) ---
-    const strkTiers=[5,10,15,20,25,30,40,50];
-    for(let i=0;i<8;i++) addAchs([{ id:`sk${i+1}`, title:`Encadenado ${i+1}`, desc:`Alcanza una racha de ${strkTiers[i]} aciertos seguidos en alguna partida.`, color:colors.orange, icon:SVG_BOLT }]);
-
-    // --- MULTIPLICADOR MÁX (5 escalables) ---
-    const multTiers=[2,3,4,5,6];
-    for(let i=0;i<5;i++) addAchs([{ id:`mx${i+1}`, title:`Multiplicador x${multTiers[i]}`, desc:`Alcanza el multiplicador x${multTiers[i]} en una partida.`, color:colors.red, icon:SVG_FIRE }]);
-
-    // --- VISITAS A RANKING (5 escalables) ---
-    const rankVisTiers=[1,5,15,30,60];
-    for(let i=0;i<5;i++) addAchs([{ id:`rv${i+1}`, title:`Espía de Clasificación ${i+1}`, desc:`Visita la Clasificación Global ${rankVisTiers[i]} veces.`, color:colors.blue, icon:SVG_TROPHY }]);
-
-    // --- VISITAS A CONFIGURACIÓN (4 escalables) ---
-    const cfgVisTiers=[1,5,15,30];
-    for(let i=0;i<4;i++) addAchs([{ id:`cv${i+1}`, title:`Ajustador ${i+1}`, desc:`Abre el menú de Configuración ${cfgVisTiers[i]} veces.`, color:colors.purple, icon:SVG_USER }]);
-
-    // --- VISITAS AL MANUAL (5 escalables) ---
-    const guideVisTiers=[1,5,10,25,50];
-    for(let i=0;i<5;i++) addAchs([{ id:`gv${i+1}`, title:`Estudiante ${i+1}`, desc:`Visita las Instrucciones del juego ${guideVisTiers[i]} veces.`, color:colors.green, icon:SVG_TARGET }]);
-
-    // --- TIEMPO SIN FALLOS (5 escalables) ---
-    const noTimoutTiers=[5,10,20,35,50];
-    for(let i=0;i<5;i++) addAchs([{ id:`nt${i+1}`, title:`Puntual ${i+1}`, desc:`Responde ${noTimoutTiers[i]} preguntas seguidas sin que se acabe el tiempo.`, color:colors.yellow, icon:SVG_CLOCK }]);
-
-    // --- LOGROS ÚNICOS (24) ---
-    addAchs([
-        { id: 'u1',  title: 'Error Inicial',   desc: 'Equivócate al responder por primera vez.',                         color: colors.dark,   icon: SVG_INCORRECT },
-        { id: 'u2',  title: 'Tropiezo',        desc: 'Acumula 100 respuestas incorrectas en tu carrera.',                color: colors.dark,   icon: SVG_INCORRECT },
-        { id: 'u3',  title: 'Dormilón',        desc: 'Deja que el reloj llegue a cero en una pregunta.',                 color: colors.dark,   icon: SVG_CLOCK },
-        { id: 'u4',  title: 'AFK',             desc: 'Deja que el reloj llegue a cero 50 veces en total.',               color: colors.dark,   icon: SVG_CLOCK },
-        { id: 'u5',  title: 'Por los Pelos',   desc: 'Acierta una pregunta cuando el reloj marque exactamente 1 segundo.',color: colors.red,   icon: SVG_CLOCK },
-        { id: 'u_junior', title: 'Junior',     desc: 'Alcanza el rango Junior.',                                            color: colors.blue,   icon: SVG_TROPHY },
-        { id: 'u6',  title: 'Pro',             desc: 'Alcanza el rango Pro.',                                            color: colors.red,    icon: SVG_TROPHY },
-        { id: 'u7',  title: 'Maestro',         desc: 'Alcanza el rango Maestro.',                                        color: colors.purple, icon: SVG_TROPHY },
-        { id: 'u8',  title: 'Leyenda',         desc: 'Alcanza el codiciado rango Leyenda.',                              color: colors.yellow, icon: SVG_TROPHY },
-        { id: 'u_mitico', title: 'Mítico',     desc: 'Alcanza el rango Mítico. El más difícil de conseguir.',            color: '#ffffff',     icon: SVG_STAR },
-        { id: 'u9',  title: 'Inmortal',        desc: 'Completa 50 preguntas seguidas sin perder ninguna vida.',          color: colors.purple, icon: SVG_SHIELD },
-        { id: 'u10', title: 'Desastre',        desc: 'Pierde las 3 vidas en las primeras 3 preguntas.',                  color: colors.dark,   icon: SVG_SKULL },
-        { id: 'u11', title: 'Fénix',           desc: 'Pierde 2 vidas al inicio pero llega a 30 aciertos consecutivos.',  color: colors.orange, icon: SVG_FIRE },
-        { id: 'u12', title: 'Tragedia',        desc: 'Pierde la última vida durante una racha de 20 o más.',             color: colors.dark,   icon: SVG_INCORRECT },
-        { id: 'u13', title: 'Flash',           desc: 'Responde correctamente en menos de 1 segundo.',                    color: colors.yellow, icon: SVG_BOLT },
-        { id: 'u14', title: 'Calculador',      desc: 'Acierta dejando que el reloj baje a 2-3 segundos.',                color: colors.blue,   icon: SVG_CLOCK },
-        { id: 'u15', title: 'Superviviente',   desc: 'Llega a 100 preguntas en una sola partida.',                       color: colors.green,  icon: SVG_SHIELD },
-        { id: 'u16', title: 'Frenesí Máximo',  desc: 'Alcanza el multiplicador x4 o superior.',                          color: colors.orange, icon: SVG_FIRE },
-        { id: 'u17', title: 'Reloj de Arena',  desc: 'Acumula 50 respuestas de último segundo (1-2 seg).',               color: colors.blue,   icon: SVG_CLOCK },
-        { id: 'u18', title: 'Suicida',         desc: 'Pierde las 3 vidas en menos de 30 segundos de partida.',           color: colors.dark,   icon: SVG_SKULL },
-        { id: 'u19', title: 'Resurrección',    desc: 'Pierde 2 vidas seguidas y encadena 10 aciertos consecutivos.',     color: colors.yellow, icon: SVG_HEART },
-        { id: 'u20', title: 'Centinela',       desc: 'Llega a la pregunta 50 sin usar ningún fallo por tiempo.',         color: colors.dark,   icon: SVG_CLOCK },
-        { id: 'u21', title: 'Metralleta',      desc: 'Responde 10 preguntas seguidas en menos de 3 segundos cada una.',  color: colors.red,    icon: SVG_BOLT },
-        { id: 'u22', title: 'Maratón',         desc: 'Juega 50 partidas en un solo día.',                                color: colors.purple, icon: SVG_HEART },
-        { id: 'u23', title: 'Imparable',       desc: 'Encadena una racha de 25 aciertos o más en una partida.',          color: colors.yellow, icon: SVG_TARGET },
-        { id: 'u24', title: 'Extremis',        desc: 'Consigue 3 aciertos de último segundo (1 seg) en una partida.',   color: colors.red,    icon: SVG_SHIELD },
-    ]);
-
-    // --- MODO DE JUEGO (oculto – interacciones con el ranking) (10) ---
-    addAchs([
-        { id: 'nm1', title: 'Primera Sangre',     desc: 'Aparece por primera vez en la Clasificación Global.',            color: colors.red,    icon: SVG_TROPHY },
-        { id: 'nm2', title: 'Top 10',             desc: 'Entra en el Top 10 de la Clasificación.',                       color: colors.orange, icon: SVG_TROPHY },
-        { id: 'nm3', title: 'Podio',              desc: 'Entra en el Top 3 de la Clasificación.',                        color: colors.yellow, icon: SVG_TROPHY },
-        { id: 'nm4', title: 'El Primero',         desc: 'Llega al primer lugar de la Clasificación.',                    color: colors.yellow, icon: SVG_STAR },
-        { id: 'nm5', title: 'Vigilia',            desc: 'Sube en la Clasificación en 3 días consecutivos.',              color: colors.blue,   icon: SVG_CLOCK },
-        { id: 'nm6', title: 'Impostado',          desc: 'Supera a otro jugador que tenía más de 1,000 PL que tú.',       color: colors.purple, icon: SVG_BOLT },
-        { id: 'nm7', title: 'Remontada',          desc: 'Estabas en puesto 15+ y ascendiste al Top 5 en una partida.',   color: colors.orange, icon: SVG_FIRE },
-        { id: 'nm8', title: 'PL 10,000',          desc: 'Alcanza 10,000 Puntos de Poder (Nivel inicial).',               color: colors.green,  icon: SVG_STAR },
-        { id: 'nm9', title: 'PL 100,000',         desc: 'Alcanza 100,000 Puntos de Poder (Nivel Intermedio, Rango Pro).',color: colors.blue,   icon: SVG_STAR },
-        { id: 'nm10',title: 'PL 1,000,000',       desc: 'Alcanza 1,000,000 de Puntos de Poder. Meta del Top Mundial.',   color: colors.yellow, icon: SVG_STAR },
-    ]);
-
-    // --- OCULTOS: CONFIGURACIÓN (8) ---
-    addAchs([
-        { id: 'cfg1', title: 'Silencio Total',     desc: 'Pon la música en 0% desde Configuración.',                     color: colors.dark,   icon: SVG_CLOCK },
-        { id: 'cfg2', title: 'Oídos Abiertos',    desc: 'Sube la música al 100% desde Configuración.',                  color: colors.green,  icon: SVG_STAR },
-        { id: 'cfg3', title: 'Sordomudo',          desc: 'Pon tanto la música como el SFX en 0%.',                      color: colors.dark,   icon: SVG_SKULL },
-        { id: 'cfg4', title: 'Ajuste Fino',        desc: 'Cambia el valor de FPS al menos 5 veces.',                   color: colors.purple, icon: SVG_BOLT },
-        { id: 'cfg5', title: 'Velocista',          desc: 'Activa 240 FPS en Configuración.',                            color: colors.red,    icon: SVG_FIRE },
-        { id: 'cfg6', title: 'Ahorro de Batería',  desc: 'Activa 15 FPS en Configuración.',                            color: colors.dark,   icon: SVG_CLOCK },
-        { id: 'cfg7', title: 'Fantasma',           desc: 'Pon las partículas en 0%.',                                  color: colors.dark,   icon: SVG_SKULL },
-        { id: 'cfg8', title: 'Purpurina',          desc: 'Pon las partículas en 100% y la música en 100% al mismo tiempo.',color: colors.purple, icon: SVG_STAR },
-        { id: 'cfg9',  title: 'Luz del Dia',        desc: 'Activa el Modo Claro desde Configuración.',                   color: colors.yellow, icon: SVG_BOLT },
-        { id: 'cfg10', title: 'Vuelta a Casa',      desc: 'Cambia del Modo Claro al Oscuro después de haberlo activado.', color: colors.dark,   icon: SVG_MOON },
-    ]);
-
-    // --- OCULTOS: INTERFAZ Y CLASIFICACIÓN (10) ---
-    addAchs([
-        { id: 'ui1',  title: 'Explorador',         desc: 'Visita todas las secciones del menú en una misma sesión.',     color: colors.blue,   icon: SVG_TARGET },
-        { id: 'ui2',  title: 'Vuelvo en Un Segundo',desc: 'Entra y sal del menú de Configuración en menos de 3 segundos.',color: colors.yellow, icon: SVG_BOLT },
-        { id: 'ui3',  title: 'La Guía No Miente',  desc: 'Lee el Manual y luego completa 5 aciertos en una partida.',   color: colors.green,  icon: SVG_SHIELD },
-        { id: 'ui5',  title: 'El Perfil Importa',  desc: 'Visita tu perfil después de cada una de tus primeras 5 partidas.',color: colors.blue, icon: SVG_USER },
-        { id: 'ui6',  title: 'Fan de Clasificación',desc: 'Visita la Clasificación mientras hay menos de 5 jugadores.',   color: colors.dark,   icon: SVG_TROPHY },
-        { id: 'ui7',  title: 'Nuevo en el Barrio', desc: 'Juega tu primera partida con nombre registrado.',             color: colors.green,  icon: SVG_USER },
-        { id: 'ui8',  title: 'Bien Conectado',     desc: 'La clasificación global carga sin errores 10 veces.',         color: colors.blue,   icon: SVG_TARGET },
-        { id: 'ui9',  title: 'Puntaje en Mente',   desc: 'Revisa tu perfil inmediatamente después de un puntaje récord.',color: colors.yellow, icon: SVG_STAR },
-        { id: 'ui10', title: 'El Circuito',        desc: 'Navega por las 5 secciones del juego en orden secuencial.',   color: colors.purple, icon: SVG_FIRE },
-    ]);
-
-    // --- ESCALABLES: FALLOS, TIMEOUTS, PARTIDAS HOY (15) ---
+    // ─── 10. ERRORES E IRONÍA (5 fallos + 5 timeouts + únicos humorísticos) ──
     const wrnTiers=[10,50,100,250,500];
     for(let i=0;i<5;i++) addAchs([{ id:`wr${i+1}`, title:`Torpeza ${i+1}`, desc:`Acumula ${wrnTiers[i]} respuestas incorrectas en tu carrera.`, color:colors.dark, icon:SVG_INCORRECT }]);
     const toTiers=[5,20,50,100,250];
     for(let i=0;i<5;i++) addAchs([{ id:`to${i+1}`, title:`Ausente ${i+1}`, desc:`Deja el reloj llegar a cero ${toTiers[i]} veces.`, color:colors.dark, icon:SVG_CLOCK }]);
-    const todayTiers=[3,5,8,10,15];
-    for(let i=0;i<5;i++) addAchs([{ id:`td${i+1}`, title:`Intenso ${i+1}`, desc:`Juega ${todayTiers[i]} partidas en un solo día.`, color:colors.orange, icon:SVG_FIRE }]);
+    addAchs([
+        { id: 'u2',   title: 'Tropiezo',    desc: 'Acumula 100 respuestas incorrectas en tu carrera.',                     color: colors.dark,   icon: SVG_INCORRECT },
+        { id: 'u4',   title: 'AFK',         desc: 'Deja que el reloj llegue a cero 50 veces en total.',                    color: colors.dark,   icon: SVG_CLOCK },
+        { id: 'u10',  title: 'Desastre',    desc: 'Pierde las 3 vidas en las primeras 3 preguntas.',                       color: colors.dark,   icon: SVG_SKULL },
+        { id: 'u18',  title: 'Suicida',     desc: 'Pierde las 3 vidas en menos de 30 segundos de partida.',                color: colors.dark,   icon: SVG_SKULL },
+        { id: 'u12',  title: 'Tragedia',    desc: 'Pierde la última vida durante una racha de 20 o más.',                  color: colors.dark,   icon: SVG_INCORRECT },
+        { id: 'np4',  title: 'La Última Bala', desc: 'Consigue exactamente 1 acierto antes de perder todas las vidas.',   color: colors.dark,   icon: SVG_SKULL },
+        { id: 'x5',   title: 'La Revancha', desc: 'Después de una partida con 0 aciertos, consigue más de 10 aciertos.',  color: colors.orange, icon: SVG_FIRE },
+        { id: 'u11',  title: 'Fénix',       desc: 'Pierde 2 vidas al inicio pero llega a 30 aciertos consecutivos.',      color: colors.orange, icon: SVG_FIRE },
+        { id: 'u19',  title: 'Resurrección',desc: 'Pierde 2 vidas seguidas y encadena 10 aciertos consecutivos.',         color: colors.yellow, icon: SVG_HEART },
+    ]);
 
-    // --- ESCALABLES: PUNTAJE RECORD (8) ---
-    const bestScoreTiers=[5000,25000,75000,150000,300000,600000,1000000,2000000];
-    const bestScoreTitles=['Primera Marca','Principiante','Prometedor','Serio','Élite','Extraordinario','El Millón','Leyenda Viva'];
-    for(let i=0;i<8;i++) addAchs([{ id:`bs${i+1}`, title:bestScoreTitles[i], desc:`Alcanza un puntaje récord de ${bestScoreTiers[i].toLocaleString()} puntos en una partida.`, color:colors.yellow, icon:SVG_TROPHY }]);
+    // ─── 11. RULETA DE RECOMPENSAS (10) ──────────────────────────────────────
+    const SVG_WHEEL = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>`;
+    addAchs([
+        { id: 'rl1',  title: 'Primera Ruleta',     desc: 'Gira la ruleta de recompensas por primera vez.',                 color: colors.yellow, icon: SVG_WHEEL },
+        { id: 'rl6',  title: 'Rodillo de Suerte',  desc: 'Gira la ruleta 10 veces en total.',                             color: colors.blue,   icon: SVG_WHEEL },
+        { id: 'rl7',  title: 'Rulero Empedernido', desc: 'Gira la ruleta 50 veces en total.',                             color: colors.purple, icon: SVG_WHEEL },
+        { id: 'rl2',  title: 'Afortunado',         desc: 'Obtén una Vida Extra en la ruleta.',                            color: colors.red,    icon: SVG_HEART },
+        { id: 'rl8',  title: 'Gran Premio',        desc: 'Consigue la Vida Extra 3 veces en distintas partidas.',         color: colors.red,    icon: SVG_HEART },
+        { id: 'rl3',  title: 'Escudo Dorado',      desc: 'Obtén Protección de Escudo en la ruleta.',                      color: colors.yellow, icon: SVG_SHIELD },
+        { id: 'rl9',  title: 'Invulnerable',       desc: 'Usa el Escudo y no pierdas la vida en esa pregunta.',           color: colors.yellow, icon: SVG_SHIELD },
+        { id: 'rl4',  title: 'Potenciado',         desc: 'Obtén un Potenciador de Puntos en la ruleta.',                  color: colors.orange, icon: SVG_STAR },
+        { id: 'rl5',  title: 'Frenesí Regalado',   desc: 'Activa Frenesí mediante la ruleta.',                            color: colors.purple, icon: SVG_FIRE },
+        { id: 'rl10', title: 'Combo Especial',     desc: 'Consigue un premio de ruleta durante una racha de 20+.',        color: colors.orange, icon: SVG_BOLT },
+    ]);
 
-    // --- ESCALABLES VARIOS (20) ---
-    const totalDaysTiers=[5,10,20,30,60];
-    for(let i=0;i<5;i++) addAchs([{ id:`td2${i+1}`, title:`Asiduo ${i+1}`, desc:`Juega en ${totalDaysTiers[i]} días distintos en total (no necesariamente seguidos).`, color:colors.green, icon:SVG_CLOCK }]);
+    // ─── 12. MÚSICA Y AUDIO (3 pistas) ───────────────────────────────────────
+    addAchs([
+        { id: 'trk1', title: 'Explorador Musical', desc: 'Cambia de pista musical al menos una vez desde Configuración.',  color: colors.green,  icon: SVG_STAR },
+        { id: 'trk2', title: 'DJ Klick',           desc: 'Prueba las 3 pistas musicales disponibles.',                    color: colors.blue,   icon: SVG_STAR },
+        { id: 'trk3', title: 'Fiel al Ritmo',      desc: 'Juega 10 partidas con la misma pista sin cambiarla.',           color: colors.purple, icon: SVG_FIRE },
+        { id: 'extra4', title: 'Silencioso',        desc: 'Juega 5 partidas con la música completamente apagada.',         color: colors.dark,   icon: SVG_CLOCK },
+    ]);
+
+    // ─── 13. INTERFAZ Y EXPLORACIÓN (visitas, guía, perfil, logros meta) ─────
+    addAchs([
+        { id: 'm4',  title: 'Curioso',             desc: 'Abre el Banco de Logros por primera vez.',                      color: colors.orange, icon: SVG_TROPHY },
+        { id: 'm5',  title: 'Investigador',        desc: 'Visita el Banco de Logros 10 veces.',                           color: colors.blue,   icon: SVG_TROPHY },
+        { id: 'm6',  title: 'Obsesivo',            desc: 'Visita el Banco de Logros 50 veces.',                           color: colors.purple, icon: SVG_TROPHY },
+    ]);
+    const guideVisTiers=[1,5,10,25,50];
+    for(let i=0;i<5;i++) addAchs([{ id:`gv${i+1}`, title:`Estudiante ${i+1}`, desc:`Visita las Instrucciones del juego ${guideVisTiers[i]} veces.`, color:colors.green, icon:SVG_TARGET }]);
+    const profileVisTiers=[1,5,15,30,60];
+    for(let i=0;i<5;i++) addAchs([{ id:`pv${i+1}`, title:`Egocéntrico ${i+1}`, desc:`Visita tu perfil ${profileVisTiers[i]} veces.`, color:colors.purple, icon:SVG_USER }]);
+    const rankVisTiers=[1,5,15,30,60];
+    for(let i=0;i<5;i++) addAchs([{ id:`rv${i+1}`, title:`Espía de Clasificación ${i+1}`, desc:`Visita la Clasificación Global ${rankVisTiers[i]} veces.`, color:colors.blue, icon:SVG_TROPHY }]);
+    addAchs([
+        { id: 'ui1',  title: 'Explorador',          desc: 'Visita todas las secciones del menú en una misma sesión.',      color: colors.blue,   icon: SVG_TARGET },
+        { id: 'ui10', title: 'El Circuito',         desc: 'Navega por las 5 secciones del juego en orden secuencial.',     color: colors.purple, icon: SVG_FIRE },
+        { id: 'ui2',  title: 'Vuelvo en Un Segundo',desc: 'Entra y sal del menú de Configuración en menos de 3 segundos.', color: colors.yellow, icon: SVG_BOLT },
+        { id: 'ui3',  title: 'La Guía No Miente',   desc: 'Lee el Manual y luego completa 5 aciertos en una partida.',    color: colors.green,  icon: SVG_SHIELD },
+        { id: 'ui5',  title: 'El Perfil Importa',   desc: 'Visita tu perfil después de cada una de tus primeras 5 partidas.', color: colors.blue, icon: SVG_USER },
+        { id: 'ui6',  title: 'Fan de Clasificación',desc: 'Visita la Clasificación mientras hay menos de 5 jugadores.',    color: colors.dark,   icon: SVG_TROPHY },
+        { id: 'ui8',  title: 'Bien Conectado',      desc: 'La clasificación global carga sin errores 10 veces.',           color: colors.blue,   icon: SVG_TARGET },
+        { id: 'ui9',  title: 'Puntaje en Mente',    desc: 'Revisa tu perfil inmediatamente después de un puntaje récord.', color: colors.yellow, icon: SVG_STAR },
+    ]);
+
+    // ─── 14. CONFIGURACIÓN (4 visitas + 10 ajustes) ───────────────────────────
+    const cfgVisTiers=[1,5,15,30];
+    for(let i=0;i<4;i++) addAchs([{ id:`cv${i+1}`, title:`Ajustador ${i+1}`, desc:`Abre el menú de Configuración ${cfgVisTiers[i]} veces.`, color:colors.purple, icon:SVG_USER }]);
+    addAchs([
+        { id: 'cfg1',  title: 'Silencio Total',    desc: 'Pon la música en 0% desde Configuración.',                       color: colors.dark,   icon: SVG_CLOCK },
+        { id: 'cfg2',  title: 'Oídos Abiertos',   desc: 'Sube la música al 100% desde Configuración.',                    color: colors.green,  icon: SVG_STAR },
+        { id: 'cfg3',  title: 'Sordomudo',         desc: 'Pon tanto la música como el SFX en 0%.',                         color: colors.dark,   icon: SVG_SKULL },
+        { id: 'cfg7',  title: 'Fantasma',          desc: 'Pon las partículas en 0%.',                                      color: colors.dark,   icon: SVG_SKULL },
+        { id: 'cfg8',  title: 'Purpurina',         desc: 'Pon las partículas en 100% y la música en 100% al mismo tiempo.', color: colors.purple, icon: SVG_STAR },
+        { id: 'cfg4',  title: 'Ajuste Fino',       desc: 'Cambia el valor de FPS al menos 5 veces.',                      color: colors.purple, icon: SVG_BOLT },
+        { id: 'cfg6',  title: 'Ahorro de Batería', desc: 'Activa 15 FPS en Configuración.',                               color: colors.dark,   icon: SVG_CLOCK },
+        { id: 'cfg5',  title: 'Velocista',         desc: 'Activa 240 FPS en Configuración.',                              color: colors.red,    icon: SVG_FIRE },
+        { id: 'cfg9',  title: 'Luz del Día',       desc: 'Activa el Modo Claro desde Configuración.',                     color: colors.yellow, icon: SVG_BOLT },
+        { id: 'cfg10', title: 'Vuelta a Casa',     desc: 'Cambia del Modo Claro al Oscuro después de haberlo activado.',   color: colors.dark,   icon: SVG_MOON },
+    ]);
+
+    // ─── 15. NOMBRE DE JUGADOR (3) ────────────────────────────────────────────
+    addAchs([
+        { id: 'm2',  title: 'Agente Secreto', desc: 'Cambia tu nombre de jugador 5 veces.',                               color: colors.purple, icon: SVG_USER },
+        { id: 'm3',  title: 'Identidad Falsa',desc: 'Cambia tu nombre de jugador 20 veces.',                              color: colors.red,    icon: SVG_USER },
+    ]);
+
+    // ─── 16. LOGROS META Y COLECCIÓN (m8–m10 + pins + productivo + day) ──────
+    addAchs([
+        { id: 'm8',  title: 'Coleccionista',  desc: 'Desbloquea 10 logros en total.',                                     color: colors.green,  icon: SVG_STAR },
+        { id: 'm9',  title: 'Completista',    desc: 'Alcanza el hito de 50 logros desbloqueados.',                        color: colors.orange, icon: SVG_STAR },
+        { id: 'm10', title: 'Centenario',     desc: 'Consigue 100 logros desbloqueados.',                                 color: colors.red,    icon: SVG_STAR },
+        { id: 'm7',  title: 'Diseñador',      desc: 'Fija tu primer logro en el perfil.',                                 color: colors.yellow, icon: SVG_STAR },
+        { id: 'np2', title: 'Presumido',      desc: 'Fija 3 logros de color Rojo, Naranja o Dorado en tu perfil.',        color: colors.red,    icon: SVG_STAR },
+    ]);
     const pinTiers=[1,5,10,20,50];
     for(let i=0;i<5;i++) addAchs([{ id:`pin${i+1}`, title:`Curador ${i+1}`, desc:`Fija logros en el perfil ${pinTiers[i]} veces en total.`, color:colors.blue, icon:SVG_PIN }]);
     const dailyAchTiers=[1,3,5,8,12];
     for(let i=0;i<5;i++) addAchs([{ id:`da${i+1}`, title:`Productivo ${i+1}`, desc:`Desbloquea ${dailyAchTiers[i]} logros nuevos en un mismo día.`, color:colors.purple, icon:SVG_STAR }]);
-    const frenzyTimeTiers=[3,5,8,12,20];
-    for(let i=0;i<5;i++) addAchs([{ id:`ft${i+1}`, title:`Frenesí Eterno ${i+1}`, desc:`Mantén el Modo Frenesí activo durante ${frenzyTimeTiers[i]} preguntas consecutivas.`, color:colors.red, icon:SVG_FIRE }]);
-
-    // --- ÚNICOS EXTRA JUGABILIDAD (20) ---
     addAchs([
-        { id: 'x1',  title: 'Primer Día',      desc: 'Inicia sesión por primera vez.',                              color: colors.blue,   icon: SVG_CLOCK },
-        { id: 'x2',  title: 'Paciente',         desc: 'Espera 10 segundos en el menú principal sin hacer nada.',    color: colors.dark,   icon: SVG_CLOCK },
-        { id: 'x3',  title: 'Aprendiz',         desc: 'Completa tu primera partida (sin importar el puntaje).',     color: colors.green,  icon: SVG_TARGET },
-        { id: 'x4',  title: 'Doble Victoria',   desc: 'Supera 75,000 puntos dos partidas seguidas.',              color: colors.yellow, icon: SVG_TROPHY },
-        { id: 'x5',  title: 'La Revancha',      desc: 'Después de una partida con 0 aciertos, consigue más de 10 aciertos.', color: colors.orange, icon: SVG_FIRE },
-        { id: 'x6',  title: 'Consistente',      desc: 'Termina 5 partidas seguidas con al menos 25,000 puntos.',  color: colors.blue,   icon: SVG_SHIELD },
-        { id: 'x7',  title: 'Un Golpe Certero', desc: 'Acumula 3,000 puntos en la primera pregunta.',             color: colors.yellow, icon: SVG_BOLT },
-        { id: 'x8',  title: 'Sin Prisa',        desc: 'Termina una partida usando menos de 5 respuestas rápidas.', color: colors.dark,   icon: SVG_CLOCK },
-        { id: 'x9',  title: 'Todo Gas',         desc: 'Responde las primeras 10 preguntas en menos de 3 segundos cada una.', color: colors.red, icon: SVG_BOLT },
-        { id: 'x10', title: 'Economía',         desc: 'Completa 20 preguntas sin perder ninguna vida.',             color: colors.green,  icon: SVG_HEART },
-        { id: 'x11', title: 'El Último Chance', desc: 'Responde correctamente estando en la última vida.',          color: colors.orange, icon: SVG_SHIELD },
-        { id: 'x12', title: 'Principiante Letal',desc:'Consigue 50,000 puntos en tu primera partida del día.',     color: colors.blue,   icon: SVG_STAR },
-        { id: 'x13', title: 'Noche de Fuego',   desc: 'Juega más de 10 partidas en un único día.',                 color: colors.red,    icon: SVG_FIRE },
-        { id: 'x14', title: 'Invicto',          desc: 'Llega a la pregunta 30 sin perder una vida.',               color: colors.green,  icon: SVG_SHIELD },
-        { id: 'x15', title: 'Punto de Quiebre', desc: 'Alcanza exactamente 100,000 puntos (±500).',                color: colors.purple, icon: SVG_TARGET },
-        { id: 'x16', title: 'Regreso Triunfal', desc: 'Después de no jugar por un día, supera tu último récord.',  color: colors.yellow, icon: SVG_TROPHY },
-        { id: 'x17', title: 'Veterano',         desc: 'Acumula más de 100 partidas jugadas.',                      color: colors.blue,   icon: SVG_TROPHY },
-        { id: 'x18', title: 'El Clásico',       desc: 'Usa el mismo nombre de jugador por 30 días seguidos.',      color: colors.purple, icon: SVG_USER },
-        { id: 'x19', title: 'Espectacular',     desc: 'Consigue 5 respuestas Flash (< 1 seg) en una partida.',    color: colors.yellow, icon: SVG_BOLT },
-        { id: 'x20', title: 'Pura Determinación',desc:'Juega 20 partidas en un día con al menos 1 logro desbloqueado en cada.', color:colors.red, icon:SVG_FIRE },
+        { id: 'extra5', title: 'Día Épico',  desc: 'Desbloquea 10 logros en un mismo día.',                               color: colors.purple, icon: SVG_STAR },
     ]);
 
-    // --- MÁS ESCALABLES (15) ---
-    const profileVisTiers=[1,5,15,30,60];
-    for(let i=0;i<5;i++) addAchs([{ id:`pv${i+1}`, title:`Egocéntrico ${i+1}`, desc:`Visita tu perfil ${profileVisTiers[i]} veces.`, color:colors.purple, icon:SVG_USER }]);
-    const returnDayTiers=[3,7,15,30,60];
-    for(let i=0;i<5;i++) addAchs([{ id:`ret${i+1}`, title:`Fiel ${i+1}`, desc:`Regresa a jugar ${returnDayTiers[i]} días diferentes en total.`, color:colors.green, icon:SVG_HEART }]);
-
-    // --- ÚNICOS FINALES Y MODOS PERFECCIÓN (9) ---
+    // ─── 17. CLASIFICACIÓN GLOBAL Y PODER (ranking + PL) ─────────────────────
     addAchs([
-        { id: 'fin1', title: 'Nocturno',       desc: 'Juega una partida después de las 11:00 PM.',                 color: colors.dark,   icon: SVG_CLOCK },
-        { id: 'fin2', title: 'Madrugador',     desc: 'Juega una partida antes de las 6:00 AM.',                   color: colors.blue,   icon: SVG_CLOCK },
-        { id: 'fin3', title: 'Momento Épico',  desc: 'Entra en Modo Frenesí y luego consigue 20 aciertos más.',   color: colors.red,    icon: SVG_FIRE },
-        { id: 'fin4', title: 'El Pacto',       desc: 'Juega durante 7 días seguidos y alcanza el rango Junior.',  color: colors.green,  icon: SVG_SHIELD },
-        { id: 'fin5', title: 'Monarca',        desc: 'Alcanza simultáneamente el rango Leyenda y 200 logros.',    color: colors.yellow, icon: SVG_TROPHY },
-        { id: 'np1',  title: 'Examen de Oro',  desc: 'Logra 10 aciertos seguidos sin perder ninguna vida.',       color: colors.yellow, icon: SVG_SHIELD },
-        { id: 'np2',  title: 'Presumido',      desc: 'Fija 3 logros de color Rojo o Dorado en tu perfil.',        color: colors.red,    icon: SVG_STAR },
-        { id: 'np3',  title: 'Sin Límites',    desc: 'Completa una partida de más de 60 preguntas sin rendirte.', color: colors.purple, icon: SVG_BOLT },
-        { id: 'np4',  title: 'La Última Bala', desc: 'Consigue exactamente 1 acierto antes de perder todas las vidas.', color: colors.dark, icon: SVG_SKULL },
+        { id: 'nm1',  title: 'Primera Sangre',    desc: 'Aparece por primera vez en la Clasificación Global.',             color: colors.red,    icon: SVG_TROPHY },
+        { id: 'nm8',  title: 'PL 10,000',         desc: 'Alcanza 10,000 Puntos de Poder (Nivel inicial).',                color: colors.green,  icon: SVG_STAR },
+        { id: 'nm2',  title: 'Top 10',            desc: 'Entra en el Top 10 de la Clasificación.',                        color: colors.orange, icon: SVG_TROPHY },
+        { id: 'nm9',  title: 'PL 100,000',        desc: 'Alcanza 100,000 Puntos de Poder.',                               color: colors.blue,   icon: SVG_STAR },
+        { id: 'nm5',  title: 'Vigilia',           desc: 'Sube en la Clasificación en 3 días consecutivos.',               color: colors.blue,   icon: SVG_CLOCK },
+        { id: 'nm6',  title: 'Impostado',         desc: 'Supera a otro jugador que tenía más de 1,000 PL que tú.',        color: colors.purple, icon: SVG_BOLT },
+        { id: 'nm7',  title: 'Remontada',         desc: 'Estabas en puesto 15+ y ascendiste al Top 5 en una partida.',    color: colors.orange, icon: SVG_FIRE },
+        { id: 'nm3',  title: 'Podio',             desc: 'Entra en el Top 3 de la Clasificación.',                         color: colors.yellow, icon: SVG_TROPHY },
+        { id: 'nm4',  title: 'El Primero',        desc: 'Llega al primer lugar de la Clasificación.',                     color: colors.yellow, icon: SVG_STAR },
+        { id: 'nm10', title: 'PL 1,000,000',      desc: 'Alcanza 1,000,000 de Puntos de Poder. Meta del Top Mundial.',    color: colors.yellow, icon: SVG_STAR },
+        { id: 'pod1', title: 'Rey Klick',         desc: 'Eres Leyenda y ocupas el 1.er lugar de la clasificación.',       color: '#6e8fad',    icon: SVG_TROPHY },
+        { id: 'pod2', title: 'Señor Klick',       desc: 'Eres Leyenda y ocupas el 2.º lugar de la clasificación.',        color: '#ff5e00',    icon: SVG_TROPHY },
+        { id: 'pod3', title: 'Caballero Klick',   desc: 'Eres Leyenda y ocupas el 3.er lugar de la clasificación.',       color: '#ccff00',    icon: SVG_TROPHY },
     ]);
 
-    // --- NUEVOS: PISTAS Y MULTIPLICADORES (10) ---
+    // ─── 18. RANGOS (Junior → Mítico) ─────────────────────────────────────────
     addAchs([
-        { id: 'trk1', title: 'Explorador Musical', desc: 'Cambia de pista musical al menos una vez desde Configuración.', color: colors.green, icon: SVG_STAR },
-        { id: 'trk2', title: 'DJ Klick',           desc: 'Prueba las 3 pistas musicales disponibles.',                   color: colors.blue,  icon: SVG_STAR },
-        { id: 'trk3', title: 'Fiel al Ritmo',      desc: 'Juega 10 partidas con la misma pista sin cambiarla.',          color: colors.purple,icon: SVG_FIRE },
-        { id: 'mx6',  title: 'Multiplicador x6',   desc: 'Alcanza el multiplicador x6 en una partida.',                  color: colors.purple,icon: SVG_FIRE },
-        { id: 'mx7',  title: 'Multiplicador x7',   desc: 'Alcanza el multiplicador x7 en una partida.',                  color: colors.red,   icon: SVG_FIRE },
-        { id: 'mx8',  title: 'Multiplicador x8',   desc: 'Alcanza el multiplicador x8 en una partida.',                  color: colors.red,   icon: SVG_BOLT },
-        { id: 'mx9',  title: 'Multiplicador x9',   desc: 'Alcanza el multiplicador x9 en una partida.',                  color: colors.yellow,icon: SVG_BOLT },
-        { id: 'mx10', title: 'Multiplicador x10 — MÁXIMO', desc: 'Alcanza el multiplicador máximo x10. Eres imparable.', color: colors.yellow,icon: SVG_TROPHY },
-        { id: 'pod1', title: 'Rey Klick',          desc: 'Eres Leyenda y ocupas el 1.er lugar de la clasificación.',     color: '#6e8fad',    icon: SVG_TROPHY },
-        { id: 'pod2', title: 'Señor Klick',        desc: 'Eres Leyenda y ocupas el 2.º lugar de la clasificación.',      color: '#ff5e00',    icon: SVG_TROPHY },
-        { id: 'pod3', title: 'Caballero Klick',    desc: 'Eres Leyenda y ocupas el 3.er lugar de la clasificación.',     color: '#ccff00',    icon: SVG_TROPHY },
+        { id: 'u_junior',  title: 'Junior',   desc: 'Alcanza el rango Junior.',                                           color: colors.blue,   icon: SVG_TROPHY },
+        { id: 'u6',        title: 'Pro',      desc: 'Alcanza el rango Pro.',                                              color: colors.red,    icon: SVG_TROPHY },
+        { id: 'u7',        title: 'Maestro',  desc: 'Alcanza el rango Maestro.',                                          color: colors.purple, icon: SVG_TROPHY },
+        { id: 'u8',        title: 'Leyenda',  desc: 'Alcanza el codiciado rango Leyenda.',                                color: colors.yellow, icon: SVG_TROPHY },
+        { id: 'u_mitico',  title: 'Mítico',   desc: 'Alcanza el rango Mítico. El más difícil de conseguir.',              color: '#ffffff',     icon: SVG_STAR },
+        { id: 'fin4',      title: 'El Pacto', desc: 'Juega durante 7 días seguidos y alcanza el rango Junior.',           color: colors.green,  icon: SVG_SHIELD },
+        { id: 'x17',       title: 'Veterano', desc: 'Acumula más de 100 partidas jugadas.',                               color: colors.blue,   icon: SVG_TROPHY },
     ]);
 
-    // --- LOGRO OCULTO: CLICK EN EL LOGO ---
+    // ─── 19. ÚNICOS DE HORARIO Y SITUACIÓN (logros narrativos raros) ──────────
     addAchs([
-        { id: 'secret_logo', title: '¡Klick!',  desc: 'Hiciste clic en el nombre del juego en la pantalla principal.', color: colors.yellow, icon: SVG_BOLT, hidden: true },
+        { id: 'fin1', title: 'Nocturno',      desc: 'Juega una partida después de las 11:00 PM.',                        color: colors.dark,   icon: SVG_CLOCK },
+        { id: 'fin2', title: 'Madrugador',    desc: 'Juega una partida antes de las 6:00 AM.',                          color: colors.blue,   icon: SVG_CLOCK },
+        { id: 'fin5', title: 'Monarca',       desc: 'Alcanza simultáneamente el rango Leyenda y 200 logros.',            color: colors.yellow, icon: SVG_TROPHY },
     ]);
 
-    // --- RULETA DE RECOMPENSAS (10) ---
-    const SVG_WHEEL = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>`;
+    // ─── 20. MAESTROS DE COLECCIÓN (logros extremos de platino) ─────────────
     addAchs([
-        { id: 'rl1',  title: 'Primera Ruleta',    desc: 'Gira la ruleta de recompensas por primera vez.',               color: colors.yellow, icon: SVG_WHEEL },
-        { id: 'rl2',  title: 'Afortunado',        desc: 'Obtén una Vida Extra en la ruleta.',                           color: colors.red,    icon: SVG_HEART },
-        { id: 'rl3',  title: 'Escudo Dorado',     desc: 'Obtén Protección de Escudo en la ruleta.',                     color: colors.yellow, icon: SVG_SHIELD },
-        { id: 'rl4',  title: 'Potenciado',        desc: 'Obtén un Potenciador de Puntos en la ruleta.',                 color: colors.orange, icon: SVG_STAR },
-        { id: 'rl5',  title: 'Frenesí Regalado',  desc: 'Activa Frenesí mediante la ruleta.',                           color: colors.purple, icon: SVG_FIRE },
-        { id: 'rl6',  title: 'Rodillo de Suerte', desc: 'Gira la ruleta 10 veces en total.',                            color: colors.blue,   icon: SVG_WHEEL },
-        { id: 'rl7',  title: 'Rulero Empedernido',desc: 'Gira la ruleta 50 veces en total.',                            color: colors.purple, icon: SVG_WHEEL },
-        { id: 'rl8',  title: 'Gran Premio',       desc: 'Consigue la Vida Extra 3 veces en distintas partidas.',        color: colors.red,    icon: SVG_HEART },
-        { id: 'rl9',  title: 'Invulnerable',      desc: 'Usa el Escudo y no pierdas la vida en esa pregunta.',          color: colors.yellow, icon: SVG_SHIELD },
-        { id: 'rl10', title: 'Combo Especial',    desc: 'Consigue un premio de ruleta durante una racha de 20+.',       color: colors.orange, icon: SVG_BOLT },
-    ]);
-
-    // --- LOGROS EXTRA (5) ---
-    addAchs([
-        { id: 'extra1', title: 'Doble Frenesí',    desc: 'Activa el Modo Frenesí dos veces en la misma partida.',         color: colors.red,    icon: SVG_FIRE },
-        { id: 'extra2', title: 'Precisionista',    desc: 'Termina una partida con 100% de precisión (mín. 5 respuestas).',color: colors.yellow, icon: SVG_TARGET },
-        { id: 'extra3', title: 'Maratonista',      desc: 'Supera las 80 preguntas en una sola partida.',                  color: colors.green,  icon: SVG_SHIELD },
-        { id: 'extra4', title: 'Silencioso',       desc: 'Juega 5 partidas con la música completamente apagada.',         color: colors.dark,   icon: SVG_CLOCK },
-        { id: 'extra5', title: 'Coleccionista',    desc: 'Desbloquea 10 logros en un mismo día.',                         color: colors.purple, icon: SVG_STAR },
+        { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 150 logros en total.',                                  color: colors.yellow, icon: SVG_STAR },
+        { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 200 logros en total.',                                  color: colors.orange, icon: SVG_STAR },
+        { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 225 logros en total.',                                  color: colors.purple, icon: SVG_STAR },
+        { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea todos los logros del juego. Eres absoluto.',            color: colors.red,    icon: SVG_STAR },
     ]);
 
 
@@ -2946,7 +3045,11 @@
                 // Player missed at least one day — mark for x16 Regreso Triunfal
                 if(playerStats.lastLoginDate) playerStats.missedADay = true;
             }
-            playerStats.lastLoginDate = todayStr; playerStats.todayGames = 0; saveStatsLocally(); checkAchievements();
+            playerStats.lastLoginDate = todayStr;
+            playerStats.todayGames = 0;
+            // Reset daily achievement counter so da1-da5 and extra5 track per-day correctly
+            playerStats.dailyAchUnlocks = 0;
+            saveStatsLocally(); checkAchievements();
         }
     }
     function shuffleArray(array) { let current = array.length, random; while (current !== 0) { random = Math.floor(Math.random() * current); current--; [array[current], array[random]] = [array[random], array[current]]; } return array; }
@@ -2958,16 +3061,23 @@
         if (stats.totalScore >= 1200000 && stats.totalCorrect >= 5000 && stats.perfectGames >= 50 &&
             (stats.achievements||[]).length >= 200 && stats.maxStreak >= 40 && (stats.maxMult||1) >= 8 &&
             accuracy >= 85 && stats.maxLoginStreak >= 30)
-            return { title: "Mítico", color: "#ffffff", rgb: "255, 255, 255", mitico: true };
-        if (stats.totalScore >= 400000 && stats.totalCorrect >= 1500 && stats.perfectGames >= 10) return { title: "Leyenda", color: "var(--accent-yellow)", rgb: "255, 184, 0" };
-        if (stats.totalScore >= 150000 && stats.gamesPlayed >= 50 && (stats.maxMult||1) >= 4) return { title: "Maestro", color: "var(--accent-purple)", rgb: "181, 23, 158" };
-        if (stats.totalScore >= 60000 && stats.totalCorrect >= 200 && stats.maxStreak >= 12) return { title: "Pro", color: "var(--accent-red)", rgb: "255, 42, 95" };
-        if (stats.bestScore >= 15000 && stats.gamesPlayed >= 5) return { title: "Junior", color: "var(--accent-blue)", rgb: "0, 212, 255" };
-        return { title: "Novato", color: "var(--accent-green)", rgb: "0, 255, 102" };
+            return { title: "Mítico", color: "#ffffff", rgb: "255,255,255", mitico: true };
+        if (stats.totalScore >= 400000 && stats.totalCorrect >= 1500 && stats.perfectGames >= 10) return { title: "Leyenda", color: "var(--accent-yellow)", rgb: "255,184,0" };
+        if (stats.totalScore >= 150000 && stats.gamesPlayed >= 50 && (stats.maxMult||1) >= 4) return { title: "Maestro", color: "var(--accent-purple)", rgb: "181,23,158" };
+        if (stats.totalScore >= 60000 && stats.totalCorrect >= 200 && stats.maxStreak >= 12) return { title: "Pro", color: "var(--accent-red)", rgb: "255,42,95" };
+        if (stats.bestScore >= 15000 && stats.gamesPlayed >= 5) return { title: "Junior", color: "var(--accent-blue)", rgb: "0,212,255" };
+        return { title: "Novato", color: "var(--accent-green)", rgb: "0,255,102" };
     }
     let currentRankInfo = getRankInfo(playerStats);
 
+    let _achCheckPending = false;
     function checkAchievements() {
+        // Prevent re-entrant calls (e.g. unlock triggers another checkAchievements)
+        if (_achCheckPending) return;
+        _achCheckPending = true;
+        try { _checkAchievementsImpl(); } finally { _achCheckPending = false; }
+    }
+    function _checkAchievementsImpl() {
         let newlyUnlocked = [];
         const achSet = new Set(playerStats.achievements);
         const unlock = (id) => { 
@@ -3024,12 +3134,31 @@
         if (playerStats.totalTimeouts > 0) unlock('u3'); if (playerStats.totalTimeouts >= 50) unlock('u4'); 
         if (playerStats.todayGames >= 50) unlock('u22'); if ((playerStats.maxStreak||0) >= 25) unlock('u23');
         const rank = getRankInfo(playerStats).title; 
+        // También proyectar con el score actual de la partida en curso (si aplica)
+        // Esto evita que el logro se posponga hasta el siguiente checkAchievements post-partida
+        let projectedRank = rank;
+        if (typeof score !== 'undefined' && score > 0 && typeof currentQuestionIndex !== 'undefined') {
+            const proj = Object.assign({}, playerStats, {
+                totalScore: (playerStats.totalScore || 0) + score,
+                bestScore: Math.max(playerStats.bestScore || 0, score),
+                gamesPlayed: (playerStats.gamesPlayed || 0) + 1,
+                totalCorrect: (playerStats.totalCorrect || 0) + (currentQuestionIndex - (currentWrongAnswers||0) - (currentTimeoutAnswers||0)),
+                maxStreak: Math.max(playerStats.maxStreak || 0, currentMaxStreak || 0),
+                maxMult: Math.max(playerStats.maxMult || 1, multiplier || 1)
+            });
+            projectedRank = getRankInfo(proj).title;
+        }
+        const effectiveRank = [rank, projectedRank].includes('Mítico') ? 'Mítico'
+            : [rank, projectedRank].includes('Leyenda') ? 'Leyenda'
+            : [rank, projectedRank].includes('Maestro') ? 'Maestro'
+            : [rank, projectedRank].includes('Pro') ? 'Pro'
+            : [rank, projectedRank].includes('Junior') ? 'Junior' : 'Novato';
         // Rank achievements: cada rango desbloquea todos los anteriores (escalera)
-        if (rank==="Junior"||rank==="Pro"||rank==="Maestro"||rank==="Leyenda"||rank==="Mítico") unlock('u_junior');
-        if (rank==="Pro"||rank==="Maestro"||rank==="Leyenda"||rank==="Mítico") unlock('u6'); 
-        if (rank==="Maestro"||rank==="Leyenda"||rank==="Mítico") unlock('u7'); 
-        if (rank==="Leyenda"||rank==="Mítico") unlock('u8');
-        if (rank==="Mítico") unlock('u_mitico');
+        if (effectiveRank==="Junior"||effectiveRank==="Pro"||effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico") unlock('u_junior');
+        if (effectiveRank==="Pro"||effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico") unlock('u6'); 
+        if (effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico") unlock('u7'); 
+        if (effectiveRank==="Leyenda"||effectiveRank==="Mítico") unlock('u8');
+        if (effectiveRank==="Mítico") unlock('u_mitico');
         if (playerStats.clickedLogo) unlock('secret_logo');
 
         // RULETA
@@ -3063,8 +3192,7 @@
         if(rp===3 && (rank==='Leyenda'||rank==='Mítico')) unlock('pod3');
 
         // MULTIPLICADORES x6-x10
-        const mx2 = playerStats.maxMult||1;
-        if(mx2>=6) unlock('mx6'); if(mx2>=7) unlock('mx7'); if(mx2>=8) unlock('mx8'); if(mx2>=9) unlock('mx9'); if(mx2>=10) unlock('mx10');
+        if(mx>=6) unlock('mx6'); if(mx>=7) unlock('mx7'); if(mx>=8) unlock('mx8'); if(mx>=9) unlock('mx9'); if(mx>=10) unlock('mx10');
 
         // PISTAS MUSICALES
         if((playerStats.trackSwitches||0)>=1) unlock('trk1');
@@ -3128,11 +3256,12 @@
         if(playerStats.playedMadrugador) unlock('fin2');
 
         // LOGROS CON CONDICIÓN DE PUNTAJE (nunca imposibles — se verifican con bestScore)
-        if((playerStats.bestScore||0)>=75000 && (playerStats.maxScoreCount||0)>=2) unlock('x4');
-        if((playerStats.bestScore||0)>=25000 && (playerStats.gamesPlayed||0)>=5) unlock('x6');
-        if((playerStats.bestScore||0)>=3000) unlock('x7');
-        if((playerStats.bestScore||0)>=50000) unlock('x12');
+        if(playerStats.doubleVictory) unlock('x4');
+        if(playerStats.consistent5Games) unlock('x6');
+        if(playerStats.fastStart3k) unlock('x7');
+        if(playerStats.firstGameOfDay50k) unlock('x12');
         if((playerStats.bestScore||0)>=99500 && (playerStats.bestScore||0)<=100500) unlock('x15');
+        if(playerStats.hitExactly100k) unlock('x15');
 
         // LA REVANCHA y SIN PRISA (rastreados por partida)
         if(playerStats.revengeGame) unlock('x5');
@@ -3143,8 +3272,10 @@
         if((playerStats.todayGames||0)>=20) unlock('x20');
 
         // SUPERVIVENCIA / VIDAS
-        if((playerStats.maxQuestionReached||0)>=30) unlock('x14');
-        if((playerStats.maxQuestionReached||0)>=50) unlock('x10');
+        // x14: Invicto (pregunta 30 sin perder vida) — rastreado in-game via inGameUnlock; también revisar aquí por si se ganó y no se guardó
+        if((playerStats.maxQuestionReached||0)>=30 && (playerStats.invictoEarned||false)) unlock('x14');
+        // x10: Economía (20 preguntas sin perder vida) — in-game via inGameUnlock
+        if((playerStats.x10Earned||false)) unlock('x10');
         if((playerStats.maxQuestionReached||0)>=100) unlock('u15');
         if((playerStats.maxQuestionReached||0)>=60) unlock('np3');
 
@@ -3166,6 +3297,9 @@
 
         // REGRESO TRIUNFAL
         if((playerStats.returnTriumph||0)>=1) unlock('x16');
+        // FÉNIX y RESURRECCIÓN (rastreados en saveGameStats)
+        if(playerStats.fenixEarned) unlock('u11');
+        if(playerStats.u19PersistEarned) unlock('u19');
 
         // MODO PERFECCIÓN
         let redGoldCount = 0;
@@ -3178,7 +3312,7 @@
         if (newlyUnlocked.length > 0) { 
             // Track daily achievement unlocks for 'Productivo' da1-da5
             playerStats.dailyAchUnlocks = (playerStats.dailyAchUnlocks||0) + newlyUnlocked.length;
-            saveStatsLocally(); 
+            saveStatsDebounced(); // no bloquear el hilo durante la partida
             renderAchievements(); 
             newlyUnlocked.forEach((ach, index) => { 
                 setTimeout(() => { SFX.achievement(); showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon); }, index * 1300); 
@@ -3828,6 +3962,29 @@
         closeRoulette();
     }
 
+    function updateRewardIndicator() {
+        const bar = document.getElementById('active-reward-bar');
+        const iconEl = document.getElementById('active-reward-icon');
+        const textEl = document.getElementById('active-reward-text');
+        if (!bar) return;
+        let label = '', icon = '', color = '';
+        if (activeBoostNextQ === 'boost') { label = 'Puntos x2 activo'; icon = '⚡'; color = '#ffb800'; }
+        else if (activeBoostNextQ === 'triple') { label = 'Turbo x3 activo'; icon = '⚡'; color = '#ccff00'; }
+        else if (activeBoostNextQ === 'jackpot') { label = 'Jackpot x4 activo'; icon = '🌟'; color = '#ff0090'; }
+        else if (shieldActive) { label = 'Escudo activo'; icon = '🛡'; color = '#00d4ff'; }
+        else if (hintActive) { label = 'Pista lista'; icon = '💡'; color = '#f77f00'; }
+        else if (extraTimeActive > 0) { label = `+${extraTimeActive}s de tiempo`; icon = '⏱'; color = '#00ff66'; }
+        else if (streakShieldActive) { label = 'Racha protegida'; icon = '🔒'; color = '#aaaaff'; }
+        if (label) {
+            iconEl.textContent = icon;
+            textEl.textContent = label;
+            textEl.style.color = color;
+            bar.style.display = 'flex';
+        } else {
+            bar.style.display = 'none';
+        }
+    }
+
     function closeRoulette() {
         const overlay = document.getElementById('roulette-overlay');
         overlay.classList.remove('active');
@@ -3835,9 +3992,16 @@
         currentPrize = null;
         deckAnimating = false;
         isGamePaused = false;
-        // Resume question
+        // Resume — aplica los premios de ruleta en la PRIMERA pregunta siguiente al cobro
         switchScreen('question-screen');
-        setTimeout(loadQuestion, 300);
+        updateRewardIndicator();
+        setTimeout(() => {
+            loadQuestion();
+            if (hintActive) {
+                hintActive = false;
+                setTimeout(applyHintVisual, 150);
+            }
+        }, 300);
     }
 
     function goToMainMenu() { SFX.click(); switchScreen('start-screen'); }
@@ -4154,6 +4318,7 @@
         // Reset roulette state for new game
         totalCorrectThisGame = 0; nextRouletteTrigger = 10;
         activeBoostNextQ = null; shieldActive = false; hintActive = false; extraTimeActive = 0; streakShieldActive = false;
+        const arb = document.getElementById('active-reward-bar'); if(arb) arb.style.display = 'none';
         
         document.getElementById('lives-container').style.display = 'flex';
         document.getElementById('progress-container').style.display = 'none';
@@ -4269,8 +4434,18 @@
         if (currentQ) _markUsed(currentQ);
         const timerPath = document.getElementById('timer-path');
         const timerText = document.getElementById('timer-display');
+        const questionEl = document.getElementById('question-text');
+        const answerBtns = document.querySelectorAll('.answer-btn');
+
+        // ── Animación de entrada ──────────────────────────────────────────────
+        // Elimina clases previas para reiniciar animación
+        questionEl.classList.remove('q-enter', 'q-exit');
+        answerBtns.forEach(btn => btn.classList.remove('q-enter', 'q-exit'));
+
+        // Fuerza reflow para reiniciar animación
+        void questionEl.offsetWidth;
         
-        document.getElementById('question-text').innerText = currentQ.question;
+        questionEl.innerText = currentQ.question;
         
         let mixedAnswers = currentQ.answers.map((text, idx) => ({ text: text, isCorrect: idx === currentQ.correctIndex }));
         mixedAnswers = shuffleArray(mixedAnswers);
@@ -4280,19 +4455,27 @@
         }
 
         document.getElementById('answers-grid').classList.remove('answered'); 
-        document.querySelectorAll('.answer-btn').forEach(btn => { 
+        answerBtns.forEach(btn => { 
             btn.classList.remove('selected'); 
             btn.style.opacity = ''; btn.style.pointerEvents = ''; btn.style.filter = '';
+        });
+
+        // Lanza animación escalonada
+        questionEl.classList.add('q-enter');
+        answerBtns.forEach((btn, i) => {
+            btn.style.setProperty('--q-dur',   '0.4s');
+            btn.style.setProperty('--q-delay', `${0.06 + i * 0.055}s`);
+            btn.classList.add('q-enter');
         });
         
         // Apply extra time from roulette
         let questionTime = TIMER_LIMIT;
-        if (extraTimeActive) { questionTime = TIMER_LIMIT + extraTimeActive; extraTimeActive = 0; }
+        if (extraTimeActive) { questionTime = TIMER_LIMIT + extraTimeActive; extraTimeActive = 0; updateRewardIndicator(); }
         isAnsweringAllowed = true; isGamePaused = false; timeLeft = questionTime; timerText.innerText = timeLeft;
         
         timerPath.style.transition = 'none'; timerPath.style.strokeDashoffset = '0'; timerPath.style.stroke = 'var(--text-primary)'; timerText.style.color = 'var(--text-primary)'; void timerPath.offsetWidth; timerPath.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s ease';
         
-        const timerTotal = questionTime; // capture the actual total for this question
+        const timerTotal = questionTime;
         clearInterval(timerInterval); 
         timerInterval = setInterval(() => { 
             if (isGamePaused) return;
@@ -4306,7 +4489,7 @@
         if (!isAnsweringAllowed || isGamePaused) return; isAnsweringAllowed = false; clearInterval(timerInterval); SFX.select();
         document.getElementById('answers-grid').classList.add('answered'); document.querySelectorAll('.answer-btn')[selectedIndex].classList.add('selected');
         
-        const q = getNextQuestion();
+        const q = currentSessionQuestions[currentQuestionIndex];
         const isCorrect = (selectedIndex === q.currentCorrectIndex); 
         const answerTime = timeLeft;
         currentGameLog.push({ correct: isCorrect, time: answerTime });
@@ -4327,37 +4510,31 @@
         saveStatsDebounced(); setTimeout(() => showFeedback(isCorrect), 600);
     }
     
-    function applyHint() {
-        loadQuestion();
-        // After question loads, disable one WRONG answer button (never the correct one)
-        setTimeout(() => {
-            const q = getNextQuestion();
-            const correctIdx = q ? q.currentCorrectIndex : -1;
-            const btns = document.querySelectorAll('.answer-btn');
-            let hidden = false;
-            btns.forEach((btn, i) => {
-                if (!hidden && i !== correctIdx) {
-                    btn.style.opacity = '0.2';
-                    btn.style.pointerEvents = 'none';
-                    btn.style.filter = 'grayscale(1)';
-                    hidden = true;
-                }
-            });
-        }, 150);
+    function applyHintVisual() {
+        // Disable one WRONG answer button on the currently loaded question
+        const q = currentSessionQuestions[currentQuestionIndex];
+        const correctIdx = q ? q.currentCorrectIndex : -1;
+        const btns = document.querySelectorAll('.answer-btn');
+        let hidden = false;
+        btns.forEach((btn, i) => {
+            if (!hidden && i !== correctIdx) {
+                btn.style.opacity = '0.2';
+                btn.style.pointerEvents = 'none';
+                btn.style.filter = 'grayscale(1)';
+                hidden = true;
+            }
+        });
     }
 
     function handleTimeout() {
-        if (!isAnsweringAllowed || isGamePaused) return; isAnsweringAllowed = false; clearInterval(timerInterval); 
+        if (!isAnsweringAllowed || isGamePaused) return; 
+        isAnsweringAllowed = false; clearInterval(timerInterval); 
         playerStats.totalTimeouts++; currentTimeoutAnswers++; 
         currentGameLog.push({ correct: false, timeout: true, time: 0 });
         ultraFastStreak = 0; currentNoTimeoutStreak = 0;
-        // Shield from roulette also protects against timeouts
-        if (shieldActive) {
-            shieldActive = false;
-            playerStats.rouletteShieldUsed = true;
-            saveStatsDebounced();
-        }
-        saveStatsDebounced(); document.getElementById('answers-grid').classList.add('answered'); setTimeout(() => showFeedback(false, true), 600);
+        saveStatsDebounced(); 
+        document.getElementById('answers-grid').classList.add('answered'); 
+        setTimeout(() => showFeedback(false, true), 600);
     }
 
     function abandonGame() {
@@ -4400,6 +4577,9 @@
     
     function showFeedback(isCorrect, isTimeout = false) {
         const scr = document.getElementById('feedback-screen'), icon = document.getElementById('feedback-icon-container'), title = document.getElementById('feedback-title'), points = document.getElementById('feedback-points');
+        // Reset any inline style overrides from previous feedback (e.g. shield cyan)
+        points.style.borderColor = '';
+        points.style.color = '';
         
         if (isCorrect) {
             SFX.correct(); scr.className = 'screen correct'; icon.innerHTML = SVG_CORRECT; 
@@ -4411,6 +4591,7 @@
             else if (activeBoostNextQ === 'triple') { boostMult = multiplier * 3; activeBoostNextQ = null; }
             else if (activeBoostNextQ === 'jackpot') { boostMult = multiplier * 4; activeBoostNextQ = null; }
             earned = earned * boostMult;
+            updateRewardIndicator();
             score += earned; streak++; if(streak > currentMaxStreak) currentMaxStreak = streak;
             totalCorrectThisGame++;
             consecutiveLivesLost = 0; // reset on correct answer
@@ -4424,7 +4605,7 @@
                     playerStats.achievements.push('np1');
                     SFX.achievement();
                     showToast('Logro Desbloqueado', 'Examen de Oro', colors.yellow, SVG_SHIELD);
-                    saveStatsLocally(); renderAchievements();
+                    saveStatsDebounced(); renderAchievements();
                 }
             }
             if (streak > 0 && streak % 5 === 0) { playerStats.frenziesTriggered++; playerStats.currentFrenzyStreak = (playerStats.currentFrenzyStreak||0) + 1; frenziesThisGame++; if(frenziesThisGame > (playerStats.maxFrenziesInGame||0)) playerStats.maxFrenziesInGame = frenziesThisGame; }
@@ -4435,7 +4616,7 @@
                 if (!playerStats.achievements.includes(id)) {
                     playerStats.achievements.push(id); SFX.achievement();
                     showToast('Logro Desbloqueado', title, col, ico);
-                    saveStatsLocally(); renderAchievements();
+                    saveStatsDebounced(); renderAchievements();
                 }
             };
             // u5: Por los Pelos — acierta con exactamente 1 segundo
@@ -4445,9 +4626,9 @@
             // u9: Inmortal — 50 preguntas sin perder vida (uses currentQuestionIndex)
             if(currentQuestionIndex >= 49 && livesLostThisGame === 0) inGameUnlock('u9','Inmortal', colors.purple, SVG_SHIELD);
             // x10: Economía — 20 preguntas sin perder vida
-            if(currentQuestionIndex >= 19 && livesLostThisGame === 0) inGameUnlock('x10','Economía', colors.green, SVG_HEART);
+            if(currentQuestionIndex >= 19 && livesLostThisGame === 0) { inGameUnlock('x10','Economía', colors.green, SVG_HEART); playerStats.x10Earned = true; }
             // x14: Invicto — llega a pregunta 30 sin perder vida
-            if(currentQuestionIndex >= 29 && livesLostThisGame === 0) inGameUnlock('x14','Invicto', colors.green, SVG_SHIELD);
+            if(currentQuestionIndex >= 29 && livesLostThisGame === 0) { inGameUnlock('x14','Invicto', colors.green, SVG_SHIELD); playerStats.invictoEarned = true; }
             // x11: El Último Chance — acierta en última vida
             if(lives === 1) inGameUnlock('x11','El Último Chance', colors.orange, SVG_SHIELD);
             // u24: Extremis — 3 aciertos de 1 seg en una partida
@@ -4472,22 +4653,27 @@
                 shieldActive = false;
                 playerStats.rouletteShieldUsed = true;
                 saveStatsDebounced();
+                updateRewardIndicator();
                 SFX.correct();
-                scr.className = 'screen correct';
+                scr.className = 'screen shield';
                 icon.innerHTML = SVG_SHIELD;
                 title.innerText = '¡ESCUDO!';
                 points.innerText = 'Protegido';
+                points.style.borderColor = 'rgba(0,212,255,0.45)';
+                points.style.color = '#00d4ff';
                 points.style.display = 'block';
                 // Don't lose life, don't reset streak
             } else {
                 // Boost powers are lost on a wrong answer / timeout (no carry-over)
                 activeBoostNextQ = null;
+                updateRewardIndicator();
                 SFX.incorrect(); 
                 if (isTimeout) { scr.className = 'screen timeout'; icon.innerHTML = SVG_TIMEOUT; title.innerText = "TIEMPO"; } 
                 else { scr.className = 'screen incorrect'; icon.innerHTML = SVG_INCORRECT; title.innerText = "INCORRECTO"; }
                 // Streak shield from roulette: protect racha on one mistake
                 if (streakShieldActive) {
                     streakShieldActive = false;
+                    updateRewardIndicator();
                     showToast('RACHA PROTEGIDA', 'Tu racha ha sido salvada.', '#aaaaff', SVG_SHIELD);
                     // Don't reset streak, but do lose a life
                 } else {
@@ -4505,13 +4691,13 @@
                     if (!playerStats.achievements.includes(id)) {
                         playerStats.achievements.push(id); SFX.achievement();
                         showToast('Logro Desbloqueado', title, col, ico);
-                        saveStatsLocally(); renderAchievements();
+                        saveStatsDebounced(); renderAchievements();
                     }
                 };
-                // u10: Desastre — pierde 3 vidas en primeras 3 preguntas
-                if(lives === 0 && currentQuestionIndex <= 3) failUnlock('u10','Desastre', colors.dark, SVG_SKULL);
-                // u18: Suicida — pierde 3 vidas en <30 seg de partida (approximate via question index ≤2 with 15s each)
-                if(lives === 0 && currentQuestionIndex <= 2) failUnlock('u18','Suicida', colors.dark, SVG_SKULL);
+                // u10: Desastre — pierde 3 vidas en las primeras 3 preguntas (index 0,1,2)
+                if(lives === 0 && currentQuestionIndex < 3) failUnlock('u10','Desastre', colors.dark, SVG_SKULL);
+                // u18: Suicida — pierde 3 vidas en <30 seg (primeras 2 preguntas máx = ≤30s)
+                if(lives === 0 && currentQuestionIndex <= 1) failUnlock('u18','Suicida', colors.dark, SVG_SKULL);
                 // u12: Tragedia — pierde última vida durante racha de 20+
                 if(lives === 0 && currentMaxStreak >= 20) failUnlock('u12','Tragedia', colors.dark, SVG_INCORRECT);
                 // np4: La Última Bala — exactamente 1 acierto antes de perder todas las vidas
@@ -4537,9 +4723,12 @@
                     showRoulette();
                 } else {
                     switchScreen('question-screen'); 
-                    // Apply hint on EVERY next question (correct or incorrect)
-                    if (hintActive) { setTimeout(() => { applyHint(); hintActive = false; }, 450); }
-                    else { setTimeout(loadQuestion, 400); }
+                    if (hintActive) {
+                        hintActive = false;
+                        setTimeout(() => { loadQuestion(); setTimeout(applyHintVisual, 150); }, 400);
+                    } else {
+                        setTimeout(loadQuestion, 400);
+                    }
                 }
             } else {
                 endGame();
@@ -4553,6 +4742,8 @@
         if(score > playerStats.bestScore) playerStats.bestScore = score; 
         if(currentMaxStreak > playerStats.maxStreak) playerStats.maxStreak = currentMaxStreak;
         if(score >= 100000) playerStats.maxScoreCount++;
+        // x15: Punto de Quiebre — score exactamente 100k ±500 (tracked per-game, bestScore check alone fails once exceeded)
+        if(score >= 99500 && score <= 100500) playerStats.hitExactly100k = true;
         if(!playerStats.maxQuestionReached || currentQuestionIndex > playerStats.maxQuestionReached) playerStats.maxQuestionReached = currentQuestionIndex;
         if(currentQuestionIndex >= 50) playerStats.perfectGames = (playerStats.perfectGames||0) + 1;
         // x16: Regreso Triunfal — tras no jugar un día, supera su último récord
@@ -4568,17 +4759,28 @@
         // extra2 Precisionista: partida con 100% de precisión (min 5 respuestas)
         const gameCorrect = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
         if (currentWrongAnswers === 0 && currentTimeoutAnswers === 0 && gameCorrect >= 5) playerStats.hadPerfectAccuracyGame = true;
+        // x12: Principiante Letal — 50k en la primera partida del día
+        if(playerStats.todayGames === 1 && score >= 50000) playerStats.firstGameOfDay50k = true;
         // extra4 Silencioso: juega con música al 0%
         if ((playerStats.musicVol||1) === 0) playerStats.gamesAtMusicZero = (playerStats.gamesAtMusicZero||0) + 1;
         // u11: Fénix — pierde 2 vidas al inicio pero llega a 30 aciertos consecutivos
-        if(livesLostThisGame >= 2 && currentMaxStreak >= 30) {
-            if(!playerStats.achievements.includes('u11')) { playerStats.achievements.push('u11'); showToast('Logro Desbloqueado','Fénix',colors.orange,SVG_FIRE); }
-        }
+        if(livesLostThisGame >= 2 && currentMaxStreak >= 30) playerStats.fenixEarned = true;
         // u19: Resurrección — pierde 2 vidas seguidas y encadena 10 consecutivos
-        if(playerStats.u19Earned) { if(!playerStats.achievements.includes('u19')) { playerStats.achievements.push('u19'); showToast('Logro Desbloqueado','Resurrección',colors.yellow,SVG_HEART); } playerStats.u19Earned=false; }
+        if(playerStats.u19Earned) { playerStats.u19PersistEarned = true; playerStats.u19Earned = false; }
         playerStats.lastGameCorrect = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
+        // x4: Doble Victoria — supera 75k dos partidas seguidas (check before overwriting previousGameScore)
+        if(score >= 75000 && (playerStats.previousGameScore||0) >= 75000) playerStats.doubleVictory = true;
+        // x6: Consistente — 5 partidas seguidas con ≥25k
+        if(score >= 25000) {
+            playerStats.consecutiveGames25k = (playerStats.consecutiveGames25k||0) + 1;
+        } else {
+            playerStats.consecutiveGames25k = 0;
+        }
+        if((playerStats.consecutiveGames25k||0) >= 5) playerStats.consistent5Games = true;
         playerStats.previousGameScore = score; 
-        currentRankInfo = getRankInfo(playerStats); updateLogoDots(); saveStatsLocally(); checkAchievements();
+        currentRankInfo = getRankInfo(playerStats); updateLogoDots(); 
+        saveStatsLocally(); // guardar inmediatamente al final de partida (datos críticos)
+        checkAchievements();
         submitLeaderboard(); 
     }
     
@@ -4709,8 +4911,9 @@
         if (elapsed > fpsInterval) { 
             // Subtract remainder to keep drift-free timing (no debt accumulation)
             then = now - (elapsed % fpsInterval);
-            // Clamp timeScale to prevent jump on tab focus restore
-            let timeScale = Math.min(elapsed / 16.666, 2.5);
+            // Hard clamp to 1 frame worth of movement max — prevents burst after tab focus/throttle
+            // Using 1.0 instead of 2.5 makes particles never "jump" forward
+            const timeScale = Math.min(elapsed / fpsInterval, 1.0);
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
@@ -4776,7 +4979,7 @@
         const elapsed = now - rlThen;
         if (elapsed < 33) return; // ~30fps cap
         rlThen = now - (elapsed % 33);
-        const timeScale = Math.min(elapsed / 16.666, 3);
+        const timeScale = Math.min(elapsed / 33, 1.0); // clamp: never jump more than 1 frame
         rlCtx.clearRect(0, 0, rlCanvas.width, rlCanvas.height);
         const W = rlCanvas.width, H = rlCanvas.height;
         // Draw particles
