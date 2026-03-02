@@ -254,10 +254,11 @@
         /* --- Pantallas Extra --- */
         #feedback-screen { justify-content: center; align-items: center; text-align: center; }
         #feedback-screen.correct .feedback-title { color: var(--rank-color); } 
-        #feedback-screen.incorrect .feedback-title { color: rgba(255,255,255,0.75); }
+        #feedback-screen.incorrect .feedback-title { color: var(--rank-color); }
         #feedback-screen.timeout .feedback-title { color: rgba(255,255,255,0.6); }
         #feedback-screen.correct .feedback-points { border-color: rgba(var(--rank-rgb), 0.4); color: var(--rank-color); }
         #feedback-screen.correct #feedback-icon-container svg { stroke: var(--rank-color); filter: drop-shadow(0 0 8px rgba(var(--rank-rgb),0.4)); }
+        #feedback-screen.incorrect #feedback-icon-container svg { stroke: var(--rank-color); filter: drop-shadow(0 0 6px rgba(var(--rank-rgb),0.3)); }
         .feedback-content { display: flex; flex-direction: column; align-items: center; transform: scale(0.9); opacity: 0; transition: all 0.5s var(--ease-spring); }
         .screen.active .feedback-content { transform: scale(1); opacity: 1; }
         #feedback-icon-container svg { width: 80px; height: 80px; margin-bottom: 15px; }
@@ -552,17 +553,17 @@
                             <div style="font-size:0.7rem;font-weight:800;color:var(--accent-yellow);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center;">Rangos Exclusivos de Podio — Solo Top 3 + Leyenda</div>
                             <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;text-align:center;">Estos títulos <strong style="color:var(--text-primary);">solo existen para los 3 primeros del ranking global</strong> que, además, ya tengan el rango <strong style="color:var(--accent-yellow);">Leyenda</strong>. Si dejas el podio o pierdes el rango Leyenda, el título desaparece. Son los únicos rangos del juego que no se obtienen por progreso individual sino por posición en el ranking.</div>
                             <div class="rank-list" style="gap:8px;">
-                                <div class="rank-item" style="border-color:rgba(224,64,251,0.5);background:rgba(224,64,251,0.06);flex:1 1 30%;position:relative;">
-                                    <span class="rank-item-name" style="color:#e040fb;font-size:1rem;">Rey Klick</span>
-                                    <span class="rank-item-pts" style="color:rgba(224,64,251,0.7);">Leyenda + 1.º del Ranking</span>
+                                <div class="rank-item" style="border-color:rgba(255,0,144,0.45);background:rgba(255,0,144,0.06);flex:1 1 30%;position:relative;">
+                                    <span class="rank-item-name" style="color:#ff0090;font-size:1rem;">Rey Klick</span>
+                                    <span class="rank-item-pts" style="color:rgba(255,0,144,0.7);">Leyenda + 1.º del Ranking</span>
                                 </div>
-                                <div class="rank-item" style="border-color:rgba(0,229,255,0.5);background:rgba(0,229,255,0.05);flex:1 1 30%;">
-                                    <span class="rank-item-name" style="color:#00e5ff;font-size:0.95rem;">Señor Klick</span>
-                                    <span class="rank-item-pts" style="color:rgba(0,229,255,0.7);">Leyenda + 2.º del Ranking</span>
+                                <div class="rank-item" style="border-color:rgba(255,94,0,0.45);background:rgba(255,94,0,0.05);flex:1 1 30%;">
+                                    <span class="rank-item-name" style="color:#ff5e00;font-size:0.95rem;">Señor Klick</span>
+                                    <span class="rank-item-pts" style="color:rgba(255,94,0,0.7);">Leyenda + 2.º del Ranking</span>
                                 </div>
-                                <div class="rank-item" style="border-color:rgba(105,255,71,0.5);background:rgba(105,255,71,0.05);flex:1 1 30%;">
-                                    <span class="rank-item-name" style="color:#69ff47;font-size:0.95rem;">Caballero Klick</span>
-                                    <span class="rank-item-pts" style="color:rgba(105,255,71,0.7);">Leyenda + 3.º del Ranking</span>
+                                <div class="rank-item" style="border-color:rgba(204,255,0,0.45);background:rgba(204,255,0,0.05);flex:1 1 30%;">
+                                    <span class="rank-item-name" style="color:#ccff00;font-size:0.95rem;">Caballero Klick</span>
+                                    <span class="rank-item-pts" style="color:rgba(204,255,0,0.7);">Leyenda + 3.º del Ranking</span>
                                 </div>
                             </div>
                         </div>
@@ -580,6 +581,101 @@
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg>
                         <div class="guide-title">Clasificación Global</div>
                         <div class="guide-text">La clasificación usa tu <strong>Nivel de Poder (PL)</strong>, calculado a partir de tu récord, racha máxima, partidas perfectas, logros y precisión. Compite con jugadores del mundo en <strong>tiempo real</strong>.</div>
+                    </div>
+
+                    <!-- RECOMPENSAS DE CLASIFICACIÓN -->
+                    <div class="guide-card full-width glass-panel" style="border-color: rgba(255,184,0,0.2);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-yellow);"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+                        <div class="guide-title" style="color: var(--accent-yellow);">Recompensas Mensuales de Clasificación</div>
+                        <div class="guide-text" style="text-align:left;line-height:1.8;">
+                            Los <strong>20 mejores jugadores del ranking global</strong> reciben <strong style="color:var(--accent-yellow);">Pinceles del BPD</strong> mensualmente, entregados <strong>24 horas antes de la apertura de la tienda</strong> cada mes.
+                        </div>
+
+                        <!-- Podio -->
+                        <div style="margin-top:18px;width:100%;">
+                            <div style="font-size:0.65rem;font-weight:800;color:var(--accent-yellow);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">Nivel Podio — Puestos 1 al 3</div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <div style="flex:1 1 30%;min-width:90px;padding:14px 12px;border-radius:14px;border:1.5px solid rgba(255,215,0,0.5);background:rgba(255,215,0,0.07);text-align:center;">
+                                    <div style="font-size:1.5rem;font-weight:900;color:#ffd700;text-shadow:0 0 12px rgba(255,215,0,0.5);">1.º</div>
+                                    <div style="font-size:0.9rem;font-weight:800;color:#ffd700;margin-top:4px;">50,000</div>
+                                    <div style="font-size:0.6rem;color:rgba(255,215,0,0.6);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Pinceles</div>
+                                </div>
+                                <div style="flex:1 1 30%;min-width:90px;padding:14px 12px;border-radius:14px;border:1.5px solid rgba(192,192,192,0.45);background:rgba(192,192,192,0.06);text-align:center;">
+                                    <div style="font-size:1.5rem;font-weight:900;color:#c0c0c0;">2.º</div>
+                                    <div style="font-size:0.9rem;font-weight:800;color:#c0c0c0;margin-top:4px;">35,000</div>
+                                    <div style="font-size:0.6rem;color:rgba(192,192,192,0.6);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Pinceles</div>
+                                </div>
+                                <div style="flex:1 1 30%;min-width:90px;padding:14px 12px;border-radius:14px;border:1.5px solid rgba(205,127,50,0.45);background:rgba(205,127,50,0.06);text-align:center;">
+                                    <div style="font-size:1.5rem;font-weight:900;color:#cd7f32;">3.º</div>
+                                    <div style="font-size:0.9rem;font-weight:800;color:#cd7f32;margin-top:4px;">25,000</div>
+                                    <div style="font-size:0.6rem;color:rgba(205,127,50,0.6);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Pinceles</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Niveles -->
+                        <div style="margin-top:16px;width:100%;display:flex;flex-direction:column;gap:8px;">
+                            <!-- Oro -->
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-radius:12px;border:1px solid rgba(255,215,0,0.25);background:rgba(255,215,0,0.04);">
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <div style="width:10px;height:10px;border-radius:50%;background:#ffd700;box-shadow:0 0 8px rgba(255,215,0,0.6);flex-shrink:0;"></div>
+                                    <div>
+                                        <div style="font-size:0.8rem;font-weight:800;color:#ffd700;text-transform:uppercase;letter-spacing:1px;">Nivel Oro</div>
+                                        <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">Puestos 4 al 6</div>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="font-size:1rem;font-weight:900;color:#ffd700;">18,000</div>
+                                    <div style="font-size:0.58rem;color:var(--text-secondary);letter-spacing:1px;text-transform:uppercase;">Pinceles c/u</div>
+                                </div>
+                            </div>
+                            <!-- Plata -->
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-radius:12px;border:1px solid rgba(192,192,192,0.2);background:rgba(192,192,192,0.03);">
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <div style="width:10px;height:10px;border-radius:50%;background:#c0c0c0;box-shadow:0 0 8px rgba(192,192,192,0.4);flex-shrink:0;"></div>
+                                    <div>
+                                        <div style="font-size:0.8rem;font-weight:800;color:#c0c0c0;text-transform:uppercase;letter-spacing:1px;">Nivel Plata</div>
+                                        <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">Puestos 7 al 10</div>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="font-size:1rem;font-weight:900;color:#c0c0c0;">15,000</div>
+                                    <div style="font-size:0.58rem;color:var(--text-secondary);letter-spacing:1px;text-transform:uppercase;">Pinceles c/u</div>
+                                </div>
+                            </div>
+                            <!-- Bronce -->
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-radius:12px;border:1px solid rgba(205,127,50,0.2);background:rgba(205,127,50,0.03);">
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <div style="width:10px;height:10px;border-radius:50%;background:#cd7f32;box-shadow:0 0 8px rgba(205,127,50,0.4);flex-shrink:0;"></div>
+                                    <div>
+                                        <div style="font-size:0.8rem;font-weight:800;color:#cd7f32;text-transform:uppercase;letter-spacing:1px;">Nivel Bronce</div>
+                                        <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">Puestos 11 al 15</div>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="font-size:1rem;font-weight:900;color:#cd7f32;">12,000</div>
+                                    <div style="font-size:0.58rem;color:var(--text-secondary);letter-spacing:1px;text-transform:uppercase;">Pinceles c/u</div>
+                                </div>
+                            </div>
+                            <!-- Base -->
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);">
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <div style="width:10px;height:10px;border-radius:50%;background:var(--text-secondary);flex-shrink:0;"></div>
+                                    <div>
+                                        <div style="font-size:0.8rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;">Nivel Base</div>
+                                        <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">Puestos 16 al 20</div>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="font-size:1rem;font-weight:900;color:var(--text-primary);">10,000</div>
+                                    <div style="font-size:0.58rem;color:var(--text-secondary);letter-spacing:1px;text-transform:uppercase;">Pinceles c/u</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:14px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                            <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.6;text-align:center;">Los pinceles se entregan directamente a tu cuenta del BPD. La posición en el ranking se toma como foto fija el día de corte mensual. Asegúrate de estar activo y en el top 20 antes del cierre.</div>
+                        </div>
                     </div>
 
                     <!-- LO QUE NO DEBES HACER -->
@@ -1064,8 +1160,8 @@
         },
         {
             id: 'track_pulse',
-            name: 'Soft Glow',
-            desc: 'Melódico · Agradable',
+            name: 'Dark Tide',
+            desc: 'Oscuro · Profundo',
             color: 'var(--accent-green)'
         },
         {
@@ -1141,15 +1237,15 @@
             kickVol: 0.3, bassVol: 0.2, arpVol: 0.18,
             hasPad: true, hasHihat: false
         },
-        // SOFT GLOW: dreamy bell-chime, pentatonic, no kick/bass/pad, high register, waltz feel
-        // Uses arpType 'sine' for bell tone, no percussion at all, very different from chill & bass
+        // DARK TIDE: tétrico, profundo, oscuro. Órgano menor, bajo de dron, grave e inquietante.
+        // Sin campanas, sin brillos. Todo en registro bajo, progresión menor, lento y sombrío.
         track_pulse: {
-            bpmBase: 78, bpmFrenzy: 96,
-            CHORD_PROG: [[72,76,79,83],[74,77,81,84],[69,72,76,81],[71,74,78,83]],
-            ARP_PAT: [2,0,3,1,2,3,0,2,1,3,0,1,3,2,0,1],
-            arpType: 'sine', bassType: 'sine', kickFreq: 0,
-            kickVol: 0, bassVol: 0, arpVol: 0.28,
-            hasPad: false, hasHihat: false, hasBells: true, noKick: true, noBass: true
+            bpmBase: 60, bpmFrenzy: 78,
+            CHORD_PROG: [[40,47,52,55],[38,45,50,53],[36,43,48,52],[41,48,53,57]],
+            ARP_PAT: [0,2,1,3,2,0,3,1,0,2,3,0,1,3,2,1],
+            arpType: 'sawtooth', bassType: 'sawtooth', kickFreq: 42,
+            kickVol: 0.85, bassVol: 0.62, arpVol: 0.13,
+            hasPad: true, hasHihat: false, hasDrone: true
         },
         // DEEP CURRENT: slow to mid, sawtooth bass dominant, sparse melody, groovey feel
         track_bass: {
@@ -1199,26 +1295,26 @@
         const chord = tc.CHORD_PROG[chordIndex];
         const step  = musicSeqStep;
 
-        // Kick (every 4 steps) — skip if noKick
-        if (!tc.noKick && step % 4 === 0) {
+        // Kick (every 4 steps)
+        if (step % 4 === 0) {
             const o = audioCtx.createOscillator(), g = audioCtx.createGain();
             o.type = 'sine';
             o.frequency.setValueAtTime(tc.kickFreq, t);
-            o.frequency.exponentialRampToValueAtTime(0.01, t + 0.25);
+            o.frequency.exponentialRampToValueAtTime(0.01, t + 0.35);
             const kv = tc.kickVol || 0.7;
             g.gain.setValueAtTime(isFrenzy ? kv * 1.2 : kv, t);
-            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
-            o.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 0.3);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
+            o.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 0.4);
         }
 
-        // Snare on beat 2 and 4 (for track_pulse only)
+        // Snare on beat 2 and 4
         if (tc.hasSnare && (step === 4 || step === 12)) {
             playNoiseAt(t, 0.25, 0.12, 3000);
             playNoiseAt(t, 0.18, 0.08, 8000);
         }
 
-        // Bass (every 2 steps) — skip if noBass
-        if (!tc.noBass && step % 2 === 0) {
+        // Bass (every 2 steps)
+        if (step % 2 === 0) {
             const o = audioCtx.createOscillator(), g = audioCtx.createGain(), f = audioCtx.createBiquadFilter();
             o.type = tc.bassType;
             o.frequency.setValueAtTime(midiToHz(chord[0] - 12), t);
@@ -1226,7 +1322,6 @@
             const bv = tc.bassVol || 0.3;
             f.frequency.setValueAtTime(isFrenzy ? 900 : 400, t);
             f.frequency.exponentialRampToValueAtTime(80, t + 0.18);
-            // Wobble for deep current track
             if (tc.hasWobble) {
                 const lfo = audioCtx.createOscillator();
                 const lfoGain = audioCtx.createGain();
@@ -1236,66 +1331,71 @@
                 lfo.start(t); lfo.stop(t + 0.4);
             }
             g.gain.setValueAtTime(isFrenzy ? bv * 1.3 : bv, t);
-            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
-            o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 0.2);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+            o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 0.25);
         }
 
-        // Bells: for Soft Glow — two-tone bell with detuned overtone, only on even steps
-        if (tc.hasBells && step % 2 === 0) {
-            const noteMidi2 = chord[tc.ARP_PAT[(step + 4) % 16]] + 12;
-            [noteMidi2, noteMidi2 + 7].forEach((m, idx) => {
+        // Drone: Dark Tide — continuous low sub-bass tone, very slow tremolo (every 8 steps)
+        if (tc.hasDrone && step % 8 === 0) {
+            const droneDur = 2.4;
+            [chord[0] - 24, chord[0] - 12].forEach((m, idx) => {
                 const o = audioCtx.createOscillator(), g = audioCtx.createGain();
                 o.type = 'sine';
                 o.frequency.setValueAtTime(midiToHz(m), t);
-                const bv2 = (idx === 0 ? 0.10 : 0.05) * (isFrenzy ? 1.3 : 1);
+                // slight detune for beating effect
+                if (idx === 1) o.detune.setValueAtTime(8, t);
+                const dv = idx === 0 ? 0.18 : 0.10;
                 g.gain.setValueAtTime(0.0001, t);
-                g.gain.linearRampToValueAtTime(bv2, t + 0.01);
-                g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
-                o.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 1.0);
+                g.gain.linearRampToValueAtTime(dv, t + 0.5);
+                g.gain.setValueAtTime(dv, t + droneDur - 0.5);
+                g.gain.linearRampToValueAtTime(0.0001, t + droneDur);
+                o.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + droneDur + 0.05);
             });
         }
 
-        // Pad: sustained chord for chill track (every 16 steps = new chord)
+        // Pad: sustained chord (every 16 steps = new chord)
         if (tc.hasPad && step === 0) {
-            chord.forEach((note, i) => {
+            chord.forEach((note) => {
                 const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-                o.type = 'sine';
+                // Dark Tide: use sawtooth for organ-like pad
+                o.type = tc.hasDrone ? 'sawtooth' : 'sine';
                 o.frequency.setValueAtTime(midiToHz(note), t);
-                const padV = 0.06;
+                const padV = tc.hasDrone ? 0.045 : 0.06;
                 g.gain.setValueAtTime(0.0001, t);
-                g.gain.linearRampToValueAtTime(padV, t + 0.3);
-                g.gain.setValueAtTime(padV, t + 1.5);
-                g.gain.linearRampToValueAtTime(0.0001, t + 2.2);
-                o.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 2.4);
+                g.gain.linearRampToValueAtTime(padV, t + 0.5);
+                g.gain.setValueAtTime(padV, t + 1.6);
+                g.gain.linearRampToValueAtTime(0.0001, t + 2.4);
+                const f = audioCtx.createBiquadFilter();
+                f.type = 'lowpass';
+                f.frequency.setValueAtTime(tc.hasDrone ? 600 : 4000, t);
+                o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 2.5);
             });
         }
 
-        // Arp melody (every step)
-        const noteMidi = chord[tc.ARP_PAT[step]] + (isFrenzy ? 12 : 0);
-        const arpDur   = tc.hasBells ? (isFrenzy ? 0.35 : 0.65) : (isFrenzy ? 0.12 : 0.22);
-        const av = tc.arpVol || 0.25;
-        {
+        // Arp melody (every step) — Dark Tide: sparse, only on some steps
+        const doArp = tc.hasDrone ? (step % 4 === 0 || step % 4 === 3) : true;
+        if (doArp) {
+            const noteMidi = chord[tc.ARP_PAT[step]] + (isFrenzy ? 0 : -12);
+            const arpDur = isFrenzy ? 0.18 : 0.35;
+            const av = tc.arpVol || 0.25;
             const o = audioCtx.createOscillator(), g = audioCtx.createGain(), f = audioCtx.createBiquadFilter();
             o.type = tc.arpType;
             o.frequency.setValueAtTime(midiToHz(noteMidi), t);
             f.type = 'lowpass';
-            f.frequency.setValueAtTime(tc.hasBells ? 4000 : (isFrenzy ? 3000 : 1200), t);
+            f.frequency.setValueAtTime(tc.hasDrone ? 500 : (isFrenzy ? 3000 : 1200), t);
             g.gain.setValueAtTime(0.0001, t);
-            g.gain.linearRampToValueAtTime(av, t + (tc.hasBells ? 0.005 : 0.015));
+            g.gain.linearRampToValueAtTime(av, t + 0.025);
             g.gain.exponentialRampToValueAtTime(0.0001, t + arpDur);
             o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + arpDur + 0.01);
         }
 
-        // Hi-hat: for pulse track (every step) and in frenzy for others
+        // Hi-hat / frenzy noise
         if (tc.hasHihat) {
             if (step % 2 !== 0) playNoiseAt(t, 0.04, 0.08, 9000);
             if (step === 0 || step === 8) playNoiseAt(t, 0.1, 0.15, 5000);
-        } else if (isFrenzy && !tc.hasBells) {
+        } else if (isFrenzy) {
             if (step % 2 !== 0) playNoiseAt(t, 0.03, 0.12, 8000);
             if (step === 0 || step === 8) playNoiseAt(t, 0.08, 0.2, 2000);
-        } else if (isFrenzy && tc.hasBells) {
-            // In frenzy, add soft shimmer for bells track
-            if (step % 4 === 0) playNoiseAt(t, 0.08, 0.04, 12000);
         }
     }
 
@@ -1318,7 +1418,34 @@
         // Game start: punchy low impact + mid tone
         gameStart:    () => playSFX([[110, 'sine', 0, 0.25, 0.08], [440, 'triangle', 0.08, 0.20, 0.12], [660, 'sine', 0.20, 0.15, 0.11]]),
         // Game end: warm resolving chord
-        gameEnd:      () => playSFX([[330, 'sine', 0, 0.18, 0.14], [415, 'sine', 0.10, 0.18, 0.14], [554, 'sine', 0.20, 0.22, 0.14]])
+        gameEnd:      () => playSFX([[330, 'sine', 0, 0.18, 0.14], [415, 'sine', 0.10, 0.18, 0.14], [554, 'sine', 0.20, 0.22, 0.14]]),
+        // PC click: mechanical keyboard — sharp noise thud + crisp tick
+        pcClick:      () => {
+            if (!audioCtx) return;
+            const t = audioCtx.currentTime + 0.005;
+            // Body: mid-range noise burst (mechanical thud)
+            const sr = audioCtx.sampleRate;
+            const buf = audioCtx.createBuffer(1, Math.ceil(sr * 0.04), sr);
+            const d = buf.getChannelData(0);
+            for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            const src = audioCtx.createBufferSource();
+            const g = audioCtx.createGain();
+            const f = audioCtx.createBiquadFilter();
+            src.buffer = buf;
+            f.type = 'bandpass';
+            f.frequency.value = 3200;
+            f.Q.value = 0.8;
+            g.gain.setValueAtTime(playerStats.sfxVol * 0.55, t);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.038);
+            src.connect(f); f.connect(g); g.connect(audioCtx.destination);
+            src.start(t);
+            // Tick: short high transient
+            const o = audioCtx.createOscillator(), g2 = audioCtx.createGain();
+            o.type = 'square'; o.frequency.setValueAtTime(4800, t); o.frequency.exponentialRampToValueAtTime(2000, t + 0.015);
+            g2.gain.setValueAtTime(playerStats.sfxVol * 0.12, t);
+            g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.018);
+            o.connect(g2); g2.connect(audioCtx.destination); o.start(t); o.stop(t + 0.02);
+        }
     };
 
     // --- UI Modal y Configuracion ---
@@ -1427,29 +1554,32 @@
                 if (pos <= 3 && p.rankTitle === 'Leyenda') {
                     rankTitle = podiumTitles[pos];
                 }
-                // Color map: rank colors + distinctive podio colors (not repeating any rank color)
-                const rankColorMap = { 
-                    'Leyenda': 'var(--accent-yellow)', 
-                    'Maestro': 'var(--accent-purple)', 
-                    'Pro': 'var(--accent-red)', 
-                    'Junior': 'var(--accent-blue)', 
-                    'Novato': 'var(--accent-green)',
-                    'Rey Klick':      '#e040fb',  // magenta vivid
-                    'Señor Klick':    '#00e5ff',  // cyan eléctrico
-                    'Caballero Klick':'#69ff47'   // lima neón
+                // Colores completamente únicos por rango y podio (sin repeticiones ni similitudes)
+                // Rangos base: Novato=verde#00ff66, Junior=azul#00d4ff, Pro=rojo#ff2a5f, Maestro=morado#b5179e, Leyenda=amarillo#ffb800
+                // Podio exclusivo (colores nunca usados en rangos normales):
+                //   Rey Klick   = #ff0090 (aguamarina — distinto de verde y azul)
+                //   Señor Klick = #ff5e00 (naranja quemado — distinto de rojo y amarillo)
+                //   Caballero   = #ccff00 (lima eléctrica — distinto de verde de Novato)
+                const rankColorMap = {
+                    'Novato':          'var(--accent-green)',
+                    'Junior':          'var(--accent-blue)',
+                    'Pro':             'var(--accent-red)',
+                    'Maestro':         'var(--accent-purple)',
+                    'Leyenda':         'var(--accent-yellow)',
+                    'Rey Klick':       '#ff0090',
+                    'Señor Klick':     '#ff5e00',
+                    'Caballero Klick': '#ccff00'
                 };
-                const titleColor = rankColorMap[rankTitle] || 'var(--text-secondary)';
-                const scoreColor = rankColorMap[p.rankTitle] || 'var(--text-primary)';
-                const displayName = isMe ? `<span style="color:var(--rank-color)">${p.name}</span>` : p.name;
+                const cardColor = rankColorMap[rankTitle] || '#888888';
                 
                 html += `
-                <div class="rank-card ${classPos}">
-                    <div class="rc-pos">${pos}</div>
+                <div class="rank-card ${pos <= 3 ? 'pos-'+pos : ''} ${isMe ? 'is-me' : ''}" style="border-color:${cardColor}33;background:${cardColor}0a;">
+                    <div class="rc-pos" style="color:${cardColor}">${pos}</div>
                     <div class="rc-info">
-                        <div class="rc-name">${displayName}</div>
-                        <div class="rc-title" style="color:${titleColor}">${rankTitle}</div>
+                        <div class="rc-name" style="color:${isMe ? cardColor : 'var(--text-primary)'}">${p.name}</div>
+                        <div class="rc-title" style="color:${cardColor}cc">${rankTitle}</div>
                     </div>
-                    <div class="rc-score" style="color:${scoreColor}">${p.powerLevel.toLocaleString()} <span>PL</span></div>
+                    <div class="rc-score" style="color:${cardColor}">${p.powerLevel.toLocaleString()} <span>PL</span></div>
                 </div>`;
             });
             document.getElementById('ranking-list').innerHTML = html;
@@ -1710,9 +1840,9 @@
         { id: 'mx8',  title: 'Multiplicador x8',   desc: 'Alcanza el multiplicador x8 en una partida.',                  color: colors.red,   icon: SVG_BOLT },
         { id: 'mx9',  title: 'Multiplicador x9',   desc: 'Alcanza el multiplicador x9 en una partida.',                  color: colors.yellow,icon: SVG_BOLT },
         { id: 'mx10', title: 'Multiplicador x10 — MÁXIMO', desc: 'Alcanza el multiplicador máximo x10. Eres imparable.', color: colors.yellow,icon: SVG_TROPHY },
-        { id: 'pod1', title: 'Rey Klick',          desc: 'Eres Leyenda y ocupas el 1.er lugar de la clasificación.',     color: '#e040fb',    icon: SVG_TROPHY },
-        { id: 'pod2', title: 'Señor Klick',        desc: 'Eres Leyenda y ocupas el 2.º lugar de la clasificación.',      color: '#00e5ff',    icon: SVG_TROPHY },
-        { id: 'pod3', title: 'Caballero Klick',    desc: 'Eres Leyenda y ocupas el 3.er lugar de la clasificación.',     color: '#69ff47',    icon: SVG_TROPHY },
+        { id: 'pod1', title: 'Rey Klick',          desc: 'Eres Leyenda y ocupas el 1.er lugar de la clasificación.',     color: '#ff0090',    icon: SVG_TROPHY },
+        { id: 'pod2', title: 'Señor Klick',        desc: 'Eres Leyenda y ocupas el 2.º lugar de la clasificación.',      color: '#ff5e00',    icon: SVG_TROPHY },
+        { id: 'pod3', title: 'Caballero Klick',    desc: 'Eres Leyenda y ocupas el 3.er lugar de la clasificación.',     color: '#ccff00',    icon: SVG_TROPHY },
     ]);
 
     // --- LOGRO OCULTO: CLICK EN EL LOGO ---
@@ -2112,15 +2242,15 @@
     function goToMainMenu() { SFX.click(); switchScreen('start-screen'); }
 
     function onLogoClick() {
+        initAudio();
+        SFX.pcClick();
+        const logo = document.getElementById('logo-title');
+        if (logo) { logo.style.transform = 'scale(1.06)'; setTimeout(() => logo.style.transform = '', 180); }
         if (!playerStats.clickedLogo) {
             playerStats.clickedLogo = true;
             saveStatsLocally();
-            initAudio(); SFX.achievement();
+            setTimeout(() => SFX.achievement(), 120);
             checkAchievements();
-        } else {
-            // Subtle bounce animation feedback
-            const logo = document.getElementById('logo-title');
-            if (logo) { logo.style.transform = 'scale(1.08)'; setTimeout(() => logo.style.transform = '', 200); }
         }
     }
     // Helper: marca una sección visitada en sesión y verifica si se han visitado todas
@@ -2458,7 +2588,7 @@
         
         if (isCorrect) {
             SFX.correct(); scr.className = 'screen correct'; icon.innerHTML = SVG_CORRECT; 
-            title.innerText = currentRankInfo.title === 'Leyenda' ? '¡LEYENDA!' : currentRankInfo.title === 'Maestro' ? '¡Maestro!' : currentRankInfo.title === 'Pro' ? '¡Pro!' : currentRankInfo.title === 'Junior' ? '¡Junior!' : '¡Excelente!';
+            title.innerText = 'CORRECTO';
             let earned = 800 + Math.round((timeLeft / TIMER_LIMIT) * 800);
             earned = earned * multiplier;
             score += earned; streak++; if(streak > currentMaxStreak) currentMaxStreak = streak;
@@ -2476,8 +2606,8 @@
             points.innerText = `+${earned}`; points.style.display = 'block';
         } else {
             SFX.incorrect(); 
-            if (isTimeout) { scr.className = 'screen timeout'; icon.innerHTML = SVG_TIMEOUT; title.innerText = "Tiempo Agotado"; } 
-            else { scr.className = 'screen incorrect'; icon.innerHTML = SVG_INCORRECT; title.innerText = "Incorrecto"; }
+            if (isTimeout) { scr.className = 'screen timeout'; icon.innerHTML = SVG_TIMEOUT; title.innerText = "TIEMPO"; } 
+            else { scr.className = 'screen incorrect'; icon.innerHTML = SVG_INCORRECT; title.innerText = "INCORRECTO"; }
             streak = 0; points.style.display = 'none';
             playerStats.currentFrenzyStreak = 0;
             lives--;
