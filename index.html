@@ -727,11 +727,11 @@
         /* --- Pantallas Extra --- */
         #feedback-screen { justify-content: center; align-items: center; text-align: center; }
         #feedback-screen.correct .feedback-title { color: var(--rank-color); } 
-        #feedback-screen.incorrect .feedback-title { color: var(--rank-color); }
+        #feedback-screen.incorrect .feedback-title { color: var(--accent-red); }
         #feedback-screen.timeout .feedback-title { color: rgba(255,255,255,0.6); }
         #feedback-screen.correct .feedback-points { border-color: rgba(var(--rank-rgb), 0.4); color: var(--rank-color); }
         #feedback-screen.correct #feedback-icon-container svg { stroke: var(--rank-color); filter: drop-shadow(0 0 8px rgba(var(--rank-rgb),0.4)); }
-        #feedback-screen.incorrect #feedback-icon-container svg { stroke: var(--rank-color); filter: drop-shadow(0 0 6px rgba(var(--rank-rgb),0.3)); }
+        #feedback-screen.incorrect #feedback-icon-container svg { stroke: var(--accent-red); filter: drop-shadow(0 0 6px rgba(255,42,95,0.4)); }
         .feedback-content { display: flex; flex-direction: column; align-items: center; transform: scale(0.9); opacity: 0; transition: all 0.5s var(--ease-spring); }
         .screen.active .feedback-content { transform: scale(1); opacity: 1; }
         #feedback-icon-container svg { width: 80px; height: 80px; margin-bottom: 15px; }
@@ -786,9 +786,9 @@
         .mult-x4 { color: var(--accent-purple); animation: frenzy-pulse-x4 0.7s ease-in-out infinite; }
         .mult-x5 { color: var(--accent-yellow); animation: frenzy-pulse-x5 0.5s ease-in-out infinite; }
         .mult-x6 { color: var(--rank-color); animation: frenzy-neon-x6 0.4s ease-in-out infinite; }
-        .mult-x7 { color: #ff2a5f; animation: frenzy-pulse-x3 0.35s ease-in-out infinite; }
+        .mult-x7 { color: var(--accent-red); animation: frenzy-pulse-x3 0.35s ease-in-out infinite; }
         .mult-x8 { color: var(--accent-purple); animation: frenzy-pulse-x4 0.3s ease-in-out infinite; }
-        .mult-x9 { color: #ffb800; animation: frenzy-pulse-x5 0.25s ease-in-out infinite; }
+        .mult-x9 { color: var(--accent-yellow); animation: frenzy-pulse-x5 0.25s ease-in-out infinite; }
         .mult-x10 { color: #fff; animation: frenzy-neon-x6 0.4s ease-in-out infinite; }
 
 
