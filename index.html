@@ -173,32 +173,45 @@
         .ach-card.unlocked .ach-desc { font-style: normal; }
 
         /* --- CLASIFICACIÓN GLOBAL --- */
-        .ranking-wrapper { gap: 15px; max-width: 1200px; padding: 20px;}
-        .ranking-list { display: flex; flex-direction: column; gap: 12px; width: 100%; }
-        .rank-card { display: grid; grid-template-columns: 50px 1fr auto; align-items: center; background: rgba(17, 17, 17, 0.7); backdrop-filter: blur(10px); padding: 15px 25px; border-radius: var(--radius-md); border: 1px solid var(--bg-elevated); transition: all 0.3s ease; }
-        .rank-card:hover { background: rgba(255, 255, 255, 0.05); transform: translateX(5px); }
-        .rc-pos { font-size: 1.6rem; font-weight: 900; color: var(--text-secondary); text-align: center; }
-        .rc-info { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
-        .rc-name { font-size: 1.2rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase; }
-        .rc-title { font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
-        .rc-score { font-size: 1.3rem; font-weight: 900; font-family: monospace; color: var(--accent-blue); text-align: right; }
-        .rc-score span { font-size: 0.65rem; color: var(--text-secondary); vertical-align: middle; margin-left: 3px;}
+        .ranking-wrapper { gap: 15px; max-width: 800px; padding: 20px; margin: 0 auto; }
+        .ranking-list { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+        .rank-card { 
+            display: grid; grid-template-columns: 52px 1fr auto; align-items: center;
+            background: rgba(17, 17, 17, 0.6); backdrop-filter: blur(12px);
+            padding: 14px 20px; border-radius: var(--radius-md);
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: all 0.25s ease; position: relative; overflow: hidden;
+        }
+        .rank-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--text-secondary); opacity: 0.3; transition: opacity 0.25s; }
+        .rank-card:hover { background: rgba(255,255,255,0.04); transform: translateX(4px); border-color: rgba(255,255,255,0.12); }
+        .rank-card:hover::before { opacity: 0.8; }
+        .rc-pos { font-size: 1.4rem; font-weight: 900; color: var(--text-secondary); text-align: center; font-variant-numeric: tabular-nums; }
+        .rc-info { display: flex; flex-direction: column; justify-content: center; gap: 3px; padding-left: 5px; }
+        .rc-name { font-size: 1rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .rc-title { font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; }
+        .rc-score { font-size: 1.1rem; font-weight: 900; font-family: monospace; color: var(--rank-color); text-align: right; }
+        .rc-score span { font-size: 0.6rem; color: var(--text-secondary); vertical-align: middle; margin-left: 3px; display: block; letter-spacing: 1px; }
 
-        .rank-card.pos-1 { border-color: #ffd700; background: rgba(255, 215, 0, 0.05); }
-        .rank-card.pos-1 .rc-pos { color: #ffd700; }
+        .rank-card.pos-1 { border-color: rgba(255,215,0,0.25); background: rgba(255,215,0,0.04); }
+        .rank-card.pos-1::before { background: #ffd700; opacity: 1; width: 4px; }
+        .rank-card.pos-1 .rc-pos { color: #ffd700; text-shadow: 0 0 12px rgba(255,215,0,0.5); }
         .rank-card.pos-1 .rc-score { color: #ffd700; }
         
-        .rank-card.pos-2 { border-color: #c0c0c0; background: rgba(192, 192, 192, 0.05); }
+        .rank-card.pos-2 { border-color: rgba(192,192,192,0.2); background: rgba(192,192,192,0.03); }
+        .rank-card.pos-2::before { background: #c0c0c0; opacity: 0.9; width: 3px; }
         .rank-card.pos-2 .rc-pos { color: #c0c0c0; }
         .rank-card.pos-2 .rc-score { color: #c0c0c0; }
         
-        .rank-card.pos-3 { border-color: #cd7f32; background: rgba(205, 127, 50, 0.05); }
+        .rank-card.pos-3 { border-color: rgba(205,127,50,0.2); background: rgba(205,127,50,0.03); }
+        .rank-card.pos-3::before { background: #cd7f32; opacity: 0.9; }
         .rank-card.pos-3 .rc-pos { color: #cd7f32; }
         .rank-card.pos-3 .rc-score { color: #cd7f32; }
 
-        .rank-card.is-me { border-left: 4px solid var(--accent-green); }
+        .rank-card.is-me::after { content: 'TÚ'; position: absolute; right: 10px; bottom: 6px; font-size: 0.55rem; font-weight: 900; letter-spacing: 2px; color: var(--rank-color); opacity: 0.8; }
+        .rank-card.is-me { border-color: rgba(var(--rank-rgb), 0.3); background: rgba(var(--rank-rgb), 0.04); }
+        .rank-card.is-me::before { background: var(--rank-color); opacity: 0.8; }
 
-        .ranking-loading { text-align: center; color: var(--text-secondary); padding: 40px; font-weight: 600; font-size: 1.1rem; }
+        .ranking-loading { text-align: center; color: var(--text-secondary); padding: 40px; font-weight: 600; font-size: 1rem; letter-spacing: 1px; }
 
         #countdown-screen { justify-content: center; align-items: center; }
         #countdown-number { transition: transform 0.25s var(--ease-spring), opacity 0.25s ease; }
@@ -245,7 +258,11 @@
 
         /* --- Pantallas Extra --- */
         #feedback-screen { justify-content: center; align-items: center; text-align: center; }
-        #feedback-screen.correct .feedback-title { color: var(--accent-green); } #feedback-screen.incorrect .feedback-title { color: var(--accent-red); }
+        #feedback-screen.correct .feedback-title { color: var(--rank-color); } 
+        #feedback-screen.incorrect .feedback-title { color: rgba(255,255,255,0.75); }
+        #feedback-screen.timeout .feedback-title { color: rgba(255,255,255,0.6); }
+        #feedback-screen.correct .feedback-points { border-color: rgba(var(--rank-rgb), 0.4); color: var(--rank-color); }
+        #feedback-screen.correct #feedback-icon-container svg { stroke: var(--rank-color); filter: drop-shadow(0 0 8px rgba(var(--rank-rgb),0.4)); }
         .feedback-content { display: flex; flex-direction: column; align-items: center; transform: scale(0.9); opacity: 0; transition: all 0.5s var(--ease-spring); }
         .screen.active .feedback-content { transform: scale(1); opacity: 1; }
         #feedback-icon-container svg { width: 80px; height: 80px; margin-bottom: 15px; }
@@ -255,8 +272,8 @@
         .streak-box span { color: var(--accent-yellow); font-weight: 900; font-size: 1.2rem; }
 
         /* --- PANTALLA DE FIN --- */
-        #end-screen { justify-content: center; align-items: center; background: var(--bg-base); flex-direction: column; }
-        #end-screen::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 40%, rgba(var(--rank-rgb), 0.14) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+        #end-screen { justify-content: center; align-items: center; background: transparent; flex-direction: column; }
+        #end-screen::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 40%, rgba(var(--rank-rgb), 0.18) 0%, rgba(5,5,5,0.85) 70%); pointer-events: none; z-index: 0; }
         .end-fullscreen { 
             width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
             padding: clamp(20px, 4vh, 50px) clamp(20px, 5vw, 80px);
@@ -282,7 +299,7 @@
 
         /* Toast UI */
         .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 100; pointer-events: none; }
-        .toast-item { background: rgba(17, 17, 17, 0.9); backdrop-filter: blur(10px); border: 1px solid var(--bg-elevated); border-left: 4px solid var(--accent-yellow); padding: 12px 15px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px; transform: translateX(120%); opacity: 0; transition: all 0.5s var(--ease-spring); }
+        .toast-item { background: rgba(17, 17, 17, 0.9); backdrop-filter: blur(10px); border: 1px solid var(--bg-elevated); padding: 12px 15px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px; transform: translateX(120%); opacity: 0; transition: all 0.5s var(--ease-spring); }
         .toast-item.show { transform: translateX(0); opacity: 1; }
         .toast-icon { width: 24px; height: 24px; color: var(--accent-yellow); }
         .toast-title { font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 800; display: block; }
@@ -340,7 +357,7 @@
             </button>
         </div>
 
-        <div class="logo-container">KLICK<span class="logo-dot">.</span></div>
+        <div class="logo-container" id="logo-title" onclick="onLogoClick()" style="cursor:pointer;">KLICK<span class="logo-dot">.</span></div>
         <div class="logo-subtitle">By Didac-Click Group</div>
 
         <div class="menu-box" id="menu-box">
@@ -412,21 +429,18 @@
                         <input type="range" id="op-fps" min="0" max="4" step="1" value="2">
                     </div>
 
-                </div>
-                
-                <button class="btn-solid" onclick="goToMainMenu()" style="max-width: 300px; margin: 15px auto 0 auto; border-color: var(--rank-color); color: var(--rank-color); background: rgba(var(--rank-rgb), 0.05);">Guardar y Regresar</button>
-                
-                <!-- Selector de Pistas -->
-                <div class="setting-card glass-panel" style="margin-top: 5px; border-color: rgba(255,184,0,0.25); grid-column: 1/-1; max-width: 100%;">
-                    <div class="setting-header">
-                        <div class="setting-title-box">
-                            <div class="setting-icon" style="color: var(--accent-yellow);">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                    <!-- Selector de Pistas — ocupa las 2 columnas del grid -->
+                    <div class="setting-card glass-panel" style="grid-column: 1/-1; border-color: rgba(255,184,0,0.25);">
+                        <div class="setting-header">
+                            <div class="setting-title-box">
+                                <div class="setting-icon" style="color: var(--accent-yellow);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                                </div>
+                                <div class="setting-label">Pista Musical<div class="setting-desc">Elige la banda sonora del juego</div></div>
                             </div>
-                            <div class="setting-label">Pista Musical<div class="setting-desc">Elige la banda sonora del juego</div></div>
                         </div>
+                        <div id="track-selector" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
                     </div>
-                    <div id="track-selector" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:5px;"></div>
                 </div>
             </div>
         </div>
@@ -491,23 +505,23 @@
                 <div class="guide-grid">
 
                     <!-- Objetivo del juego -->
-                    <div class="guide-card glass-panel full-width" style="border-color: var(--accent-red); padding-bottom: 20px;">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-red);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                        <div class="guide-title" style="color: var(--accent-red);">Objetivo del Juego</div>
+                    <div class="guide-card glass-panel full-width" style="border-color: rgba(255,255,255,0.12); padding-bottom: 20px;">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-primary);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        <div class="guide-title">Objetivo del Juego</div>
                         <div class="guide-text">Klick es un trivia de <strong>preguntas sobre Lengua Española</strong>. Tienes <strong>15 segundos</strong> para responder cada pregunta y <strong>3 vidas</strong> para sobrevivir. Si fallas una respuesta o se te acaba el tiempo, pierdes una vida. Cuando pierdes las 3, la partida termina. ¡Tu objetivo es acumular el mayor puntaje posible!</div>
                     </div>
 
                     <!-- Puntuación -->
-                    <div class="guide-card glass-panel" style="border-color: var(--accent-blue);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-blue);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        <div class="guide-title" style="color: var(--accent-blue);">Puntuación por Velocidad</div>
+                    <div class="guide-card glass-panel" style="border-color: rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <div class="guide-title">Puntuación por Velocidad</div>
                         <div class="guide-text">Ganar puntos depende de <strong>qué tan rápido respondas</strong>. Una respuesta en los primeros segundos vale hasta <strong>1,600 pts</strong>, mientras que responder al límite vale solo <strong>800 pts</strong>. ¡La velocidad es clave!</div>
                     </div>
 
                     <!-- Modo Frenesí -->
-                    <div class="guide-card glass-panel" style="border-color: var(--accent-orange);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-orange);"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
-                        <div class="guide-title" style="color: var(--accent-orange);">Modo Frenesí</div>
+                    <div class="guide-card glass-panel" style="border-color: rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
+                        <div class="guide-title">Modo Frenesí</div>
                         <div class="guide-text">Al encadenar <strong>5 aciertos seguidos</strong> activas el Modo Frenesí. El fondo cambia, la música se acelera y obtienes un <strong>multiplicador de puntos (x2)</strong>. Cada 5 aciertos más, el multiplicador sube: <strong>x2 → x3 → … → x10 (máximo)</strong>. ¡Un solo fallo lo resetea todo!</div>
                     </div>
 
@@ -521,16 +535,16 @@
                                 <span class="rank-item-name" style="color: var(--accent-green);">Novato</span>
                                 <span class="rank-item-pts">El rango de inicio. ¡No te preocupes, todos empiezan aquí!</span>
                             </div>
-                            <div class="rank-item" style="border-color: rgba(247,127,0,0.3);">
-                                <span class="rank-item-name" style="color: var(--accent-orange);">Junior</span>
+                            <div class="rank-item" style="border-color: rgba(0,212,255,0.3);">
+                                <span class="rank-item-name" style="color: var(--accent-blue);">Junior</span>
                                 <span class="rank-item-pts">15,000 pts récord · 5 partidas jugadas</span>
                             </div>
-                            <div class="rank-item" style="border-color: rgba(0,212,255,0.3);">
-                                <span class="rank-item-name" style="color: var(--accent-blue);">Pro</span>
+                            <div class="rank-item" style="border-color: rgba(255,42,95,0.3);">
+                                <span class="rank-item-name" style="color: var(--accent-red);">Pro</span>
                                 <span class="rank-item-pts">60,000 pts acum. · 200 aciertos · Racha de 12</span>
                             </div>
-                            <div class="rank-item" style="border-color: rgba(255,42,95,0.3);">
-                                <span class="rank-item-name" style="color: var(--accent-red);">Maestro</span>
+                            <div class="rank-item" style="border-color: rgba(181,23,158,0.3);">
+                                <span class="rank-item-name" style="color: var(--accent-purple);">Maestro</span>
                                 <span class="rank-item-pts">150,000 pts acum. · 50 partidas · Mult. x4</span>
                             </div>
                             <div class="rank-item" style="border-color: rgba(255,184,0,0.3); background: rgba(255,184,0,0.04);">
@@ -561,32 +575,32 @@
                     </div>
 
                     <!-- Logros -->
-                    <div class="guide-card glass-panel" style="border-color: var(--accent-yellow);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-yellow);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                        <div class="guide-title" style="color: var(--accent-yellow);">Banco de Logros</div>
+                    <div class="guide-card glass-panel" style="border-color: rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        <div class="guide-title">Banco de Logros</div>
                         <div class="guide-text">Hay <strong>247 logros</strong> para desbloquear. Algunos son escalables (por jugar más), otros son únicos y secretos. Puedes <strong>fijar hasta 3 logros</strong> en tu perfil. ¡Descúbrelos explorando todas las secciones del juego!</div>
                     </div>
 
                     <!-- Power Level / Ranking -->
-                    <div class="guide-card glass-panel" style="border-color: var(--accent-purple);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-purple);"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg>
-                        <div class="guide-title" style="color: var(--accent-purple);">Clasificación Global</div>
+                    <div class="guide-card glass-panel" style="border-color: rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg>
+                        <div class="guide-title">Clasificación Global</div>
                         <div class="guide-text">La clasificación usa tu <strong>Nivel de Poder (PL)</strong>, calculado a partir de tu récord, racha máxima, partidas perfectas, logros y precisión. Compite con jugadores del mundo en <strong>tiempo real</strong>.</div>
                     </div>
 
                     <!-- LO QUE NO DEBES HACER -->
-                    <div class="guide-card full-width glass-panel" style="border-color: var(--accent-red);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-red);"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-                        <div class="guide-title" style="color: var(--accent-red);">Lo que NO debes hacer</div>
+                    <div class="guide-card full-width glass-panel" style="border-color: rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                        <div class="guide-title">Lo que NO debes hacer</div>
                         <div class="guide-text" style="text-align:left;line-height:1.7;">
-                            <strong style="color:var(--accent-red);">Tu cuenta puede ser penalizada o marcada permanentemente si:</strong><br><br>
+                            <strong>Tu cuenta puede ser penalizada o marcada permanentemente si:</strong><br><br>
                             — <strong>Cambias de pestaña o minimizas</strong> la ventana durante una partida activa — el sistema detecta la trampa, aplica penalizaciones de puntos, racha y partidas perfectas, y te marca con el logro <em>TRAMPOSO</em> imborrable.<br>
                             — <strong>Abandonas una partida</strong> a mitad — recibes una penalidad de <strong>-300 pts</strong> en tu puntaje acumulado.<br>
                             — <strong>No responder a tiempo</strong> (dejar el reloj llegar a cero) te quita <strong>una vida</strong> exactamente igual que una respuesta incorrecta.<br>
                             — <strong>Perder las 3 vidas</strong> termina la partida inmediatamente — no hay forma de recuperarlas en la misma ronda.<br>
                             — <strong>Un fallo durante una racha</strong> reinicia el multiplicador completamente a x1 y desactiva el Modo Frenesí.<br><br>
-                            <strong style="color:var(--text-primary);">Nota:</strong> La marca de TRAMPOSO aparece fijada en tu perfil de forma permanente y no puede quitarse ni ocultarse.<br><br>
-                            <strong style="color:var(--accent-yellow);">Advertencia:</strong> Si borras el historial del navegador o limpias los datos del sitio, <strong>perderás tu cuenta, puntajes, logros y progreso permanentemente</strong>. El juego guarda todos los datos en el almacenamiento local del navegador.
+                            <strong>Nota:</strong> La marca de TRAMPOSO aparece fijada en tu perfil de forma permanente y no puede quitarse ni ocultarse.<br><br>
+                            <strong>Advertencia:</strong> Si borras el historial del navegador o limpias los datos del sitio, <strong>perderás tu cuenta, puntajes, logros y progreso permanentemente</strong>. El juego guarda todos los datos en el almacenamiento local del navegador.
                         </div>
                     </div>
 
@@ -1056,8 +1070,8 @@
         },
         {
             id: 'track_pulse',
-            name: 'Binary Pulse',
-            desc: 'Percusivo · Estructurado',
+            name: 'Soft Glow',
+            desc: 'Melódico · Agradable',
             color: 'var(--accent-green)'
         },
         {
@@ -1131,14 +1145,14 @@
             kickVol: 0.3, bassVol: 0.2, arpVol: 0.18,
             hasPad: true, hasHihat: false
         },
-        // BINARY PULSE: fast, staccato, triangle/square, strong kick+snare pattern, minimal bass
+        // SOFT GLOW: mid-tempo melodic, gentle arp, soft pad, no harsh snare, calming
         track_pulse: {
-            bpmBase: 130, bpmFrenzy: 155,
-            CHORD_PROG: [[60,64,67,72],[62,65,69,74],[64,67,71,76],[62,66,69,74]],
-            ARP_PAT: [0,0,2,0,1,0,3,0,2,0,1,3,0,2,0,1],
-            arpType: 'square', bassType: 'triangle', kickFreq: 145,
-            kickVol: 0.95, bassVol: 0.12, arpVol: 0.28,
-            hasPad: false, hasHihat: true, hasSnare: true
+            bpmBase: 100, bpmFrenzy: 118,
+            CHORD_PROG: [[60,64,67,71],[62,65,69,72],[57,60,64,69],[59,62,66,71]],
+            ARP_PAT: [0,1,2,3,1,0,2,1,3,0,1,2,0,3,1,2],
+            arpType: 'triangle', bassType: 'sine', kickFreq: 65,
+            kickVol: 0.45, bassVol: 0.32, arpVol: 0.22,
+            hasPad: true, hasHihat: false
         },
         // DEEP CURRENT: slow to mid, sawtooth bass dominant, sparse melody, groovey feel
         track_bass: {
@@ -1347,8 +1361,7 @@
         if (!container) return;
         const toast = document.createElement('div'); 
         toast.className = 'toast-item'; 
-        toast.style.borderLeftColor = color;
-        toast.innerHTML = `<div class="toast-icon" style="color: ${color}">${icon}</div><div class="toast-text"><span class="toast-title">${title}</span><span class="toast-name">${message}</span></div>`;
+        toast.innerHTML = `<div class="toast-icon" style="color: ${color}">${icon}</div><div class="toast-text"><span class="toast-title" style="color:${color}">${title}</span><span class="toast-name">${message}</span></div>`;
         container.appendChild(toast); 
         setTimeout(() => toast.classList.add('show'), 50); 
         setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, 3500);
@@ -1399,13 +1412,15 @@
                 if (pos <= 3 && p.rankTitle === 'Leyenda') {
                     rankTitle = podiumTitles[pos];
                 }
+                const rankColorMap = { 'Leyenda': 'var(--accent-yellow)', 'Maestro': 'var(--accent-purple)', 'Pro': 'var(--accent-red)', 'Junior': 'var(--accent-blue)', 'Novato': 'var(--accent-green)', 'Rey Klick': '#ffd700', 'Señor Klick': '#c0c0c0', 'Caballero Klick': '#cd7f32' };
+                const titleColor = rankColorMap[rankTitle] || 'var(--text-secondary)';
                 
                 html += `
                 <div class="rank-card ${classPos}">
                     <div class="rc-pos">${pos}</div>
                     <div class="rc-info">
                         <div class="rc-name">${p.name} ${isMe ? '(Tú)' : ''}</div>
-                        <div class="rc-title">${rankTitle}</div>
+                        <div class="rc-title" style="color:${titleColor}">${rankTitle}</div>
                     </div>
                     <div class="rc-score">${p.powerLevel.toLocaleString()} <span>PL</span></div>
                 </div>`;
@@ -1531,8 +1546,9 @@
         { id: 'u3',  title: 'Dormilón',        desc: 'Deja que el reloj llegue a cero en una pregunta.',                 color: colors.dark,   icon: SVG_CLOCK },
         { id: 'u4',  title: 'AFK',             desc: 'Deja que el reloj llegue a cero 50 veces en total.',               color: colors.dark,   icon: SVG_CLOCK },
         { id: 'u5',  title: 'Por los Pelos',   desc: 'Acierta una pregunta cuando el reloj marque exactamente 1 segundo.',color: colors.red,   icon: SVG_CLOCK },
-        { id: 'u6',  title: 'Pro',             desc: 'Alcanza el rango Pro.',                                            color: colors.blue,   icon: SVG_TROPHY },
-        { id: 'u7',  title: 'Maestro',         desc: 'Alcanza el rango Maestro.',                                        color: colors.red,    icon: SVG_TROPHY },
+        { id: 'u_junior', title: 'Junior',     desc: 'Alcanza el rango Junior.',                                            color: colors.blue,   icon: SVG_TROPHY },
+        { id: 'u6',  title: 'Pro',             desc: 'Alcanza el rango Pro.',                                            color: colors.red,    icon: SVG_TROPHY },
+        { id: 'u7',  title: 'Maestro',         desc: 'Alcanza el rango Maestro.',                                        color: colors.purple, icon: SVG_TROPHY },
         { id: 'u8',  title: 'Leyenda',         desc: 'Alcanza el codiciado rango Leyenda.',                              color: colors.yellow, icon: SVG_TROPHY },
         { id: 'u9',  title: 'Inmortal',        desc: 'Completa 50 preguntas seguidas sin perder ninguna vida.',          color: colors.purple, icon: SVG_SHIELD },
         { id: 'u10', title: 'Desastre',        desc: 'Pierde las 3 vidas en las primeras 3 preguntas.',                  color: colors.dark,   icon: SVG_SKULL },
@@ -1672,6 +1688,11 @@
         { id: 'pod3', title: 'Caballero Klick',    desc: 'Eres Leyenda y ocupas el 3.er lugar de la clasificación.',     color: colors.orange,icon: SVG_TROPHY },
     ]);
 
+    // --- LOGRO OCULTO: CLICK EN EL LOGO ---
+    addAchs([
+        { id: 'secret_logo', title: '¡Klick!',  desc: 'Hiciste clic en el nombre del juego en la pantalla principal.', color: colors.yellow, icon: SVG_BOLT, hidden: true },
+    ]);
+
 
     function processDailyLogin() {
         const now = new Date(); const todayStr = now.toISOString().split('T')[0];
@@ -1686,9 +1707,9 @@
 
     function getRankInfo(stats) {
         if (stats.totalScore >= 400000 && stats.totalCorrect >= 1500 && stats.perfectGames >= 10) return { title: "Leyenda", color: "var(--accent-yellow)", rgb: "255, 184, 0" };
-        if (stats.totalScore >= 150000 && stats.gamesPlayed >= 50 && (stats.maxMult||1) >= 4) return { title: "Maestro", color: "var(--accent-red)", rgb: "255, 42, 95" };
-        if (stats.totalScore >= 60000 && stats.totalCorrect >= 200 && stats.maxStreak >= 12) return { title: "Pro", color: "var(--accent-blue)", rgb: "0, 212, 255" };
-        if (stats.bestScore >= 15000 && stats.gamesPlayed >= 5) return { title: "Junior", color: "var(--accent-orange)", rgb: "247, 127, 0" };
+        if (stats.totalScore >= 150000 && stats.gamesPlayed >= 50 && (stats.maxMult||1) >= 4) return { title: "Maestro", color: "var(--accent-purple)", rgb: "181, 23, 158" };
+        if (stats.totalScore >= 60000 && stats.totalCorrect >= 200 && stats.maxStreak >= 12) return { title: "Pro", color: "var(--accent-red)", rgb: "255, 42, 95" };
+        if (stats.bestScore >= 15000 && stats.gamesPlayed >= 5) return { title: "Junior", color: "var(--accent-blue)", rgb: "0, 212, 255" };
         return { title: "Novato", color: "var(--accent-green)", rgb: "0, 255, 102" };
     }
     let currentRankInfo = getRankInfo(playerStats);
@@ -1750,9 +1771,11 @@
         if (playerStats.totalTimeouts > 0) unlock('u3'); if (playerStats.totalTimeouts >= 50) unlock('u4'); 
         if (playerStats.todayGames >= 50) unlock('u22'); if ((playerStats.maxStreak||0) >= 25) unlock('u23');
         const rank = getRankInfo(playerStats).title; 
+        if (rank==="Junior"||rank==="Pro"||rank==="Maestro"||rank==="Leyenda") unlock('u_junior');
         if (rank==="Pro"||rank==="Maestro"||rank==="Leyenda") unlock('u6'); 
         if (rank==="Maestro"||rank==="Leyenda") unlock('u7'); 
         if (rank==="Leyenda") unlock('u8');
+        if (playerStats.clickedLogo) unlock('secret_logo');
 
         // ESCALABLES GENERALES
         const wr = playerStats.totalWrong||0; for(let i=0;i<5;i++) if(wr>=wrnTiers[i]) unlock(`wr${i+1}`);
@@ -1867,7 +1890,7 @@
     const CARD_HEIGHT   = 148;  // px — debe coincidir con el CSS
     const CARD_GAP      = 12;   // px gap entre cards
     const ROW_PAD_PX    = 15;   // padding lateral del contenedor
-    const OVERSCAN_ROWS = 2;    // filas extra arriba/abajo para suavidad
+    const OVERSCAN_ROWS = 4;    // filas extra arriba/abajo para suavidad (más en gama baja)
 
     let _vsColCount   = 2;      // columnas actuales (se recalcula)
     let _vsRowHeight  = CARD_HEIGHT + CARD_GAP;
@@ -1905,14 +1928,16 @@
         if (isManualPin)      badge = `<div class="ach-pin-badge ach-pin-manual">${SVG_PIN}</div>`;
         else if (isInProfile) badge = `<div class="ach-pin-badge ach-pin-auto">★</div>`;
 
+        const isHidden = ach.hidden && !isUnlocked;
         const iconColor = isUnlocked ? ach.color : 'var(--text-secondary)';
         const iconSVG   = isUnlocked ? ach.icon  : SVG_LOCK;
-        const desc      = isUnlocked ? ach.desc  : 'Sigue jugando para descubrirlo.';
+        const title     = isHidden ? '???' : ach.title;
+        const desc      = isUnlocked ? ach.desc  : (isHidden ? 'Logro secreto — descúbrelo tú mismo.' : 'Sigue jugando para descubrirlo.');
 
         return `<div class="${cls}" style="border-color:${bdrColor};box-shadow:${shadow}" onclick="togglePin('${ach.id}')">`+
             badge +
             `<div class="ach-icon" style="color:${iconColor}">${iconSVG}</div>`+
-            `<div class="ach-title">${ach.title}</div>`+
+            `<div class="ach-title">${title}</div>`+
             `<div class="ach-desc">${desc}</div>`+
             `</div>`;
     }
@@ -1947,7 +1972,7 @@
     }
 
     function _vsOnScroll() {
-        if (_vsScrollRAF) return;
+        if (_vsScrollRAF) cancelAnimationFrame(_vsScrollRAF);
         _vsScrollRAF = requestAnimationFrame(() => {
             _vsScrollRAF = null;
             _vsUpdate();
@@ -2058,6 +2083,19 @@
     // Initialize current screen
     _currentScreen = document.querySelector('.screen.active');
     function goToMainMenu() { SFX.click(); switchScreen('start-screen'); }
+
+    function onLogoClick() {
+        if (!playerStats.clickedLogo) {
+            playerStats.clickedLogo = true;
+            saveStatsLocally();
+            initAudio(); SFX.achievement();
+            checkAchievements();
+        } else {
+            // Subtle bounce animation feedback
+            const logo = document.getElementById('logo-title');
+            if (logo) { logo.style.transform = 'scale(1.08)'; setTimeout(() => logo.style.transform = '', 200); }
+        }
+    }
     // Helper: marca una sección visitada en sesión y verifica si se han visitado todas
     function trackSectionVisit(section) {
         if (!Array.isArray(playerStats.sectionsVisitedThisSession)) playerStats.sectionsVisitedThisSession = [];
@@ -2271,8 +2309,8 @@
     function _markUsed(q) {
         const key = q.question.slice(0, 30);
         if (_recentQueue.length >= _RECENT_WINDOW) {
-            _recentQueue.shift() && _recentQuestionIds.delete(_recentQueue[0]);
-            _recentQueue.shift();
+            const oldest = _recentQueue.shift();
+            _recentQuestionIds.delete(oldest);
         }
         _recentQueue.push(key);
         _recentQuestionIds.add(key);
@@ -2392,7 +2430,8 @@
         const scr = document.getElementById('feedback-screen'), icon = document.getElementById('feedback-icon-container'), title = document.getElementById('feedback-title'), points = document.getElementById('feedback-points');
         
         if (isCorrect) {
-            SFX.correct(); scr.className = 'screen correct'; icon.innerHTML = SVG_CORRECT; title.innerText = "¡Excelente!";
+            SFX.correct(); scr.className = 'screen correct'; icon.innerHTML = SVG_CORRECT; 
+            title.innerText = currentRankInfo.title === 'Leyenda' ? '¡LEYENDA!' : currentRankInfo.title === 'Maestro' ? '¡Maestro!' : currentRankInfo.title === 'Pro' ? '¡Pro!' : currentRankInfo.title === 'Junior' ? '¡Junior!' : '¡Excelente!';
             let earned = 800 + Math.round((timeLeft / TIMER_LIMIT) * 800);
             earned = earned * multiplier;
             score += earned; streak++; if(streak > currentMaxStreak) currentMaxStreak = streak;
