@@ -49,13 +49,13 @@
             --bg-elevated: #cdd3de;
             --text-primary: #0d1117;
             --text-secondary: #4a5568;
-            /* Tone down neon accents for readability on white */
-            --accent-green: #008844;
-            --accent-blue: #0099cc;
-            --accent-yellow: #c28800;
-            --accent-red: #d91f4f;
-            --accent-purple: #8c0d7e;
-            --accent-orange: #cc5500;
+            /* Strong, readable accents for light backgrounds */
+            --accent-green: #0a7a3e;
+            --accent-blue: #0070a8;
+            --accent-yellow: #b07800;
+            --accent-red: #c41940;
+            --accent-purple: #7a0a8c;
+            --accent-orange: #b84400;
         }
 
         /* Fondos generales */
@@ -260,7 +260,11 @@
             color: #0d1117;
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
-        body.light-mode .answer-btn:hover { background-color: rgba(255,255,255,1); border-color: rgba(0,0,0,0.35); }
+        body.light-mode .answer-btn:hover { background-color: rgba(255,255,255,1); border-color: rgba(0,0,0,0.25); }
+        body.light-mode .answer-btn.color-red  { border-bottom-color: var(--accent-red) !important; border-bottom-width: 3px; }
+        body.light-mode .answer-btn.color-blue { border-bottom-color: var(--accent-blue) !important; border-bottom-width: 3px; }
+        body.light-mode .answer-btn.color-yellow { border-bottom-color: var(--accent-yellow) !important; border-bottom-width: 3px; }
+        body.light-mode .answer-btn.color-green { border-bottom-color: var(--accent-green) !important; border-bottom-width: 3px; }
         body.light-mode .answers-grid.answered .answer-btn.selected { background-color: rgba(0,0,0,0.06); }
         body.light-mode .timer-text { color: #0d1117; }
         body.light-mode .timer-bg { stroke: rgba(0,0,0,0.1); }
@@ -725,9 +729,9 @@
             background-image: radial-gradient(circle at 50% 30%, rgba(var(--rank-rgb), 0.08) 0%, transparent 60%);
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
-            z-index: 200; opacity: 0; visibility: hidden;
+            z-index: 500; opacity: 0; visibility: hidden;
             transition: opacity 0.4s var(--ease-out), visibility 0.4s;
-            gap: 0;
+            gap: 0; isolation: isolate;
         }
         #roulette-overlay.active { opacity: 1; visibility: visible; }
 
@@ -1136,10 +1140,10 @@
                     </div>
 
                     <!-- Ruleta de Recompensas -->
-                    <div class="guide-card glass-panel" style="border-color: rgba(255,184,0,0.2);">
+                    <div class="guide-card full-width glass-panel" style="border-color: rgba(255,184,0,0.2);">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-yellow);"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M3.05 11a9 9 0 1 1 .5 4"/></svg>
                         <div class="guide-title" style="color: var(--accent-yellow);">Ruleta de Recompensas</div>
-                        <div class="guide-text" style="text-align:left;line-height:1.7;">Cada <strong>10 aciertos</strong> acumulados durante la partida aparece una <strong>ruleta de premios</strong>. Puedes mezclar y girar para obtener una de las siguientes recompensas:<br><br>
+                        <div class="guide-text" style="text-align:left;line-height:1.8;width:100%;max-width:680px;">Al acumular aciertos durante la partida, aparece una <strong>ruleta de premios</strong>. Puedes mezclar y girar para obtener una recompensa aleatoria. Los premios tienen distintas raridades — los más raros aparecen con menor frecuencia.<br><br>
                             <strong>Vida Extra</strong> — Recuperas una vida perdida.<br>
                             <strong>Escudo</strong> — Protección si fallas la siguiente pregunta.<br>
                             <strong>Frenesi</strong> — Activa el Modo Frenesí inmediatamente.<br>
@@ -1149,8 +1153,7 @@
                             <strong>Tiempo +8</strong> — La próxima pregunta tiene 8 segundos extra.<br>
                             <strong>Pista</strong> — Elimina una respuesta incorrecta.<br>
                             <strong>Tiempo +5</strong> — La próxima pregunta tiene 5 segundos extra.<br>
-                            <strong>Racha Salvada</strong> — Si fallas, tu racha no se resetea.<br><br>
-                            Los premios tienen distintas raridades: <strong>Legendario, Épico, Raro, Normal y Básico</strong>. Los más raros aparecen con menor frecuencia.
+                            <strong>Racha Salvada</strong> — Si fallas, tu racha no se resetea.
                         </div>
                     </div>
 
@@ -3845,25 +3848,23 @@
     
     function updateAndDrawParticles(timeScale, pulse) {
         const m = streak >= 5 ? 2.5 : 1;
-        const speedBoost = 1 + (pulse * 1.2);  // subtle music reactivity
-        const sizeBoost = 1 + pulse * 0.8;      // minimal size growth with beat
-        const dynamicOpacity = Math.min(1, (streak >= 5 ? 0.65 : 0.42) * playerStats.particleOpacity + pulse * 0.12);
-        const rgb = currentRankInfo.rgb;
+        const speedBoost = 1 + (pulse * 1.2);
+        const sizeBoost = 1 + pulse * 0.8;
+        const isLight = document.body.classList.contains('light-mode');
+        const baseOpacity = streak >= 5 ? 0.65 : 0.42;
+        const dynamicOpacity = Math.min(1, (isLight ? baseOpacity * 2.2 : baseOpacity) * playerStats.particleOpacity + pulse * 0.12);
+        const rgb = isLight ? darkenRgb(currentRankInfo.rgb, 0.55) : currentRankInfo.rgb;
         const W = canvas.width, H = canvas.height;
         
-        // Batch all particle circles into one path
         ctx.beginPath();
         ctx.fillStyle = `rgba(${rgb}, ${dynamicOpacity})`;
         
         for (let i = 0; i < particlesArray.length; i++) {
             const p = particlesArray[i];
-            // Bounce off walls
             if (p.x > W || p.x < 0) p.dx = -p.dx;
             if (p.y > H || p.y < 0) p.dy = -p.dy;
-            // Move
             p.x += p.dx * m * timeScale * speedBoost;
             p.y += p.dy * m * timeScale * speedBoost;
-            // Draw with subtle music reactivity
             const r = (p.s + pulse * 1.0) * sizeBoost;
             ctx.moveTo(p.x + r, p.y);
             ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
@@ -3871,12 +3872,18 @@
         ctx.fill();
     }
     
+    // Darkens an "r,g,b" string by mixing it toward black by `factor` (0=original, 1=black)
+    function darkenRgb(rgb, factor) {
+        const [r, g, b] = rgb.split(',').map(Number);
+        return `${Math.round(r*(1-factor))},${Math.round(g*(1-factor))},${Math.round(b*(1-factor))}`;
+    }
+    
     function connectParticles(pulse) { 
         const isStreak = streak >= 5;
-        const baseOpacity = isStreak ? 0.35 : 0.18;
-        const rgb = currentRankInfo.rgb;
+        const isLight = document.body.classList.contains('light-mode');
+        const baseOpacity = isStreak ? (isLight ? 0.7 : 0.35) : (isLight ? 0.4 : 0.18);
+        const rgb = isLight ? darkenRgb(currentRankInfo.rgb, 0.55) : currentRankInfo.rgb;
         const distMult = 1 + pulse * 0.3;
-        // Reduce connection distance on smaller screens to limit O(n²) pairs
         const screenFactor = Math.min(1, (canvas.width * canvas.height) / (1920 * 1080));
         const maxDistSq = (canvas.width / 9) * (canvas.height / 9) * distMult * screenFactor;
         const pOp = playerStats.particleOpacity;
