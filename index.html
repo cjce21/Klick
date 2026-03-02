@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Klick</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ff66' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'%3E%3C/polygon%3E%3C/svg%3E">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap');
@@ -226,6 +228,8 @@
             border-color: rgba(0,0,0,0.1) !important;
         }
         body.light-mode .rank-item-pts { color: #4a5568; }
+        /* En modo claro: quitar text-shadow neón de los nombres de rango */
+        body.light-mode .rank-item .rank-item-name { text-shadow: none !important; }
 
         /* Rangos exclusivos de podio — colores legibles en modo claro */
         body.light-mode .rank-item [style*="color:#6e8fad"],
@@ -266,7 +270,6 @@
             background: rgba(255,255,255,0.8);
             border-color: rgba(0,0,0,0.08);
         }
-        body.light-mode .rank-card::before { background: #0d1117; }
         body.light-mode .rank-card:hover { background: rgba(255,255,255,0.95); border-color: rgba(0,0,0,0.18); transform: translateX(4px); }
         body.light-mode .rank-card.pos-1 { background: rgba(255,255,255,0.96); border-color: rgba(0,0,0,0.16); }
         body.light-mode .rank-card.pos-2 { background: rgba(255,255,255,0.9); border-color: rgba(0,0,0,0.12); }
@@ -275,7 +278,7 @@
         body.light-mode .rank-card.pos-1 .rc-pos,
         body.light-mode .rank-card.pos-2 .rc-pos { color: #0d1117; }
         body.light-mode .rc-pos { color: #4a5568; }
-        body.light-mode .rc-name { color: #0d1117; }
+        body.light-mode .rc-name { color: var(--rank-lb-color, #0d1117); }
         body.light-mode .rc-title { color: #4a5568; }
         body.light-mode .rc-score { color: #0d1117; }
         body.light-mode .rc-score span { color: #4a5568; }
@@ -509,7 +512,7 @@
         /* Roulette prize badge (legado) */
 
         /* Vscroll container */
-        body.light-mode #vscroll-container { background: transparent; }
+        body.light-mode #vscroll-container { background: transparent;  -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
         
         /* Modal abandono */
         body.light-mode .modal-overlay { background: rgba(0,0,0,0.5) !important; }
@@ -531,6 +534,7 @@
         .screen.active { opacity: 1; visibility: visible; pointer-events: auto; transform: scale(1) translateY(0); -webkit-transform: scale(1) translateY(0); z-index: 10; }
 
         .glass-panel { background: rgba(17, 17, 17, 0.7); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+        @media (max-width: 600px) { .glass-panel { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: 0 8px 20px rgba(0,0,0,0.4); } }
 
         #start-screen { justify-content: center; align-items: center; position: relative; }
 
@@ -564,7 +568,7 @@
         .nav-spacer { width: 110px; display: block; }
 
         .content-fit { width: 100%; height: calc(100% - 65px); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: clamp(10px, 2vh, 20px); overflow: hidden; }
-        .content-scroll { width: 100%; height: calc(100% - 65px); display: flex; flex-direction: column; align-items: center; padding: 20px 15px 40px 15px; overflow-y: auto; }
+        .content-scroll { width: 100%; height: calc(100% - 65px); display: flex; flex-direction: column; align-items: center; padding: 20px 15px 40px 15px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scroll-behavior: auto; }
         .content-scroll::-webkit-scrollbar { width: 6px; } .content-scroll::-webkit-scrollbar-track { background: transparent; } .content-scroll::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 10px; }
         
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -576,10 +580,10 @@
         
         /* --- Pantallas Generales (Expansivas) --- */
         .settings-dashboard, .profile-dashboard, .guide-dashboard, .ranking-wrapper, .achievements-wrapper {
-            width: 100%; max-width: 100%; padding: 0 15px; display: flex; flex-direction: column; margin: 0 auto;
+            width: 100%; max-width: 100%; padding: 0 20px; display: flex; flex-direction: column; margin: 0 auto;
         }
 
-        .settings-dashboard { max-width: 800px; justify-content: center; min-height: 100%; padding-bottom: 20px; gap: clamp(15px, 2vh, 30px); }
+        .settings-dashboard { max-width: 100%; justify-content: center; min-height: 100%; padding-bottom: 20px; gap: clamp(12px, 2vh, 24px); }
         .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(15px, 2vw, 25px); width: 100%; }
         .setting-card { padding: clamp(20px, 3vh, 30px); border-radius: var(--radius-lg); border: 1px solid var(--bg-elevated); display: flex; flex-direction: column; gap: 20px; transition: all 0.3s ease; height: 100%; }
         .setting-card:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
@@ -628,8 +632,8 @@
            ═══════════════════════════════════════ */
         .profile-dashboard {
             justify-content: flex-start;
-            max-width: 1000px;
-            gap: 16px;
+            max-width: 100%;
+            gap: 14px;
             height: 100%;
             display: flex;
             flex-direction: column;
@@ -722,7 +726,7 @@
         }
         .profile-achievements-grid {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             gap: 10px;
             width: 100%;
             flex: 1;
@@ -731,15 +735,18 @@
             background: rgba(17, 17, 17, 0.4);
             border: 1px dashed rgba(255,255,255,0.08);
             border-radius: var(--radius-md);
-            padding: 14px 18px;
+            padding: 14px 10px;
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
             align-items: center;
-            gap: 16px;
+            justify-content: center;
+            text-align: center;
+            gap: 8px;
             opacity: 0.35;
             filter: grayscale(1);
             position: relative;
             flex: 1;
+            min-height: 100px;
         }
         .achievement-slot.unlocked {
             border-style: solid;
@@ -753,34 +760,66 @@
         .ach-icon { width: 32px; height: 32px; flex-shrink: 0; }
         .ach-icon svg { width: 100%; height: 100%; }
         .ach-title {
-            font-size: clamp(0.72rem, 1vw, 0.85rem);
+            font-size: clamp(0.68rem, 0.95vw, 0.82rem);
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            text-align: left;
+            text-align: center;
             line-height: 1.2;
         }
 
         /* Guía y Rangos */
-        .guide-dashboard { justify-content: flex-start; gap: clamp(10px, 2vh, 20px); width: 100%; max-width: 1000px; padding: 0 0 30px 0; }
-        .guide-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(12px, 2vw, 18px); width: 100%; }
-        .guide-card { padding: clamp(18px, 2.5vh, 28px); border-radius: var(--radius-md); border: 1px solid var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; height: 100%; }
-        .guide-card:hover { }
+        .guide-dashboard { justify-content: flex-start; gap: clamp(8px, 1.5vh, 16px); width: 100%; max-width: 100%; padding: 0 0 20px 0; contain: layout; }
+        .guide-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; align-items: stretch; }
+        .guide-card { padding: 20px 18px; border-radius: var(--radius-md); border: 1px solid var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; justify-content: flex-start; contain: layout style; }
         .guide-card.full-width { grid-column: 1 / -1; }
-        .guide-icon { width: 35px; height: 35px; color: var(--text-primary); margin-bottom: 5px; }
-        .guide-title { font-size: clamp(1rem, 1.5vw, 1.3rem); font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; text-transform: uppercase; }
-        .guide-text { color: var(--text-secondary); font-size: clamp(0.85rem, 1.2vw, 0.95rem); line-height: 1.4; }
+        .guide-icon { width: 28px; height: 28px; color: var(--text-primary); margin-bottom: 2px; }
+        .guide-title { font-size: clamp(0.9rem, 1.3vw, 1.1rem); font-weight: 800; color: var(--text-primary); letter-spacing: -0.3px; text-transform: uppercase; }
+        .guide-text { color: var(--text-secondary); font-size: clamp(0.8rem, 1.1vw, 0.9rem); line-height: 1.4; }
         .guide-text strong { color: var(--text-primary); }
-        .rank-list { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; width: 100%; gap: 10px; margin-top: 10px; }
-        .rank-item { display: flex; flex-direction: column; align-items: center; padding: clamp(10px, 1.5vh, 15px); background: rgba(5,5,5,0.5); border-radius: var(--radius-sm); border: 1px solid var(--bg-elevated); flex: 1 1 30%; }
-        .rank-item-name { font-weight: 800; font-size: clamp(0.85rem, 1.2vw, 1.1rem); text-transform: uppercase; margin-bottom: 4px; }
-        .rank-item-pts { color: var(--text-secondary); font-size: clamp(0.7rem, 1vw, 0.85rem); line-height: 1.3; text-align: center; }
+        .rank-list { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; width: 100%; gap: 6px; margin-top: 6px; }
+        .rank-item { display: flex; flex-direction: column; align-items: center; padding: 10px 12px; background: rgba(255,255,255,0.03); border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.1); flex: 1 1 30%; }
+        .rank-item-name { font-weight: 800; font-size: clamp(0.8rem, 1.1vw, 1rem); text-transform: uppercase; margin-bottom: 3px; }
+        .rank-item-pts { color: var(--text-secondary); font-size: clamp(0.65rem, 0.9vw, 0.8rem); line-height: 1.3; text-align: center; }
+
+        /* Rango Mítico — animación especial */
+        @keyframes mitico-shimmer {
+            0%, 100% { filter: brightness(1); }
+            50%       { filter: brightness(1.2); }
+        }
+            100% { box-shadow: inset 0 0 20px rgba(255,255,255,0.04), 0 0 0px rgba(255,255,255,0); }
+        }
+        @keyframes mitico-shimmer-light {
+            0%   { box-shadow: inset 0 0 20px rgba(0,0,0,0.04), 0 0 0px rgba(0,0,0,0); }
+            50%  { box-shadow: inset 0 0 35px rgba(0,0,0,0.1), 0 0 18px rgba(0,0,0,0.08); }
+            100% { box-shadow: inset 0 0 20px rgba(0,0,0,0.04), 0 0 0px rgba(0,0,0,0); }
+        }
+        .rank-item.mitico-item {
+            animation: mitico-shimmer 3s ease-in-out infinite;
+            border-color: rgba(255,255,255,0.35) !important;
+            background: rgba(255,255,255,0.04) !important;
+            will-change: box-shadow;
+        }
+        .rank-item.mitico-item .rank-item-name,
+        .rank-item.mitico-item .mitico-name {
+            color: #ffffff !important;
+        }
+        body.light-mode .rank-item.mitico-item {
+            animation: mitico-shimmer-light 3s ease-in-out infinite;
+            border-color: rgba(0,0,0,0.35) !important;
+            background: rgba(0,0,0,0.04) !important;
+        }
+        body.light-mode .rank-item.mitico-item .rank-item-name,
+        body.light-mode .rank-item.mitico-item .mitico-name {
+            color: #000000 !important;
+            filter: none !important;
+        }
 
         
         /* Banco de Logros - Virtual Scroller */
         #achievements-screen { flex-direction: column; }
         .ach-vrow { display: grid; gap: 12px; padding: 0; }
-        .ach-card { background: #111; padding: 16px 12px; border-radius: var(--radius-md); border: 1px dashed var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 7px; opacity: 0.45; filter: grayscale(1); position: relative; cursor: pointer; height: 148px; justify-content: center; box-sizing: border-box; transition: border-color 0.12s, box-shadow 0.12s, opacity 0.12s; }
+        .ach-card { background: #111; padding: 16px 12px; border-radius: var(--radius-md); border: 1px dashed var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 7px; opacity: 0.45; filter: grayscale(1); position: relative; cursor: pointer; height: 148px; justify-content: center; box-sizing: border-box; transition: border-color 0.12s, box-shadow 0.12s, opacity 0.12s; will-change: transform; contain: layout style; }
         .ach-card:hover { border-color: rgba(255,255,255,0.2); }
         .ach-card.unlocked { border-style: solid; opacity: 1; filter: none; background: #191919; }
         .ach-card.pinned { box-shadow: 0 0 14px rgba(255,184,0,0.45) !important; border-color: var(--accent-yellow) !important; border-style: solid !important; }
@@ -795,41 +834,24 @@
         .ach-card.unlocked .ach-desc { font-style: normal; }
 
         /* --- CLASIFICACIÓN GLOBAL --- */
-        .ranking-wrapper { gap: 12px; max-width: 960px; padding: 20px; margin: 0 auto; }
-        .ranking-list { display: flex; flex-direction: column; gap: 10px; width: 100%; }
-        .rank-card { 
-            display: grid; grid-template-columns: 62px 1fr auto; align-items: center;
-            background: rgba(17, 17, 17, 0.6); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-            padding: 18px 28px; border-radius: var(--radius-md);
-            border: 1px solid rgba(255,255,255,0.06);
-            transition: all 0.25s ease; position: relative; overflow: hidden;
+        .ranking-wrapper { gap: 10px; max-width: 100%; padding: 20px; margin: 0 auto; }
+        .ranking-list { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+        .rank-card {
+            display: grid; grid-template-columns: 48px 1fr auto; align-items: center;
+            background: rgba(17,17,17,0.7);
+            padding: 12px 18px; border-radius: var(--radius-md);
+            border: 1px solid rgba(255,255,255,0.07);
+            transition: background 0.15s ease, transform 0.15s ease;
+            position: relative; overflow: hidden; contain: layout style;
         }
-        .rank-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--text-secondary); opacity: 0.25; transition: opacity 0.25s; }
-        .rank-card:hover { background: rgba(255,255,255,0.04); transform: translateX(4px); border-color: rgba(255,255,255,0.12); }
-        .rank-card:hover::before { opacity: 0.7; }
-        .rc-pos { font-size: 1.3rem; font-weight: 900; color: var(--text-secondary); text-align: center; font-variant-numeric: tabular-nums; }
-        .rc-info { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding-left: 10px; }
-        .rc-name { font-size: 1.05rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px; }
-        .rc-title { font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; }
-        .rc-score { font-size: 1.1rem; font-weight: 900; font-family: monospace; text-align: right; color: var(--text-primary); }
-        .rc-score span { font-size: 0.58rem; color: var(--text-secondary); display: block; letter-spacing: 1px; margin-top: 2px; text-align: right; }
-
-        /* Posiciones top-3: ligero realce neutro */
-        .rank-card.pos-1 { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.14); }
-        .rank-card.pos-1::before { background: var(--text-primary); opacity: 0.7; width: 4px; }
-        .rank-card.pos-1 .rc-pos { color: var(--text-primary); }
-
-        .rank-card.pos-2 { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.10); }
-        .rank-card.pos-2::before { background: var(--text-secondary); opacity: 0.6; }
-        .rank-card.pos-2 .rc-pos { color: var(--text-primary); opacity: 0.85; }
-
-        .rank-card.pos-3 { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.08); }
-        .rank-card.pos-3::before { background: var(--text-secondary); opacity: 0.45; }
-        .rank-card.pos-3 .rc-pos { color: var(--text-secondary); }
-
+        .rank-card:hover { background: rgba(255,255,255,0.05); transform: translateX(3px); }
+        .rc-pos { font-size: 1.1rem; font-weight: 900; color: var(--text-secondary); text-align: center; font-variant-numeric: tabular-nums; }
+        .rc-info { display: flex; flex-direction: column; justify-content: center; gap: 2px; padding-left: 10px; }
+        .rc-name { font-size: 0.95rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .rc-title { font-size: 0.58rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; }
+        .rc-score { font-size: 0.95rem; font-weight: 900; font-family: monospace; text-align: right; color: var(--text-primary); }
+        .rc-score span { font-size: 0.52rem; color: var(--text-secondary); display: block; letter-spacing: 1px; margin-top: 1px; text-align: right; }
         .rank-card.is-me { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); }
-        .rank-card.is-me::before { background: var(--text-primary); opacity: 0.5; }
-
         .ranking-loading { text-align: center; color: var(--text-secondary); padding: 40px; font-weight: 600; font-size: 1rem; letter-spacing: 1px; }
         #countdown-screen { justify-content: center; align-items: center; }
         #countdown-number { transition: transform 0.25s var(--ease-spring), opacity 0.25s ease; }
@@ -864,7 +886,7 @@
         .timer-text { font-size: 1.4rem; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
         .question-text { font-size: clamp(1.4rem, 4vw, 2.5rem); font-weight: 800; text-align: center; line-height: 1.2; width: 100%; letter-spacing: -1px; background: rgba(5,5,5,0.45); padding: 16px 22px; border-radius: 14px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
         .answers-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px; padding: 10px 20px 30px 20px; flex: 0 0 45vh; max-width: 1400px; width: 100%; margin: 0 auto; z-index: 5; }
-        .answer-btn { position: relative; background-color: rgba(8,8,8,0.72); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); border: 1px solid var(--text-secondary); border-radius: var(--radius-lg); color: var(--text-primary); font-size: clamp(1rem, 2vw, 1.2rem); font-weight: 600; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; opacity: 0; transform: translateY(20px); transition: transform 0.4s var(--ease-spring), opacity 0.4s var(--ease-out), background-color 0.2s, border-color 0.2s, filter 0.3s; }
+        .answer-btn { position: relative; background-color: rgba(8,8,8,0.72); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); border: 1px solid var(--text-secondary); border-radius: var(--radius-lg); color: var(--text-primary); font-size: clamp(1rem, 2vw, 1.2rem); font-weight: 600; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; opacity: 0; transform: translateY(20px); transition: transform 0.4s var(--ease-spring), opacity 0.4s var(--ease-out), background-color 0.2s, border-color 0.2s;; will-change: transform; }
         .screen.active .answer-btn { opacity: 1; transform: translateY(0); }
         .color-red { border-bottom: 2px solid var(--accent-red); } .color-blue { border-bottom: 2px solid var(--accent-blue); } .color-yellow { border-bottom: 2px solid var(--accent-yellow); } .color-green { border-bottom: 2px solid var(--accent-green); }
         .answer-btn:active { transform: scale(0.96); -webkit-transform: scale(0.96); }
@@ -920,7 +942,7 @@
 
         /* Toast UI */
         .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 100; pointer-events: none; }
-        .toast-item { background: rgba(17, 17, 17, 0.9); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid var(--bg-elevated); padding: 12px 15px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px; transform: translateX(120%); opacity: 0; transition: all 0.5s var(--ease-spring); }
+        .toast-item { background: rgba(17, 17, 17, 0.9); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid var(--bg-elevated); padding: 12px 15px; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 10px; transform: translateX(120%); opacity: 0; transition: transform 0.5s var(--ease-spring), opacity 0.5s var(--ease-spring); will-change: transform, opacity; }
         .toast-item.show { transform: translateX(0); -webkit-transform: translateX(0); opacity: 1; }
         .toast-icon { width: 24px; height: 24px; color: var(--accent-yellow); }
         .toast-title { font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 800; display: block; }
@@ -1140,7 +1162,7 @@
             .answer-btn { padding: 15px; font-size: 1rem; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .guide-grid { grid-template-columns: 1fr; }
-            .profile-achievements-grid { flex-direction: column; }
+            .profile-achievements-grid { flex-direction: column; gap: 8px; }
             .settings-grid { grid-template-columns: 1fr; }
             .toast-container { bottom: auto; top: 20px; right: 50%; transform: translateX(50%); width: 90%; }
             .toast-item { transform: translateY(-120%); }
@@ -1158,8 +1180,12 @@
             var s = JSON.parse(raw);
             var ts = s.totalScore||0, tc = s.totalCorrect||0, pf = s.perfectGames||0;
             var gp = s.gamesPlayed||0, mx = s.maxMult||1, sk = s.maxStreak||0, bs = s.bestScore||0;
+            var ach = (s.achievements||[]).length, ml = s.maxLoginStreak||0;
+            var tw = s.totalWrong||0, tt = s.totalTimeouts||0;
+            var acc = (tc+tw+tt)>0 ? Math.round(tc/(tc+tw+tt)*100) : 0;
             var color, rgb;
-            if (ts>=400000 && tc>=1500 && pf>=10)      { color='#ffb800'; rgb='255,184,0'; }
+            if (ts>=1200000&&tc>=5000&&pf>=50&&ach>=200&&sk>=40&&mx>=8&&acc>=85&&ml>=30) { color='#ffffff'; rgb='255,255,255'; }
+            else if (ts>=400000 && tc>=1500 && pf>=10)      { color='#ffb800'; rgb='255,184,0'; }
             else if (ts>=150000 && gp>=50 && mx>=4)    { color='#b5179e'; rgb='181,23,158'; }
             else if (ts>=60000 && tc>=200 && sk>=12)   { color='#ff2a5f'; rgb='255,42,95'; }
             else if (bs>=15000 && gp>=5)               { color='#00d4ff'; rgb='0,212,255'; }
@@ -1329,7 +1355,7 @@
             <div class="nav-title">PERFIL</div><div class="nav-spacer"></div>
         </div>
         <div class="content-scroll no-scrollbar" style="align-items:stretch;">
-            <div class="profile-dashboard" style="max-width:860px;margin:0 auto;padding-bottom:30px;">
+            <div class="profile-dashboard" style="padding-bottom:30px;">
 
                 <!-- Hero: nombre + rango -->
                 <div class="profile-hero glass-panel" style="border-color:rgba(var(--rank-rgb),0.18);">
@@ -1395,9 +1421,9 @@
                             <div style="height:3px;border-radius:10px;background:rgba(255,255,255,0.05);overflow:hidden;margin-bottom:10px;">
                                 <div id="pl-bar-total" style="height:100%;border-radius:10px;background:var(--rank-color);width:0%;transition:width 1s cubic-bezier(0.16,1,0.3,1),background 0.5s;"></div>
                             </div>
-                            <div style="display:flex;justify-content:space-between;align-items:center;">
-                                <span id="pl-next-label" style="font-size:0.58rem;color:var(--text-secondary);font-weight:500;"></span>
-                                <span id="pl-accuracy-pct" style="font-size:0.58rem;color:var(--text-secondary);font-weight:600;"></span>
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:4px;">
+                                <span id="pl-next-label" style="font-size:0.58rem;color:var(--text-secondary);font-weight:500;flex:1;line-height:1.5;"></span>
+                                <span id="pl-accuracy-pct" style="font-size:0.58rem;color:var(--text-secondary);font-weight:600;white-space:nowrap;"></span>
                             </div>
                         </div>
                     </div>
@@ -1423,7 +1449,7 @@
                 <div class="guide-grid">
 
                     <!-- Objetivo del juego -->
-                    <div class="guide-card glass-panel full-width" style="border-color: rgba(255,255,255,0.12); padding-bottom: 20px;">
+                    <div class="guide-card glass-panel full-width" style="border-color: rgba(255,255,255,0.12);">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                         <div class="guide-title">Objetivo del Juego</div>
                         <div class="guide-text">Klick es un trivia de <strong>preguntas sobre Lengua Española</strong>. Tienes <strong>15 segundos</strong> para responder cada pregunta y <strong>3 vidas</strong> para sobrevivir. Si fallas una respuesta o se te acaba el tiempo, pierdes una vida. Cuando pierdes las 3, la partida termina. ¡Tu objetivo es acumular el mayor puntaje posible!</div>
@@ -1447,94 +1473,116 @@
                     <div class="guide-card full-width glass-panel" style="border-color: rgba(255,255,255,0.1);">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M3.05 11a9 9 0 1 1 .5 4"/></svg>
                         <div class="guide-title">Ruleta de Recompensas</div>
-                        <div class="guide-text" style="margin-bottom:14px;">Al acumular aciertos durante la partida, aparece una <strong>ruleta de premios</strong>. Puedes mezclar y girar para obtener una recompensa aleatoria. Los premios tienen distintas <strong>raridades</strong> — los más raros aparecen con menor frecuencia.</div>
-                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:100%;max-width:640px;">
-                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
-                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Vida Extra</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">Recuperas una vida perdida.</span></div>
+                        <div class="guide-text">Al acumular aciertos durante la partida, aparece una <strong>ruleta de premios</strong>. Puedes mezclar y girar para obtener una recompensa aleatoria. Los premios tienen distintas <strong>raridades</strong> — los más raros aparecen con menor frecuencia.</div>
+                        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;margin-top:8px;">
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                                <strong style="font-size:0.78rem;">Vida Extra</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Recuperas una vida perdida.</span>
                             </div>
-                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
-                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Escudo</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">Protección si fallas la siguiente pregunta.</span></div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                <strong style="font-size:0.78rem;">Escudo</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Protección si fallas la siguiente.</span>
                             </div>
-                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
-                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
-                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Frenesí</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">Activa el Modo Frenesí inmediatamente.</span></div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
+                                <strong style="font-size:0.78rem;">Frenesí</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Activa el Modo Frenesí al instante.</span>
                             </div>
-                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
-                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Jackpot x4</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">La próxima pregunta vale x4 puntos.</span></div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                                <strong style="font-size:0.78rem;">Jackpot x4</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">La próxima pregunta vale x4.</span>
                             </div>
-                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
-                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Puntos x2</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">La próxima pregunta vale el doble.</span></div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                                <strong style="font-size:0.78rem;">Puntos x2</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">La próxima vale el doble.</span>
                             </div>
-                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
-                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Turbo x3</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">La próxima pregunta vale x3 puntos.</span></div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;">
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                                <strong style="font-size:0.78rem;">Turbo x3</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">La próxima vale x3 puntos.</span>
                             </div>
-                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
-                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Tiempo +8</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">La próxima pregunta tiene 8 segundos extra.</span></div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <strong style="font-size:0.78rem;">Tiempo +8</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">8 segundos extra en la próxima.</span>
                             </div>
-                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
-                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
-                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Tiempo +5</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">La próxima pregunta tiene 5 segundos extra.</span></div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+                                <strong style="font-size:0.78rem;">Tiempo +5</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">5 segundos extra en la próxima.</span>
                             </div>
-                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
-                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="4"/></svg>
-                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Pista</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">Elimina una respuesta incorrecta.</span></div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="4"/></svg>
+                                <strong style="font-size:0.78rem;">Pista</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Elimina una respuesta incorrecta.</span>
                             </div>
-                            <div style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;">
-                                <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-                                <div style="text-align:left;"><strong style="font-size:0.88rem;">Racha Salvada</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">Si fallas, tu racha no se resetea.</span></div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                                <strong style="font-size:0.78rem;">Racha Salvada</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Tu racha no se resetea al fallar.</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Sistema de Rangos completo -->
-                    <div class="guide-card full-width glass-panel" style="border-color: rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>
+                    <div class="guide-card full-width glass-panel" style="border-color:rgba(255,255,255,0.1);gap:7px;padding:18px;">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);width:28px;height:28px;margin-bottom:0;"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>
                         <div class="guide-title">Sistema de Rangos</div>
-                        <div class="guide-text" style="margin-bottom: 10px;">Debes cumplir <strong>TODOS</strong> los requisitos a la vez para ascender. Los rangos demuestran tu estatus real en el juego.</div>
-                        <div class="rank-list">
-                            <div class="rank-item" style="border-color: rgba(0,255,102,0.3);">
-                                <span class="rank-item-name" style="color: var(--accent-green);">Novato</span>
-                                <span class="rank-item-pts">El rango de inicio. ¡No te preocupes, todos empiezan aquí!</span>
+                        <div class="guide-text" style="margin-bottom:6px;">Cumple <strong>TODOS</strong> los requisitos simultáneamente para ascender.</div>
+                        <!-- 3 rangos base -->
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;">
+                            <div class="rank-item" style="border-color:rgba(0,255,102,0.35);">
+                                <span class="rank-item-name" style="color:var(--accent-green);">Novato</span>
+                                <span class="rank-item-pts">Rango inicial</span>
                             </div>
-                            <div class="rank-item" style="border-color: rgba(0,212,255,0.3);">
-                                <span class="rank-item-name" style="color: var(--accent-blue);">Junior</span>
-                                <span class="rank-item-pts">15,000 pts récord · 5 partidas jugadas</span>
+                            <div class="rank-item" style="border-color:rgba(0,212,255,0.35);">
+                                <span class="rank-item-name" style="color:var(--accent-blue);">Junior</span>
+                                <span class="rank-item-pts">Récord 15k · 5 partidas</span>
                             </div>
-                            <div class="rank-item" style="border-color: rgba(255,42,95,0.3);">
-                                <span class="rank-item-name" style="color: var(--accent-red);">Pro</span>
-                                <span class="rank-item-pts">60,000 pts acum. · 200 aciertos · Racha de 12</span>
-                            </div>
-                            <div class="rank-item" style="border-color: rgba(181,23,158,0.3);">
-                                <span class="rank-item-name" style="color: var(--accent-purple);">Maestro</span>
-                                <span class="rank-item-pts">150,000 pts acum. · 50 partidas · Mult. x4</span>
-                            </div>
-                            <div class="rank-item" style="border-color: rgba(255,184,0,0.3); background: rgba(255,184,0,0.04);">
-                                <span class="rank-item-name" style="color: var(--accent-yellow);">Leyenda</span>
-                                <span class="rank-item-pts">400,000 pts acum. · 1,500 aciertos · 10 partidas largas</span>
+                            <div class="rank-item" style="border-color:rgba(255,42,95,0.35);">
+                                <span class="rank-item-name" style="color:var(--accent-red);">Pro</span>
+                                <span class="rank-item-pts">Acum. 60k · 200 aciertos · Racha 12</span>
                             </div>
                         </div>
-                        <!-- Rangos de Podio Leyenda -->
-                        <div style="margin-top:18px;width:100%;border-top:1px solid rgba(255,184,0,0.25);padding-top:15px;">
-                            <div style="font-size:0.7rem;font-weight:800;color:var(--accent-yellow);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:center;">Rangos Exclusivos de Podio — Solo Top 3 + Leyenda</div>
-                            <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.5;margin-bottom:12px;text-align:center;">Estos títulos <strong style="color:var(--text-primary);">solo existen para los 3 primeros del ranking global</strong> que, además, ya tengan el rango <strong style="color:var(--accent-yellow);">Leyenda</strong>. Si dejas el podio o pierdes el rango Leyenda, el título desaparece. Son los únicos rangos del juego que no se obtienen por progreso individual sino por posición en el ranking.</div>
-                            <div class="rank-list" style="gap:8px;">
-                                <div class="rank-item" style="border-color:rgba(90,115,145,0.55);background:rgba(90,115,145,0.07);flex:1 1 30%;position:relative;">
-                                    <span class="rank-item-name" style="color:#6e8fad;font-size:1rem;">Rey Klick</span>
-                                    <span class="rank-item-pts" style="color:rgba(110,143,173,0.75);">Leyenda + 1.º del Ranking</span>
+                        <!-- 2 rangos medios -->
+                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;width:100%;">
+                            <div class="rank-item" style="border-color:rgba(181,23,158,0.35);">
+                                <span class="rank-item-name" style="color:var(--accent-purple);">Maestro</span>
+                                <span class="rank-item-pts">Acum. 150k · 50 partidas · Mult. x4</span>
+                            </div>
+                            <div class="rank-item" style="border-color:rgba(255,184,0,0.35);">
+                                <span class="rank-item-name" style="color:var(--accent-yellow);">Leyenda</span>
+                                <span class="rank-item-pts">Acum. 400k · 1,500 aciertos · 10 largas</span>
+                            </div>
+                        </div>
+                        <!-- Mítico solo, ancho completo -->
+                        <div style="width:100%;">
+                            <div class="rank-item mitico-item" style="width:100%;padding:10px 14px;">
+                                <span class="rank-item-name mitico-name">Mítico — Rango Supremo</span>
+                                <span class="rank-item-pts">Acum. 1.2M · 5,000 aciertos · 50 largas · 200 logros · Racha 40 · Mult. x8 · Precisión ≥85% · 30 días seguidos</span>
+                            </div>
+                        </div>
+                        <!-- Podio -->
+                        <div style="width:100%;border-top:1px solid rgba(255,184,0,0.2);padding-top:8px;margin-top:2px;">
+                            <div style="font-size:0.62rem;font-weight:800;color:var(--accent-yellow);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;text-align:center;">Rangos de Podio — Top 3 + Leyenda</div>
+                            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;">
+                                <div class="rank-item" style="border-color:rgba(110,143,173,0.45);">
+                                    <span class="rank-item-name" style="color:#6e8fad;">Rey Klick</span>
+                                    <span class="rank-item-pts">Leyenda + 1.º</span>
                                 </div>
-                                <div class="rank-item" style="border-color:rgba(255,94,0,0.45);background:rgba(255,94,0,0.05);flex:1 1 30%;">
-                                    <span class="rank-item-name" style="color:#ff5e00;font-size:0.95rem;">Señor Klick</span>
-                                    <span class="rank-item-pts" style="color:rgba(255,94,0,0.7);">Leyenda + 2.º del Ranking</span>
+                                <div class="rank-item" style="border-color:rgba(255,94,0,0.4);">
+                                    <span class="rank-item-name" style="color:#ff5e00;">Señor Klick</span>
+                                    <span class="rank-item-pts">Leyenda + 2.º</span>
                                 </div>
-                                <div class="rank-item" style="border-color:rgba(204,255,0,0.45);background:rgba(204,255,0,0.05);flex:1 1 30%;">
-                                    <span class="rank-item-name" style="color:#ccff00;font-size:0.95rem;">Caballero Klick</span>
-                                    <span class="rank-item-pts" style="color:rgba(204,255,0,0.7);">Leyenda + 3.º del Ranking</span>
+                                <div class="rank-item" style="border-color:rgba(204,255,0,0.4);">
+                                    <span class="rank-item-name" style="color:#ccff00;">Caballero Klick</span>
+                                    <span class="rank-item-pts">Leyenda + 3.º</span>
                                 </div>
                             </div>
                         </div>
@@ -1544,7 +1592,7 @@
                     <div class="guide-card glass-panel" style="border-color: rgba(255,255,255,0.1);">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                         <div class="guide-title">Banco de Logros</div>
-                        <div class="guide-text">Hay <strong>270 logros</strong> para desbloquear. Algunos son escalables (por jugar más), otros son únicos y secretos. Puedes <strong>fijar hasta 3 logros</strong> en tu perfil. ¡Descúbrelos explorando todas las secciones del juego!</div>
+                        <div class="guide-text">Hay <strong>276 logros</strong> para desbloquear. Algunos son escalables (por jugar más), otros son únicos y secretos. Puedes <strong>fijar hasta 3 logros</strong> en tu perfil. ¡Descúbrelos explorando todas las secciones del juego!</div>
                     </div>
 
                     <!-- Power Level / Ranking -->
@@ -2553,36 +2601,46 @@
         try {
             const res = await fetch(GAS_URL);
             const topPlayers = await res.json();
+            const isLight = document.body.classList.contains('light-mode');
+            
+            // Map rank title to color
+            function rankTitleColor(title) {
+                switch(title) {
+                    case 'Mítico':  return isLight ? '#000000' : '#ffffff';
+                    case 'Leyenda': return isLight ? '#8a6200' : 'var(--accent-yellow)';
+                    case 'Maestro': return isLight ? '#7a0a8c' : 'var(--accent-purple)';
+                    case 'Pro':     return isLight ? '#c41940' : 'var(--accent-red)';
+                    case 'Junior':  return isLight ? '#0070a8' : 'var(--accent-blue)';
+                    default:        return isLight ? '#0a7a3e' : 'var(--accent-green)';
+                }
+            }
             
             let html = "";
             topPlayers.forEach((p, index) => {
                 const pos = index + 1;
                 const isMe = p.uuid === playerStats.uuid;
                 if(isMe) { playerStats.rankingPosition = pos; saveStatsLocally(); checkAchievements(); }
-                let classPos = pos <= 3 ? `pos-${pos}` : ``;
-                if(isMe) classPos += " is-me";
 
-                // Podio titles (solo texto, sin colores)
+                // Podio titles — requiere Leyenda o superior
                 let rankTitle = p.rankTitle;
                 const podiumTitles = { 1: 'Rey Klick', 2: 'Señor Klick', 3: 'Caballero Klick' };
-                if (pos <= 3 && p.rankTitle === 'Leyenda') rankTitle = podiumTitles[pos];
+                if (pos <= 3 && (p.rankTitle === 'Leyenda' || p.rankTitle === 'Mítico')) rankTitle = podiumTitles[pos];
 
-                // Posición visual — top3 ligeramente diferenciados, todos en paleta neutra
-                const posClass = pos <= 3 ? 'pos-' + pos : '';
-                const meClass  = isMe ? 'is-me' : '';
-                const nameCss  = isMe ? 'color:var(--text-primary);font-weight:900;' : '';
+                const meClass = isMe ? 'is-me' : '';
 
-                html += `
-                <div class="rank-card ${posClass} ${meClass}">
+                html += `<div class="rank-card ${meClass}">
                     <div class="rc-pos">${pos}</div>
                     <div class="rc-info">
-                        <div class="rc-name" style="${nameCss}">${p.name}</div>
+                        <div class="rc-name">${p.name}</div>
                         <div class="rc-title">${rankTitle}</div>
                     </div>
                     <div class="rc-score">${p.powerLevel.toLocaleString()} <span>PL</span></div>
                 </div>`;
             });
             document.getElementById('ranking-list').innerHTML = html;
+            // Track successful loads for 'Bien Conectado' ui8
+            playerStats.successfulLeaderboardLoads = (playerStats.successfulLeaderboardLoads||0) + 1;
+            saveStatsLocally();
         } catch(e) {
             if(document.getElementById('ranking-list').innerHTML.includes('ranking-loading')) {
                document.getElementById('ranking-list').innerHTML = `<div class="ranking-loading">Error al conectar con la base de datos global. Reintentando...</div>`;
@@ -2707,6 +2765,7 @@
         { id: 'u6',  title: 'Pro',             desc: 'Alcanza el rango Pro.',                                            color: colors.red,    icon: SVG_TROPHY },
         { id: 'u7',  title: 'Maestro',         desc: 'Alcanza el rango Maestro.',                                        color: colors.purple, icon: SVG_TROPHY },
         { id: 'u8',  title: 'Leyenda',         desc: 'Alcanza el codiciado rango Leyenda.',                              color: colors.yellow, icon: SVG_TROPHY },
+        { id: 'u_mitico', title: 'Mítico',     desc: 'Alcanza el rango Mítico. El más difícil de conseguir.',            color: '#ffffff',     icon: SVG_STAR },
         { id: 'u9',  title: 'Inmortal',        desc: 'Completa 50 preguntas seguidas sin perder ninguna vida.',          color: colors.purple, icon: SVG_SHIELD },
         { id: 'u10', title: 'Desastre',        desc: 'Pierde las 3 vidas en las primeras 3 preguntas.',                  color: colors.dark,   icon: SVG_SKULL },
         { id: 'u11', title: 'Fénix',           desc: 'Pierde 2 vidas al inicio pero llega a 30 aciertos consecutivos.',  color: colors.orange, icon: SVG_FIRE },
@@ -2867,6 +2926,15 @@
         { id: 'rl10', title: 'Combo Especial',    desc: 'Consigue un premio de ruleta durante una racha de 20+.',       color: colors.orange, icon: SVG_BOLT },
     ]);
 
+    // --- LOGROS EXTRA (5) ---
+    addAchs([
+        { id: 'extra1', title: 'Doble Frenesí',    desc: 'Activa el Modo Frenesí dos veces en la misma partida.',         color: colors.red,    icon: SVG_FIRE },
+        { id: 'extra2', title: 'Precisionista',    desc: 'Termina una partida con 100% de precisión (mín. 5 respuestas).',color: colors.yellow, icon: SVG_TARGET },
+        { id: 'extra3', title: 'Maratonista',      desc: 'Supera las 80 preguntas en una sola partida.',                  color: colors.green,  icon: SVG_SHIELD },
+        { id: 'extra4', title: 'Silencioso',       desc: 'Juega 5 partidas con la música completamente apagada.',         color: colors.dark,   icon: SVG_CLOCK },
+        { id: 'extra5', title: 'Coleccionista',    desc: 'Desbloquea 10 logros en un mismo día.',                         color: colors.purple, icon: SVG_STAR },
+    ]);
+
 
     function processDailyLogin() {
         const now = new Date(); const todayStr = now.toISOString().split('T')[0];
@@ -2884,6 +2952,13 @@
     function shuffleArray(array) { let current = array.length, random; while (current !== 0) { random = Math.floor(Math.random() * current); current--; [array[current], array[random]] = [array[random], array[current]]; } return array; }
 
     function getRankInfo(stats) {
+        // Mítico — el rango supremo, requisitos extremos
+        const totalAnswers = (stats.totalCorrect||0)+(stats.totalWrong||0)+(stats.totalTimeouts||0);
+        const accuracy = totalAnswers>0 ? Math.round((stats.totalCorrect||0)/totalAnswers*100) : 0;
+        if (stats.totalScore >= 1200000 && stats.totalCorrect >= 5000 && stats.perfectGames >= 50 &&
+            (stats.achievements||[]).length >= 200 && stats.maxStreak >= 40 && (stats.maxMult||1) >= 8 &&
+            accuracy >= 85 && stats.maxLoginStreak >= 30)
+            return { title: "Mítico", color: "#ffffff", rgb: "255, 255, 255", mitico: true };
         if (stats.totalScore >= 400000 && stats.totalCorrect >= 1500 && stats.perfectGames >= 10) return { title: "Leyenda", color: "var(--accent-yellow)", rgb: "255, 184, 0" };
         if (stats.totalScore >= 150000 && stats.gamesPlayed >= 50 && (stats.maxMult||1) >= 4) return { title: "Maestro", color: "var(--accent-purple)", rgb: "181, 23, 158" };
         if (stats.totalScore >= 60000 && stats.totalCorrect >= 200 && stats.maxStreak >= 12) return { title: "Pro", color: "var(--accent-red)", rgb: "255, 42, 95" };
@@ -2949,10 +3024,12 @@
         if (playerStats.totalTimeouts > 0) unlock('u3'); if (playerStats.totalTimeouts >= 50) unlock('u4'); 
         if (playerStats.todayGames >= 50) unlock('u22'); if ((playerStats.maxStreak||0) >= 25) unlock('u23');
         const rank = getRankInfo(playerStats).title; 
-        if (rank==="Junior"||rank==="Pro"||rank==="Maestro"||rank==="Leyenda") unlock('u_junior');
-        if (rank==="Pro"||rank==="Maestro"||rank==="Leyenda") unlock('u6'); 
-        if (rank==="Maestro"||rank==="Leyenda") unlock('u7'); 
-        if (rank==="Leyenda") unlock('u8');
+        // Rank achievements: cada rango desbloquea todos los anteriores (escalera)
+        if (rank==="Junior"||rank==="Pro"||rank==="Maestro"||rank==="Leyenda"||rank==="Mítico") unlock('u_junior');
+        if (rank==="Pro"||rank==="Maestro"||rank==="Leyenda"||rank==="Mítico") unlock('u6'); 
+        if (rank==="Maestro"||rank==="Leyenda"||rank==="Mítico") unlock('u7'); 
+        if (rank==="Leyenda"||rank==="Mítico") unlock('u8');
+        if (rank==="Mítico") unlock('u_mitico');
         if (playerStats.clickedLogo) unlock('secret_logo');
 
         // RULETA
@@ -2979,11 +3056,11 @@
         const rp = playerStats.rankingPosition||999;
         if(rp<=20) unlock('nm1'); if(rp<=10) unlock('nm2'); if(rp<=3) unlock('nm3'); if(rp===1) unlock('nm4');
 
-        // PODIO LEYENDA (solo top 1-3 Y rango Leyenda)
-        const curRankTitle = getRankInfo(playerStats).title;
-        if(rp===1 && curRankTitle==='Leyenda') unlock('pod1');
-        if(rp===2 && curRankTitle==='Leyenda') unlock('pod2');
-        if(rp===3 && curRankTitle==='Leyenda') unlock('pod3');
+        // PODIO LEYENDA (solo top 1-3 Y rango Leyenda o superior)
+        // rank ya calculado arriba — no necesita segunda llamada
+        if(rp===1 && (rank==='Leyenda'||rank==='Mítico')) unlock('pod1');
+        if(rp===2 && (rank==='Leyenda'||rank==='Mítico')) unlock('pod2');
+        if(rp===3 && (rank==='Leyenda'||rank==='Mítico')) unlock('pod3');
 
         // MULTIPLICADORES x6-x10
         const mx2 = playerStats.maxMult||1;
@@ -3019,9 +3096,33 @@
         if(playerStats.gamesPlayed>=1 || playerStats.maxLoginStreak>=1) unlock('x1');
         if(playerStats.gamesPlayed>=100) unlock('x17');
         if(playerStats.nameChanges===0 && playerStats.maxLoginStreak>=30) unlock('x18');
-        if(rank==='Leyenda' && normalAchs>=200) unlock('fin5');
-        if(days>=7 && (rank==='Junior'||rank==='Pro'||rank==='Maestro'||rank==='Leyenda')) unlock('fin4');
+        if((rank==='Leyenda'||rank==='Mítico') && normalAchs>=200) unlock('fin5');
+        if(days>=7 && (rank==='Junior'||rank==='Pro'||rank==='Maestro'||rank==='Leyenda'||rank==='Mítico')) unlock('fin4');
         if((playerStats.maxMult||1)>=4) unlock('u16');
+        // u9 Inmortal: handled in-game via inGameUnlock (line ~4420)
+        // u24 Extremis: 3 last-second answers in single game
+        if((playerStats.extremisCount||0)>=1) unlock('u24');
+        // ui5 El Perfil Importa: visit profile after each of first 5 games
+        if((playerStats.profileViewedAfterGames||0)>=5) unlock('ui5');
+        // nm5 Vigilia: rank up in 3 consecutive days (tracked via rankUpDays)
+        if((playerStats.consecutiveRankUpDays||0)>=3) unlock('nm5');
+        // nm6 Impostado, nm7 Remontada — tracked in game
+        if(playerStats.surpassedHighPLPlayer) unlock('nm6');
+        if(playerStats.rankRemontada) unlock('nm7');
+        // ui8 Bien Conectado: 10 successful leaderboard loads
+        if((playerStats.successfulLeaderboardLoads||0)>=10) unlock('ui8');
+
+        // --- LOGROS EXTRA ---
+        // extra1 Doble Frenesí: tracked in-game via frenziesThisGame persisted stat
+        if((playerStats.maxFrenziesInGame||0)>=2) unlock('extra1');
+        // extra2 Precisionista: partida con 100% precision min 5 respuestas
+        if(playerStats.hadPerfectAccuracyGame) unlock('extra2');
+        // extra3 Maratonista: 80+ preguntas en una partida
+        if((playerStats.maxQuestionReached||0)>=80) unlock('extra3');
+        // extra4 Silencioso: 5 partidas con música en 0
+        if((playerStats.gamesAtMusicZero||0)>=5) unlock('extra4');
+        // extra5 Coleccionista: 10 logros en un día
+        if((playerStats.dailyAchUnlocks||0)>=10) unlock('extra5');
 
         if(playerStats.playedNocturno) unlock('fin1');
         if(playerStats.playedMadrugador) unlock('fin2');
@@ -3120,7 +3221,7 @@
 
     // ══════════════════════════════════════════════════════════════════
     //  VIRTUAL SCROLLER — solo renderiza las tarjetas visibles en pantalla
-    //  Elimina el lag al hacer scroll por los 270 logros.
+    //  Elimina el lag al hacer scroll por los 276 logros.
     // ══════════════════════════════════════════════════════════════════
     const CARD_HEIGHT   = 148;  // px — debe coincidir con el CSS
     const CARD_GAP      = 12;   // px gap entre cards
@@ -3296,13 +3397,13 @@
                 const achDisplayColor = isLight ? darkenHex(ach.color, 0.4) : ach.color;
                 slot.style.borderColor = isLight ? 'rgba(0,0,0,0.2)' : ach.color;
                 slot.style.boxShadow = isLight ? 'none' : `0 0 12px ${ach.color}44`;
-                slot.innerHTML = `<div class="ach-icon" style="color:${achDisplayColor}">${ach.icon}</div><div class="ach-title">${ach.title}</div>`;
+                slot.innerHTML = `<div class="ach-icon" style="color:${achDisplayColor}">${ach.icon}</div><div class="ach-title" style="color:${achDisplayColor}">${ach.title}</div>`;
                 frag.appendChild(slot); n++;
             });
             while (n < 3) {
                 const slot = document.createElement('div');
                 slot.className = 'achievement-slot';
-                slot.innerHTML = `<div class="ach-icon" style="color:var(--text-secondary)">${SVG_LOCK}</div><div class="ach-title" style="color:var(--text-secondary)">Vacío</div>`;
+                slot.innerHTML = `<div class="ach-icon" style="color:var(--text-secondary);opacity:0.4">${SVG_LOCK}</div><div class="ach-title" style="color:var(--text-secondary);opacity:0.5;font-size:0.7rem;">Sin fijar</div>`;
                 frag.appendChild(slot); n++;
             }
             profileGrid.appendChild(frag);
@@ -3846,8 +3947,59 @@
                 const bar=document.getElementById('pl-bar-total');
                 if(bar){ bar.style.width=pctRound+'%'; bar.style.background=currentRankInfo.color; }
             },120);
+            // Build next rank conditions label
             const nextEl=document.getElementById('pl-next-label');
-            if(nextEl) nextEl.innerText=`Próximo hito: ${fmt(nextMs)} PL — ${pctRound}% completado`;
+            if(nextEl) {
+                const ri = currentRankInfo;
+                let condHtml = '';
+                if (ri.title === 'Novato') {
+                    // Next: Junior (bestScore >= 15000 && gamesPlayed >= 5)
+                    const c1 = s.bestScore >= 15000, c2 = (s.gamesPlayed||0) >= 5;
+                    condHtml = `<span style="color:var(--accent-blue);font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: JUNIOR</span> &nbsp;`+
+                        `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Récord ${fmt(s.bestScore||0)}/15,000</span> &nbsp;`+
+                        `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Partidas ${s.gamesPlayed||0}/5</span>`;
+                } else if (ri.title === 'Junior') {
+                    // Next: Pro (totalScore >= 60000 && totalCorrect >= 200 && maxStreak >= 12)
+                    const c1 = (s.totalScore||0) >= 60000, c2 = (s.totalCorrect||0) >= 200, c3 = (s.maxStreak||0) >= 12;
+                    condHtml = `<span style="color:var(--accent-red);font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: PRO</span> &nbsp;`+
+                        `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/60,000</span> &nbsp;`+
+                        `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/200</span> &nbsp;`+
+                        `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/12</span>`;
+                } else if (ri.title === 'Pro') {
+                    // Next: Maestro (totalScore >= 150000 && gamesPlayed >= 50 && maxMult >= 4)
+                    const c1 = (s.totalScore||0) >= 150000, c2 = (s.gamesPlayed||0) >= 50, c3 = (s.maxMult||1) >= 4;
+                    condHtml = `<span style="color:var(--accent-purple);font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: MAESTRO</span> &nbsp;`+
+                        `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/150,000</span> &nbsp;`+
+                        `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Partidas ${s.gamesPlayed||0}/50</span> &nbsp;`+
+                        `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. máx. ${s.maxMult||1}/x4</span>`;
+                } else if (ri.title === 'Maestro') {
+                    // Next: Leyenda (totalScore >= 400000 && totalCorrect >= 1500 && perfectGames >= 10)
+                    const c1 = (s.totalScore||0) >= 400000, c2 = (s.totalCorrect||0) >= 1500, c3 = (s.perfectGames||0) >= 10;
+                    condHtml = `<span style="color:var(--accent-yellow);font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: LEYENDA</span> &nbsp;`+
+                        `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/400,000</span> &nbsp;`+
+                        `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/1,500</span> &nbsp;`+
+                        `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/10</span>`;
+                } else if (ri.title === 'Leyenda') {
+                    // Next: Mítico — requisitos extremos
+                    const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
+                    const acc2 = totalAns>0?Math.round((s.totalCorrect||0)/totalAns*100):0;
+                    const c1=(s.totalScore||0)>=1200000, c2=(s.totalCorrect||0)>=5000, c3=(s.perfectGames||0)>=50;
+                    const c4=(s.achievements||[]).length>=200, c5=(s.maxStreak||0)>=40, c6=(s.maxMult||1)>=8;
+                    const c7=acc2>=85, c8=(s.maxLoginStreak||0)>=30;
+                    condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;letter-spacing:1px;text-shadow:0 0 8px rgba(255,255,255,0.5);">✦ SIGUIENTE: MÍTICO ✦</span> &nbsp;`+
+                        `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/1,200,000</span> &nbsp;`+
+                        `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/5,000</span> &nbsp;`+
+                        `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/50</span> &nbsp;`+
+                        `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/200</span> &nbsp;`+
+                        `<span style="${c5?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/40</span> &nbsp;`+
+                        `<span style="${c6?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. ${s.maxMult||1}/x8</span> &nbsp;`+
+                        `<span style="${c7?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/85%</span> &nbsp;`+
+                        `<span style="${c8?'color:var(--accent-green)':'color:var(--text-secondary)'}">Login días ${s.maxLoginStreak||0}/30</span>`;
+                } else {
+                    condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;text-shadow:0 0 10px rgba(255,255,255,0.6);">✦ RANGO MÍTICO ALCANZADO ✦</span>`;
+                }
+                nextEl.innerHTML = condHtml;
+            }
             const accEl=document.getElementById('pl-accuracy-pct');
             if(accEl) accEl.innerText=`Precisión: ${accuracy}%`;
         })();
@@ -3960,6 +4112,7 @@
     let currentNoTimeoutStreak = 0;
     let livesLostThisGame = 0;
     let consecutiveLivesLost = 0;  // for u19 Resurreccion tracking
+    let frenziesThisGame = 0;      // for extra1 Doble Frenesí
 
     function startGame() {
         initAudio(); SFX.gameStart();
@@ -3997,7 +4150,7 @@
         currentQuestionIndex = score = streak = currentMaxStreak = currentFastAnswers = currentWrongAnswers = currentTimeoutAnswers = 0; 
         currentGameLog = []; isGamePaused = false;
         lives = 3; multiplier = 1;
-        lastSecondAnswers = 0; ultraFastStreak = 0; currentNoTimeoutStreak = 0; livesLostThisGame = 0; consecutiveLivesLost = 0;
+        lastSecondAnswers = 0; ultraFastStreak = 0; currentNoTimeoutStreak = 0; livesLostThisGame = 0; consecutiveLivesLost = 0; frenziesThisGame = 0;
         // Reset roulette state for new game
         totalCorrectThisGame = 0; nextRouletteTrigger = 10;
         activeBoostNextQ = null; shieldActive = false; hintActive = false; extraTimeActive = 0; streakShieldActive = false;
@@ -4274,7 +4427,7 @@
                     saveStatsLocally(); renderAchievements();
                 }
             }
-            if (streak > 0 && streak % 5 === 0) { playerStats.frenziesTriggered++; playerStats.currentFrenzyStreak = (playerStats.currentFrenzyStreak||0) + 1; }
+            if (streak > 0 && streak % 5 === 0) { playerStats.frenziesTriggered++; playerStats.currentFrenzyStreak = (playerStats.currentFrenzyStreak||0) + 1; frenziesThisGame++; if(frenziesThisGame > (playerStats.maxFrenziesInGame||0)) playerStats.maxFrenziesInGame = frenziesThisGame; }
             if ((playerStats.currentFrenzyStreak||0) > (playerStats.maxFrenzyStreak||0)) playerStats.maxFrenzyStreak = playerStats.currentFrenzyStreak;
 
             // In-game session achievements (unlocked immediately)
@@ -4412,6 +4565,11 @@
         else playerStats.revengeGame = false;
         // x8: Sin Prisa — termina partida con <5 respuestas rápidas
         playerStats.xSinPrisa = (currentFastAnswers < 5 && currentQuestionIndex >= 5);
+        // extra2 Precisionista: partida con 100% de precisión (min 5 respuestas)
+        const gameCorrect = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
+        if (currentWrongAnswers === 0 && currentTimeoutAnswers === 0 && gameCorrect >= 5) playerStats.hadPerfectAccuracyGame = true;
+        // extra4 Silencioso: juega con música al 0%
+        if ((playerStats.musicVol||1) === 0) playerStats.gamesAtMusicZero = (playerStats.gamesAtMusicZero||0) + 1;
         // u11: Fénix — pierde 2 vidas al inicio pero llega a 30 aciertos consecutivos
         if(livesLostThisGame >= 2 && currentMaxStreak >= 30) {
             if(!playerStats.achievements.includes('u11')) { playerStats.achievements.push('u11'); showToast('Logro Desbloqueado','Fénix',colors.orange,SVG_FIRE); }
@@ -4455,30 +4613,33 @@
     function initParticles() { 
         canvas.width = window.innerWidth; canvas.height = window.innerHeight; particlesArray = []; 
         const isMobile = window.innerWidth < 768;
-        let num = Math.min((canvas.width * canvas.height) / 12000, isMobile ? 40 : 80); 
+        // Fewer particles = smoother, still visually rich
+        const area = canvas.width * canvas.height;
+        let num = Math.round(Math.min(area / 15000, isMobile ? 30 : 60));
         for (let i = 0; i < num; i++) {
             particlesArray.push({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
-                dx: (Math.random() - 0.5) * 0.8,
-                dy: (Math.random() - 0.5) * 0.8,
-                s: Math.random() * 1.5 + 0.5
+                dx: (Math.random() - 0.5) * 0.7,
+                dy: (Math.random() - 0.5) * 0.7,
+                s: Math.random() * 1.4 + 0.4
             });
         }
     }
     
+    // Cached per-frame values (set once in animateParticles before calling both draw fns)
+    let _pIsLight = false, _pRgb = '0,255,102';
+
     function updateAndDrawParticles(timeScale, pulse) {
         const m = streak >= 5 ? 2.5 : 1;
         const speedBoost = 1 + (pulse * 1.2);
         const sizeBoost = 1 + pulse * 0.8;
-        const isLight = document.body.classList.contains('light-mode');
         const baseOpacity = streak >= 5 ? 0.65 : 0.42;
-        const dynamicOpacity = Math.min(1, (isLight ? baseOpacity * 2.2 : baseOpacity) * playerStats.particleOpacity + pulse * 0.12);
-        const rgb = isLight ? darkenRgb(currentRankInfo.rgb, 0.55) : currentRankInfo.rgb;
+        const dynamicOpacity = Math.min(1, (_pIsLight ? baseOpacity * 2.2 : baseOpacity) * playerStats.particleOpacity + pulse * 0.12);
         const W = canvas.width, H = canvas.height;
         
         ctx.beginPath();
-        ctx.fillStyle = `rgba(${rgb}, ${dynamicOpacity})`;
+        ctx.fillStyle = `rgba(${_pRgb}, ${dynamicOpacity})`;
         
         for (let i = 0; i < particlesArray.length; i++) {
             const p = particlesArray[i];
@@ -4500,10 +4661,9 @@
     }
     
     function connectParticles(pulse) { 
+        if (particlesArray.length < 2) return; // nothing to connect
         const isStreak = streak >= 5;
-        const isLight = document.body.classList.contains('light-mode');
-        const baseOpacity = isStreak ? (isLight ? 0.7 : 0.35) : (isLight ? 0.4 : 0.18);
-        const rgb = isLight ? darkenRgb(currentRankInfo.rgb, 0.55) : currentRankInfo.rgb;
+        const baseOpacity = isStreak ? (_pIsLight ? 0.7 : 0.35) : (_pIsLight ? 0.4 : 0.18);
         const distMult = 1 + pulse * 0.3;
         const screenFactor = Math.min(1, (canvas.width * canvas.height) / (1920 * 1080));
         const maxDistSq = (canvas.width / 9) * (canvas.height / 9) * distMult * screenFactor;
@@ -4511,7 +4671,11 @@
         const n = particlesArray.length;
         
         ctx.lineWidth = (0.6 + pulse * 0.8) * (isStreak ? 1.3 : 1);
-        
+
+        // Batch lines into alpha buckets to reduce strokeStyle changes (major perf win)
+        const BUCKETS = 8;
+        const buckets = new Array(BUCKETS).fill(null).map(() => []);
+
         for (let a = 0; a < n; a++) { 
             for (let b = a + 1; b < n; b++) { 
                 const dx = particlesArray[a].x - particlesArray[b].x;
@@ -4519,21 +4683,32 @@
                 const distSq = dx * dx + dy * dy;
                 if (distSq < maxDistSq) { 
                     const alpha = (1 - distSq / maxDistSq) * (baseOpacity + pulse * 0.1) * pOp;
-                    ctx.strokeStyle = `rgba(${rgb},${alpha.toFixed(2)})`; 
-                    ctx.beginPath(); 
-                    ctx.moveTo(particlesArray[a].x, particlesArray[a].y); 
-                    ctx.lineTo(particlesArray[b].x, particlesArray[b].y); 
-                    ctx.stroke(); 
+                    const bucketIdx = Math.min(BUCKETS - 1, Math.floor(alpha * BUCKETS));
+                    buckets[bucketIdx].push(particlesArray[a].x, particlesArray[a].y, particlesArray[b].x, particlesArray[b].y);
                 } 
             } 
-        } 
+        }
+
+        for (let bi = 0; bi < BUCKETS; bi++) {
+            const lines = buckets[bi];
+            if (lines.length === 0) continue;
+            const alpha = ((bi + 0.5) / BUCKETS).toFixed(2);
+            ctx.strokeStyle = `rgba(${_pRgb},${alpha})`;
+            ctx.beginPath();
+            for (let i = 0; i < lines.length; i += 4) {
+                ctx.moveTo(lines[i], lines[i+1]);
+                ctx.lineTo(lines[i+2], lines[i+3]);
+            }
+            ctx.stroke();
+        }
     }
     
     function animateParticles(now) { 
         requestAnimationFrame(animateParticles); 
         const elapsed = now - then; 
         if (elapsed > fpsInterval) { 
-            then = now; // Reset cleanly — no debt accumulation
+            // Subtract remainder to keep drift-free timing (no debt accumulation)
+            then = now - (elapsed % fpsInterval);
             // Clamp timeScale to prevent jump on tab focus restore
             let timeScale = Math.min(elapsed / 16.666, 2.5);
             
@@ -4542,13 +4717,19 @@
             // If opacity is 0, don't draw anything (background disappears fully)
             if (!playerStats || playerStats.particleOpacity <= 0) return;
             
+            // Update per-frame cached values once (avoid repeated DOM query)
+            _pIsLight = document.body.classList.contains('light-mode');
+            _pRgb = _pIsLight ? darkenRgb(currentRankInfo.rgb, 0.55) : currentRankInfo.rgb;
             const pulse = getAudioPulse(); 
             updateAndDrawParticles(timeScale, pulse);
             connectParticles(pulse); 
         } 
     }
     
-    window.addEventListener('resize', () => initParticles()); initParticles(); requestAnimationFrame(animateParticles);
+    // Debounced resize to avoid thrashing on window resize
+    let _resizeTimer;
+    window.addEventListener('resize', () => { clearTimeout(_resizeTimer); _resizeTimer = setTimeout(initParticles, 150); });
+    initParticles(); requestAnimationFrame(animateParticles);
 
     // Reset particle timer when tab becomes visible to prevent accumulated frame debt causing speed burst
     document.addEventListener('visibilitychange', () => {
@@ -4594,7 +4775,7 @@
         rlAnimFrame = requestAnimationFrame(animateRlParticles);
         const elapsed = now - rlThen;
         if (elapsed < 33) return; // ~30fps cap
-        rlThen = now;
+        rlThen = now - (elapsed % 33);
         const timeScale = Math.min(elapsed / 16.666, 3);
         rlCtx.clearRect(0, 0, rlCanvas.width, rlCanvas.height);
         const W = rlCanvas.width, H = rlCanvas.height;
@@ -4611,9 +4792,11 @@
             rlCtx.arc(p.x, p.y, p.s, 0, Math.PI * 2);
         }
         rlCtx.fill();
-        // Connect nearby particles
+        // Connect nearby particles (batched by alpha)
         const maxDistSq = (W / 10) * (H / 10);
         rlCtx.lineWidth = 0.6;
+        const rlBuckets = 5;
+        const rlLines = new Array(rlBuckets).fill(null).map(() => []);
         for (let a = 0; a < rlParticles.length; a++) {
             for (let b = a + 1; b < rlParticles.length; b++) {
                 const dx = rlParticles[a].x - rlParticles[b].x;
@@ -4621,13 +4804,22 @@
                 const dSq = dx * dx + dy * dy;
                 if (dSq < maxDistSq) {
                     const alpha = (1 - dSq / maxDistSq) * 0.25;
-                    rlCtx.strokeStyle = `rgba(${rlColor},${alpha.toFixed(2)})`;
-                    rlCtx.beginPath();
-                    rlCtx.moveTo(rlParticles[a].x, rlParticles[a].y);
-                    rlCtx.lineTo(rlParticles[b].x, rlParticles[b].y);
-                    rlCtx.stroke();
+                    const bi = Math.min(rlBuckets - 1, Math.floor(alpha * rlBuckets / 0.25));
+                    rlLines[bi].push(rlParticles[a].x, rlParticles[a].y, rlParticles[b].x, rlParticles[b].y);
                 }
             }
+        }
+        for (let bi = 0; bi < rlBuckets; bi++) {
+            const lines = rlLines[bi];
+            if (!lines.length) continue;
+            const alpha = (((bi + 0.5) / rlBuckets) * 0.25).toFixed(2);
+            rlCtx.strokeStyle = `rgba(${rlColor},${alpha})`;
+            rlCtx.beginPath();
+            for (let i = 0; i < lines.length; i += 4) {
+                rlCtx.moveTo(lines[i], lines[i+1]);
+                rlCtx.lineTo(lines[i+2], lines[i+3]);
+            }
+            rlCtx.stroke();
         }
     }
 
