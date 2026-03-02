@@ -49,6 +49,13 @@
             --bg-elevated: #cdd3de;
             --text-primary: #0d1117;
             --text-secondary: #4a5568;
+            /* Tone down neon accents for readability on white */
+            --accent-green: #008844;
+            --accent-blue: #0099cc;
+            --accent-yellow: #c28800;
+            --accent-red: #d91f4f;
+            --accent-purple: #8c0d7e;
+            --accent-orange: #cc5500;
         }
 
         /* Fondos generales */
@@ -313,25 +320,40 @@
         body.light-mode .toast-name { color: #0d1117; }
         body.light-mode .toast-title { color: #4a5568; }
 
-        /* ── Ruleta ── */
-        body.light-mode #roulette-overlay { background: rgba(0,0,0,0.55); }
-        body.light-mode .roulette-panel {
-            background: #ffffff;
-            border-color: rgba(0,0,0,0.15);
-            box-shadow: 0 0 60px rgba(0,0,0,0.15), 0 30px 60px rgba(0,0,0,0.1);
+        /* ── Sistema de recompensas (modo claro) ── */
+        body.light-mode #roulette-overlay { background: #f2f4f7; }
+        body.light-mode .rl-title { color: #0d1117; }
+        body.light-mode .rl-title span { color: var(--accent-yellow) !important; }
+        body.light-mode .rl-label { color: #4a5568; }
+        body.light-mode .rl-result-desc { color: #4a5568; }
+        body.light-mode .rl-card {
+            border-color: rgba(0,0,0,0.12) !important;
         }
-        body.light-mode .roulette-title { color: var(--accent-yellow); }
-        body.light-mode .roulette-subtitle { color: #4a5568; }
-        body.light-mode .roulette-result-msg { color: #0d1117; }
-        body.light-mode #roulette-spin-btn {
-            background: rgba(255,184,0,0.12);
-            color: #b38000;
-            border-color: #b38000;
+        body.light-mode .rl-card.center {
+            box-shadow: 0 0 0 2.5px rgba(0,0,0,0.15), 0 16px 40px rgba(0,0,0,0.15) !important;
+            border-color: rgba(0,0,0,0.25) !important;
         }
-        body.light-mode #roulette-spin-btn:hover:not(:disabled) {
-            background: rgba(255,184,0,0.25);
-            box-shadow: 0 8px 30px rgba(255,184,0,0.2);
+        body.light-mode .rl-card-name { color: var(--text-secondary); }
+        body.light-mode .rl-card.center .rl-card-name { /* color set by JS via prize.color */ }
+        body.light-mode .rl-btn {
+            color: #0d1117;
+            border-color: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.05);
         }
+        body.light-mode .rl-btn:hover:not(:disabled) {
+            background: rgba(0,0,0,0.1);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        }
+        body.light-mode .rl-btn.collecting {
+            border-color: var(--accent-yellow);
+            color: #9a7000;
+            background: rgba(255,184,0,0.1);
+        }
+        body.light-mode .rl-btn.collecting:hover:not(:disabled) {
+            background: rgba(255,184,0,0.18);
+        }
+        body.light-mode .rl-pointer::before { border-top-color: var(--accent-yellow); }
+        body.light-mode .rl-pointer::after { border-bottom-color: var(--accent-yellow); }
 
         /* ── Contenedores inline con estilos hardcoded ── */
         /* Backgrounds oscuros → blancos suaves */
@@ -372,14 +394,14 @@
         body.light-mode [style*="color:rgba(255,255,255,0.8"],
         body.light-mode [style*="color: rgba(255,255,255,0.8"] { color: #0d1117 !important; }
 
-        /* Texto sombra de la pregunta → claro */
-        body.light-mode .question-text { text-shadow: 0 1px 4px rgba(0,0,0,0.15) !important; }
+        /* rank color is set dynamically via JS inline var; when it's neon green, tone it for light */
+        body.light-mode .logo-dot,
+        body.light-mode .rank-color-text { filter: brightness(0.75) saturate(0.9); }
 
         /* Guide: todos los textos dentro de cards */
         body.light-mode .guide-card { color: #0d1117; }
 
-        /* Roulette prize badge */
-        body.light-mode .roulette-prize-badge { background: rgba(0,0,0,0.05) !important; }
+        /* Roulette prize badge (legado) */
 
         /* Vscroll container */
         body.light-mode #vscroll-container { background: transparent; }
@@ -677,71 +699,183 @@
         /* Ach pin indicator on profile */
         .achievement-slot { cursor: default; }
 
-        /* ---- RULETA DE RECOMPENSAS ---- */
+        /* ════════════════════════════════════════════
+           SISTEMA DE RECOMPENSAS — Deck de cartas
+           Ocupa pantalla completa, sin cambios de tamaño
+           ════════════════════════════════════════════ */
         #roulette-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
-            display: flex; justify-content: center; align-items: center;
+            background: var(--bg-base);
+            background-image: radial-gradient(circle at 50% 30%, rgba(var(--rank-rgb), 0.08) 0%, transparent 60%);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
             z-index: 200; opacity: 0; visibility: hidden;
-            transition: all 0.4s var(--ease-out);
+            transition: opacity 0.4s var(--ease-out), visibility 0.4s;
+            gap: 0;
         }
         #roulette-overlay.active { opacity: 1; visibility: visible; }
-        .roulette-panel {
-            background: #111; border: 2px solid rgba(255,255,255,0.15);
-            border-radius: 28px; padding: 30px 25px;
-            display: flex; flex-direction: column; align-items: center; gap: 18px;
-            width: 90%; max-width: 420px; position: relative;
-            box-shadow: 0 0 80px rgba(255,184,0,0.2), 0 30px 60px rgba(0,0,0,0.8);
-            animation: roulette-appear 0.5s var(--ease-spring);
+
+        /* Header fijo */
+        .rl-header {
+            width: 100%; max-width: 600px;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 6px; padding: 0 20px;
+            flex-shrink: 0;
+            margin-bottom: 28px;
         }
-        @keyframes roulette-appear { from { transform: scale(0.7) translateY(30px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
-        .roulette-title {
-            font-size: 1.4rem; font-weight: 900; text-transform: uppercase; letter-spacing: 2px;
-            color: var(--accent-yellow); text-shadow: 0 0 20px rgba(255,184,0,0.6);
-            display: flex; align-items: center; gap: 10px;
+        .rl-label {
+            font-size: 0.65rem; font-weight: 700; letter-spacing: 4px;
+            color: var(--text-secondary); text-transform: uppercase;
         }
-        .roulette-subtitle { font-size: 0.75rem; color: var(--text-secondary); letter-spacing: 2px; text-transform: uppercase; font-weight: 600; }
-        .roulette-canvas-wrap {
-            position: relative; width: 280px; height: 280px;
+        .rl-title {
+            font-size: clamp(1.6rem, 5vw, 2.2rem);
+            font-weight: 900; color: var(--text-primary);
+            letter-spacing: -1px; text-align: center;
         }
-        #roulette-canvas { border-radius: 50%; }
-        .roulette-pointer {
-            position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
-            width: 0; height: 0;
-            border-left: 14px solid transparent; border-right: 14px solid transparent;
-            border-top: 28px solid var(--accent-yellow);
-            filter: drop-shadow(0 2px 6px rgba(255,184,0,0.7));
-            z-index: 2;
+        .rl-title span { color: var(--accent-yellow); }
+
+        /* Escenario del carrusel — altura fija siempre */
+        .rl-stage {
+            width: 100%; max-width: 600px;
+            height: 220px;
+            position: relative; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
         }
-        #roulette-spin-btn {
-            width: 100%; padding: 16px; font-size: 1.1rem; font-weight: 900;
-            letter-spacing: 2px; border-radius: var(--radius-md); cursor: pointer;
-            text-transform: uppercase; background: rgba(255,184,0,0.15);
-            color: var(--accent-yellow); border: 2px solid var(--accent-yellow);
-            transition: all 0.3s; box-shadow: 0 0 20px rgba(255,184,0,0.2);
+        /* Las cartas individuales */
+        .rl-card {
+            position: absolute;
+            width: 130px; height: 190px;
+            border-radius: 18px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 8px;
+            cursor: default; user-select: none;
+            transition: transform 0.35s var(--ease-spring),
+                        opacity 0.35s ease,
+                        box-shadow 0.35s ease;
+            border: 2px solid rgba(255,255,255,0.12);
+            overflow: hidden;
+            backface-visibility: hidden;
         }
-        #roulette-spin-btn:hover:not(:disabled) { background: rgba(255,184,0,0.3); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,184,0,0.4); }
-        #roulette-spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .roulette-result-msg {
-            text-align: center; font-size: 1rem; font-weight: 800; color: var(--text-primary);
-            min-height: 30px; transition: all 0.4s; letter-spacing: 0.5px;
+        .rl-card-bg {
+            position: absolute; inset: 0; border-radius: inherit;
+            opacity: 0.18; transition: opacity 0.35s;
         }
-        .roulette-result-msg.show { animation: result-pop 0.5s var(--ease-spring); }
-        @keyframes result-pop { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .roulette-prize-badge {
-            display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px;
-            border-radius: 30px; font-weight: 900; font-size: 1.1rem;
-            border: 2px solid; margin-top: 4px;
+        .rl-card.center .rl-card-bg { opacity: 0.28; }
+        .rl-card-rarity {
+            font-size: 0.52rem; font-weight: 700; letter-spacing: 3px;
+            text-transform: uppercase; opacity: 0.7;
+            position: relative; z-index: 1;
         }
-        /* Particle burst for roulette win */
-        @keyframes roulette-particle { 0%{transform:translate(0,0) scale(1);opacity:1;} 100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0;} }
-        .r-particle { position:absolute;width:8px;height:8px;border-radius:50%;pointer-events:none;animation:roulette-particle 0.8s ease-out forwards; }
-        /* Rarity tags */
-        .rarity-common { color: #aaa; }
-        .rarity-uncommon { color: var(--accent-blue); }
-        .rarity-rare { color: var(--accent-purple); }
-        .rarity-epic { color: var(--accent-orange); }
-        .rarity-legendary { color: var(--accent-yellow); }
+        .rl-card-icon {
+            width: 52px; height: 52px;
+            border-radius: 50%; display: flex;
+            align-items: center; justify-content: center;
+            position: relative; z-index: 1;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .rl-card-icon svg { width: 26px; height: 26px; }
+        .rl-card-name {
+            font-size: 0.75rem; font-weight: 900;
+            text-align: center; line-height: 1.2;
+            letter-spacing: 0.5px; padding: 0 10px;
+            position: relative; z-index: 1;
+        }
+        /* Carta central destacada */
+        .rl-card.center {
+            border-color: rgba(255,255,255,0.3);
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.15),
+                        0 20px 50px rgba(0,0,0,0.6);
+            z-index: 10;
+        }
+        /* Indicador / flecha sobre la carta central */
+        .rl-pointer {
+            position: absolute; top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 2px; height: 100%;
+            pointer-events: none; z-index: 20;
+        }
+        .rl-pointer::before {
+            content: '';
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 16px solid var(--accent-yellow);
+            filter: drop-shadow(0 2px 6px rgba(255,184,0,0.8));
+        }
+        .rl-pointer::after {
+            content: '';
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 16px solid var(--accent-yellow);
+            filter: drop-shadow(0 -2px 6px rgba(255,184,0,0.8));
+        }
+
+        /* Zona inferior de resultado — altura fija */
+        .rl-result-zone {
+            width: 100%; max-width: 480px;
+            height: 110px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 5px; padding: 0 20px;
+            flex-shrink: 0;
+            margin-top: 20px;
+        }
+        .rl-result-name {
+            font-size: clamp(1.4rem, 4vw, 1.8rem);
+            font-weight: 900; letter-spacing: -0.5px;
+            opacity: 0; transform: translateY(12px);
+            transition: opacity 0.4s var(--ease-spring), transform 0.4s var(--ease-spring);
+            text-align: center;
+        }
+        .rl-result-desc {
+            font-size: 0.8rem; color: var(--text-secondary);
+            font-weight: 600; text-align: center; line-height: 1.4;
+            opacity: 0; transform: translateY(8px);
+            transition: opacity 0.4s 0.08s var(--ease-spring), transform 0.4s 0.08s var(--ease-spring);
+        }
+        .rl-result-zone.revealed .rl-result-name,
+        .rl-result-zone.revealed .rl-result-desc { opacity: 1; transform: translateY(0); }
+
+        /* Botón de acción */
+        .rl-btn {
+            margin-top: 24px; flex-shrink: 0;
+            width: 90%; max-width: 360px;
+            padding: 17px; font-size: 1rem; font-weight: 900;
+            letter-spacing: 2px; border-radius: var(--radius-md);
+            cursor: pointer; text-transform: uppercase;
+            background: rgba(255,255,255,0.06);
+            color: var(--text-primary);
+            border: 1.5px solid rgba(255,255,255,0.5);
+            transition: all 0.3s;
+        }
+        .rl-btn:hover:not(:disabled) {
+            background: rgba(255,255,255,0.12);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        .rl-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .rl-btn.collecting {
+            border-color: var(--accent-yellow);
+            color: var(--accent-yellow);
+            background: rgba(255,184,0,0.1);
+        }
+        .rl-btn.collecting:hover:not(:disabled) {
+            background: rgba(255,184,0,0.2);
+            box-shadow: 0 8px 30px rgba(255,184,0,0.3);
+        }
+
+        /* Partículas en el overlay */
+        @keyframes rl-particle-fly {
+            0%   { transform: translate(0,0) scale(1.2); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+        .r-particle {
+            position: fixed; width: 10px; height: 10px;
+            border-radius: 50%; pointer-events: none;
+            animation: rl-particle-fly 0.9s ease-out forwards;
+        }
 
         @media (max-width: 850px) {
             .btn-back span, .nav-spacer { width: 60px; } .btn-back span { display: none; }
@@ -1250,21 +1384,20 @@
             </div>
         </div>
     </div>
-    <!-- RULETA DE RECOMPENSAS -->
+    <!-- SISTEMA DE RECOMPENSAS -->
     <div id="roulette-overlay">
-        <div class="roulette-panel">
-            <div class="roulette-title">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
-                ¡AYUDA ESPECIAL!
-            </div>
-            <div class="roulette-subtitle">Cada 10 aciertos · Gira la ruleta</div>
-            <div class="roulette-canvas-wrap">
-                <div class="roulette-pointer"></div>
-                <canvas id="roulette-canvas" width="280" height="280"></canvas>
-            </div>
-            <div class="roulette-result-msg" id="roulette-result-msg"></div>
-            <button id="roulette-spin-btn" onclick="spinRoulette()">GIRAR</button>
+        <div class="rl-header">
+            <div class="rl-label">Recompensa · Cada 10 aciertos</div>
+            <div class="rl-title">Elige tu <span>Premio</span></div>
         </div>
+        <div class="rl-stage" id="rl-stage">
+            <div class="rl-pointer"></div>
+        </div>
+        <div class="rl-result-zone" id="rl-result-zone">
+            <div class="rl-result-name" id="rl-result-name"></div>
+            <div class="rl-result-desc" id="rl-result-desc"></div>
+        </div>
+        <button class="rl-btn" id="roulette-spin-btn" onclick="spinRoulette()">MEZCLAR Y GIRAR</button>
     </div>
 
 </div>
@@ -1340,6 +1473,7 @@
     const SVG_SKULL = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="12" r="1"></circle><circle cx="15" cy="12" r="1"></circle><path d="M8 20v2h8v-2"></path><path d="M12.5 17l-.5-1-.5 1h1z"></path><path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20"></path></svg>`;
     const SVG_HEART = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
     const SVG_SHIELD = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`;
+    const SVG_MOON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
 
     // --- Stats y Logros (Persistencia Absoluta) ---
     const defaultStats = {
@@ -2234,7 +2368,8 @@
         { id: 'cfg6', title: 'Ahorro de Batería',  desc: 'Activa 15 FPS en Configuración.',                            color: colors.dark,   icon: SVG_CLOCK },
         { id: 'cfg7', title: 'Fantasma',           desc: 'Pon las partículas en 0%.',                                  color: colors.dark,   icon: SVG_SKULL },
         { id: 'cfg8', title: 'Purpurina',          desc: 'Pon las partículas en 100% y la música en 100% al mismo tiempo.',color: colors.purple, icon: SVG_STAR },
-        { id: 'cfg9', title: 'Luz del Dia',        desc: 'Activa el Modo Claro desde Configuración.',                   color: colors.yellow, icon: SVG_BOLT },
+        { id: 'cfg9',  title: 'Luz del Dia',        desc: 'Activa el Modo Claro desde Configuración.',                   color: colors.yellow, icon: SVG_BOLT },
+        { id: 'cfg10', title: 'Vuelta a Casa',      desc: 'Cambia del Modo Claro al Oscuro después de haberlo activado.', color: colors.dark,   icon: SVG_MOON },
     ]);
 
     // --- OCULTOS: INTERFAZ Y CLASIFICACIÓN (10) ---
@@ -2484,6 +2619,7 @@
         if(playerStats.particles0) unlock('cfg7');
         if(playerStats.musicAt100 && playerStats.particles100) unlock('cfg8');
         if(playerStats.usedLightMode) unlock('cfg9');
+        if(playerStats.switchedLightToDark) unlock('cfg10');
         if(playerStats.allSectionsVisited) unlock('ui1');
         if(playerStats.nameChanges>=1 && playerStats.gamesPlayed>=1) unlock('ui7');
 
@@ -2756,9 +2892,14 @@
     _currentScreen = document.querySelector('.screen.active');
     // --- SISTEMA DE TEMA (CLARO / OSCURO) ---
     function setTheme(theme) {
+        const previousTheme = playerStats.theme || 'dark';
         playerStats.theme = theme;
         if (theme === 'light') {
             playerStats.usedLightMode = true;
+        }
+        // "Vuelta a Casa" — only unlocks when switching FROM light TO dark
+        if (theme === 'dark' && previousTheme === 'light') {
+            playerStats.switchedLightToDark = true;
         }
         saveStatsLocally();
         checkAchievements();
@@ -2820,8 +2961,8 @@
 
     let rouletteActive = false;
     let currentPrize = null;
-    let rouletteAngle = 0;
-    let rouletteAnimFrame = null;
+    let rouletteAngle = 0;     // legacy, no-op
+    let rouletteAnimFrame = null; // legacy, no-op
     let activeBoostNextQ = null; // current active power-up for next question
     let shieldActive = false;
     let hintActive = false;
@@ -2830,98 +2971,102 @@
     let totalCorrectThisGame = 0; // counts all corrects in game for roulette trigger
     let nextRouletteTrigger = 10; // fire roulette when this many corrects reached
 
-    function drawRouletteWheel(rotation) {
-        const canvas = document.getElementById('roulette-canvas');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        const cx = 140, cy = 140, r = 128;
-        const total = ROULETTE_PRIZES.reduce((s, p) => s + p.weight, 0);
-        let startAngle = rotation;
-        ctx.clearRect(0, 0, 280, 280);
+    function drawRouletteWheel() {} // legacy no-op, kept for safety
 
-        // Outer shadow ring
-        ctx.save();
-        ctx.shadowColor = 'rgba(0,0,0,0.6)';
-        ctx.shadowBlur = 20;
-        ctx.beginPath(); ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
-        ctx.fillStyle = '#000'; ctx.fill();
-        ctx.restore();
+    function getPrizeAtAngle() { return ROULETTE_PRIZES[0]; } // legacy no-op
 
-        ROULETTE_PRIZES.forEach((prize, i) => {
-            const slice = (prize.weight / total) * Math.PI * 2;
-            const bright = i % 2 === 0 ? 'dd' : 'aa';
-            ctx.beginPath();
-            ctx.moveTo(cx, cy);
-            ctx.arc(cx, cy, r, startAngle, startAngle + slice);
-            ctx.closePath();
-            ctx.fillStyle = prize.color + bright;
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
+    // ─── Iconos SVG para cada tipo de premio ───────────────────────────────────
+    const PRIZE_ICONS = {
+        life:       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
+        shield:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+        frenzy:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+        jackpot:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+        boost:      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>`,
+        doublelife: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>`,
+        freeze:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+        hint:       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+        time:       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+        streak:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+    };
 
-            // Text labels (two lines: rarity + short label)
-            ctx.save();
-            ctx.translate(cx, cy);
-            ctx.rotate(startAngle + slice / 2);
-            const lx = r * 0.60;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            // Rarity badge text
-            ctx.font = '600 7px Inter, sans-serif';
-            ctx.fillStyle = 'rgba(0,0,0,0.55)';
-            ctx.fillText(prize.rarity.toUpperCase(), lx, -7);
-            // Main short label
-            ctx.font = 'bold 10px Inter, sans-serif';
-            ctx.fillStyle = '#ffffff';
-            ctx.shadowColor = 'rgba(0,0,0,0.9)';
-            ctx.shadowBlur = 4;
-            ctx.fillText(prize.short, lx, 5);
-            ctx.restore();
+    // ─── Deck state ────────────────────────────────────────────────────────────
+    // (rouletteActive, currentPrize, activeBoostNextQ, etc. declared above in the prizes block)
 
-            startAngle += slice;
-        });
+    // El deck visible son 5 cartas: [0..4], la carta central [2] es la seleccionada
+    let deckOrder = [];       // indices de ROULETTE_PRIZES en el deck actual
+    let deckOffset = 0;       // offset entero (cuántos hemos desplazado)
+    let deckAnimating = false;
 
-        // Outer border
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        // Center hub gradient
-        const grad = ctx.createRadialGradient(cx - 4, cy - 4, 0, cx, cy, 24);
-        grad.addColorStop(0, '#444');
-        grad.addColorStop(1, '#0d0d0d');
-        ctx.beginPath();
-        ctx.arc(cx, cy, 24, 0, Math.PI * 2);
-        ctx.fillStyle = grad;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.22)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        // K letter in center
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 900 16px Inter, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'transparent';
-        ctx.fillText('K', cx, cy);
+    // Crea/actualiza los elementos DOM del deck
+    function buildDeckCards() {
+        const stage = document.getElementById('rl-stage');
+        // Elimina cartas viejas
+        stage.querySelectorAll('.rl-card').forEach(c => c.remove());
+        // Crear 5 slots de carta
+        for (let slot = 0; slot < 5; slot++) {
+            const card = document.createElement('div');
+            card.className = 'rl-card';
+            card.dataset.slot = slot;
+            card.innerHTML = `
+                <div class="rl-card-bg"></div>
+                <div class="rl-card-rarity"></div>
+                <div class="rl-card-icon"></div>
+                <div class="rl-card-name"></div>
+            `;
+            stage.appendChild(card);
+        }
+        applyDeckLayout(false);
     }
 
-    function getPrizeAtAngle(finalAngle) {
-        const total = ROULETTE_PRIZES.reduce((s, p) => s + p.weight, 0);
-        // Pointer is at top (270deg = -PI/2). Normalize finalAngle.
-        let normalized = ((-finalAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-        // Shift by 90deg for top pointer
-        normalized = (normalized + Math.PI / 2) % (Math.PI * 2);
-        let cursor = 0;
-        for (const prize of ROULETTE_PRIZES) {
-            const slice = (prize.weight / total) * Math.PI * 2;
-            cursor += slice;
-            if (normalized <= cursor) return prize;
-        }
-        return ROULETTE_PRIZES[0];
+    // Actualiza posición/contenido de las 5 cartas según deckOffset
+    function applyDeckLayout(animate) {
+        const stage = document.getElementById('rl-stage');
+        if (!stage) return;
+        const cards = stage.querySelectorAll('.rl-card');
+        const stageW = stage.offsetWidth || 360;
+        const cardW = 130;
+        const gap = 22; // gap between card centers
+
+        // Los 5 slots tienen offsets relativos: -2,-1,0,+1,+2 respecto al centro
+        cards.forEach((card, slot) => {
+            const rel = slot - 2; // -2 to +2
+            // Qué prize index corresponde a este slot?
+            const prizeIdx = ((deckOffset + slot) % ROULETTE_PRIZES.length + ROULETTE_PRIZES.length) % ROULETTE_PRIZES.length;
+            const prize = ROULETTE_PRIZES[prizeIdx];
+
+            // Visual position
+            const tx = rel * (cardW + gap);
+            const isCenter = rel === 0;
+            const scale = isCenter ? 1 : (Math.abs(rel) === 1 ? 0.82 : 0.65);
+            const opacity = isCenter ? 1 : (Math.abs(rel) === 1 ? 0.65 : 0.35);
+            const tz = isCenter ? 0 : -Math.abs(rel) * 30;
+
+            if (!animate) { card.style.transition = 'none'; }
+            else { card.style.transition = 'transform 0.4s var(--ease-spring), opacity 0.35s ease, box-shadow 0.35s ease'; }
+
+            card.style.transform = `translateX(${tx}px) scale(${scale}) translateZ(${tz}px)`;
+            card.style.opacity = opacity;
+
+            // Content
+            card.querySelector('.rl-card-bg').style.background = prize.color;
+            card.querySelector('.rl-card-bg').style.opacity = isCenter ? '0.25' : '0.14';
+            card.querySelector('.rl-card-rarity').textContent = prize.rarity.toUpperCase();
+            card.querySelector('.rl-card-rarity').style.color = prize.color;
+            card.querySelector('.rl-card-icon').innerHTML = PRIZE_ICONS[prize.id] || '';
+            card.querySelector('.rl-card-icon').style.background = prize.color + '22';
+            card.querySelector('.rl-card-icon').style.borderColor = prize.color + '55';
+            card.querySelector('.rl-card-icon svg') && (card.querySelector('.rl-card-icon svg').style.color = prize.color);
+            card.querySelector('.rl-card-name').textContent = prize.label;
+            card.querySelector('.rl-card-name').style.color = isCenter ? prize.color : 'var(--text-secondary)';
+
+            // Center card class
+            card.classList.toggle('center', isCenter);
+            card.style.zIndex = isCenter ? 10 : (5 - Math.abs(rel));
+            card.style.boxShadow = isCenter
+                ? `0 0 0 2.5px ${prize.color}66, 0 20px 50px rgba(0,0,0,0.5)`
+                : 'none';
+            card.style.borderColor = isCenter ? prize.color + '88' : 'rgba(255,255,255,0.1)';
+        });
     }
 
     function showRoulette() {
@@ -2929,75 +3074,116 @@
         rouletteActive = true;
         isGamePaused = true;
         clearInterval(timerInterval);
+
         const overlay = document.getElementById('roulette-overlay');
-        const msg = document.getElementById('roulette-result-msg');
         const btn = document.getElementById('roulette-spin-btn');
-        msg.innerText = '';
-        msg.className = 'roulette-result-msg';
+        const zone = document.getElementById('rl-result-zone');
+        const nameEl = document.getElementById('rl-result-name');
+        const descEl = document.getElementById('rl-result-desc');
+
+        // Reset state
         btn.disabled = false;
-        btn.innerText = 'GIRAR';
-        rouletteAngle = 0;
-        drawRouletteWheel(rouletteAngle);
+        btn.className = 'rl-btn';
+        btn.innerText = 'MEZCLAR Y GIRAR';
+        btn.onclick = spinRoulette;
+        zone.classList.remove('revealed');
+        nameEl.innerText = '';
+        descEl.innerText = '';
+
+        // Shuffle deck: pick a random starting offset
+        deckOffset = Math.floor(Math.random() * ROULETTE_PRIZES.length);
+        buildDeckCards();
+
         overlay.classList.add('active');
-        // Play a special roulette entrance sound
+
+        // Entrance sound
         if (audioCtx) {
             const t = audioCtx.currentTime;
-            [523, 659, 784, 1047].forEach((f, i) => schedNote(f, 'sine', t + i * 0.12, 0.15, 0.2));
+            [523, 659, 784, 1047].forEach((f, i) => schedNote(f, 'sine', t + i * 0.10, 0.12, 0.18));
         }
     }
 
     function spinRoulette() {
+        if (deckAnimating) return;
+        deckAnimating = true;
         const btn = document.getElementById('roulette-spin-btn');
         btn.disabled = true;
-        btn.innerText = 'Girando...';
+        btn.innerText = 'Mezclando...';
 
-        const totalSpins = Math.PI * 2 * (6 + Math.random() * 5); // 6-11 vueltas
-        const duration = 3500 + Math.random() * 1000; // 3.5-4.5s
-        const startTime = performance.now();
-        const startAngle = rouletteAngle;
-
-        // Roulette spin SFX — ticking
-        let tickInterval = setInterval(() => {
-            if (audioCtx) schedNote(600 + Math.random() * 200, 'square', audioCtx.currentTime, 0.04, 0.08);
-        }, 80);
-
-        function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
-
-        function animate(now) {
-            const elapsed = now - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            rouletteAngle = startAngle + totalSpins * easeOut(progress);
-            drawRouletteWheel(rouletteAngle);
-            if (progress < 1) {
-                rouletteAnimFrame = requestAnimationFrame(animate);
-            } else {
-                clearInterval(tickInterval);
-                currentPrize = getPrizeAtAngle(rouletteAngle);
-                showRoulettePrize(currentPrize);
-            }
+        // Determine winning prize via weighted random
+        const total = ROULETTE_PRIZES.reduce((s, p) => s + p.weight, 0);
+        let rand = Math.random() * total;
+        let winIdx = 0;
+        for (let i = 0; i < ROULETTE_PRIZES.length; i++) {
+            rand -= ROULETTE_PRIZES[i].weight;
+            if (rand <= 0) { winIdx = i; break; }
         }
-        rouletteAnimFrame = requestAnimationFrame(animate);
+
+        // How many extra steps to scroll to land on winIdx at center slot (slot 2)?
+        // Current center = deckOffset (+ 2) % len. We want winIdx at center.
+        // We need deckOffset_final such that (deckOffset_final + 2) % len = winIdx
+        // => deckOffset_final = (winIdx - 2 + len) % len
+        // We'll add several full loops for effect
+        const LOOPS = 3 + Math.floor(Math.random() * 3);
+        const targetOffset = ((winIdx - 2) + ROULETTE_PRIZES.length * 100) % ROULETTE_PRIZES.length;
+        const totalSteps = LOOPS * ROULETTE_PRIZES.length + ((targetOffset - deckOffset + ROULETTE_PRIZES.length * 100) % ROULETTE_PRIZES.length);
+
+        // Animate step by step with decelerating intervals
+        let stepsDone = 0;
+        let tickInterval = null;
+
+        function schedNext() {
+            const progress = stepsDone / totalSteps;
+            // Ease-in: start fast (~60ms), ease-out to ~400ms at end
+            const eased = Math.pow(progress, 2.2);
+            const delay = 55 + eased * 380;
+            tickInterval = setTimeout(() => {
+                deckOffset = (deckOffset + 1) % ROULETTE_PRIZES.length;
+                applyDeckLayout(true);
+                stepsDone++;
+                // SFX tick
+                if (audioCtx) {
+                    const freq = 800 - progress * 300;
+                    schedNote(freq, 'square', audioCtx.currentTime, 0.035, 0.06);
+                }
+                if (stepsDone < totalSteps) {
+                    schedNext();
+                } else {
+                    deckAnimating = false;
+                    currentPrize = ROULETTE_PRIZES[winIdx];
+                    setTimeout(() => showCardPrize(currentPrize), 320);
+                }
+            }, delay);
+        }
+        schedNext();
     }
 
-    function showRoulettePrize(prize) {
-        const msg = document.getElementById('roulette-result-msg');
+    function showCardPrize(prize) {
         const btn = document.getElementById('roulette-spin-btn');
-        msg.innerHTML = `<div style="margin-bottom:6px;font-size:0.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;">¡Obtuviste!</div><div class="roulette-prize-badge" style="color:${prize.color};border-color:${prize.color};background:${prize.color}22">${prize.emoji} ${prize.label}</div><div style="margin-top:6px;font-size:0.75rem;color:var(--text-secondary);">${prize.desc}</div>`;
-        msg.className = 'roulette-result-msg show';
+        const zone = document.getElementById('rl-result-zone');
+        const nameEl = document.getElementById('rl-result-name');
+        const descEl = document.getElementById('rl-result-desc');
+
+        nameEl.textContent = prize.label;
+        nameEl.style.color = prize.color;
+        descEl.textContent = prize.desc;
+        zone.classList.add('revealed');
+
         btn.innerText = 'COBRAR PREMIO';
         btn.disabled = false;
+        btn.className = 'rl-btn collecting';
         btn.onclick = collectRoulettePrize;
 
         // Celebration SFX
         if (audioCtx) {
             const t = audioCtx.currentTime;
-            [784, 988, 1175, 1568].forEach((f, i) => schedNote(f, 'sine', t + i * 0.08, 0.2, 0.18));
+            [784, 988, 1175, 1568].forEach((f, i) => schedNote(f, 'sine', t + i * 0.08, 0.18, 0.16));
         }
 
-        // Particle burst
+        // Spawn particles across full overlay
         spawnRoulettParticles(prize.color);
 
-        // Track roulette stats
+        // Track stats
         playerStats.rouletteSpins = (playerStats.rouletteSpins||0) + 1;
         if (prize.id === 'life')   playerStats.rouletteLifeWins   = (playerStats.rouletteLifeWins||0) + 1;
         if (prize.id === 'shield') playerStats.rouletteShieldWins = (playerStats.rouletteShieldWins||0) + 1;
@@ -3009,19 +3195,25 @@
     }
 
     function spawnRoulettParticles(color) {
-        const panel = document.querySelector('.roulette-panel');
-        if (!panel) return;
-        for (let i = 0; i < 20; i++) {
+        const overlay = document.getElementById('roulette-overlay');
+        if (!overlay) return;
+        // Use many particles distributed across full screen
+        for (let i = 0; i < 36; i++) {
             const p = document.createElement('div');
             p.className = 'r-particle';
-            p.style.background = color;
-            p.style.left = (30 + Math.random() * 40) + '%';
-            p.style.top = (20 + Math.random() * 40) + '%';
-            p.style.setProperty('--tx', (Math.random() - 0.5) * 200 + 'px');
-            p.style.setProperty('--ty', (Math.random() - 1.2) * 200 + 'px');
-            p.style.animationDelay = Math.random() * 0.3 + 's';
-            panel.appendChild(p);
-            setTimeout(() => p.remove(), 1200);
+            // Alternate between prize color and white
+            p.style.background = i % 3 === 0 ? '#ffffff' : color;
+            p.style.width = (6 + Math.random() * 8) + 'px';
+            p.style.height = p.style.width;
+            // Random starting positions spread across screen
+            p.style.left = (10 + Math.random() * 80) + '%';
+            p.style.top  = (20 + Math.random() * 60) + '%';
+            p.style.setProperty('--tx', (Math.random() - 0.5) * 300 + 'px');
+            p.style.setProperty('--ty', (Math.random() - 0.8) * 280 + 'px');
+            p.style.animationDelay = Math.random() * 0.4 + 's';
+            p.style.animationDuration = (0.8 + Math.random() * 0.5) + 's';
+            overlay.appendChild(p);
+            setTimeout(() => p.remove(), 1500);
         }
     }
 
@@ -3076,6 +3268,7 @@
         overlay.classList.remove('active');
         rouletteActive = false;
         currentPrize = null;
+        deckAnimating = false;
         isGamePaused = false;
         // Resume question
         switchScreen('question-screen');
