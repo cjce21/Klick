@@ -279,7 +279,9 @@
             border-color: rgba(0,0,0,0.25);
             background: rgba(255,255,255,0.8);
         }
+        body.light-mode .score-badge::before { box-shadow: none; }
         body.light-mode .multiplier-badge { color: var(--accent-red); }
+        body.light-mode .streak-box span { color: var(--accent-yellow); }
         body.light-mode .question-text {
             background: rgba(255,255,255,0.9);
             color: #0d1117;
@@ -297,7 +299,12 @@
         body.light-mode .answer-btn.color-blue { border-bottom-color: var(--accent-blue) !important; border-bottom-width: 3px; }
         body.light-mode .answer-btn.color-yellow { border-bottom-color: var(--accent-yellow) !important; border-bottom-width: 3px; }
         body.light-mode .answer-btn.color-green { border-bottom-color: var(--accent-green) !important; border-bottom-width: 3px; }
-        body.light-mode .answers-grid.answered .answer-btn.selected { background-color: rgba(0,0,0,0.06); }
+        body.light-mode .answers-grid.answered .answer-btn.selected { 
+            background-color: rgba(255,255,255,0.95); 
+            border-color: rgba(0,0,0,0.35);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            color: #0d1117;
+        }
         body.light-mode .timer-text { color: #0d1117; }
         body.light-mode .timer-bg { stroke: rgba(0,0,0,0.1); }
         body.light-mode .timer-path { stroke: #0d1117; }
@@ -309,7 +316,7 @@
         body.light-mode .progress-bar { background-color: #0d1117; }
 
         /* ── Feedback ── */
-        body.light-mode #feedback-screen { background: var(--bg-base); }
+        body.light-mode #feedback-screen { background: transparent; }
         body.light-mode .feedback-points {
             color: #0d1117;
             border-color: rgba(0,0,0,0.2);
@@ -317,25 +324,27 @@
         }
         body.light-mode .streak-box { color: #4a5568; }
         body.light-mode .feedback-title { color: #0d1117; }
-        body.light-mode #feedback-screen.correct .feedback-title { color: var(--rank-color); filter: brightness(0.7); }
+        body.light-mode #feedback-screen.correct .feedback-title { color: var(--accent-green); }
         body.light-mode #feedback-screen.incorrect .feedback-title { color: var(--accent-red); }
-        body.light-mode #feedback-screen.timeout .feedback-title { color: #4a5568 !important; }
-        /* Remove neon glow on feedback icons in light mode */
-        body.light-mode #feedback-screen.correct #feedback-icon-container svg { filter: none; }
-        body.light-mode #feedback-screen.incorrect #feedback-icon-container svg { filter: none; }
-        body.light-mode #feedback-screen.correct .feedback-points { color: var(--rank-color); filter: brightness(0.7); border-color: rgba(var(--rank-rgb),0.3); }
+        body.light-mode #feedback-screen.timeout .feedback-title { color: var(--text-secondary) !important; }
+        /* Icons in light mode: use accent colors, no neon glow */
+        body.light-mode #feedback-screen.correct #feedback-icon-container svg { stroke: var(--accent-green); filter: none; }
+        body.light-mode #feedback-screen.incorrect #feedback-icon-container svg { stroke: var(--accent-red); filter: none; }
+        body.light-mode #feedback-screen.timeout #feedback-icon-container svg { stroke: var(--text-secondary); filter: none; }
+        body.light-mode #feedback-screen.correct .feedback-points { color: var(--accent-green); border-color: rgba(10,122,62,0.25); background: rgba(255,255,255,0.7); }
 
         /* ── Cuenta atrás ── */
-        body.light-mode #countdown-screen { background: var(--bg-base); }
-        body.light-mode #countdown-number { color: var(--text-primary) !important; filter: none; text-shadow: none !important; }
+        body.light-mode #countdown-screen { background: transparent; }
+        body.light-mode #countdown-number { color: var(--text-primary) !important; text-shadow: none !important; }
 
         /* ── Pantalla final ── */
-        body.light-mode #end-screen { background: var(--bg-base); }
+        body.light-mode #end-screen { background: transparent; }
         body.light-mode #end-screen::before {
-            background: radial-gradient(circle at 50% 40%, rgba(var(--rank-rgb),0.1) 0%, rgba(242,244,247,0.9) 65%);
+            background: radial-gradient(circle at 50% 40%, rgba(var(--rank-rgb),0.07) 0%, transparent 65%);
         }
+        body.light-mode .end-score-value { color: var(--text-primary) !important; text-shadow: none !important; filter: none; }
+        body.light-mode .end-message { text-shadow: none; color: #0d1117; }
         body.light-mode .end-rank-label { color: #4a5568; }
-        body.light-mode .end-message { color: #0d1117; }
         body.light-mode .end-name { color: #4a5568; }
         body.light-mode .end-score-label { color: #4a5568; }
         body.light-mode .end-stat-label { color: #4a5568; }
@@ -438,12 +447,6 @@
         body.light-mode [style*="color: rgba(255,255,255,0.7"],
         body.light-mode [style*="color:rgba(255,255,255,0.8"],
         body.light-mode [style*="color: rgba(255,255,255,0.8"] { color: #0d1117 !important; }
-        /* fix text-shadow neon on light backgrounds */
-        body.light-mode .end-message,
-        body.light-mode .end-score-value { text-shadow: none !important; }
-        body.light-mode #end-screen::before {
-            background: radial-gradient(circle at 50% 40%, rgba(var(--rank-rgb),0.07) 0%, transparent 65%) !important;
-        }
 
         /* rank color is set dynamically via JS inline var; when it's neon green, tone it for light */
         body.light-mode .logo-dot,
@@ -3251,9 +3254,10 @@
         const zone = document.getElementById('rl-result-zone');
         const nameEl = document.getElementById('rl-result-name');
         const descEl = document.getElementById('rl-result-desc');
+        const isLight = document.body.classList.contains('light-mode');
 
         nameEl.textContent = prize.label;
-        nameEl.style.color = prize.color;
+        nameEl.style.color = isLight ? darkenHex(prize.color, 0.45) : prize.color;
         descEl.textContent = prize.desc;
         zone.classList.add('revealed');
 
