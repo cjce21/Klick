@@ -176,12 +176,13 @@
 
         /* ── Perfil ── */
         body.light-mode .profile-hero { background: rgba(255,255,255,0.75); }
+        body.light-mode #profile-avatar-ring { box-shadow:0 0 14px rgba(var(--rank-rgb),0.18) !important; }
         body.light-mode .profile-name-input {
             color: #0d1117;
-            border-bottom-color: rgba(0,0,0,0.2);
+            border-bottom-color: rgba(0,0,0,0.18);
         }
-        body.light-mode .profile-name-input::placeholder { color: rgba(0,0,0,0.25); }
-        body.light-mode .profile-name-input:focus { border-bottom-color: #0d1117; }
+        body.light-mode .profile-name-input::placeholder { color: rgba(0,0,0,0.2); }
+        body.light-mode .profile-name-input:focus { border-bottom-color: rgba(0,0,0,0.45); }
         body.light-mode .profile-rank { color: #4a5568; }
         body.light-mode .stat-card {
             background: rgba(255,255,255,0.75);
@@ -189,7 +190,8 @@
         }
         body.light-mode .stat-value { color: #0d1117; }
         body.light-mode .stat-label { color: #4a5568; }
-        body.light-mode .profile-achievements-title { color: #0d1117; }
+        body.light-mode .profile-achievements-title { color: #4a5568; }
+        body.light-mode .profile-name-input { color: #0d1117; }
         body.light-mode .achievement-slot {
             background: rgba(255,255,255,0.6);
             border-color: rgba(0,0,0,0.15);
@@ -600,24 +602,164 @@
         input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); background: var(--rank-color); border-color: rgba(255,255,255,0.9); box-shadow: 0 0 15px rgba(var(--rank-rgb), 0.6); }
         input[type=range]::-webkit-slider-thumb:active { transform: scale(0.9); }
 
-        /* Perfil */
-        .profile-dashboard { justify-content: center; max-width: 1200px; gap: clamp(10px, 2vh, 30px); height: 100%; }
-        .profile-hero { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: clamp(20px, 4vh, 40px); border-radius: var(--radius-lg); text-align: center; }
-        .profile-rank { font-weight: 800; font-size: clamp(0.8rem, 1.5vw, 1rem); text-transform: uppercase; letter-spacing: 2px; }
-        .profile-name-input { width: 100%; background: transparent; border: none; border-bottom: 2px solid var(--bg-elevated); color: var(--text-primary); font-size: clamp(1.8rem, 5vw, 3.5rem); font-weight: 900; text-align: center; padding: 5px 0; outline: none; text-transform: uppercase; transition: all 0.3s; }
-        .profile-name-input:focus { border-bottom-color: var(--text-primary); }
-        .profile-warning { color: var(--accent-red); font-size: 0.8rem; margin-top: 5px; font-weight: 600; opacity: 0; transition: opacity 0.3s ease; }
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(10px, 2vw, 20px); width: 100%; }
-        .stat-card { padding: clamp(15px, 3vh, 25px) 10px; border-radius: var(--radius-md); border: 1px solid var(--bg-elevated); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 5px; }
-        .stat-value { font-size: clamp(1.5rem, 3vw, 2.5rem); font-weight: 900; color: var(--text-primary); line-height: 1; }
-        .stat-label { font-size: clamp(0.6rem, 1vw, 0.8rem); color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
-        .profile-achievements-title { font-size: clamp(0.9rem, 2vw, 1.2rem); font-weight: 800; text-align: center; color: var(--text-primary); text-transform: uppercase; margin-top: 5px; letter-spacing: 1px; }
-        .profile-achievements-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(10px, 2vw, 15px); width: 100%; }
-        .achievement-slot { background: rgba(17, 17, 17, 0.4); border: 1px dashed var(--bg-elevated); border-radius: var(--radius-md); padding: clamp(10px, 2vh, 20px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; opacity: 0.4; filter: grayscale(1); position: relative; }
-        .achievement-slot.unlocked { border-style: solid; opacity: 1; filter: grayscale(0); background: rgba(17, 17, 17, 0.7); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        .ach-icon { width: clamp(24px, 4vw, 32px); height: clamp(24px, 4vw, 32px); }
+        /* Perfil PL — tabla de cálculo */
+        .pl-calc-row {
+            display:grid;
+            grid-template-columns:1fr auto auto auto;
+            gap:0 10px;
+            align-items:center;
+            padding:7px 4px;
+            border-radius:8px;
+            transition:background 0.15s;
+        }
+        .pl-calc-row:hover { background:rgba(255,255,255,0.03); }
+        .pl-calc-label { font-size:clamp(0.7rem,1.2vw,0.8rem);font-weight:600;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+        .pl-calc-val   { font-size:clamp(0.7rem,1.2vw,0.8rem);font-weight:700;color:var(--text-primary);text-align:right;font-variant-numeric:tabular-nums;font-family:monospace;white-space:nowrap; }
+        .pl-calc-factor{ font-size:0.68rem;font-weight:700;color:rgba(255,255,255,0.28);text-align:center;font-family:monospace;white-space:nowrap;background:rgba(255,255,255,0.04);border-radius:5px;padding:2px 6px; }
+        .pl-calc-result{ font-size:clamp(0.72rem,1.2vw,0.82rem);font-weight:900;text-align:right;font-variant-numeric:tabular-nums;font-family:monospace;white-space:nowrap; }
+        .pl-calc-divider{ grid-column:1/-1;height:1px;background:rgba(255,255,255,0.05);margin:4px 0; }
+
+        body.light-mode .pl-calc-row:hover { background:rgba(0,0,0,0.03); }
+        body.light-mode .pl-calc-factor { color:rgba(0,0,0,0.3);background:rgba(0,0,0,0.04); }
+        body.light-mode .pl-calc-divider { background:rgba(0,0,0,0.07); }
+
+        /* ═══════════════════════════════════════
+           PERFIL — Rediseño espacioso y limpio
+           ═══════════════════════════════════════ */
+        .profile-dashboard {
+            justify-content: flex-start;
+            max-width: 1000px;
+            gap: 16px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Hero: nombre + rango lado a lado */
+        .profile-hero {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 20px;
+            padding: 28px 32px;
+            border-radius: var(--radius-lg);
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+        .profile-hero-left { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+        .profile-hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+
+        .profile-rank {
+            font-weight: 800;
+            font-size: clamp(0.65rem, 1.2vw, 0.85rem);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .profile-name-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 1.5px solid rgba(255,255,255,0.12);
+            color: #ffffff;
+            font-size: clamp(1.6rem, 4vw, 2.8rem);
+            font-weight: 900;
+            text-align: left;
+            padding: 4px 0;
+            outline: none;
+            text-transform: uppercase;
+            transition: border-color 0.3s;
+            letter-spacing: -0.5px;
+        }
+        .profile-name-input:focus { border-bottom-color: rgba(255,255,255,0.5); }
+        .profile-name-input::placeholder { color: rgba(255,255,255,0.18); }
+
+        .profile-warning { color: var(--accent-red); font-size: 0.75rem; margin-top: 2px; font-weight: 600; opacity: 0; transition: opacity 0.3s ease; }
+
+        /* Stats grid 4 cols en fila compacta */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            width: 100%;
+        }
+        .stat-card {
+            padding: 20px 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--bg-elevated);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 6px;
+        }
+        .stat-value {
+            font-size: clamp(1.4rem, 2.8vw, 2.2rem);
+            font-weight: 900;
+            color: #ffffff;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-label {
+            font-size: clamp(0.58rem, 0.9vw, 0.72rem);
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        /* Logros destacados */
+        .profile-achievements-title {
+            font-size: clamp(0.62rem, 1vw, 0.72rem);
+            font-weight: 700;
+            text-align: left;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-top: 4px;
+            padding: 0 2px;
+        }
+        .profile-achievements-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            flex: 1;
+        }
+        .achievement-slot {
+            background: rgba(17, 17, 17, 0.4);
+            border: 1px dashed rgba(255,255,255,0.08);
+            border-radius: var(--radius-md);
+            padding: 14px 18px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 16px;
+            opacity: 0.35;
+            filter: grayscale(1);
+            position: relative;
+            flex: 1;
+        }
+        .achievement-slot.unlocked {
+            border-style: solid;
+            border-color: rgba(255,255,255,0.1);
+            opacity: 1;
+            filter: grayscale(0);
+            background: rgba(20, 20, 20, 0.75);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+        }
+        .ach-icon { width: 32px; height: 32px; flex-shrink: 0; }
         .ach-icon svg { width: 100%; height: 100%; }
-        .ach-title { font-size: clamp(0.65rem, 1vw, 0.8rem); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
+        .ach-title {
+            font-size: clamp(0.72rem, 1vw, 0.85rem);
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+            line-height: 1.2;
+        }
 
         /* Guía y Rangos */
         .guide-dashboard { justify-content: flex-start; gap: clamp(10px, 2vh, 20px); width: 100%; max-width: 1000px; padding: 0 0 30px 0; }
@@ -998,7 +1140,7 @@
             .answer-btn { padding: 15px; font-size: 1rem; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .guide-grid { grid-template-columns: 1fr; }
-            .profile-achievements-grid { grid-template-columns: repeat(3, 1fr); }
+            .profile-achievements-grid { flex-direction: column; }
             .settings-grid { grid-template-columns: 1fr; }
             .toast-container { bottom: auto; top: 20px; right: 50%; transform: translateX(50%); width: 90%; }
             .toast-item { transform: translateY(-120%); }
@@ -1184,23 +1326,89 @@
     <div id="profile-screen" class="screen nav-screen">
         <div class="top-nav">
             <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
-            <div class="nav-title">DASHBOARD</div><div class="nav-spacer"></div>
+            <div class="nav-title">PERFIL</div><div class="nav-spacer"></div>
         </div>
-        <div class="content-fit">
-            <div class="profile-dashboard">
-                <div class="profile-hero glass-panel">
-                    <div class="profile-rank" id="profile-rank-display">Rango: Novato</div>
-                    <input type="text" id="profile-name-input" class="profile-name-input" placeholder="JUGADOR" autocomplete="off" maxlength="12">
-                    <div id="profile-warning" class="profile-warning">Se requiere un nombre</div>
+        <div class="content-scroll no-scrollbar" style="align-items:stretch;">
+            <div class="profile-dashboard" style="max-width:860px;margin:0 auto;padding-bottom:30px;">
+
+                <!-- Hero: nombre + rango -->
+                <div class="profile-hero glass-panel" style="border-color:rgba(var(--rank-rgb),0.18);">
+                    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 0% 50%,rgba(var(--rank-rgb),0.07) 0%,transparent 60%);pointer-events:none;"></div>
+                    <div class="profile-hero-left">
+                        <div class="profile-rank" id="profile-rank-display">Rango: Novato</div>
+                        <input type="text" id="profile-name-input" class="profile-name-input" placeholder="TU NOMBRE" autocomplete="off" maxlength="12">
+                        <div id="profile-warning" class="profile-warning">Se requiere un nombre</div>
+                    </div>
+                    <div class="profile-hero-right">
+                        <div style="font-size:0.58rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;">Nivel de Poder</div>
+                        <div style="display:flex;align-items:baseline;gap:5px;">
+                            <span id="pl-hero-total" style="font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:900;color:var(--rank-color);line-height:1;font-variant-numeric:tabular-nums;transition:color 0.5s;">0</span>
+                            <span style="font-size:0.6rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;">PL</span>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Stats 4 columnas -->
                 <div class="stats-grid">
-                    <div class="stat-card glass-panel"><div class="stat-value" id="stat-score">0</div><div class="stat-label">Mejor Puntuación</div></div>
+                    <div class="stat-card glass-panel"><div class="stat-value" id="stat-score">0</div><div class="stat-label">Récord</div></div>
                     <div class="stat-card glass-panel"><div class="stat-value" id="stat-games">0</div><div class="stat-label">Partidas</div></div>
                     <div class="stat-card glass-panel"><div class="stat-value" id="stat-streak">0</div><div class="stat-label">Racha Máx</div></div>
-                    <div class="stat-card glass-panel"><div class="stat-value" id="stat-days">0</div><div class="stat-label">Días</div></div>
+                    <div class="stat-card glass-panel"><div class="stat-value" id="stat-days">0</div><div class="stat-label">Racha Días</div></div>
                 </div>
-                <div class="profile-achievements-title">Logros Destacados</div>
-                <div class="profile-achievements-grid" id="profile-achievements-grid"></div>
+
+                <!-- PL Panel + Logros en dos columnas -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;align-items:stretch;">
+
+                    <!-- Panel PL -->
+                    <div class="glass-panel" id="pl-panel" style="border-radius:var(--radius-lg);border-color:rgba(var(--rank-rgb),0.22);overflow:hidden;position:relative;">
+                        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 100% 0%,rgba(var(--rank-rgb),0.07) 0%,transparent 55%);pointer-events:none;"></div>
+
+                        <!-- Cabecera: total PL + posición -->
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid rgba(255,255,255,0.05);">
+                            <div>
+                                <div style="font-size:0.55rem;font-weight:700;letter-spacing:3px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">Nivel de Poder</div>
+                                <div style="display:flex;align-items:baseline;gap:6px;">
+                                    <span id="pl-total" style="font-size:clamp(1.8rem,3vw,2.4rem);font-weight:900;color:var(--rank-color);line-height:1;font-variant-numeric:tabular-nums;transition:color 0.5s;">0</span>
+                                    <span style="font-size:0.6rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;">PL</span>
+                                </div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:0.55rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">Ranking Global</div>
+                                <div id="pl-ranking-pos" style="font-size:clamp(1.4rem,2.5vw,1.9rem);font-weight:900;color:#ffffff;line-height:1;">#—</div>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de cálculo -->
+                        <div style="padding:16px 24px 8px;">
+                            <div style="font-size:0.55rem;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,0.2);text-transform:uppercase;margin-bottom:10px;">Desglose del cálculo</div>
+                            <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:0 10px;margin-bottom:6px;padding:0 4px;">
+                                <span style="font-size:0.55rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.18);text-transform:uppercase;">Fuente</span>
+                                <span style="font-size:0.55rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.18);text-transform:uppercase;text-align:right;">Valor</span>
+                                <span style="font-size:0.55rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.18);text-transform:uppercase;text-align:center;">Factor</span>
+                                <span style="font-size:0.55rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.18);text-transform:uppercase;text-align:right;">= PL</span>
+                            </div>
+                            <div id="pl-rows" style="display:flex;flex-direction:column;gap:2px;"></div>
+                        </div>
+
+                        <!-- Total bar + footer -->
+                        <div style="padding:10px 24px 18px;">
+                            <div style="height:3px;border-radius:10px;background:rgba(255,255,255,0.05);overflow:hidden;margin-bottom:10px;">
+                                <div id="pl-bar-total" style="height:100%;border-radius:10px;background:var(--rank-color);width:0%;transition:width 1s cubic-bezier(0.16,1,0.3,1),background 0.5s;"></div>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span id="pl-next-label" style="font-size:0.58rem;color:var(--text-secondary);font-weight:500;"></span>
+                                <span id="pl-accuracy-pct" style="font-size:0.58rem;color:var(--text-secondary);font-weight:600;"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logros Destacados -->
+                    <div style="display:flex;flex-direction:column;gap:10px;height:100%;">
+                        <div class="profile-achievements-title">Logros Destacados</div>
+                        <div class="profile-achievements-grid" id="profile-achievements-grid" style="flex:1;height:100%;"></div>
+                    </div>
+
+                </div>
             </div>
         </div>
     </div>
@@ -3574,10 +3782,75 @@
         SFX.click();
         playerStats.profileViews = (playerStats.profileViews||0) + 1;
         trackSectionVisit('profile');
-        document.getElementById('stat-games').innerText = playerStats.gamesPlayed; document.getElementById('stat-score').innerText = playerStats.bestScore; document.getElementById('stat-streak').innerText = playerStats.maxStreak; document.getElementById('stat-days').innerText = playerStats.maxLoginStreak;
+        document.getElementById('stat-games').innerText = playerStats.gamesPlayed; document.getElementById('stat-score').innerText = playerStats.bestScore.toLocaleString(); document.getElementById('stat-streak').innerText = playerStats.maxStreak; document.getElementById('stat-days').innerText = playerStats.maxLoginStreak;
         document.getElementById('profile-name-input').value = (playerStats.playerName === "JUGADOR") ? "" : playerStats.playerName;
         document.getElementById('profile-warning').style.opacity = needsName ? '1' : '0';
         currentRankInfo = getRankInfo(playerStats); updateLogoDots(); document.getElementById('profile-rank-display').innerText = `Rango: ${currentRankInfo.title}`; { const isLight = document.body.classList.contains('light-mode'); document.getElementById('profile-rank-display').style.color = isLight ? darkenHex(currentRankInfo.color, 0.4) : currentRankInfo.color; }
+        // Render PL panel
+        (function renderPLPanel(){
+            const s = playerStats;
+            const plBase   = Math.floor((s.totalScore||0)*0.05);
+            const plBest   = Math.floor((s.bestScore||0)*1.5);
+            const plStreak = (s.maxStreak||0)*200;
+            const plPerf   = (s.perfectGames||0)*1000;
+            const plAchs   = (s.achievements||[]).length*300;
+            const plAcc    = s.gamesPlayed>0 ? Math.floor(((s.totalCorrect||0)/(s.gamesPlayed*20))*5000) : 0;
+            const plTotal  = plBase+plBest+plStreak+plPerf+plAchs+plAcc;
+            const fmt = n => n.toLocaleString();
+            // Precision %
+            const totalAnswers = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
+            const accuracy = totalAnswers>0 ? Math.min(100,Math.round((s.totalCorrect||0)/totalAnswers*100)) : 0;
+            // PL total & rank color
+            const plTotalEl = document.getElementById('pl-total');
+            if(plTotalEl){ plTotalEl.innerText=fmt(plTotal); plTotalEl.style.color=currentRankInfo.color; }
+            const plHeroEl = document.getElementById('pl-hero-total');
+            if(plHeroEl){ plHeroEl.innerText=fmt(plTotal); plHeroEl.style.color=currentRankInfo.color; }
+            // Panel border color
+            const panel = document.getElementById('pl-panel');
+            if(panel) panel.style.borderColor=`rgba(${currentRankInfo.rgb},0.28)`;
+            // Ranking pos
+            const posEl=document.getElementById('pl-ranking-pos');
+            if(posEl) posEl.innerText=s.rankingPosition&&s.rankingPosition<999?`#${s.rankingPosition}`:'#—';
+            // Build rows
+            const rowsEl=document.getElementById('pl-rows');
+            if(!rowsEl) return;
+            const colors=['var(--accent-blue)','var(--accent-yellow)','var(--accent-orange)','var(--accent-green)','var(--accent-purple)','var(--accent-red)'];
+            const rows=[
+                { label:'Puntaje acum.',   raw:fmt(s.totalScore||0),    factor:'× 0.05',  result:plBase,   color:colors[0] },
+                { label:'Récord',          raw:fmt(s.bestScore||0),      factor:'× 1.5',   result:plBest,   color:colors[1] },
+                { label:'Racha máxima',    raw:`${s.maxStreak||0} aciertos`, factor:'× 200', result:plStreak, color:colors[2] },
+                { label:'Partidas perfectas', raw:`${s.perfectGames||0} partidas`, factor:'× 1,000', result:plPerf, color:colors[3] },
+                { label:'Logros',          raw:`${(s.achievements||[]).length} logros`, factor:'× 300', result:plAchs, color:colors[4] },
+                { label:'Precisión',       raw:`${accuracy}%`,           factor:'× 5,000', result:plAcc,    color:colors[5] },
+            ];
+            rowsEl.innerHTML = rows.map((r,i)=>`
+                <div class="pl-calc-row">
+                    <span class="pl-calc-label" style="color:${r.color};">${r.label}</span>
+                    <span class="pl-calc-val">${r.raw}</span>
+                    <span class="pl-calc-factor">${r.factor}</span>
+                    <span class="pl-calc-result" style="color:${r.color};">+${fmt(r.result)}</span>
+                </div>
+                ${i===rows.length-1?`<div class="pl-calc-divider"></div><div class="pl-calc-row" style="padding:6px 4px;">
+                    <span style="font-size:0.7rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;grid-column:1/3;">Total PL</span>
+                    <span></span>
+                    <span style="font-size:clamp(0.8rem,1.5vw,0.95rem);font-weight:900;font-family:monospace;color:${currentRankInfo.color};text-align:right;">${fmt(plTotal)}</span>
+                </div>`:''}
+            `).join('');
+            // Progress bar toward next milestone
+            const milestones=[10000,100000,1000000,5000000,10000000];
+            let nextMs=milestones.find(m=>m>plTotal)||10000000;
+            let prevMs=milestones[milestones.indexOf(nextMs)-1]||0;
+            const prog=Math.min(1,(plTotal-prevMs)/Math.max(1,nextMs-prevMs));
+            const pctRound=Math.round(prog*100);
+            setTimeout(()=>{
+                const bar=document.getElementById('pl-bar-total');
+                if(bar){ bar.style.width=pctRound+'%'; bar.style.background=currentRankInfo.color; }
+            },120);
+            const nextEl=document.getElementById('pl-next-label');
+            if(nextEl) nextEl.innerText=`Próximo hito: ${fmt(nextMs)} PL — ${pctRound}% completado`;
+            const accEl=document.getElementById('pl-accuracy-pct');
+            if(accEl) accEl.innerText=`Precisión: ${accuracy}%`;
+        })();
         renderAchievements(); switchScreen('profile-screen');
         if (needsName) setTimeout(() => { document.getElementById('profile-name-input').focus(); document.getElementById('profile-name-input').classList.add('shake'); setTimeout(() => document.getElementById('profile-name-input').classList.remove('shake'), 400); }, 400);
     }
