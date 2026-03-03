@@ -3400,7 +3400,7 @@
 
         let badge = '';
         if (isManualPin)      badge = `<div class="ach-pin-badge ach-pin-manual">${SVG_PIN}</div>`;
-        else if (isInProfile) badge = `<div class="ach-pin-badge ach-pin-auto">★</div>`;
+        else if (isInProfile) badge = `<div class="ach-pin-badge ach-pin-auto">*</div>`;
 
         const isHidden = ach.hidden && !isUnlocked;
         const iconColor = isUnlocked ? (isLight ? darkenHex(ach.color, 0.4) : ach.color) : 'var(--text-secondary)';
@@ -3968,13 +3968,13 @@
         const textEl = document.getElementById('active-reward-text');
         if (!bar) return;
         let label = '', icon = '', color = '';
-        if (activeBoostNextQ === 'boost') { label = 'Puntos x2 activo'; icon = '⚡'; color = '#ffb800'; }
-        else if (activeBoostNextQ === 'triple') { label = 'Turbo x3 activo'; icon = '⚡'; color = '#ccff00'; }
-        else if (activeBoostNextQ === 'jackpot') { label = 'Jackpot x4 activo'; icon = '🌟'; color = '#ff0090'; }
-        else if (shieldActive) { label = 'Escudo activo'; icon = '🛡'; color = '#00d4ff'; }
-        else if (hintActive) { label = 'Pista lista'; icon = '💡'; color = '#f77f00'; }
-        else if (extraTimeActive > 0) { label = `+${extraTimeActive}s de tiempo`; icon = '⏱'; color = '#00ff66'; }
-        else if (streakShieldActive) { label = 'Racha protegida'; icon = '🔒'; color = '#aaaaff'; }
+        if (activeBoostNextQ === 'boost') { label = 'Puntos x2 activo'; icon = 'x2'; color = '#ffb800'; }
+        else if (activeBoostNextQ === 'triple') { label = 'Turbo x3 activo'; icon = 'x3'; color = '#ccff00'; }
+        else if (activeBoostNextQ === 'jackpot') { label = 'Jackpot x4 activo'; icon = 'x4'; color = '#ff0090'; }
+        else if (shieldActive) { label = 'Escudo activo'; icon = '+1'; color = '#00d4ff'; }
+        else if (hintActive) { label = 'Pista lista'; icon = '?'; color = '#f77f00'; }
+        else if (extraTimeActive > 0) { label = `+${extraTimeActive}s de tiempo`; icon = '+t'; color = '#00ff66'; }
+        else if (streakShieldActive) { label = 'Racha protegida'; icon = 'R+'; color = '#aaaaff'; }
         if (label) {
             iconEl.textContent = icon;
             textEl.textContent = label;
@@ -4150,7 +4150,7 @@
                     const c1=(s.totalScore||0)>=1200000, c2=(s.totalCorrect||0)>=5000, c3=(s.perfectGames||0)>=50;
                     const c4=(s.achievements||[]).length>=200, c5=(s.maxStreak||0)>=40, c6=(s.maxMult||1)>=8;
                     const c7=acc2>=85, c8=(s.maxLoginStreak||0)>=30;
-                    condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;letter-spacing:1px;text-shadow:0 0 8px rgba(255,255,255,0.5);">✦ SIGUIENTE: MÍTICO ✦</span> &nbsp;`+
+                    condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;letter-spacing:1px;text-shadow:0 0 8px rgba(255,255,255,0.5);">-- SIGUIENTE: MITICO --</span> &nbsp;`+
                         `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/1,200,000</span> &nbsp;`+
                         `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/5,000</span> &nbsp;`+
                         `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/50</span> &nbsp;`+
@@ -4160,7 +4160,7 @@
                         `<span style="${c7?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/85%</span> &nbsp;`+
                         `<span style="${c8?'color:var(--accent-green)':'color:var(--text-secondary)'}">Login días ${s.maxLoginStreak||0}/30</span>`;
                 } else {
-                    condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;text-shadow:0 0 10px rgba(255,255,255,0.6);">✦ RANGO MÍTICO ALCANZADO ✦</span>`;
+                    condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;text-shadow:0 0 10px rgba(255,255,255,0.6);">-- RANGO MITICO ALCANZADO --</span>`;
                 }
                 nextEl.innerHTML = condHtml;
             }
