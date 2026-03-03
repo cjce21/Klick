@@ -1211,292 +1211,334 @@
             animation: rl-particle-fly 0.9s ease-out forwards;
         }
 
-        /* ══════════════════════════ KLICK PASS STYLES ══════════════════════════ */
+/* ══════════════════════════ KLICK PASS STYLES ══════════════════════════ */
 
-        /* ── Botón menú principal ────────────────────────────────────── */
-        .btn-kpass {
-            width: 100%; padding: clamp(14px,2.5vh,18px);
-            font-size: 1rem; font-weight: 800; letter-spacing: 1.5px;
-            border-radius: var(--radius-md); cursor: pointer;
-            transition: all 0.3s ease-out;
-            display: flex; justify-content: center; align-items: center;
-            text-transform: uppercase; gap: 10px; position: relative;
-            color: rgba(255,255,255,0.75); background-color: transparent;
-            border: 1.5px solid rgba(255,255,255,0.3);
-        }
-        .btn-kpass:hover {
-            color: #fff; border-color: rgba(255,255,255,0.7);
-            background-color: rgba(255,255,255,0.06); transform: translateY(-2px);
-        }
-        .btn-kpass:active { transform: scale(0.96); }
-        .kpass-menu-badge {
-            position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
-            background: rgba(255,255,255,0.15); color: var(--text-primary);
-            border: 1px solid rgba(255,255,255,0.3);
-            font-size: 0.6rem; font-weight: 900; border-radius: 50px;
-            padding: 3px 9px; letter-spacing: 1px;
-        }
-        body.light-mode .btn-kpass { color: #4a5568; border-color: rgba(0,0,0,0.25); background: transparent; }
-        body.light-mode .btn-kpass:hover { color: #0d1117; border-color: rgba(0,0,0,0.6); background-color: rgba(0,0,0,0.05); }
-        body.light-mode .kpass-menu-badge { background: rgba(0,0,0,0.07); border-color: rgba(0,0,0,0.2); color: #0d1117; }
+:root {
+    --kp-node-size: 72px;
+    --kp-card-radius: 14px;
+}
 
-        /* ── Header ─────────────────────────────────────────────────── */
-        .kp-header {
-            flex-shrink: 0;
-            padding: 20px 20px 18px;
-            border-bottom: 1px solid var(--bg-elevated);
-            display: grid;
-            grid-template-columns: 1fr auto;
-            grid-template-rows: auto auto auto;
-            column-gap: 16px;
-            row-gap: 10px;
-            align-items: center;
-        }
-        .kp-cycle-label {
-            grid-column: 1; grid-row: 1;
-            font-size: 0.56rem; font-weight: 800; letter-spacing: 3px;
-            color: var(--text-secondary); text-transform: uppercase;
-        }
-        .kp-progress-summary {
-            grid-column: 1; grid-row: 2;
-            display: flex; align-items: baseline; gap: 8px;
-        }
-        .kp-progress-count {
-            font-size: 2.2rem; font-weight: 900; color: var(--text-primary);
-            line-height: 1; font-variant-numeric: tabular-nums;
-        }
-        .kp-progress-label { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); }
-        .kp-reward-total {
-            grid-column: 2; grid-row: 1 / 3;
-            text-align: right;
-            font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);
-            line-height: 1.5;
-            align-self: center;
-        }
-        .kp-total-bar-wrap {
-            grid-column: 1 / -1; grid-row: 3;
-            height: 3px; background: var(--bg-elevated);
-            border-radius: 10px; overflow: hidden;
-        }
-        .kp-total-bar-fill {
-            height: 100%; width: 0%; border-radius: 10px;
-            background: var(--text-primary); transition: width 0.9s var(--ease-out);
-        }
-        body.light-mode .kp-header         { border-bottom-color: var(--bg-elevated); }
-        body.light-mode .kp-total-bar-fill  { background: #0d1117; }
+/* ── Botón menú principal ────────────────────────────────────── */
+.btn-kpass {
+    width: 100%; padding: clamp(14px,2.5vh,18px);
+    font-size: 1rem; font-weight: 800; letter-spacing: 1.5px;
+    border-radius: var(--radius-md); cursor: pointer;
+    transition: all 0.3s ease-out;
+    display: flex; justify-content: center; align-items: center;
+    text-transform: uppercase; gap: 10px; position: relative;
+    color: rgba(255,255,255,0.75); background-color: transparent;
+    border: 1.5px solid rgba(255,255,255,0.3);
+}
+.btn-kpass:hover {
+    color: #fff; border-color: rgba(255,255,255,0.7);
+    background-color: rgba(255,255,255,0.06); transform: translateY(-2px);
+}
+.btn-kpass:active { transform: scale(0.96); }
+.kpass-menu-badge {
+    position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.15); color: var(--text-primary);
+    border: 1px solid rgba(255,255,255,0.3);
+    font-size: 0.6rem; font-weight: 900; border-radius: 50px;
+    padding: 3px 9px; letter-spacing: 1px;
+}
+body.light-mode .btn-kpass { color: #4a5568; border-color: rgba(0,0,0,0.25); background: transparent; }
+body.light-mode .btn-kpass:hover { color: #0d1117; border-color: rgba(0,0,0,0.6); background-color: rgba(0,0,0,0.05); }
+body.light-mode .kpass-menu-badge { background: rgba(0,0,0,0.07); border-color: rgba(0,0,0,0.2); color: #0d1117; }
 
-        /* ── Scroll ─────────────────────────────────────────────────── */
-        .kp-scroll { padding: 0 !important; }
+/* ── Header ─────────────────────────────────────────────────── */
+.kp-header {
+    flex-shrink: 0;
+    padding: 22px 28px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    background: rgba(5,5,5,0.55);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    column-gap: 20px;
+    row-gap: 12px;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+.kp-header::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+    pointer-events: none;
+}
+.kp-cycle-label {
+    grid-column: 1; grid-row: 1;
+    font-size: 0.52rem; font-weight: 800; letter-spacing: 3.5px;
+    color: var(--text-secondary); text-transform: uppercase; opacity: 0.7;
+}
+.kp-progress-summary {
+    grid-column: 1; grid-row: 2;
+    display: flex; align-items: baseline; gap: 10px;
+}
+.kp-progress-count {
+    font-size: clamp(2rem,4vw,2.6rem); font-weight: 900;
+    color: var(--text-primary); line-height: 1;
+    font-variant-numeric: tabular-nums; letter-spacing: -1px;
+}
+.kp-progress-label {
+    font-size: 0.78rem; font-weight: 500;
+    color: var(--text-secondary); letter-spacing: 0.3px;
+}
+.kp-reward-total {
+    grid-column: 2; grid-row: 1 / 3;
+    text-align: right; align-self: center;
+    font-size: 0.75rem; font-weight: 700;
+    color: var(--text-secondary); line-height: 1.6;
+    font-variant-numeric: tabular-nums;
+}
+.kp-total-bar-wrap {
+    grid-column: 1 / -1; grid-row: 3;
+    height: 4px; background: rgba(255,255,255,0.06);
+    border-radius: 10px; overflow: hidden;
+}
+.kp-total-bar-fill {
+    height: 100%; width: 0%; border-radius: 10px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.5), var(--text-primary));
+    transition: width 1.1s cubic-bezier(0.16,1,0.3,1);
+    position: relative;
+}
+.kp-total-bar-fill::after {
+    content: '';
+    position: absolute; top: 0; right: 0;
+    width: 40px; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5));
+    border-radius: 10px;
+    animation: kp-bar-shimmer 2.8s ease-in-out infinite;
+    opacity: 0;
+}
+@keyframes kp-bar-shimmer { 0%,100%{opacity:0} 50%{opacity:1} }
+body.light-mode .kp-header { background: rgba(242,244,247,0.94); border-bottom-color: rgba(0,0,0,0.07); }
+body.light-mode .kp-header::before { background: linear-gradient(90deg, transparent, rgba(0,0,0,0.05), transparent); }
+body.light-mode .kp-total-bar-fill { background: linear-gradient(90deg, rgba(0,0,0,0.45), #0d1117); }
 
-        .kp-path-container {
-            width: 100%; max-width: 660px;
-            margin: 0 auto;
-            display: flex; flex-direction: column;
-            padding: 4px 24px 80px;
-            position: relative;
-        }
-        /* Línea vertical central continua */
-        .kp-path-container::before {
-            content: ''; position: absolute;
-            left: 50%; top: 28px; bottom: 60px;
-            width: 1px; transform: translateX(-50%);
-            background: var(--bg-elevated);
-            z-index: 0;
-        }
+/* ── Scroll ─────────────────────────────────────────────────── */
+.kp-scroll { padding: 0 !important; }
 
-        /* ── Separadores de tramo ───────────────────────────────────── */
-        .kp-tramo-sep {
-            display: flex; flex-direction: column; align-items: center;
-            gap: 2px; padding: 22px 0 10px;
-            position: relative; z-index: 2;
-        }
-        .kp-tramo-name {
-            font-size: 0.72rem; font-weight: 900; letter-spacing: 3px;
-            text-transform: uppercase; color: var(--text-secondary);
-        }
-        .kp-tramo-desc {
-            font-size: 0.68rem; font-weight: 400;
-            color: var(--text-secondary); opacity: 0.4;
-        }
+.kp-path-container {
+    width: 100%; max-width: 680px;
+    margin: 0 auto; display: flex; flex-direction: column;
+    padding: 8px 28px 100px; position: relative;
+}
+.kp-path-container::before {
+    content: ''; position: absolute;
+    left: 50%; top: 36px; bottom: 80px;
+    width: 1px; transform: translateX(-50%);
+    background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.1) 5%, rgba(255,255,255,0.1) 95%, transparent);
+    z-index: 0;
+}
+body.light-mode .kp-path-container::before {
+    background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.1) 5%, rgba(0,0,0,0.1) 95%, transparent);
+}
 
-        /* ── Fila de nivel — zigzag ─────────────────────────────────── */
-        /* Layout: card | nodo | card (card vacía en el lado inactivo)   */
-        .kp-level-row {
-            display: flex; align-items: center;
-            gap: 18px; padding: 7px 0;
-            position: relative; z-index: 1;
-        }
-        /* Filas impares: card izquierda, nodo centro, vacío derecha     */
-        /* Filas pares:  vacío izquierda, nodo centro, card derecha      */
-        /* Zigzag: even rows are flipped via JS data-attr, not nth-child (separators break nth) */
-        .kp-level-row[data-side="right"] { flex-direction: row-reverse; }
-        .kp-level-row[data-side="right"] .kp-card { text-align: right; }
-        .kp-level-row[data-side="right"] .kp-card-bottom { justify-content: flex-end; }
+/* ── Separadores de tramo ───────────────────────────────────── */
+.kp-tramo-sep {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 4px; padding: 28px 0 14px;
+    position: relative; z-index: 2;
+}
+.kp-tramo-sep::before {
+    content: ''; display: block;
+    width: 28px; height: 1px;
+    background: rgba(255,255,255,0.18);
+    margin-bottom: 6px;
+}
+body.light-mode .kp-tramo-sep::before { background: rgba(0,0,0,0.12); }
+.kp-tramo-name {
+    font-size: 0.68rem; font-weight: 900; letter-spacing: 3.5px;
+    text-transform: uppercase; color: var(--text-secondary); opacity: 0.85;
+}
+.kp-tramo-desc {
+    font-size: 0.64rem; font-weight: 500;
+    color: var(--text-secondary); opacity: 0.38; letter-spacing: 1px;
+}
 
-        /* Espaciador invisible para el lado sin card */
-        .kp-row-spacer { flex: 1; }
+/* ── Fila de nivel — zigzag ─────────────────────────────────── */
+.kp-level-row {
+    display: flex; align-items: center;
+    gap: 16px; padding: 6px 0;
+    position: relative; z-index: 1;
+}
+.kp-level-row[data-side="right"] { flex-direction: row-reverse; }
+.kp-level-row[data-side="right"] .kp-card { text-align: right; }
+.kp-level-row[data-side="right"] .kp-card-bottom { justify-content: flex-end; }
+.kp-row-spacer { flex: 1; }
 
-        /* ── Nodo ───────────────────────────────────────────────────── */
-        .kp-node {
-            width: 68px; height: 68px;
-            margin: 10px 0;
-            align-self: flex-start;
-            border-radius: 50%; flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
-            flex-direction: column;
-            position: relative; z-index: 1;
-            border: 1.5px solid var(--bg-elevated);
-            background: var(--bg-surface);
-            transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
-        }
-        .kp-node-num {
-            font-size: 1.1rem; font-weight: 900; font-family: monospace;
-            color: var(--text-secondary); line-height: 1;
-            transition: color 0.3s;
-        }
-        .kp-node-sub {
-            font-size: 0.54rem; font-weight: 700; letter-spacing: 1.5px;
-            text-transform: uppercase; color: var(--text-secondary);
-            opacity: 0.4; margin-top: 2px;
-        }
-        .kp-node.unlocked {
-            border-color: rgba(255,255,255,0.5);
-            background: rgba(255,255,255,0.07);
-            box-shadow: 0 0 0 4px rgba(255,255,255,0.04);
-        }
-        .kp-node.unlocked .kp-node-num { color: var(--text-primary); }
-        .kp-node.unlocked .kp-node-sub { opacity: 0.8; color: var(--text-primary); }
-        .kp-node.claimed  {
-            border-color: rgba(255,255,255,0.15);
-            background: rgba(255,255,255,0.06);
-        }
-        .kp-node.final-node { width: 76px; height: 76px; margin: 8px 0; }
-        .kp-node.final-node.unlocked {
-            border-color: rgba(255,255,255,0.65);
-            background: rgba(255,255,255,0.09);
-            box-shadow: 0 0 0 5px rgba(255,255,255,0.05), 0 0 20px rgba(255,255,255,0.08);
-            animation: kp-final-breathe 2.5s ease-in-out infinite;
-        }
-        .kp-node.final-node.claimed {
-            border-color: rgba(255,255,255,0.3);
-            background: rgba(255,255,255,0.1);
-        }
-        @keyframes kp-final-breathe {
-            0%,100% { box-shadow: 0 0 0 4px rgba(255,255,255,0.04), 0 0 12px rgba(255,255,255,0.06); }
-            50%      { box-shadow: 0 0 0 8px rgba(255,255,255,0.07), 0 0 24px rgba(255,255,255,0.10); }
-        }
-        .kp-node-check {
-            position: absolute; inset: 0;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .kp-node-check svg { width: 24px; height: 24px; color: var(--text-secondary); opacity: 0.55; }
+/* ── Nodo ───────────────────────────────────────────────────── */
+.kp-node {
+    width: var(--kp-node-size); height: var(--kp-node-size);
+    margin: 8px 0; align-self: flex-start;
+    border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; position: relative; z-index: 2;
+    border: 1.5px solid rgba(255,255,255,0.1);
+    background: rgba(17,17,17,0.88);
+    transition: border-color 0.4s var(--ease-out), background 0.4s var(--ease-out),
+                box-shadow 0.4s var(--ease-out), transform 0.3s var(--ease-spring);
+}
+.kp-node:hover { transform: scale(1.05); }
+.kp-node-num {
+    font-size: 1.05rem; font-weight: 900; font-family: monospace;
+    color: rgba(255,255,255,0.28); line-height: 1;
+    transition: color 0.3s; letter-spacing: -0.5px;
+}
+.kp-node-sub {
+    font-size: 0.48rem; font-weight: 800; letter-spacing: 2px;
+    text-transform: uppercase; color: rgba(255,255,255,0.18);
+    margin-top: 3px; transition: color 0.3s, opacity 0.3s;
+}
+.kp-node.unlocked {
+    border-color: rgba(255,255,255,0.65);
+    background: rgba(255,255,255,0.06);
+    box-shadow: 0 0 0 5px rgba(255,255,255,0.032), 0 0 20px rgba(255,255,255,0.08);
+}
+.kp-node.unlocked .kp-node-num { color: rgba(255,255,255,0.92); }
+.kp-node.unlocked .kp-node-sub { color: rgba(255,255,255,0.55); }
+.kp-node.claimed { border-color: rgba(255,255,255,0.14); background: rgba(255,255,255,0.04); }
+.kp-node.final-node { width: calc(var(--kp-node-size) + 8px); height: calc(var(--kp-node-size) + 8px); margin: 6px 0; }
+.kp-node.final-node.unlocked {
+    border-color: rgba(255,255,255,0.75);
+    background: rgba(255,255,255,0.08);
+    box-shadow: 0 0 0 6px rgba(255,255,255,0.032), 0 0 30px rgba(255,255,255,0.10);
+    animation: kp-final-breathe 2.8s ease-in-out infinite;
+}
+.kp-node.final-node.claimed { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.08); }
+@keyframes kp-final-breathe {
+    0%,100% { box-shadow: 0 0 0 5px rgba(255,255,255,0.032), 0 0 14px rgba(255,255,255,0.07); }
+    50%      { box-shadow: 0 0 0 9px rgba(255,255,255,0.052), 0 0 32px rgba(255,255,255,0.12); }
+}
+.kp-node-check { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.kp-node-check svg { width: 22px; height: 22px; color: rgba(255,255,255,0.38); }
 
-        /* ── Tarjeta ────────────────────────────────────────────────── */
-        .kp-card {
-            flex: 1;
-            margin: 8px 0;
-            padding: 20px 22px 18px;
-            border-radius: 12px;
-            border: 1px solid transparent;
-            background: transparent;
-            transition: border-color 0.3s, background 0.3s, opacity 0.3s;
-            display: flex; flex-direction: column; gap: 5px;
-        }
-        .kp-row-spacer { flex: 1; }
-        .kp-card.unlocked {
-            border-color: rgba(255,255,255,0.16);
-            background: rgba(255,255,255,0.03);
-        }
-        .kp-card.claimed { opacity: 0.38; }
-        .kp-card.final-card { padding: 18px 20px 16px; border-radius: 14px; }
-        .kp-card.final-card.unlocked {
-            border-color: rgba(255,255,255,0.28);
-            background: rgba(255,255,255,0.04);
-        }
+body.light-mode .kp-node { background: var(--bg-surface); border-color: rgba(0,0,0,0.1); }
+body.light-mode .kp-node:hover { transform: scale(1.05); }
+body.light-mode .kp-node.unlocked { background: rgba(0,0,0,0.025); border-color: rgba(0,0,0,0.32); box-shadow: 0 0 0 5px rgba(0,0,0,0.018), 0 0 14px rgba(0,0,0,0.06); }
+body.light-mode .kp-node.claimed { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); }
+body.light-mode .kp-node-check svg { color: rgba(0,0,0,0.3); }
 
-        /* Etiqueta de estado */
-        .kp-card-level {
-            font-size: 0.68rem; font-weight: 800; letter-spacing: 2px;
-            text-transform: uppercase; color: var(--text-secondary); opacity: 0.6;
-        }
-        .kp-card.unlocked .kp-card-level { color: var(--text-primary); opacity: 0.55; }
+/* ── Tarjeta ────────────────────────────────────────────────── */
+.kp-card {
+    flex: 1; margin: 6px 0;
+    padding: 18px 20px 16px;
+    border-radius: var(--kp-card-radius);
+    border: 1px solid transparent;
+    background: transparent;
+    transition: border-color 0.35s var(--ease-out), background 0.35s var(--ease-out),
+                opacity 0.35s var(--ease-out), box-shadow 0.35s var(--ease-out);
+    display: flex; flex-direction: column; gap: 6px;
+    position: relative; overflow: hidden;
+}
+.kp-card:not(.unlocked):not(.claimed) { opacity: 0.42; }
+.kp-row-spacer { flex: 1; }
+.kp-card.unlocked {
+    border-color: rgba(255,255,255,0.13);
+    background: rgba(255,255,255,0.022);
+    box-shadow: 0 2px 14px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.kp-card.unlocked::before {
+    content: '';
+    position: absolute; top: 0; left: 12px; right: 12px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    pointer-events: none;
+}
+.kp-card.claimed { opacity: 0.3; }
+.kp-card.final-card { padding: 16px 18px 14px; border-radius: 16px; }
+.kp-card.final-card.unlocked {
+    border-color: rgba(255,255,255,0.22);
+    background: rgba(255,255,255,0.032);
+    box-shadow: 0 4px 22px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.kp-card-level {
+    font-size: 0.6rem; font-weight: 800; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--text-secondary); opacity: 0.5;
+    margin-bottom: 1px;
+}
+.kp-card.unlocked .kp-card-level { color: var(--text-primary); opacity: 0.42; }
+.kp-card-title {
+    font-size: 1.15rem; font-weight: 800; line-height: 1.25;
+    color: rgba(255,255,255,0.42); letter-spacing: -0.1px; transition: color 0.3s;
+}
+.kp-card.unlocked .kp-card-title { color: var(--text-primary); }
+.kp-card.claimed .kp-card-title { color: var(--text-secondary); }
+.kp-card-mission {
+    font-size: 0.9rem; font-weight: 400; line-height: 1.55;
+    color: rgba(255,255,255,0.2); transition: color 0.3s;
+}
+.kp-card.unlocked .kp-card-mission { color: rgba(255,255,255,0.62); }
+.kp-card-bottom {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 8px; flex-wrap: wrap;
+}
+.kp-reward-pill {
+    font-size: 0.78rem; font-weight: 800; letter-spacing: 0.3px;
+    padding: 5px 14px; border-radius: 50px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.28); font-family: monospace;
+    transition: all 0.3s; white-space: nowrap;
+}
+.kp-card.unlocked .kp-reward-pill {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.88);
+    border-color: rgba(255,255,255,0.13);
+}
+.kp-card.claimed .kp-reward-pill { text-decoration: line-through; opacity: 0.32; }
 
-        /* Título del nivel — grande y legible */
-        .kp-card-title {
-            font-size: 1.2rem; font-weight: 800; line-height: 1.3;
-            color: var(--text-primary); letter-spacing: 0.1px;
-        }
-        .kp-card.claimed .kp-card-title  { color: var(--text-secondary); }
+.kp-claim-btn {
+    font-size: 0.7rem; font-weight: 900; letter-spacing: 2px;
+    text-transform: uppercase; padding: 7px 18px;
+    border-radius: 50px; cursor: pointer;
+    background: var(--text-primary); color: var(--bg-base);
+    border: none; white-space: nowrap; flex-shrink: 0;
+    transition: opacity 0.2s, transform 0.18s var(--ease-spring), box-shadow 0.2s;
+    box-shadow: 0 2px 12px rgba(255,255,255,0.1);
+}
+.kp-claim-btn:hover { opacity: 0.86; transform: translateY(-2px); box-shadow: 0 6px 22px rgba(255,255,255,0.16); }
+.kp-claim-btn:active { transform: scale(0.94); box-shadow: none; }
 
-        /* Texto de misión — cuerpo de texto real */
-        .kp-card-mission {
-            font-size: 0.96rem; font-weight: 400; line-height: 1.6;
-            color: var(--text-secondary);
-        }
-        .kp-card.unlocked .kp-card-mission { color: var(--text-primary); opacity: 0.7; }
+.kp-status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-primary); flex-shrink: 0;
+    animation: kp-dot-blink 2s ease-in-out infinite;
+    box-shadow: 0 0 6px rgba(255,255,255,0.4);
+}
+@keyframes kp-dot-blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.15;transform:scale(0.65)} }
 
-        /* Fila inferior: reward + botón + dot */
-        .kp-card-bottom {
-            display: flex; align-items: center; gap: 8px;
-            margin-top: 6px; flex-wrap: wrap;
-        }
-        .kp-reward-pill {
-            font-size: 0.84rem; font-weight: 800; letter-spacing: 0.3px;
-            padding: 5px 16px; border-radius: 50px;
-            background: var(--bg-elevated); border: 1px solid transparent;
-            color: var(--text-secondary); font-family: monospace;
-            transition: all 0.25s;
-        }
-        .kp-card.unlocked .kp-reward-pill {
-            background: rgba(255,255,255,0.09);
-            color: var(--text-primary);
-            border-color: rgba(255,255,255,0.15);
-        }
-        .kp-card.claimed .kp-reward-pill { text-decoration: line-through; opacity: 0.4; }
+body.light-mode .kp-card.unlocked { border-color: rgba(0,0,0,0.1); background: rgba(0,0,0,0.01); box-shadow: 0 2px 12px rgba(0,0,0,0.05), inset 0 1px 0 rgba(0,0,0,0.02); }
+body.light-mode .kp-card.unlocked::before { background: linear-gradient(90deg, transparent, rgba(0,0,0,0.05), transparent); }
+body.light-mode .kp-card.final-card.unlocked { border-color: rgba(0,0,0,0.18); background: rgba(0,0,0,0.018); }
+body.light-mode .kp-card-title { color: rgba(0,0,0,0.35); }
+body.light-mode .kp-card.unlocked .kp-card-title { color: #0d1117; }
+body.light-mode .kp-card.claimed .kp-card-title { color: var(--text-secondary); }
+body.light-mode .kp-card-mission { color: rgba(0,0,0,0.2); }
+body.light-mode .kp-card.unlocked .kp-card-mission { color: rgba(0,0,0,0.55); }
+body.light-mode .kp-reward-pill { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.07); color: rgba(0,0,0,0.28); }
+body.light-mode .kp-card.unlocked .kp-reward-pill { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.12); color: #0d1117; }
+body.light-mode .kp-claim-btn { background: #0d1117; color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
+body.light-mode .kp-claim-btn:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.22); }
+body.light-mode .kp-status-dot { background: #0d1117; box-shadow: 0 0 6px rgba(0,0,0,0.25); }
+body.light-mode .kp-tramo-sep { border-bottom-color: var(--bg-elevated); }
 
-        /* Botón RECLAMAR — dentro de la card, no flotando */
-        .kp-claim-btn {
-            font-size: 0.74rem; font-weight: 900; letter-spacing: 1.5px;
-            text-transform: uppercase; padding: 7px 20px;
-            border-radius: 50px; cursor: pointer;
-            background: var(--text-primary); color: var(--bg-base);
-            border: none; white-space: nowrap;
-            transition: opacity 0.2s, transform 0.15s;
-            flex-shrink: 0;
-        }
-        .kp-claim-btn:hover  { opacity: 0.82; transform: translateY(-1px); }
-        .kp-claim-btn:active { transform: scale(0.95); }
-
-        /* Punto parpadeante de disponibilidad */
-        .kp-status-dot {
-            width: 6px; height: 6px; border-radius: 50%;
-            background: var(--text-primary); flex-shrink: 0;
-            animation: kp-dot-blink 1.8s ease-in-out infinite;
-        }
-        @keyframes kp-dot-blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-
-        /* ── Light mode ─────────────────────────────────────────────── */
-        body.light-mode .kp-node           { background: var(--bg-surface); border-color: var(--bg-elevated); }
-        body.light-mode .kp-node.unlocked  { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.3); box-shadow: 0 0 0 4px rgba(0,0,0,0.03); }
-        body.light-mode .kp-node.claimed   { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.1); }
-        body.light-mode .kp-claim-btn      { background: #0d1117; color: #fff; }
-        body.light-mode .kp-card.unlocked  { border-color: rgba(0,0,0,0.15); background: rgba(0,0,0,0.015); }
-        body.light-mode .kp-card.unlocked .kp-reward-pill { background: rgba(0,0,0,0.07); border-color: rgba(0,0,0,0.14); }
-        body.light-mode .kp-status-dot     { background: #0d1117; }
-        body.light-mode .kp-path-container::before { background: var(--bg-elevated); }
-        body.light-mode .kp-tramo-sep      { border-bottom-color: var(--bg-elevated); }
-
-        /* ── Responsive ─────────────────────────────────────────────── */
-        @media (max-width: 420px) {
-            .kp-path-container     { padding: 4px 8px 80px; }
-            .kp-node               { width: 60px; height: 60px; }
-            .kp-node.final-node    { width: 68px; height: 68px; }
-            .kp-card               { padding: 12px 12px 10px; }
-            .kp-card-title         { font-size: 1.1rem; }
-            .kp-card-mission       { font-size: 0.9rem; }
-        }
-        /* ════════════════════════════════════════════════════════════════════════ */
-
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 420px) {
+    :root { --kp-node-size: 62px; }
+    .kp-path-container { padding: 4px 10px 80px; }
+    .kp-node.final-node { width: 70px; height: 70px; }
+    .kp-card { padding: 12px 12px 10px; }
+    .kp-card-title { font-size: 1.05rem; }
+    .kp-card-mission { font-size: 0.86rem; }
+    .kp-header { padding: 18px 20px 16px; }
+    .kp-progress-count { font-size: 1.9rem; }
+}
+/* ════════════════════════════════════════════════════════════════════════ */
         @media (max-width: 850px) {
             .btn-back span, .nav-spacer { width: 60px; } .btn-back span { display: none; }
             .answers-grid { grid-template-columns: 1fr; grid-template-rows: repeat(4, 1fr); flex: 0 0 55vh; gap: 10px; padding: 10px; }
@@ -5840,3 +5882,4 @@
 </script>
 </body>
 </html>
+
