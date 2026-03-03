@@ -10,11 +10,20 @@ document.addEventListener('keydown', e => {
     }
 });
 
+let _cheaterCooldown = false;
 document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === 'hidden' && isAnsweringAllowed && !isGamePaused) punishCheater();
+    if (document.visibilityState === 'hidden' && isAnsweringAllowed && !isGamePaused) {
+        if (_cheaterCooldown) return; _cheaterCooldown = true;
+        setTimeout(() => { _cheaterCooldown = false; }, 3000);
+        punishCheater();
+    }
 });
 window.addEventListener("blur", () => {
-    if (isAnsweringAllowed && !isGamePaused) punishCheater();
+    if (isAnsweringAllowed && !isGamePaused) {
+        if (_cheaterCooldown) return; _cheaterCooldown = true;
+        setTimeout(() => { _cheaterCooldown = false; }, 3000);
+        punishCheater();
+    }
 });
 
 function punishCheater() {
@@ -34,7 +43,7 @@ function punishCheater() {
     submitLeaderboard(); 
     
     initAudio(); SFX.incorrect();
-    showToast('Trampa Detectada', `Has recibido la marca permanente de TRAMPOSO.`, 'var(--accent-red)', SVG_SKULL);
+    showToast('¡Trampa detectada!', `Has recibido la marca permanente de Tramposo.`, 'var(--accent-red)', SVG_SKULL);
     
     document.getElementById('app').classList.remove('streak-active');
     streak = 0;
@@ -250,7 +259,7 @@ function revokeInvalidAchievements() {
         saveStatsLocally();
         const revokedCount = before - playerStats.achievements.length;
         if (revokedCount > 0) {
-            showToast('Logros Corregidos', `Se retiraron ${revokedCount} logro(s) obtenido(s) por errores.`, 'var(--accent-orange)', SVG_SHIELD);
+            showToast('Logros Corregidos', `Se retiraron ${revokedCount} logro(s) concedido(s) por error.`, 'var(--accent-orange)', SVG_SHIELD);
             renderAchievements();
         }
     }
@@ -386,7 +395,7 @@ const MUSIC_TRACKS = [
     {
         id: 'track_bass',
         name: 'Deep Current',
-        desc: 'Bass · Groovey',
+        desc: 'Bass · Groovy',
         color: 'var(--accent-purple)'
     }
 ];
@@ -828,7 +837,7 @@ async function fetchLeaderboard() {
         saveStatsLocally();
     } catch(e) {
         if(document.getElementById('ranking-list').innerHTML.includes('ranking-loading')) {
-           document.getElementById('ranking-list').innerHTML = `<div class="ranking-loading">Error al conectar con la base de datos global. Reintentando...</div>`;
+           document.getElementById('ranking-list').innerHTML = `<div class="ranking-loading">Error al conectar con la base de datos. Reintentando...</div>`;
         }
     }
 }
@@ -1734,7 +1743,7 @@ const ROULETTE_PRIZES = [
     { id: 'life',       label: 'VIDA EXTRA',    short: '+VIDA',   color: '#ff2a5f', rarity: 'Legendario', weight: 5,  desc: 'Recuperas una vida perdida.' },
     // Épicos
     { id: 'shield',     label: 'ESCUDO',         short: 'ESCUDO',  color: '#00d4ff', rarity: 'Épico',      weight: 8,  desc: 'Protección si fallas la próxima pregunta.' },
-    { id: 'frenzy',     label: 'FRENESI',        short: 'FRENESI', color: '#b5179e', rarity: 'Épico',      weight: 9,  desc: 'Activa Modo Frenesí en la siguiente pregunta.' },
+    { id: 'frenzy',     label: 'FRENESÍ',        short: 'FRENESÍ', color: '#b5179e', rarity: 'Épico',      weight: 9,  desc: 'Activa Modo Frenesí en la siguiente pregunta.' },
     { id: 'jackpot',    label: 'JACKPOT x4',     short: 'x4',      color: '#ff0090', rarity: 'Épico',      weight: 6,  desc: 'La próxima pregunta vale x4 puntos.' },
     // Raros
     { id: 'boost',      label: 'PUNTOS x2',      short: 'x2 PTS',  color: '#ffb800', rarity: 'Raro',       weight: 15, desc: 'La próxima pregunta vale puntos dobles.' },
@@ -1873,11 +1882,12 @@ function darkenHex(hex, factor) {
 
 function showRoulette() {
     if (rouletteActive) return;
+    const overlay = document.getElementById('roulette-overlay');
+    if (!overlay) return; // DOM not ready guard
     rouletteActive = true;
     isGamePaused = true;
     clearInterval(timerInterval);
 
-    const overlay = document.getElementById('roulette-overlay');
     const btn = document.getElementById('roulette-spin-btn');
     const zone = document.getElementById('rl-result-zone');
     const nameEl = document.getElementById('rl-result-name');
@@ -2038,19 +2048,19 @@ function collectRoulettePrize() {
     // Apply prize effect
     if (prize.id === 'life') {
         if (lives < 3) { lives++; updateLivesUI(); showToast('VIDA EXTRA', 'Has recuperado una vida.', '#ff2a5f', SVG_HEART); }
-        else { showToast('VIDAS AL MAXIMO', 'Ya tienes todas las vidas.', '#ff2a5f', SVG_HEART); }
+        else { showToast('¡VIDAS AL MÁXIMO!', 'Ya tienes todas las vidas.', '#ff2a5f', SVG_HEART); }
     } else if (prize.id === 'shield') {
         shieldActive = true;
         showToast('ESCUDO ACTIVO', 'Protegido ante un fallo en la siguiente pregunta.', '#00d4ff', SVG_SHIELD);
     } else if (prize.id === 'boost') {
         activeBoostNextQ = 'boost';
-        showToast('PUNTOS x2', 'La proxima pregunta vale el doble.', '#ffb800', SVG_STAR);
+        showToast('PUNTOS x2', 'La próxima pregunta vale el doble.', '#ffb800', SVG_STAR);
     } else if (prize.id === 'doublelife') {
         activeBoostNextQ = 'triple';
-        showToast('TURBO x3', 'La proxima pregunta vale x3 puntos.', '#ccff00', SVG_BOLT);
+        showToast('TURBO x3', 'La próxima pregunta vale x3 puntos.', '#ccff00', SVG_BOLT);
     } else if (prize.id === 'jackpot') {
         activeBoostNextQ = 'jackpot';
-        showToast('JACKPOT x4', 'La proxima pregunta vale x4 puntos.', '#ff0090', SVG_STAR);
+        showToast('JACKPOT x4', 'La próxima pregunta vale x4 puntos.', '#ff0090', SVG_STAR);
     } else if (prize.id === 'frenzy') {
         // Forzar al menos multiplicador x2 (streak >= 5).
         // Si ya está en frenesí, subir un nivel más (streak += 5) hasta el tope de x10 (streak 45).
@@ -2060,18 +2070,22 @@ function collectRoulettePrize() {
             streak = Math.min(streak + 5, 45);
         }
         if (streak > currentMaxStreak) currentMaxStreak = streak;
+        // Track frenzy activation for achievements
+        playerStats.frenziesTriggered = (playerStats.frenziesTriggered || 0) + 1;
+        frenziesThisGame++;
+        if (frenziesThisGame > (playerStats.maxFrenziesInGame || 0)) playerStats.maxFrenziesInGame = frenziesThisGame;
         updateMultiplierUI();
         updateStreakVisuals();
-        showToast('FRENESI ACTIVADO', 'Modo Frenesí activado por la ruleta.', '#b5179e', SVG_FIRE);
+        showToast('¡FRENESÍ ACTIVADO!', 'Modo Frenesí activado por la ruleta.', '#b5179e', SVG_FIRE);
     } else if (prize.id === 'time') {
         extraTimeActive = 5;
-        showToast('+5 SEGUNDOS', 'La proxima pregunta tendra tiempo extra.', '#00ff66', SVG_CLOCK);
+        showToast('+5 SEGUNDOS', 'La próxima pregunta tendrá tiempo extra.', '#00ff66', SVG_CLOCK);
     } else if (prize.id === 'freeze') {
         extraTimeActive = 8;
-        showToast('+8 SEGUNDOS', 'La proxima pregunta tendra mucho tiempo extra.', '#00ffcc', SVG_CLOCK);
+        showToast('+8 SEGUNDOS', 'La próxima pregunta tendrá mucho tiempo extra.', '#00ffcc', SVG_CLOCK);
     } else if (prize.id === 'hint') {
         hintActive = true;
-        showToast('PISTA ACTIVADA', 'Se eliminara una respuesta incorrecta.', '#f77f00', SVG_BOLT);
+        showToast('PISTA ACTIVADA', 'Se eliminará una respuesta incorrecta.', '#f77f00', SVG_BOLT);
     } else if (prize.id === 'streak') {
         streakShieldActive = true;
         showToast('RACHA PROTEGIDA', 'Si fallas la siguiente, tu racha no se resetea.', '#aaaaff', SVG_SHIELD);
@@ -2110,14 +2124,19 @@ function closeRoulette() {
     currentPrize = null;
     deckAnimating = false;
     isGamePaused = false;
-    // Resume — aplica los premios de ruleta en la PRIMERA pregunta siguiente al cobro
+    // Capturar el estado de hintActive ANTES de cualquier cosa
+    // (loadQuestion no lo usa, applyHintVisual sí — no resetear hasta después)
+    const _hint = hintActive;
+    if (_hint) hintActive = false; // limpiar flag ya que se va a aplicar ahora
     switchScreen('question-screen');
     updateRewardIndicator();
     setTimeout(() => {
+        // loadQuestion carga la pregunta con extraTimeActive ya seteado (se aplica dentro)
         loadQuestion();
-        if (hintActive) {
-            hintActive = false;
-            setTimeout(applyHintVisual, 150);
+        if (_hint) {
+            // applyHintVisual necesita que la pregunta ya esté en el DOM
+            // 150ms es suficiente para que los botones estén pintados
+            setTimeout(applyHintVisual, 180);
         }
     }, 300);
 }
@@ -2268,7 +2287,7 @@ function goToProfile(needsName = false) {
                 const c1=(s.totalScore||0)>=1200000, c2=(s.totalCorrect||0)>=5000, c3=(s.perfectGames||0)>=50;
                 const c4=(s.achievements||[]).length>=200, c5=(s.maxStreak||0)>=40, c6=(s.maxMult||1)>=8;
                 const c7=acc2>=85, c8=(s.maxLoginStreak||0)>=30;
-                condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;letter-spacing:1px;text-shadow:0 0 8px rgba(255,255,255,0.5);">-- SIGUIENTE: MITICO --</span> &nbsp;`+
+                condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;letter-spacing:1px;text-shadow:0 0 8px rgba(255,255,255,0.5);">-- SIGUIENTE: MÍTICO --</span> &nbsp;`+
                     `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/1,200,000</span> &nbsp;`+
                     `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/5,000</span> &nbsp;`+
                     `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/50</span> &nbsp;`+
@@ -2278,7 +2297,7 @@ function goToProfile(needsName = false) {
                     `<span style="${c7?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/85%</span> &nbsp;`+
                     `<span style="${c8?'color:var(--accent-green)':'color:var(--text-secondary)'}">Login días ${s.maxLoginStreak||0}/30</span>`;
             } else {
-                condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;text-shadow:0 0 10px rgba(255,255,255,0.6);">-- RANGO MITICO ALCANZADO --</span>`;
+                condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;text-shadow:0 0 10px rgba(255,255,255,0.6);">-- RANGO MÍTICO ALCANZADO --</span>`;
             }
             nextEl.innerHTML = condHtml;
         }
@@ -2606,7 +2625,6 @@ function loadQuestion() {
     // Apply extra time from roulette
     let questionTime = TIMER_LIMIT;
     if (extraTimeActive) { questionTime = TIMER_LIMIT + extraTimeActive; extraTimeActive = 0; updateRewardIndicator(); }
-    if (!_gTimerPath) _warmGameDOMCache();
     isAnsweringAllowed = true; isGamePaused = false; timeLeft = questionTime; timerText.innerText = timeLeft;
     
     timerPath.style.transition = 'none'; timerPath.style.strokeDashoffset = '0'; timerPath.style.stroke = 'var(--text-primary)'; timerText.style.color = 'var(--text-primary)'; void timerPath.offsetWidth; timerPath.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s ease';
@@ -2623,7 +2641,7 @@ function loadQuestion() {
 
 function selectAnswer(selectedIndex) {
     if (!isAnsweringAllowed || isGamePaused) return; isAnsweringAllowed = false; clearInterval(timerInterval); SFX.select();
-    document.getElementById('answers-grid').classList.add('answered'); document.querySelectorAll('.answer-btn')[selectedIndex].classList.add('selected');
+    (_gAnswersGrid||document.getElementById('answers-grid')).classList.add('answered'); (_gAnswerBtns ? _gAnswerBtns[selectedIndex] : document.querySelectorAll('.answer-btn')[selectedIndex]).classList.add('selected');
     
     const q = currentSessionQuestions[currentQuestionIndex];
     const isCorrect = (selectedIndex === q.currentCorrectIndex); 
@@ -2669,7 +2687,7 @@ function handleTimeout() {
     currentGameLog.push({ correct: false, timeout: true, time: 0 });
     ultraFastStreak = 0; currentNoTimeoutStreak = 0;
     saveStatsDebounced(); 
-    document.getElementById('answers-grid').classList.add('answered'); 
+    (_gAnswersGrid||document.getElementById('answers-grid')).classList.add('answered'); 
     setTimeout(() => showFeedback(false, true), 600);
 }
 
@@ -2695,7 +2713,7 @@ function confirmAbandon() {
     const penalty = 300; 
     playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
     saveStatsLocally(); submitLeaderboard(); 
-    showToast('Partida Abandonada', `Penalidad de -300 pts.`, 'var(--text-secondary)', SVG_INCORRECT);
+    showToast('Partida Abandonada', `Penalización de -300 pts.`, 'var(--text-secondary)', SVG_INCORRECT);
     document.getElementById('app').classList.remove('streak-active');
     streak = 0;
     switchScreen('start-screen');
@@ -2858,15 +2876,11 @@ function showFeedback(isCorrect, isTimeout = false) {
                 nextRouletteTrigger += 10;
                 showRoulette();
             } else {
-                if (hintActive) {
-                    hintActive = false;
-                    loadQuestion();
-                    switchScreen('question-screen');
-                    setTimeout(applyHintVisual, 150);
-                } else {
-                    loadQuestion();
-                    switchScreen('question-screen');
-                }
+                const _applyHint = hintActive;
+                if (_applyHint) hintActive = false;
+                loadQuestion();
+                switchScreen('question-screen');
+                if (_applyHint) setTimeout(applyHintVisual, 180);
             }
         } else {
             endGame();
@@ -2930,10 +2944,10 @@ function endGame() {
     const msg = document.getElementById('final-message');
     const rankLabel = document.getElementById('end-rank-label');
 
-    if(score > 300000) { msg.innerText = "Leyenda"; if(rankLabel) rankLabel.innerText = "Clasificacion Final"; }
-    else if(score > 100000) { msg.innerText = "Superviviente Nato"; if(rankLabel) rankLabel.innerText = "Resultado"; }
-    else if(score > 25000) { msg.innerText = "Buen Desempeño"; if(rankLabel) rankLabel.innerText = "Resultado"; }
-    else { msg.innerText = "Sigue Practicando"; if(rankLabel) rankLabel.innerText = "Resultado"; }
+    if(score > 300000) { msg.innerText = "¡Leyenda!"; if(rankLabel) rankLabel.innerText = "Clasificación Final"; }
+    else if(score > 100000) { msg.innerText = "¡Superviviente Nato!"; if(rankLabel) rankLabel.innerText = "Resultado"; }
+    else if(score > 25000) { msg.innerText = "¡Buen Desempeño!"; if(rankLabel) rankLabel.innerText = "Resultado"; }
+    else { msg.innerText = "Sigue practicando"; if(rankLabel) rankLabel.innerText = "Resultado"; }
 
     document.getElementById('final-name').innerText = playerStats.playerName || 'ESTUDIANTE';
     document.getElementById('final-correct-label').innerText = 'Aciertos';
@@ -3055,13 +3069,13 @@ function animateParticles(now) {
         
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // If opacity is 0, don't draw anything (background disappears fully)
+        // If opacity is 0, don't draw anything
         if (!playerStats || playerStats.particleOpacity <= 0) return;
         
         // Update per-frame cached values once (avoid repeated DOM query)
         _pIsLight = document.body.classList.contains('light-mode');
         _pRgb = _pIsLight ? darkenRgb(currentRankInfo.rgb, 0.55) : currentRankInfo.rgb;
-        const pulse = getAudioPulse(); 
+        const pulse = audioAnalyser ? getAudioPulse() : 0; 
         updateAndDrawParticles(timeScale, pulse);
         connectParticles(pulse); 
     } 
@@ -3364,8 +3378,12 @@ function kpCanClaim(lvNum) {
 }
 
 // ── Reclamar nivel ───────────────────────────────────────────────────
+let _kpClaimLock = false;
 function kpClaim(lvNum) {
+    if (_kpClaimLock) return;
     if (!kpCanClaim(lvNum)) return;
+    _kpClaimLock = true;
+    setTimeout(() => { _kpClaimLock = false; }, 600);
     const state = getKpState();
     state.claimed.push(lvNum);
     saveKpState(state);
@@ -3408,6 +3426,9 @@ function _kpSetNodeState(lvNum, status) {
         if (lbl) lbl.textContent = lbl.textContent.replace(/BLOQUEADO|DISPONIBLE|EN CURSO/, 'COMPLETADO');
         const dot = card.querySelector('.kp-status-dot');
         if (dot) dot.remove();
+        // Remove claim button immediately after claiming
+        const claimBtn = card.querySelector('.kp-claim-btn');
+        if (claimBtn) claimBtn.remove();
     } else if (status === 'unlocked') {
         node.classList.add('unlocked');
         node.innerHTML = '<span class="kp-node-num">' + String(lvNum).padStart(2,'0') + '</span>' +
@@ -3460,9 +3481,15 @@ function renderKpHeader() { _kpUpdateHeader(); }
 
 // ── Actualizar badge del menú ────────────────────────────────────────
 function _kpUpdateMenuBadge() {
+    // Read localStorage ONCE (not 100 times via kpCanClaim)
+    const _badgeState = getKpState();
+    const _badgeClaimed = new Set(_badgeState.claimed);
     let count = 0;
     for (let i = 0; i < KP_TOTAL; i++) {
-        if (kpCanClaim(KP_LEVELS[i].lv)) count++;
+        const lv = KP_LEVELS[i].lv;
+        if (_badgeClaimed.has(lv)) continue;
+        if (lv > 1 && !_badgeClaimed.has(lv - 1)) continue;
+        if (KP_LEVELS[i].chk(playerStats, _badgeState)) count++;
     }
     const badge = document.getElementById('kpass-menu-badge');
     if (!badge) return;
@@ -3476,6 +3503,16 @@ function renderKpPath() {
     const state = getKpState();
     const container = document.getElementById('kp-path-container');
     if (!container) return;
+
+    // Cache claimed set for O(1) lookup (avoid O(n) array.includes per level)
+    const claimedSet = new Set(state.claimed);
+    // Inline kpCanClaim using cached state to avoid 200 localStorage reads
+    const _canClaim = (lvNum) => {
+        if (claimedSet.has(lvNum)) return false;
+        if (lvNum > 1 && !claimedSet.has(lvNum - 1)) return false;
+        const lvl = KP_LEVELS[lvNum - 1];
+        return lvl ? lvl.chk(playerStats, state) : false;
+    };
 
     const frag = document.createDocumentFragment();
 
@@ -3495,8 +3532,8 @@ function renderKpPath() {
     let rowIndex = 0; // zigzag counter — independent of DOM siblings
     KP_LEVELS.forEach((lvl) => {
         const lvNum      = lvl.lv;
-        const isClaimed  = state.claimed.includes(lvNum);
-        const isUnlocked = !isClaimed && kpCanClaim(lvNum);
+        const isClaimed  = claimedSet.has(lvNum);
+        const isUnlocked = !isClaimed && _canClaim(lvNum);
         const isFinal    = lvNum === 100;
         const cls        = isClaimed ? 'claimed' : (isUnlocked ? 'unlocked' : '');
         const isFirst    = !!tramoStart[lvNum];
@@ -3574,11 +3611,10 @@ function renderKpPath() {
 
     _kpUpdateHeader();
 
-    // Auto-scroll al nivel activo
+    // Auto-scroll al nivel activo (reuse already-read state, no extra localStorage)
     setTimeout(() => {
-        const st = getKpState();
-        const target = KP_LEVELS.find(l => !st.claimed.includes(l.lv) && kpCanClaim(l.lv))
-                    || KP_LEVELS.find(l => !st.claimed.includes(l.lv));
+        const target = KP_LEVELS.find(l => !claimedSet.has(l.lv) && _canClaim(l.lv))
+                    || KP_LEVELS.find(l => !claimedSet.has(l.lv));
         if (target) {
             const el = container.querySelector('[data-kp-card="' + target.lv + '"]');
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -3626,3 +3662,92 @@ _kpUpdateMenuBadge();
 
 
 setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); }, 500);
+
+// ══════════════════════════════════════════════════════════════════
+//  SERVICE WORKER — Auto-actualización silenciosa
+//  Registra sw.js. Cuando el SW detecta una nueva versión e instala
+//  el nuevo caché, envía el mensaje SW_UPDATED → el juego recarga
+//  automáticamente en un momento seguro (fuera de partida).
+// ══════════════════════════════════════════════════════════════════
+(function registerSW() {
+    if (!('serviceWorker' in navigator)) return;
+
+    let _swReloadPending = false;
+
+    // Muestra un banner no intrusivo y recarga tras un delay
+    function _applyUpdate() {
+        if (_swReloadPending) return;
+        _swReloadPending = true;
+
+        // Si hay una partida en curso, esperar a que termine
+        const _doReload = () => {
+            // "En partida" = hay vidas, se está respondiendo o hay preguntas cargadas
+            const inGame = typeof lives !== 'undefined' && lives > 0
+                        && typeof isAnsweringAllowed !== 'undefined'
+                        && document.getElementById('question-screen') !== null
+                        && document.getElementById('question-screen').classList.contains('active');
+            if (inGame) {
+                // Mostrar aviso discreto en pantalla de partida
+                if (!document.getElementById('sw-update-banner')) {
+                    const b = document.createElement('div');
+                    b.id = 'sw-update-banner';
+                    b.style.cssText = [
+                        'position:fixed;bottom:14px;left:50%;transform:translateX(-50%)',
+                        'background:rgba(0,0,0,0.82);color:#fff;font-size:0.72rem',
+                        'padding:8px 18px;border-radius:50px;z-index:9999',
+                        'border:1px solid rgba(255,255,255,0.15)',
+                        'backdrop-filter:blur(8px);pointer-events:none',
+                        'font-family:Inter,sans-serif;letter-spacing:0.5px'
+                    ].join(';');
+                    b.textContent = '⚡ Nueva versión disponible — se aplicará al terminar la partida';
+                    document.body.appendChild(b);
+                }
+                // Reintentar cada 4 segundos hasta salir de partida
+                setTimeout(_doReload, 4000);
+            } else {
+                window.location.reload();
+            }
+        };
+
+        _doReload();
+    }
+
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+        // Verificar actualizaciones periódicamente (cada 5 min)
+        setInterval(() => reg.update(), 5 * 60 * 1000);
+
+        // Si hay un worker esperando activarse desde antes de cargar la página
+        if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+
+        // Detectar cuando termina de instalar un nuevo SW
+        reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // Hay nueva versión instalada → indicar al SW que tome control ya
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                }
+            });
+        });
+    }).catch(() => {}); // silenciar errores en file:// o entornos sin HTTPS
+
+    // Escuchar el mensaje del SW cuando ya está activo y listo
+    navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data && event.data.type === 'SW_UPDATED') {
+            _applyUpdate();
+        }
+    });
+
+    // Recargar cuando el SW cambia de controlador (nuevo SW tomó control)
+    let _firstController = navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // Solo recargar si ya había un controlador previo (no la primera instalación)
+        if (_firstController) {
+            _applyUpdate();
+        }
+        _firstController = navigator.serviceWorker.controller;
+    });
+})();
