@@ -809,7 +809,7 @@ document.getElementById('op-particles').addEventListener('input', (e) => {
 // unlock_cfg8 ya integrado en checkAchievements vía flags musicAt100 + particles100
 document.getElementById('op-fps').addEventListener('input', (e) => { 
     playerStats.maxFps = FPS_VALUES[parseInt(e.target.value)]; 
-    fpsInterval = 1000/playerStats.maxFps; 
+    fpsInterval = 1000/playerStats.maxFps; _smoothDelta = fpsInterval; 
     document.getElementById('val-fps').innerText = playerStats.maxFps+' FPS'; 
     playerStats.fpsChanges = (playerStats.fpsChanges||0)+1;
     checkAchievements();
@@ -3146,7 +3146,10 @@ function endGame() {
 const canvas = document.getElementById('particle-canvas'); 
 const ctx = canvas.getContext('2d', { alpha: true }); 
 let particlesArray = [];
-let fpsInterval = 1000 / playerStats.maxFps; let then = performance.now();
+let fpsInterval = 1000 / playerStats.maxFps;
+let then = performance.now();
+let _smoothDelta = fpsInterval; // EMA del delta real para suavizar jitter
+const _EMA_K = 0.12;           // factor de suavizado (menor = más suave)
 
 function initParticles() { 
     canvas.width = window.innerWidth; canvas.height = window.innerHeight; particlesArray = []; 
@@ -3241,28 +3244,33 @@ function connectParticles(pulse) {
     }
 }
 
-function animateParticles(now) { 
-    requestAnimationFrame(animateParticles); 
-    const elapsed = now - then; 
-    if (elapsed > fpsInterval) { 
-        // Subtract remainder to keep drift-free timing (no debt accumulation)
-        then = now - (elapsed % fpsInterval);
-        // Hard clamp to 1 frame worth of movement max — prevents burst after tab focus/throttle
-        // Using 1.0 instead of 2.5 makes particles never "jump" forward
-        const timeScale = Math.min(elapsed / fpsInterval, 1.0);
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // If opacity is 0, don't draw anything
-        if (!playerStats || playerStats.particleOpacity <= 0) return;
-        
-        // Update per-frame cached values once (avoid repeated DOM query)
-        _pIsLight = document.body.classList.contains('light-mode');
-        _pRgb = _pIsLight ? darkenRgb(currentRankInfo.rgb, 0.55) : currentRankInfo.rgb;
-        const pulse = audioAnalyser ? getAudioPulse() : 0; 
-        updateAndDrawParticles(timeScale, pulse);
-        connectParticles(pulse); 
-    } 
+function animateParticles(now) {
+    requestAnimationFrame(animateParticles);
+    const raw = now - then;
+    // Solo actuar cuando ha pasado al menos un intervalo de frame
+    if (raw < fpsInterval) return;
+
+    // Avanzar then eliminando deuda acumulada (evita burst tras throttle)
+    then = now - (raw % fpsInterval);
+
+    // Delta suavizado con EMA para absorber jitter frame-a-frame.
+    // Se clampea a [fpsInterval * 0.5, fpsInterval * 1.5] antes del EMA
+    // para que un frame muy largo no contamine los siguientes.
+    const clamped = Math.max(fpsInterval * 0.5, Math.min(raw, fpsInterval * 1.5));
+    _smoothDelta = _smoothDelta + _EMA_K * (clamped - _smoothDelta);
+
+    // timeScale normalizado al intervalo objetivo (debería oscilar cerca de 1.0)
+    const timeScale = _smoothDelta / fpsInterval;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!playerStats || playerStats.particleOpacity <= 0) return;
+
+    _pIsLight = document.body.classList.contains('light-mode');
+    _pRgb = _pIsLight ? darkenRgb(currentRankInfo.rgb, 0.55) : currentRankInfo.rgb;
+    // No leer el analyser si el audio está suspendido (pestaña oculta)
+    const pulse = (audioAnalyser && audioCtx && audioCtx.state === 'running') ? getAudioPulse() : 0;
+    updateAndDrawParticles(timeScale, pulse);
+    connectParticles(pulse);
 }
 
 // Debounced resize to avoid thrashing on window resize
@@ -3274,7 +3282,10 @@ initParticles(); requestAnimationFrame(animateParticles);
 // También restaura el audio si estaba silenciado por pérdida de foco
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
+        // Resetear timer Y el EMA al volver — evita que el primer frame
+        // tras pausa pese demasiado en el promedio suavizado
         then = performance.now();
+        _smoothDelta = fpsInterval;
         _unmuteByFocus(); // seguro llamarlo múltiples veces (es idempotente)
     }
 });
@@ -3852,90 +3863,102 @@ _kpUpdateMenuBadge();
 setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); }, 500);
 
 // ══════════════════════════════════════════════════════════════════
-//  SERVICE WORKER — Auto-actualización silenciosa
-//  Registra sw.js. Cuando el SW detecta una nueva versión e instala
-//  el nuevo caché, envía el mensaje SW_UPDATED → el juego recarga
-//  automáticamente en un momento seguro (fuera de partida).
+//  SERVICE WORKER — Auto-actualización con notificación visible
 // ══════════════════════════════════════════════════════════════════
 (function registerSW() {
     if (!('serviceWorker' in navigator)) return;
 
-    let _swReloadPending = false;
-
-    // Muestra un banner no intrusivo y recarga tras un delay
-    function _applyUpdate() {
-        if (_swReloadPending) return;
-        _swReloadPending = true;
-
-        // Si hay una partida en curso, esperar a que termine
-        const _doReload = () => {
-            // "En partida" = hay vidas, se está respondiendo o hay preguntas cargadas
-            const inGame = typeof lives !== 'undefined' && lives > 0
-                        && typeof isAnsweringAllowed !== 'undefined'
-                        && document.getElementById('question-screen') !== null
-                        && document.getElementById('question-screen').classList.contains('active');
-            if (inGame) {
-                // Mostrar aviso discreto en pantalla de partida
-                if (!document.getElementById('sw-update-banner')) {
-                    const b = document.createElement('div');
-                    b.id = 'sw-update-banner';
-                    b.style.cssText = [
-                        'position:fixed;bottom:14px;left:50%;transform:translateX(-50%)',
-                        'background:rgba(0,0,0,0.82);color:#fff;font-size:0.72rem',
-                        'padding:8px 18px;border-radius:50px;z-index:9999',
-                        'border:1px solid rgba(255,255,255,0.15)',
-                        'backdrop-filter:blur(8px);pointer-events:none',
-                        'font-family:Inter,sans-serif;letter-spacing:0.5px'
-                    ].join(';');
-                    b.textContent = '⚡ Nueva versión disponible — se aplicará al terminar la partida';
-                    document.body.appendChild(b);
-                }
-                // Reintentar cada 4 segundos hasta salir de partida
-                setTimeout(_doReload, 4000);
-            } else {
-                window.location.reload();
-            }
-        };
-
-        _doReload();
+    // ── Banner de actualización ───────────────────────────────────
+    // Se muestra siempre que hay una nueva versión, sin importar
+    // si el usuario está en partida o no. No desaparece solo.
+    function _showUpdateBanner() {
+        if (document.getElementById('sw-update-banner')) return;
+        const b = document.createElement('div');
+        b.id = 'sw-update-banner';
+        Object.assign(b.style, {
+            position: 'fixed',
+            bottom: '18px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(10,10,15,0.92)',
+            color: '#fff',
+            fontSize: '0.78rem',
+            padding: '10px 22px',
+            borderRadius: '50px',
+            zIndex: '99999',
+            border: '1px solid rgba(255,255,255,0.18)',
+            backdropFilter: 'blur(12px)',
+            fontFamily: 'Inter,sans-serif',
+            letterSpacing: '0.4px',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+            cursor: 'pointer',
+            userSelect: 'none',
+            whiteSpace: 'nowrap',
+        });
+        b.innerHTML = 'Nueva versión disponible &nbsp;<strong>— toca para actualizar</strong>';
+        b.addEventListener('click', () => window.location.reload());
+        document.body.appendChild(b);
+        // Auto-recarga si el usuario está en el menú (no en partida)
+        _scheduleAutoReload();
     }
 
-    navigator.serviceWorker.register('./sw.js').then(reg => {
-        // Verificar actualizaciones periódicamente (cada 5 min)
-        setInterval(() => reg.update(), 5 * 60 * 1000);
+    // Recarga automática si NO hay partida activa
+    function _scheduleAutoReload() {
+        const check = () => {
+            const qs = document.getElementById('question-screen');
+            const inGame = qs && qs.classList.contains('active')
+                        && typeof lives !== 'undefined' && lives > 0;
+            if (!inGame) {
+                window.location.reload();
+            } else {
+                // En partida: reintentar cada 5 s
+                setTimeout(check, 5000);
+            }
+        };
+        // Esperar 800 ms para no interrumpir animaciones de carga
+        setTimeout(check, 800);
+    }
 
-        // Si hay un worker esperando activarse desde antes de cargar la página
+    // ── Registro y detección de actualizaciones ───────────────────
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+
+        // Caso A: Ya hay un SW nuevo esperando (p.ej. recarga manual
+        // después de que el SW instaló pero no activó)
         if (reg.waiting) {
             reg.waiting.postMessage({ type: 'SKIP_WAITING' });
         }
 
-        // Detectar cuando termina de instalar un nuevo SW
+        // Caso B: El SW nuevo termina de instalarse mientras la página
+        // está abierta → pedirle que tome control ya
         reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing;
-            if (!newWorker) return;
-            newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // Hay nueva versión instalada → indicar al SW que tome control ya
-                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+            const incoming = reg.installing;
+            if (!incoming) return;
+            incoming.addEventListener('statechange', () => {
+                if (incoming.state === 'installed' && navigator.serviceWorker.controller) {
+                    // Hay un SW nuevo instalado y un SW viejo aún controlando
+                    // → activar el nuevo inmediatamente
+                    incoming.postMessage({ type: 'SKIP_WAITING' });
                 }
             });
         });
-    }).catch(() => {}); // silenciar errores en file:// o entornos sin HTTPS
 
-    // Escuchar el mensaje del SW cuando ya está activo y listo
+        // Verificar actualizaciones cada 3 minutos (por si el usuario
+        // deja el juego abierto mucho tiempo sin recargar)
+        setInterval(() => reg.update(), 3 * 60 * 1000);
+
+    }).catch(() => {}); // silencioso en file:// o sin HTTPS
+
+    // Caso C: El SW cambió de controlador (activate corrió y claim() hizo
+    // efecto) → esta es la señal más fiable de que hay nueva versión activa
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        _showUpdateBanner();
+    });
+
+    // Caso D: El SW envía SW_UPDATED desde activate (doble seguro)
     navigator.serviceWorker.addEventListener('message', event => {
         if (event.data && event.data.type === 'SW_UPDATED') {
-            _applyUpdate();
+            _showUpdateBanner();
         }
     });
 
-    // Recargar cuando el SW cambia de controlador (nuevo SW tomó control)
-    let _firstController = navigator.serviceWorker.controller;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // Solo recargar si ya había un controlador previo (no la primera instalación)
-        if (_firstController) {
-            _applyUpdate();
-        }
-        _firstController = navigator.serviceWorker.controller;
-    });
 })();
