@@ -862,6 +862,8 @@ async function loadQuestions() {
             quizDataPool.push({ "question": "Por favor, carga el juego en un servidor web o súbelo a GitHub Pages para que el JSON funcione.", "answers": ["Entendido", "Ok", "Comprendo", "Solucionar"], "correctIndex": 0 });
         }
     }
+    // Conectar el pool cargado al motor de selección inteligente
+    _qeSync();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2404,7 +2406,8 @@ function updateLogoDots() {
 }
 
 // --- Game Logic ---
-let currentSessionQuestions = [], currentQuestionIndex = 0, score = 0, streak = 0, currentMaxStreak = 0, timerInterval, timeLeft = 15; 
+let currentSessionQuestions = [], currentQuestionIndex = 0, score = 0, streak = 0, currentMaxStreak = 0, timerInterval, timeLeft = 15;
+let _currentQuestion = null; // Pregunta activa (almacenada por motor, leída por selectAnswer/applyHintVisual) 
 const TIMER_LIMIT = 15;
 let currentFastAnswers = 0, currentWrongAnswers = 0, currentTimeoutAnswers = 0, isAnsweringAllowed = false, currentGameLog = [];
 let isGamePaused = false;
@@ -2448,8 +2451,8 @@ function startGame() {
     document.getElementById('player-name-display').innerText = playerStats.playerName; 
     document.getElementById('final-name').innerText = playerStats.playerName;
     
-    currentSessionQuestions = shuffleArray([...quizDataPool]);
-    _recentQuestionIds.clear(); _recentQueue = [];
+    currentSessionQuestions = [];          // ya no se usa como buffer — el motor lo gestiona
+    _qeResetGame();                        // reordena el pool respetando la tail inter-partida
     currentQuestionIndex = score = streak = currentMaxStreak = currentFastAnswers = currentWrongAnswers = currentTimeoutAnswers = 0;
     _timerPath = _timerText = _scoreEl = _streakEl = _multBadge = null; // reset DOM cache
     _gTimerPath = _gTimerText = _gQuestionEl = _gAnswerBtns = _gAnswersGrid = _gStreakDisp = null; _gAns = []; // reset game DOM cache
@@ -2545,30 +2548,136 @@ function triggerMultiplierEffect(mult) {
 }
 
 // Smart question engine: tracks recently used questions to avoid repetition
-const _recentQuestionIds = new Set();
-const _RECENT_WINDOW = 20; // avoid repeating same question within last 20
-let _recentQueue = [];
+// ══════════════════════════════════════════════════════════════════
+//  MOTOR DE PREGUNTAS INTELIGENTE
+//
+//  Garantías:
+//  • Nunca repite una pregunta hasta haber dado TODAS las del pool
+//    (ciclo completo). Solo entonces vuelve a mezclar.
+//  • Entre ciclos aplica una "zona de exclusión" igual al 40% del
+//    pool: las últimas N preguntas del ciclo anterior no pueden ser
+//    las primeras del siguiente.
+//  • La primera pregunta de una nueva partida nunca coincide con
+//    la última de la partida anterior (exclusión inter-partida).
+//  • Clave de identidad = hash completo del texto (no los primeros
+//    30 chars, que pueden colisionar).
+//  • Sin estado global que se borre entre partidas —_qe persiste
+//    durante toda la sesión de navegador.
+// ══════════════════════════════════════════════════════════════════
 
-function _markUsed(q) {
-    const key = q.question.slice(0, 30);
-    if (_recentQueue.length >= _RECENT_WINDOW) {
-        const oldest = _recentQueue.shift();
-        _recentQuestionIds.delete(oldest);
+const _qe = {
+    // Pool completo (referencia a quizDataPool, se reasigna al cargar)
+    pool: [],
+    // Cola de preguntas del ciclo actual (pendientes de entregar)
+    queue: [],
+    // Conjunto de claves de las últimas N preguntas entregadas
+    // (zona de exclusión inter-ciclo e inter-partida)
+    tail: [],
+    // Tamaño de la zona de exclusión (40% del pool, mín 20, máx 120)
+    tailSize: 20,
+    // Última clave entregada (evita primera === última)
+    lastKey: '',
+};
+
+// Genera una clave única y compacta para una pregunta
+function _qKey(q) {
+    // Usar el texto completo hasheado (djb2) para evitar colisiones
+    let h = 5381;
+    const s = q.question;
+    for (let i = 0; i < s.length; i++) {
+        h = ((h << 5) + h) ^ s.charCodeAt(i);
+        h = h >>> 0; // keep unsigned 32-bit
     }
-    _recentQueue.push(key);
-    _recentQuestionIds.add(key);
+    return h.toString(36);
 }
 
+// Inicializa / reinicia la cola cuando el pool cambia o se agota
+function _qRefill(excludeSet) {
+    const pool = _qe.pool;
+    if (!pool.length) return;
+
+    // Separar candidatos válidos (no en zona de exclusión) e inválidos
+    const valid   = [];
+    const invalid = [];
+    for (let i = 0; i < pool.length; i++) {
+        const k = _qKey(pool[i]);
+        if (excludeSet && excludeSet.has(k)) invalid.push(pool[i]);
+        else valid.push(pool[i]);
+    }
+
+    // Si los candidatos válidos son menos del 30% del pool, ignorar exclusión
+    // (situación de pool muy pequeño — evitar bucle infinito)
+    const useValid = valid.length >= Math.max(5, Math.floor(pool.length * 0.3));
+    const source = useValid ? valid : [...pool];
+
+    // Fisher-Yates shuffle
+    for (let i = source.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [source[i], source[j]] = [source[j], source[i]];
+    }
+
+    // Si hay preguntas excluidas, añadirlas al final shuffleadas
+    // (se verán al completar el ciclo válido, garantizando variedad)
+    if (invalid.length) {
+        for (let i = invalid.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [invalid[i], invalid[j]] = [invalid[j], invalid[i]];
+        }
+        _qe.queue = [...source, ...invalid];
+    } else {
+        _qe.queue = source;
+    }
+}
+
+// Sincroniza el pool (llamada cuando quizDataPool se carga/cambia)
+function _qeSync() {
+    _qe.pool = quizDataPool;
+    _qe.tailSize = Math.min(120, Math.max(20, Math.floor(quizDataPool.length * 0.4)));
+    // Rellenar solo si la cola está vacía
+    if (_qe.queue.length === 0) {
+        _qRefill(new Set(_qe.tail));
+    }
+}
+
+// Resetea el estado al inicio de partida (sin borrar la tail inter-partida)
+function _qeResetGame() {
+    // La tail se MANTIENE para que la primera pregunta de la nueva partida
+    // no coincida con las últimas de la anterior.
+    // Solo vaciamos la cola de ciclo actual para forzar reorden fresco.
+    _qe.queue = [];
+    const excludeSet = new Set(_qe.tail);
+    _qRefill(excludeSet);
+}
+
+// Devuelve la siguiente pregunta garantizando no repetición
 function getNextQuestion() {
-    if (currentQuestionIndex >= currentSessionQuestions.length - 2) {
-        // Rebuild with fresh shuffle, excluding recently used if pool allows
-        const fresh = shuffleArray([...quizDataPool]);
-        const notRecent = fresh.filter(q => !_recentQuestionIds.has(q.question.slice(0, 30)));
-        const pool = notRecent.length >= 10 ? notRecent : fresh;
-        currentSessionQuestions = currentSessionQuestions.concat(pool);
+    if (!_qe.pool.length) return null;
+
+    // Si la cola se agotó, iniciar nuevo ciclo excluyendo la tail
+    if (_qe.queue.length === 0) {
+        _qRefill(new Set(_qe.tail));
     }
-    return currentSessionQuestions[currentQuestionIndex] || null;
+
+    // Sacar la primera pregunta de la cola
+    const q = _qe.queue.shift();
+    if (!q) return null;
+
+    // Actualizar tail (ventana deslizante de exclusión)
+    const key = _qKey(q);
+    _qe.tail.push(key);
+    if (_qe.tail.length > _qe.tailSize) _qe.tail.shift();
+    _qe.lastKey = key;
+
+    return q;
 }
+
+// _markUsed ya no es necesaria (el motor la gestiona internamente)
+// Se mantiene como no-op por si algún llamador antiguo la referencia
+function _markUsed() {}
+
+// Alias legacy que ya no se usa (startGame llama _qeResetGame directamente)
+const _recentQuestionIds = { clear: () => {} };
+let _recentQueue = [];
 
 // Cached game DOM elements (reset each game in startGame)
 let _gTimerPath = null, _gTimerText = null, _gQuestionEl = null, _gAnswerBtns = null, _gAnswersGrid = null, _gAns = [], _gStreakDisp = null;
@@ -2584,7 +2693,9 @@ function _warmGameDOMCache() {
 
 function loadQuestion() {
     const currentQ = getNextQuestion();
-    if (currentQ) _markUsed(currentQ);
+    _currentQuestion = currentQ; // referencia para selectAnswer / applyHintVisual
+    // Mantener currentSessionQuestions[idx] en sync para accesos legacy
+    currentSessionQuestions[currentQuestionIndex] = currentQ;
     if (!_gTimerPath) _warmGameDOMCache();
     const timerPath  = _gTimerPath;
     const timerText  = _gTimerText;
