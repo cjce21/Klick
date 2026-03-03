@@ -11,7 +11,7 @@
     <!-- Estilos -->
     <link rel="stylesheet" href="styles.css">
 
-    <!-- Anti-flash: DEBE estar en head, sin defer, para evitar parpadeo de color de rango -->
+    <!-- Anti-flash: DEBE ir en <head> para aplicar color de rango antes del primer render -->
     <script src="anti-flash.js"></script>
 </head>
 <body ondragstart="return false;" ondrop="return false;">
@@ -684,7 +684,7 @@
 
 </div>
 
-    <!-- Script principal: al final del body para acceder al DOM completo -->
+    <!-- Lógica principal: al final del body para acceder al DOM completo -->
     <script src="script.js"></script>
 </body>
 </html>
