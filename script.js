@@ -10,20 +10,93 @@ document.addEventListener('keydown', e => {
     }
 });
 
+// ── Gestión de foco / visibilidad ───────────────────────────────────────
+// Cuando el usuario sale del juego (otra pestaña, minimizar, superposición,
+// etc.) la música se silencia de inmediato. Al volver, se reactiva.
+// El anti-trampas sigue funcionando igual dentro de este bloque.
+
 let _cheaterCooldown = false;
+
+// Estado de silencio por pérdida de foco (independiente del vol del usuario)
+let _audioPausedByFocus = false;
+
+function _muteByFocus() {
+    if (_audioPausedByFocus) return;
+    _audioPausedByFocus = true;
+    if (audioCtx && masterMusicGain) {
+        // Fade rápido a 0 (20 ms) y luego suspender el contexto
+        const t = audioCtx.currentTime;
+        masterMusicGain.gain.cancelScheduledValues(t);
+        masterMusicGain.gain.setValueAtTime(masterMusicGain.gain.value, t);
+        masterMusicGain.gain.linearRampToValueAtTime(0.0001, t + 0.08);
+        setTimeout(() => {
+            // Suspender solo si aún sigue en segundo plano
+            if (_audioPausedByFocus && audioCtx && audioCtx.state === 'running') {
+                audioCtx.suspend();
+            }
+        }, 100);
+    }
+}
+
+function _unmuteByFocus() {
+    if (!_audioPausedByFocus) return;
+    _audioPausedByFocus = false;
+    if (audioCtx) {
+        // Reanudar contexto suspendido y restaurar volumen con fade suave
+        const doFade = () => {
+            if (!masterMusicGain) return;
+            const t = audioCtx.currentTime;
+            const targetVol = playerStats.musicVol * 0.8;
+            masterMusicGain.gain.cancelScheduledValues(t);
+            masterMusicGain.gain.setValueAtTime(0.0001, t);
+            masterMusicGain.gain.linearRampToValueAtTime(targetVol, t + 0.35);
+        };
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume().then(doFade).catch(() => {});
+        } else {
+            doFade();
+        }
+    }
+}
+
+// visibilitychange: cubre cambio de pestaña, minimizar ventana, bloqueo de pantalla
 document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === 'hidden' && isAnsweringAllowed && !isGamePaused) {
-        if (_cheaterCooldown) return; _cheaterCooldown = true;
-        setTimeout(() => { _cheaterCooldown = false; }, 3000);
-        punishCheater();
+    if (document.visibilityState === 'hidden') {
+        _muteByFocus();
+        // Anti-trampas: solo actúa si hay partida activa
+        if (isAnsweringAllowed && !isGamePaused) {
+            if (_cheaterCooldown) return; _cheaterCooldown = true;
+            setTimeout(() => { _cheaterCooldown = false; }, 3000);
+            punishCheater();
+        }
+    } else {
+        // Visible de nuevo → restaurar audio
+        _unmuteByFocus();
     }
 });
+
+// blur: cubre superposición de otra ventana, diálogos del sistema, cambio de app
+// (no dispara en móvil al bajar el teclado virtual — eso lo cubre visibilitychange)
 window.addEventListener("blur", () => {
+    _muteByFocus();
     if (isAnsweringAllowed && !isGamePaused) {
         if (_cheaterCooldown) return; _cheaterCooldown = true;
         setTimeout(() => { _cheaterCooldown = false; }, 3000);
         punishCheater();
     }
+});
+
+// focus: la ventana recupera el foco → restaurar audio
+window.addEventListener("focus", () => {
+    // Solo si la pestaña también es visible (evita restaurar con pestaña oculta)
+    if (document.visibilityState === 'visible') {
+        _unmuteByFocus();
+    }
+});
+
+// pagehide: navegación fuera de la página (iOS Safari no emite blur fiablemente)
+window.addEventListener("pagehide", () => {
+    _muteByFocus();
 });
 
 function punishCheater() {
@@ -3198,9 +3271,11 @@ window.addEventListener('resize', () => { clearTimeout(_resizeTimer); _resizeTim
 initParticles(); requestAnimationFrame(animateParticles);
 
 // Reset particle timer when tab becomes visible to prevent accumulated frame debt causing speed burst
+// También restaura el audio si estaba silenciado por pérdida de foco
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
         then = performance.now();
+        _unmuteByFocus(); // seguro llamarlo múltiples veces (es idempotente)
     }
 });
 
@@ -3310,6 +3385,8 @@ function _iosAudioUnlock() {
         if (!audioCtx) initAudio();
         if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
     } catch(e) {}
+    // Si el audio estaba silenciado por pérdida de foco, restaurarlo al tocar
+    _audioPausedByFocus = false;
     document.removeEventListener('touchstart', _iosAudioUnlock);
     document.removeEventListener('mousedown', _iosAudioUnlock);
 }
