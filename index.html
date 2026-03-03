@@ -1211,6 +1211,292 @@
             animation: rl-particle-fly 0.9s ease-out forwards;
         }
 
+        /* ══════════════════════════ KLICK PASS STYLES ══════════════════════════ */
+
+        /* ── Botón menú principal ────────────────────────────────────── */
+        .btn-kpass {
+            width: 100%; padding: clamp(14px,2.5vh,18px);
+            font-size: 1rem; font-weight: 800; letter-spacing: 1.5px;
+            border-radius: var(--radius-md); cursor: pointer;
+            transition: all 0.3s ease-out;
+            display: flex; justify-content: center; align-items: center;
+            text-transform: uppercase; gap: 10px; position: relative;
+            color: rgba(255,255,255,0.75); background-color: transparent;
+            border: 1.5px solid rgba(255,255,255,0.3);
+        }
+        .btn-kpass:hover {
+            color: #fff; border-color: rgba(255,255,255,0.7);
+            background-color: rgba(255,255,255,0.06); transform: translateY(-2px);
+        }
+        .btn-kpass:active { transform: scale(0.96); }
+        .kpass-menu-badge {
+            position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+            background: rgba(255,255,255,0.15); color: var(--text-primary);
+            border: 1px solid rgba(255,255,255,0.3);
+            font-size: 0.6rem; font-weight: 900; border-radius: 50px;
+            padding: 3px 9px; letter-spacing: 1px;
+        }
+        body.light-mode .btn-kpass { color: #4a5568; border-color: rgba(0,0,0,0.25); background: transparent; }
+        body.light-mode .btn-kpass:hover { color: #0d1117; border-color: rgba(0,0,0,0.6); background-color: rgba(0,0,0,0.05); }
+        body.light-mode .kpass-menu-badge { background: rgba(0,0,0,0.07); border-color: rgba(0,0,0,0.2); color: #0d1117; }
+
+        /* ── Header ─────────────────────────────────────────────────── */
+        .kp-header {
+            flex-shrink: 0;
+            padding: 20px 20px 18px;
+            border-bottom: 1px solid var(--bg-elevated);
+            display: grid;
+            grid-template-columns: 1fr auto;
+            grid-template-rows: auto auto auto;
+            column-gap: 16px;
+            row-gap: 10px;
+            align-items: center;
+        }
+        .kp-cycle-label {
+            grid-column: 1; grid-row: 1;
+            font-size: 0.56rem; font-weight: 800; letter-spacing: 3px;
+            color: var(--text-secondary); text-transform: uppercase;
+        }
+        .kp-progress-summary {
+            grid-column: 1; grid-row: 2;
+            display: flex; align-items: baseline; gap: 8px;
+        }
+        .kp-progress-count {
+            font-size: 2.2rem; font-weight: 900; color: var(--text-primary);
+            line-height: 1; font-variant-numeric: tabular-nums;
+        }
+        .kp-progress-label { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); }
+        .kp-reward-total {
+            grid-column: 2; grid-row: 1 / 3;
+            text-align: right;
+            font-size: 0.72rem; font-weight: 700; color: var(--text-secondary);
+            line-height: 1.5;
+            align-self: center;
+        }
+        .kp-total-bar-wrap {
+            grid-column: 1 / -1; grid-row: 3;
+            height: 3px; background: var(--bg-elevated);
+            border-radius: 10px; overflow: hidden;
+        }
+        .kp-total-bar-fill {
+            height: 100%; width: 0%; border-radius: 10px;
+            background: var(--text-primary); transition: width 0.9s var(--ease-out);
+        }
+        body.light-mode .kp-header         { border-bottom-color: var(--bg-elevated); }
+        body.light-mode .kp-total-bar-fill  { background: #0d1117; }
+
+        /* ── Scroll ─────────────────────────────────────────────────── */
+        .kp-scroll { padding: 0 !important; }
+
+        .kp-path-container {
+            width: 100%; max-width: 660px;
+            margin: 0 auto;
+            display: flex; flex-direction: column;
+            padding: 4px 24px 80px;
+            position: relative;
+        }
+        /* Línea vertical central continua */
+        .kp-path-container::before {
+            content: ''; position: absolute;
+            left: 50%; top: 28px; bottom: 60px;
+            width: 1px; transform: translateX(-50%);
+            background: var(--bg-elevated);
+            z-index: 0;
+        }
+
+        /* ── Separadores de tramo ───────────────────────────────────── */
+        .kp-tramo-sep {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 2px; padding: 22px 0 10px;
+            position: relative; z-index: 2;
+        }
+        .kp-tramo-name {
+            font-size: 0.72rem; font-weight: 900; letter-spacing: 3px;
+            text-transform: uppercase; color: var(--text-secondary);
+        }
+        .kp-tramo-desc {
+            font-size: 0.68rem; font-weight: 400;
+            color: var(--text-secondary); opacity: 0.4;
+        }
+
+        /* ── Fila de nivel — zigzag ─────────────────────────────────── */
+        /* Layout: card | nodo | card (card vacía en el lado inactivo)   */
+        .kp-level-row {
+            display: flex; align-items: center;
+            gap: 18px; padding: 7px 0;
+            position: relative; z-index: 1;
+        }
+        /* Filas impares: card izquierda, nodo centro, vacío derecha     */
+        /* Filas pares:  vacío izquierda, nodo centro, card derecha      */
+        /* Zigzag: even rows are flipped via JS data-attr, not nth-child (separators break nth) */
+        .kp-level-row[data-side="right"] { flex-direction: row-reverse; }
+        .kp-level-row[data-side="right"] .kp-card { text-align: right; }
+        .kp-level-row[data-side="right"] .kp-card-bottom { justify-content: flex-end; }
+
+        /* Espaciador invisible para el lado sin card */
+        .kp-row-spacer { flex: 1; }
+
+        /* ── Nodo ───────────────────────────────────────────────────── */
+        .kp-node {
+            width: 68px; height: 68px;
+            margin: 10px 0;
+            align-self: flex-start;
+            border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column;
+            position: relative; z-index: 1;
+            border: 1.5px solid var(--bg-elevated);
+            background: var(--bg-surface);
+            transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+        }
+        .kp-node-num {
+            font-size: 1.1rem; font-weight: 900; font-family: monospace;
+            color: var(--text-secondary); line-height: 1;
+            transition: color 0.3s;
+        }
+        .kp-node-sub {
+            font-size: 0.54rem; font-weight: 700; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--text-secondary);
+            opacity: 0.4; margin-top: 2px;
+        }
+        .kp-node.unlocked {
+            border-color: rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.07);
+            box-shadow: 0 0 0 4px rgba(255,255,255,0.04);
+        }
+        .kp-node.unlocked .kp-node-num { color: var(--text-primary); }
+        .kp-node.unlocked .kp-node-sub { opacity: 0.8; color: var(--text-primary); }
+        .kp-node.claimed  {
+            border-color: rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.06);
+        }
+        .kp-node.final-node { width: 76px; height: 76px; margin: 8px 0; }
+        .kp-node.final-node.unlocked {
+            border-color: rgba(255,255,255,0.65);
+            background: rgba(255,255,255,0.09);
+            box-shadow: 0 0 0 5px rgba(255,255,255,0.05), 0 0 20px rgba(255,255,255,0.08);
+            animation: kp-final-breathe 2.5s ease-in-out infinite;
+        }
+        .kp-node.final-node.claimed {
+            border-color: rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+        }
+        @keyframes kp-final-breathe {
+            0%,100% { box-shadow: 0 0 0 4px rgba(255,255,255,0.04), 0 0 12px rgba(255,255,255,0.06); }
+            50%      { box-shadow: 0 0 0 8px rgba(255,255,255,0.07), 0 0 24px rgba(255,255,255,0.10); }
+        }
+        .kp-node-check {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .kp-node-check svg { width: 24px; height: 24px; color: var(--text-secondary); opacity: 0.55; }
+
+        /* ── Tarjeta ────────────────────────────────────────────────── */
+        .kp-card {
+            flex: 1;
+            margin: 8px 0;
+            padding: 20px 22px 18px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            background: transparent;
+            transition: border-color 0.3s, background 0.3s, opacity 0.3s;
+            display: flex; flex-direction: column; gap: 5px;
+        }
+        .kp-row-spacer { flex: 1; }
+        .kp-card.unlocked {
+            border-color: rgba(255,255,255,0.16);
+            background: rgba(255,255,255,0.03);
+        }
+        .kp-card.claimed { opacity: 0.38; }
+        .kp-card.final-card { padding: 18px 20px 16px; border-radius: 14px; }
+        .kp-card.final-card.unlocked {
+            border-color: rgba(255,255,255,0.28);
+            background: rgba(255,255,255,0.04);
+        }
+
+        /* Etiqueta de estado */
+        .kp-card-level {
+            font-size: 0.68rem; font-weight: 800; letter-spacing: 2px;
+            text-transform: uppercase; color: var(--text-secondary); opacity: 0.6;
+        }
+        .kp-card.unlocked .kp-card-level { color: var(--text-primary); opacity: 0.55; }
+
+        /* Título del nivel — grande y legible */
+        .kp-card-title {
+            font-size: 1.2rem; font-weight: 800; line-height: 1.3;
+            color: var(--text-primary); letter-spacing: 0.1px;
+        }
+        .kp-card.claimed .kp-card-title  { color: var(--text-secondary); }
+
+        /* Texto de misión — cuerpo de texto real */
+        .kp-card-mission {
+            font-size: 0.96rem; font-weight: 400; line-height: 1.6;
+            color: var(--text-secondary);
+        }
+        .kp-card.unlocked .kp-card-mission { color: var(--text-primary); opacity: 0.7; }
+
+        /* Fila inferior: reward + botón + dot */
+        .kp-card-bottom {
+            display: flex; align-items: center; gap: 8px;
+            margin-top: 6px; flex-wrap: wrap;
+        }
+        .kp-reward-pill {
+            font-size: 0.84rem; font-weight: 800; letter-spacing: 0.3px;
+            padding: 5px 16px; border-radius: 50px;
+            background: var(--bg-elevated); border: 1px solid transparent;
+            color: var(--text-secondary); font-family: monospace;
+            transition: all 0.25s;
+        }
+        .kp-card.unlocked .kp-reward-pill {
+            background: rgba(255,255,255,0.09);
+            color: var(--text-primary);
+            border-color: rgba(255,255,255,0.15);
+        }
+        .kp-card.claimed .kp-reward-pill { text-decoration: line-through; opacity: 0.4; }
+
+        /* Botón RECLAMAR — dentro de la card, no flotando */
+        .kp-claim-btn {
+            font-size: 0.74rem; font-weight: 900; letter-spacing: 1.5px;
+            text-transform: uppercase; padding: 7px 20px;
+            border-radius: 50px; cursor: pointer;
+            background: var(--text-primary); color: var(--bg-base);
+            border: none; white-space: nowrap;
+            transition: opacity 0.2s, transform 0.15s;
+            flex-shrink: 0;
+        }
+        .kp-claim-btn:hover  { opacity: 0.82; transform: translateY(-1px); }
+        .kp-claim-btn:active { transform: scale(0.95); }
+
+        /* Punto parpadeante de disponibilidad */
+        .kp-status-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--text-primary); flex-shrink: 0;
+            animation: kp-dot-blink 1.8s ease-in-out infinite;
+        }
+        @keyframes kp-dot-blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+        /* ── Light mode ─────────────────────────────────────────────── */
+        body.light-mode .kp-node           { background: var(--bg-surface); border-color: var(--bg-elevated); }
+        body.light-mode .kp-node.unlocked  { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.3); box-shadow: 0 0 0 4px rgba(0,0,0,0.03); }
+        body.light-mode .kp-node.claimed   { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.1); }
+        body.light-mode .kp-claim-btn      { background: #0d1117; color: #fff; }
+        body.light-mode .kp-card.unlocked  { border-color: rgba(0,0,0,0.15); background: rgba(0,0,0,0.015); }
+        body.light-mode .kp-card.unlocked .kp-reward-pill { background: rgba(0,0,0,0.07); border-color: rgba(0,0,0,0.14); }
+        body.light-mode .kp-status-dot     { background: #0d1117; }
+        body.light-mode .kp-path-container::before { background: var(--bg-elevated); }
+        body.light-mode .kp-tramo-sep      { border-bottom-color: var(--bg-elevated); }
+
+        /* ── Responsive ─────────────────────────────────────────────── */
+        @media (max-width: 420px) {
+            .kp-path-container     { padding: 4px 8px 80px; }
+            .kp-node               { width: 60px; height: 60px; }
+            .kp-node.final-node    { width: 68px; height: 68px; }
+            .kp-card               { padding: 12px 12px 10px; }
+            .kp-card-title         { font-size: 1.1rem; }
+            .kp-card-mission       { font-size: 0.9rem; }
+        }
+        /* ════════════════════════════════════════════════════════════════════════ */
+
         @media (max-width: 850px) {
             .btn-back span, .nav-spacer { width: 60px; } .btn-back span { display: none; }
             .answers-grid { grid-template-columns: 1fr; grid-template-rows: repeat(4, 1fr); flex: 0 0 55vh; gap: 10px; padding: 10px; }
@@ -1275,6 +1561,10 @@
             <button class="btn-outline" onclick="goToProfile()" style="margin-top: 10px;">Mi Perfil</button>
             <button class="btn-outline" onclick="goToAchievements()">Banco de Logros</button>
             <button class="btn-outline" onclick="goToGuide()">Instrucciones</button>
+            <button class="btn-kpass" onclick="goToKlickPass()">
+                Klick Pass
+                <span class="kpass-menu-badge" id="kpass-menu-badge" style="display:none;"></span>
+            </button>
         </div>
     </div>
 
@@ -1865,6 +2155,39 @@
             </div>
         </div>
     </div>
+    <!-- ══════════════════════════════════════════════════════ KLICK PASS ══ -->
+    <div id="klickpass-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                <span>Regresar</span>
+            </button>
+            <div class="nav-title">KLICK PASS</div>
+            <div class="nav-spacer"></div>
+        </div>
+
+        <!-- Header con progreso global -->
+        <div id="kp-header" class="kp-header">
+            <div class="kp-cycle-label">CAMINO DE PROGRESO</div>
+            <div class="kp-progress-summary">
+                <span class="kp-progress-count" id="kp-progress-count">0 / 100</span>
+                <span class="kp-progress-label">niveles completados</span>
+            </div>
+            <div class="kp-total-bar-wrap">
+                <div class="kp-total-bar-fill" id="kp-total-bar-fill"></div>
+            </div>
+            <div class="kp-reward-total" id="kp-reward-total">0 ℙ reclamados</div>
+        </div>
+
+        <!-- Scroll con el camino de niveles -->
+        <div class="content-scroll no-scrollbar kp-scroll" id="kp-scroll">
+            <div class="kp-path-container" id="kp-path-container">
+                <!-- Se genera dinámicamente con JS -->
+            </div>
+        </div>
+    </div>
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
     <!-- SISTEMA DE RECOMPENSAS -->
     <div id="roulette-overlay">
         <canvas id="roulette-particle-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;"></canvas>
@@ -2591,24 +2914,24 @@
         playerStats.musicVol = parseFloat(e.target.value); 
         document.getElementById('val-music').innerText = Math.round(playerStats.musicVol*100)+'%'; 
         updateVolumes(); 
-        if(playerStats.musicVol===0) { playerStats.musicSetTo0=true; checkAchievements(); }
-        if(playerStats.musicVol>=1.0) { playerStats.musicAt100=true; checkAchievements(); }
-        if(playerStats.musicVol>=1.0 && (playerStats.particleOpacity||1)>=1.0) { playerStats.particles100=true; checkAchievements(); }
-        saveStatsLocally(); 
+        if(playerStats.musicVol===0) playerStats.musicSetTo0=true;
+        if(playerStats.musicVol>=1.0) playerStats.musicAt100=true;
+        if(playerStats.musicVol>=1.0 && (playerStats.particleOpacity||1)>=1.0) playerStats.particles100=true;
+        saveStatsLocally(); _deferredCheckAch(); 
     });
     document.getElementById('op-sfx').addEventListener('input', (e) => { 
         playerStats.sfxVol = parseFloat(e.target.value); 
         document.getElementById('val-sfx').innerText = Math.round(playerStats.sfxVol*100)+'%'; 
         updateVolumes(); 
-        if(playerStats.sfxVol===0) { playerStats.sfxSetTo0=true; checkAchievements(); }
-        saveStatsLocally(); 
+        if(playerStats.sfxVol===0) playerStats.sfxSetTo0=true;
+        saveStatsLocally(); _deferredCheckAch(); 
     });
     document.getElementById('op-particles').addEventListener('input', (e) => { 
         playerStats.particleOpacity = parseFloat(e.target.value); 
         document.getElementById('val-particles').innerText = Math.round(playerStats.particleOpacity*100)+'%'; 
-        if(playerStats.particleOpacity===0) { playerStats.particles0=true; checkAchievements(); }
+        if(playerStats.particleOpacity===0) playerStats.particles0=true;
         if(playerStats.particleOpacity>=1.0) { playerStats.particles100=true; }
-        if(playerStats.musicVol>=1.0 && playerStats.particleOpacity>=1.0) { playerStats.musicAt100=true; playerStats.particles100=true; checkAchievements(); }
+        if(playerStats.musicVol>=1.0 && playerStats.particleOpacity>=1.0) { playerStats.musicAt100=true; playerStats.particles100=true; } _deferredCheckAch();
         saveStatsLocally(); 
     });
     // unlock_cfg8 ya integrado en checkAchievements vía flags musicAt100 + particles100
@@ -3071,6 +3394,11 @@
     let currentRankInfo = getRankInfo(playerStats);
 
     let _achCheckPending = false;
+    let _deferAchTimer = 0;
+    function _deferredCheckAch() {
+        clearTimeout(_deferAchTimer);
+        _deferAchTimer = setTimeout(checkAchievements, 800);
+    }
     function checkAchievements() {
         // Prevent re-entrant calls (e.g. unlock triggers another checkAchievements)
         if (_achCheckPending) return;
@@ -4248,17 +4576,19 @@
         document.getElementById('profile-warning').style.opacity = n ? '0' : '1';
     });
     
-    function updateLogoDots() { 
-        document.documentElement.style.setProperty('--rank-rgb', currentRankInfo.rgb); 
-        document.documentElement.style.setProperty('--rank-color', currentRankInfo.color); 
+    let _logoDotsCached = null;
+    function updateLogoDots() {
+        document.documentElement.style.setProperty('--rank-rgb', currentRankInfo.rgb);
+        document.documentElement.style.setProperty('--rank-color', currentRankInfo.color);
         const isLight = document.body.classList.contains('light-mode');
-        document.querySelectorAll('.logo-dot').forEach(d => { 
-            d.style.color = currentRankInfo.color; 
-            d.style.textShadow = isLight ? 'none' : `0 0 15px rgba(${currentRankInfo.rgb}, 0.5)`; 
-        }); 
-        
+        if (!_logoDotsCached || !_logoDotsCached.length) _logoDotsCached = document.querySelectorAll('.logo-dot');
+        const shadow = isLight ? 'none' : `0 0 15px rgba(${currentRankInfo.rgb}, 0.5)`;
+        for (let i = 0; i < _logoDotsCached.length; i++) {
+            _logoDotsCached[i].style.color = currentRankInfo.color;
+            _logoDotsCached[i].style.textShadow = shadow;
+        }
         const favicon = document.getElementById('dynamic-favicon');
-        if(favicon) {
+        if (favicon) {
             const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgb(${currentRankInfo.rgb})' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'></polygon></svg>`;
             favicon.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
         }
@@ -4311,7 +4641,9 @@
         
         currentSessionQuestions = shuffleArray([...quizDataPool]);
         _recentQuestionIds.clear(); _recentQueue = [];
-        currentQuestionIndex = score = streak = currentMaxStreak = currentFastAnswers = currentWrongAnswers = currentTimeoutAnswers = 0; 
+        currentQuestionIndex = score = streak = currentMaxStreak = currentFastAnswers = currentWrongAnswers = currentTimeoutAnswers = 0;
+        _timerPath = _timerText = _scoreEl = _streakEl = _multBadge = null; // reset DOM cache
+        _gTimerPath = _gTimerText = _gQuestionEl = _gAnswerBtns = _gAnswersGrid = _gStreakDisp = null; _gAns = []; // reset game DOM cache
         currentGameLog = []; isGamePaused = false;
         lives = 3; multiplier = 1;
         lastSecondAnswers = 0; ultraFastStreak = 0; currentNoTimeoutStreak = 0; livesLostThisGame = 0; consecutiveLivesLost = 0; frenziesThisGame = 0;
@@ -4429,13 +4761,26 @@
         return currentSessionQuestions[currentQuestionIndex] || null;
     }
     
+    // Cached game DOM elements (reset each game in startGame)
+    let _gTimerPath = null, _gTimerText = null, _gQuestionEl = null, _gAnswerBtns = null, _gAnswersGrid = null, _gAns = [], _gStreakDisp = null;
+
+    function _warmGameDOMCache() {
+        _gTimerPath   = document.getElementById('timer-path');
+        _gTimerText   = document.getElementById('timer-display');
+        _gQuestionEl  = document.getElementById('question-text');
+        _gAnswerBtns  = document.querySelectorAll('.answer-btn');
+        _gAnswersGrid = document.getElementById('answers-grid');
+        _gAns         = [0,1,2,3].map(i => document.getElementById('ans-' + i));
+    }
+
     function loadQuestion() {
         const currentQ = getNextQuestion();
         if (currentQ) _markUsed(currentQ);
-        const timerPath = document.getElementById('timer-path');
-        const timerText = document.getElementById('timer-display');
-        const questionEl = document.getElementById('question-text');
-        const answerBtns = document.querySelectorAll('.answer-btn');
+        if (!_gTimerPath) _warmGameDOMCache();
+        const timerPath  = _gTimerPath;
+        const timerText  = _gTimerText;
+        const questionEl = _gQuestionEl;
+        const answerBtns = _gAnswerBtns;
 
         // ── Animación de entrada ──────────────────────────────────────────────
         // Elimina clases previas para reiniciar animación
@@ -4450,11 +4795,11 @@
         let mixedAnswers = currentQ.answers.map((text, idx) => ({ text: text, isCorrect: idx === currentQ.correctIndex }));
         mixedAnswers = shuffleArray(mixedAnswers);
         for(let i=0; i<4; i++) { 
-            document.getElementById(`ans-${i}`).innerText = mixedAnswers[i].text;
+            (_gAns[i]||document.getElementById(`ans-${i}`)).innerText = mixedAnswers[i].text;
             if (mixedAnswers[i].isCorrect) currentQ.currentCorrectIndex = i;
         }
 
-        document.getElementById('answers-grid').classList.remove('answered'); 
+        (_gAnswersGrid||document.getElementById('answers-grid')).classList.remove('answered'); 
         answerBtns.forEach(btn => { 
             btn.classList.remove('selected'); 
             btn.style.opacity = ''; btn.style.pointerEvents = ''; btn.style.filter = '';
@@ -4471,6 +4816,7 @@
         // Apply extra time from roulette
         let questionTime = TIMER_LIMIT;
         if (extraTimeActive) { questionTime = TIMER_LIMIT + extraTimeActive; extraTimeActive = 0; updateRewardIndicator(); }
+        if (!_gTimerPath) _warmGameDOMCache();
         isAnsweringAllowed = true; isGamePaused = false; timeLeft = questionTime; timerText.innerText = timeLeft;
         
         timerPath.style.transition = 'none'; timerPath.style.strokeDashoffset = '0'; timerPath.style.stroke = 'var(--text-primary)'; timerText.style.color = 'var(--text-primary)'; void timerPath.offsetWidth; timerPath.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s ease';
@@ -4492,7 +4838,7 @@
         const q = currentSessionQuestions[currentQuestionIndex];
         const isCorrect = (selectedIndex === q.currentCorrectIndex); 
         const answerTime = timeLeft;
-        currentGameLog.push({ correct: isCorrect, time: answerTime });
+        currentGameLog.push({ correct: isCorrect, time: answerTime, category: q.category || q.type || null });
         
         if(isCorrect) { 
             playerStats.totalCorrect++; 
@@ -4706,7 +5052,7 @@
         }
         
         updateMultiplierUI();
-        document.getElementById('streak-display').innerText = streak; 
+        (_gStreakDisp||(_gStreakDisp=document.getElementById('streak-display'))).innerText = streak; 
         updateStreakVisuals(); 
         switchScreen('feedback-screen'); 
         setTimeout(() => animateScore(score), 300); 
@@ -5055,7 +5401,442 @@
     document.addEventListener('touchstart', _iosAudioUnlock, { once: true, passive: true });
     document.addEventListener('mousedown', _iosAudioUnlock, { once: true, passive: true });
 
+    // ═══════════════════════════════════════════════════════════════════════
+    //  KLICK PASS — 100 niveles permanentes, progresivos, secuenciales
+    //  Desbloqueados en orden estricto al jugar. Sin quincenas ni reinicios.
+    //  Premio total: exactamente 100,000 Pinceles.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // ── Rewards (suma exacta 100,000 ℙ: niveles 1-99 = 95,000 + nivel 100 = 5,000) ──
+    const _KP_REWARDS = [
+      100,104,108,111,116,120,124,129,134,139,  // 1-10
+      144,149,154,160,166,172,178,185,192,199,  // 11-20
+      206,214,222,230,238,247,256,266,276,286,  // 21-30
+      296,307,319,330,342,355,368,382,396,410,  // 31-40
+      426,441,457,474,492,510,529,548,568,589,  // 41-50
+      611,634,657,681,706,732,759,787,816,847,  // 51-60
+      878,910,944,978,1015,1052,1091,1131,1173,1216, // 61-70
+      1261,1307,1355,1405,1457,1511,1567,1624,1684,1746, // 71-80
+      1811,1877,1947,2018,2093,2170,2250,2333,2419,2508, // 81-90
+      2601,2697,2796,2899,3006,3117,3232,3351,3476,5000  // 91-100
+    ];
+
+    // ── Condiciones de misión (usan playerStats en tiempo real) ───────────
+    // Nota: perfectGames se incrementa cuando currentQuestionIndex >= 50 Y sin errores.
+    // En saveGameStats: if(currentQuestionIndex >= 50) perfectGames++
+    // Eso es "partida larga sin importar errores". Aquí usamos hadPerfectAccuracyGame
+    // que es la verdadera "partida sin errores" (≥5 preguntas, 0 wrong, 0 timeout).
+    // Para niveles "Sin Fallos" usamos un contador propio en kpState.perfectNoError.
+
+    const _KP_MISSIONS = [
+// TRAMO 1 — INICIACIÓN (1-10) ——————————————————————————————————————————
+{lv:1,  title:'Primera Partida',      mission:'Completa tu primera partida.',                                         chk:(ps)=>(ps.gamesPlayed||0)>=1},
+{lv:2,  title:'Primeros Aciertos',    mission:'Consigue 5 respuestas correctas en total.',                            chk:(ps)=>(ps.totalCorrect||0)>=5},
+{lv:3,  title:'En Marcha',            mission:'Completa 3 partidas.',                                                 chk:(ps)=>(ps.gamesPlayed||0)>=3},
+{lv:4,  title:'Diez Correctas',       mission:'Acumula 10 respuestas correctas.',                                     chk:(ps)=>(ps.totalCorrect||0)>=10},
+{lv:5,  title:'Racha Inicial',        mission:'Logra una racha de 3 aciertos consecutivos.',                          chk:(ps)=>(ps.maxStreak||0)>=3},
+{lv:6,  title:'Constante',            mission:'Completa 5 partidas.',                                                 chk:(ps)=>(ps.gamesPlayed||0)>=5},
+{lv:7,  title:'Veinte Correctas',     mission:'Acumula 20 respuestas correctas.',                                     chk:(ps)=>(ps.totalCorrect||0)>=20},
+{lv:8,  title:'Primer Récord',        mission:'Consigue al menos 5,000 puntos en una partida.',                       chk:(ps)=>(ps.bestScore||0)>=5000},
+{lv:9,  title:'Racha x5',             mission:'Logra una racha de 5 aciertos consecutivos.',                          chk:(ps)=>(ps.maxStreak||0)>=5},
+{lv:10, title:'Despegue',             mission:'Completa 10 partidas.',                                                chk:(ps)=>(ps.gamesPlayed||0)>=10},
+// TRAMO 2 — APRENDIZ (11-25) ——————————————————————————————————————————
+{lv:11, title:'Cincuenta Aciertos',   mission:'Acumula 50 respuestas correctas.',                                     chk:(ps)=>(ps.totalCorrect||0)>=50},
+{lv:12, title:'Puntuación 10k',       mission:'Alcanza 10,000 puntos en una sola partida.',                           chk:(ps)=>(ps.bestScore||0)>=10000},
+{lv:13, title:'Acumulado 20k',        mission:'Acumula 20,000 puntos entre todas tus partidas.',                      chk:(ps)=>(ps.totalScore||0)>=20000},
+{lv:14, title:'Racha x8',             mission:'Logra una racha de 8 aciertos consecutivos.',                          chk:(ps)=>(ps.maxStreak||0)>=8},
+{lv:15, title:'Quince Partidas',      mission:'Completa 15 partidas.',                                                chk:(ps)=>(ps.gamesPlayed||0)>=15},
+{lv:16, title:'Cien Correctas',       mission:'Acumula 100 respuestas correctas.',                                    chk:(ps)=>(ps.totalCorrect||0)>=100},
+{lv:17, title:'Puntuación 15k',       mission:'Supera los 15,000 puntos en una partida.',                             chk:(ps)=>(ps.bestScore||0)>=15000},
+{lv:18, title:'Acumulado 50k',        mission:'Acumula 50,000 puntos en total.',                                      chk:(ps)=>(ps.totalScore||0)>=50000},
+{lv:19, title:'Racha x10',            mission:'Logra una racha de 10 aciertos consecutivos.',                         chk:(ps)=>(ps.maxStreak||0)>=10},
+{lv:20, title:'Veinte Partidas',      mission:'Completa 20 partidas.',                                                chk:(ps)=>(ps.gamesPlayed||0)>=20},
+{lv:21, title:'Sin Fallos I',         mission:'Termina una partida sin ningún error (mín. 5 preguntas).',             chk:(ps,ks)=>(ks.perfectNoError||0)>=1},
+{lv:22, title:'Puntuación 20k',       mission:'Supera los 20,000 puntos en una partida.',                             chk:(ps)=>(ps.bestScore||0)>=20000},
+{lv:23, title:'Doscientas Correctas', mission:'Acumula 200 respuestas correctas.',                                    chk:(ps)=>(ps.totalCorrect||0)>=200},
+{lv:24, title:'Acumulado 80k',        mission:'Acumula 80,000 puntos en total.',                                      chk:(ps)=>(ps.totalScore||0)>=80000},
+{lv:25, title:'Treinta Partidas',     mission:'Completa 30 partidas.',                                                chk:(ps)=>(ps.gamesPlayed||0)>=30},
+// TRAMO 3 — INTERMEDIO (26-40) ——————————————————————————————————————————
+{lv:26, title:'Racha x12',            mission:'Logra una racha de 12 aciertos consecutivos.',                         chk:(ps)=>(ps.maxStreak||0)>=12},
+{lv:27, title:'Puntuación 25k',       mission:'Consigue 25,000 puntos en una sola partida.',                          chk:(ps)=>(ps.bestScore||0)>=25000},
+{lv:28, title:'500 Correctas',        mission:'Acumula 500 respuestas correctas.',                                    chk:(ps)=>(ps.totalCorrect||0)>=500},
+{lv:29, title:'Acumulado 150k',       mission:'Acumula 150,000 puntos en total.',                                     chk:(ps)=>(ps.totalScore||0)>=150000},
+{lv:30, title:'Cuarenta Partidas',    mission:'Completa 40 partidas.',                                                chk:(ps)=>(ps.gamesPlayed||0)>=40},
+{lv:31, title:'Multiplicador x2',     mission:'Alcanza el multiplicador x2 en cualquier partida.',                    chk:(ps)=>(ps.maxMult||1)>=2},
+{lv:32, title:'Sin Fallos II',        mission:'Termina 3 partidas sin ningún error.',                                  chk:(ps,ks)=>(ks.perfectNoError||0)>=3},
+{lv:33, title:'Puntuación 30k',       mission:'Supera los 30,000 puntos en una partida.',                             chk:(ps)=>(ps.bestScore||0)>=30000},
+{lv:34, title:'Racha x15',            mission:'Logra una racha de 15 aciertos consecutivos.',                         chk:(ps)=>(ps.maxStreak||0)>=15},
+{lv:35, title:'Cincuenta Partidas',   mission:'Completa 50 partidas.',                                                chk:(ps)=>(ps.gamesPlayed||0)>=50},
+{lv:36, title:'1,000 Correctas',      mission:'Acumula 1,000 respuestas correctas.',                                  chk:(ps)=>(ps.totalCorrect||0)>=1000},
+{lv:37, title:'Acumulado 250k',       mission:'Acumula 250,000 puntos en total.',                                     chk:(ps)=>(ps.totalScore||0)>=250000},
+{lv:38, title:'Puntuación 40k',       mission:'Supera los 40,000 puntos en una sola partida.',                        chk:(ps)=>(ps.bestScore||0)>=40000},
+{lv:39, title:'Multiplicador x3',     mission:'Alcanza el multiplicador x3 en cualquier partida.',                    chk:(ps)=>(ps.maxMult||1)>=3},
+{lv:40, title:'Sin Fallos III',       mission:'Termina 5 partidas sin ningún error.',                                  chk:(ps,ks)=>(ks.perfectNoError||0)>=5},
+// TRAMO 4 — AVANZADO (41-55) ——————————————————————————————————————————
+{lv:41, title:'Puntuación 50k',       mission:'Consigue 50,000 puntos en una sola partida.',                          chk:(ps)=>(ps.bestScore||0)>=50000},
+{lv:42, title:'Racha x18',            mission:'Logra una racha de 18 aciertos consecutivos.',                         chk:(ps)=>(ps.maxStreak||0)>=18},
+{lv:43, title:'Setenta Partidas',     mission:'Completa 70 partidas.',                                                chk:(ps)=>(ps.gamesPlayed||0)>=70},
+{lv:44, title:'Acumulado 400k',       mission:'Acumula 400,000 puntos en total.',                                     chk:(ps)=>(ps.totalScore||0)>=400000},
+{lv:45, title:'2,000 Correctas',      mission:'Acumula 2,000 respuestas correctas.',                                  chk:(ps)=>(ps.totalCorrect||0)>=2000},
+{lv:46, title:'Puntuación 60k',       mission:'Supera los 60,000 puntos en una partida.',                             chk:(ps)=>(ps.bestScore||0)>=60000},
+{lv:47, title:'Multiplicador x4',     mission:'Alcanza el multiplicador x4 en cualquier partida.',                    chk:(ps)=>(ps.maxMult||1)>=4},
+{lv:48, title:'Sin Fallos IV',        mission:'Termina 10 partidas sin ningún error.',                                 chk:(ps,ks)=>(ks.perfectNoError||0)>=10},
+{lv:49, title:'Racha x20',            mission:'Logra una racha de 20 aciertos consecutivos.',                         chk:(ps)=>(ps.maxStreak||0)>=20},
+{lv:50, title:'Cien Partidas',        mission:'Completa 100 partidas. La mitad del camino.',                          chk:(ps)=>(ps.gamesPlayed||0)>=100},
+{lv:51, title:'Acumulado 600k',       mission:'Acumula 600,000 puntos en total.',                                     chk:(ps)=>(ps.totalScore||0)>=600000},
+{lv:52, title:'3,000 Correctas',      mission:'Acumula 3,000 respuestas correctas.',                                  chk:(ps)=>(ps.totalCorrect||0)>=3000},
+{lv:53, title:'Puntuación 75k',       mission:'Consigue 75,000 puntos en una sola partida.',                          chk:(ps)=>(ps.bestScore||0)>=75000},
+{lv:54, title:'Sin Fallos V',         mission:'Termina 15 partidas sin ningún error.',                                 chk:(ps,ks)=>(ks.perfectNoError||0)>=15},
+{lv:55, title:'Racha x22',            mission:'Logra una racha de 22 aciertos consecutivos.',                         chk:(ps)=>(ps.maxStreak||0)>=22},
+// TRAMO 5 — EXPERTO (56-70) ——————————————————————————————————————————
+{lv:56, title:'120 Partidas',         mission:'Completa 120 partidas.',                                               chk:(ps)=>(ps.gamesPlayed||0)>=120},
+{lv:57, title:'Acumulado 800k',       mission:'Acumula 800,000 puntos en total.',                                     chk:(ps)=>(ps.totalScore||0)>=800000},
+{lv:58, title:'Puntuación 90k',       mission:'Supera los 90,000 puntos en una partida.',                             chk:(ps)=>(ps.bestScore||0)>=90000},
+{lv:59, title:'Multiplicador x5',     mission:'Alcanza el multiplicador x5 en cualquier partida.',                    chk:(ps)=>(ps.maxMult||1)>=5},
+{lv:60, title:'5,000 Correctas',      mission:'Acumula 5,000 respuestas correctas.',                                  chk:(ps)=>(ps.totalCorrect||0)>=5000},
+{lv:61, title:'Sin Fallos VI',        mission:'Termina 20 partidas sin ningún error.',                                 chk:(ps,ks)=>(ks.perfectNoError||0)>=20},
+{lv:62, title:'Racha x25',            mission:'Logra una racha de 25 aciertos consecutivos.',                         chk:(ps)=>(ps.maxStreak||0)>=25},
+{lv:63, title:'Puntuación 100k',      mission:'Consigue 100,000 puntos o más en una partida.',                        chk:(ps)=>(ps.bestScore||0)>=100000},
+{lv:64, title:'150 Partidas',         mission:'Completa 150 partidas.',                                               chk:(ps)=>(ps.gamesPlayed||0)>=150},
+{lv:65, title:'Acumulado 1M',         mission:'Acumula 1,000,000 de puntos en total.',                                chk:(ps)=>(ps.totalScore||0)>=1000000},
+{lv:66, title:'Sin Fallos VII',       mission:'Termina 25 partidas sin ningún error.',                                 chk:(ps,ks)=>(ks.perfectNoError||0)>=25},
+{lv:67, title:'7,000 Correctas',      mission:'Acumula 7,000 respuestas correctas.',                                  chk:(ps)=>(ps.totalCorrect||0)>=7000},
+{lv:68, title:'Multiplicador x6',     mission:'Alcanza el multiplicador x6 en cualquier partida.',                    chk:(ps)=>(ps.maxMult||1)>=6},
+{lv:69, title:'Puntuación 120k',      mission:'Supera los 120,000 puntos en una sola partida.',                       chk:(ps)=>(ps.bestScore||0)>=120000},
+{lv:70, title:'Racha x28',            mission:'Logra una racha de 28 aciertos consecutivos.',                         chk:(ps)=>(ps.maxStreak||0)>=28},
+// TRAMO 6 — ÉLITE (71-85) ——————————————————————————————————————————
+{lv:71, title:'200 Partidas',         mission:'Completa 200 partidas.',                                               chk:(ps)=>(ps.gamesPlayed||0)>=200},
+{lv:72, title:'Acumulado 1.2M',       mission:'Acumula 1,200,000 puntos en total.',                                   chk:(ps)=>(ps.totalScore||0)>=1200000},
+{lv:73, title:'10,000 Correctas',     mission:'Acumula 10,000 respuestas correctas.',                                 chk:(ps)=>(ps.totalCorrect||0)>=10000},
+{lv:74, title:'Sin Fallos VIII',      mission:'Termina 30 partidas sin ningún error.',                                 chk:(ps,ks)=>(ks.perfectNoError||0)>=30},
+{lv:75, title:'Puntuación 150k',      mission:'Consigue 150,000 puntos en una partida.',                              chk:(ps)=>(ps.bestScore||0)>=150000},
+{lv:76, title:'Racha x30',            mission:'Logra una racha de 30 aciertos consecutivos.',                         chk:(ps)=>(ps.maxStreak||0)>=30},
+{lv:77, title:'Multiplicador x7',     mission:'Alcanza el multiplicador x7 en cualquier partida.',                    chk:(ps)=>(ps.maxMult||1)>=7},
+{lv:78, title:'250 Partidas',         mission:'Completa 250 partidas.',                                               chk:(ps)=>(ps.gamesPlayed||0)>=250},
+{lv:79, title:'Acumulado 1.5M',       mission:'Acumula 1,500,000 puntos en total.',                                   chk:(ps)=>(ps.totalScore||0)>=1500000},
+{lv:80, title:'Sin Fallos IX',        mission:'Termina 35 partidas sin ningún error.',                                 chk:(ps,ks)=>(ks.perfectNoError||0)>=35},
+{lv:81, title:'15,000 Correctas',     mission:'Acumula 15,000 respuestas correctas.',                                 chk:(ps)=>(ps.totalCorrect||0)>=15000},
+{lv:82, title:'Puntuación 180k',      mission:'Supera los 180,000 puntos en una sola partida.',                       chk:(ps)=>(ps.bestScore||0)>=180000},
+{lv:83, title:'Racha x33',            mission:'Logra una racha de 33 aciertos consecutivos.',                         chk:(ps)=>(ps.maxStreak||0)>=33},
+{lv:84, title:'Multiplicador x8',     mission:'Alcanza el multiplicador x8 en cualquier partida.',                    chk:(ps)=>(ps.maxMult||1)>=8},
+{lv:85, title:'300 Partidas',         mission:'Completa 300 partidas.',                                               chk:(ps)=>(ps.gamesPlayed||0)>=300},
+// TRAMO 7 — MAESTRÍA (86-99) ——————————————————————————————————————————
+{lv:86, title:'Acumulado 2M',         mission:'Acumula 2,000,000 puntos en total.',                                   chk:(ps)=>(ps.totalScore||0)>=2000000},
+{lv:87, title:'Puntuación 200k',      mission:'Consigue 200,000 puntos en una sola partida.',                         chk:(ps)=>(ps.bestScore||0)>=200000},
+{lv:88, title:'20,000 Correctas',     mission:'Acumula 20,000 respuestas correctas.',                                 chk:(ps)=>(ps.totalCorrect||0)>=20000},
+{lv:89, title:'Sin Fallos X',         mission:'Termina 40 partidas sin ningún error.',                                 chk:(ps,ks)=>(ks.perfectNoError||0)>=40},
+{lv:90, title:'Racha x35',            mission:'Logra una racha de 35 aciertos consecutivos.',                         chk:(ps)=>(ps.maxStreak||0)>=35},
+{lv:91, title:'400 Partidas',         mission:'Completa 400 partidas.',                                               chk:(ps)=>(ps.gamesPlayed||0)>=400},
+{lv:92, title:'Acumulado 2.5M',       mission:'Acumula 2,500,000 puntos en total.',                                   chk:(ps)=>(ps.totalScore||0)>=2500000},
+{lv:93, title:'Puntuación 250k',      mission:'Consigue 250,000 puntos en una sola partida.',                         chk:(ps)=>(ps.bestScore||0)>=250000},
+{lv:94, title:'Racha x38',            mission:'Logra una racha de 38 aciertos consecutivos.',                         chk:(ps)=>(ps.maxStreak||0)>=38},
+{lv:95, title:'25,000 Correctas',     mission:'Acumula 25,000 respuestas correctas.',                                 chk:(ps)=>(ps.totalCorrect||0)>=25000},
+{lv:96, title:'500 Partidas',         mission:'Completa 500 partidas.',                                               chk:(ps)=>(ps.gamesPlayed||0)>=500},
+{lv:97, title:'Acumulado 3M',         mission:'Acumula 3,000,000 puntos en total.',                                   chk:(ps)=>(ps.totalScore||0)>=3000000},
+{lv:98, title:'Sin Fallos XI',        mission:'Termina 50 partidas sin ningún error.',                                 chk:(ps,ks)=>(ks.perfectNoError||0)>=50},
+{lv:99, title:'Racha x40',            mission:'Logra una racha de 40 aciertos consecutivos.',                         chk:(ps)=>(ps.maxStreak||0)>=40},
+// NIVEL FINAL ——————————————————————————————————————————————————————
+{lv:100,title:'El Trayecto',          mission:'Reclama los 99 niveles anteriores.',                                   chk:(ps,ks)=>(ks.claimed||[]).filter(n=>n<=99).length>=99},
+    ];
+
+    // Attach rewards
+    const KP_LEVELS = _KP_MISSIONS.map((m, i) => ({ ...m, reward: _KP_REWARDS[i] }));
+    const KP_TOTAL  = 100;
+
+    // ── Storage (permanente, no por ciclo) ───────────────────────────────
+    const KP_KEY = 'klickpass_v2';
+
+    function getKpState() {
+        try {
+            const raw = localStorage.getItem(KP_KEY);
+            if (raw) {
+                const s = JSON.parse(raw);
+                if (!Array.isArray(s.claimed)) s.claimed = [];
+                if (typeof s.perfectNoError !== 'number') s.perfectNoError = 0;
+                return s;
+            }
+        } catch(e) {}
+        return { claimed: [], perfectNoError: 0 };
+    }
+
+    function saveKpState(state) {
+        try { localStorage.setItem(KP_KEY, JSON.stringify(state)); } catch(e) {}
+    }
+
+    // ── Evaluar si un nivel está disponible para reclamar ────────────────
+    // Regla: el nivel anterior debe estar reclamado (excepto nivel 1)
+    function kpCanClaim(lvNum) {
+        const state = getKpState();
+        if (state.claimed.includes(lvNum)) return false;           // ya reclamado
+        if (lvNum > 1 && !state.claimed.includes(lvNum - 1)) return false; // bloqueo secuencial
+        const lvl = KP_LEVELS[lvNum - 1];
+        return lvl ? lvl.chk(playerStats, state) : false;
+    }
+
+    // ── Reclamar nivel ───────────────────────────────────────────────────
+    function kpClaim(lvNum) {
+        if (!kpCanClaim(lvNum)) return;
+        const state = getKpState();
+        state.claimed.push(lvNum);
+        saveKpState(state);
+
+        const lvl   = KP_LEVELS[lvNum - 1];
+        const icon  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><polyline points="20 6 9 17 4 12"/></svg>`;
+        try { initAudio(); } catch(e){}
+        SFX.achievement();
+        showToast(
+            `Nivel ${String(lvNum).padStart(3,'0')} — ${lvl.title}`,
+            `+${lvl.reward.toLocaleString()} ℙ reclamados`,
+            'var(--text-primary)', icon
+        );
+
+        // DOM updates
+        _kpSetNodeState(lvNum, 'claimed');
+        // Unlock next node if its condition is already met
+        if (lvNum < KP_TOTAL) {
+            const newState = getKpState();
+            if (kpCanClaim(lvNum + 1)) _kpSetNodeState(lvNum + 1, 'unlocked');
+        }
+        _kpUpdateHeader();
+        _kpUpdateMenuBadge();
+    }
+
+    // ── Mutate a single node + card in the DOM ───────────────────────────
+    function _kpSetNodeState(lvNum, status) {
+        const node = document.querySelector('[data-kp-level="' + lvNum + '"]');
+        const card = document.querySelector('[data-kp-card="'  + lvNum + '"]');
+        if (!node || !card) return;
+
+        node.classList.remove('unlocked', 'claimed');
+        card.classList.remove('unlocked', 'claimed');
+
+        if (status === 'claimed') {
+            node.classList.add('claimed');
+            node.innerHTML = '<div class="kp-node-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>';
+            card.classList.add('claimed');
+            const lbl = card.querySelector('.kp-card-level');
+            if (lbl) lbl.textContent = lbl.textContent.replace(/BLOQUEADO|DISPONIBLE|EN CURSO/, 'COMPLETADO');
+            const dot = card.querySelector('.kp-status-dot');
+            if (dot) dot.remove();
+        } else if (status === 'unlocked') {
+            node.classList.add('unlocked');
+            node.innerHTML = '<span class="kp-node-num">' + String(lvNum).padStart(2,'0') + '</span>' +
+                             '<span class="kp-node-sub">NV</span>';
+            card.classList.add('unlocked');
+            const lbl = card.querySelector('.kp-card-level');
+            if (lbl) lbl.textContent = lbl.textContent.replace('BLOQUEADO', 'DISPONIBLE');
+            // Add dot + claim button to card bottom
+            const bottom = card.querySelector('.kp-card-bottom');
+            if (bottom) {
+                if (!bottom.querySelector('.kp-status-dot')) {
+                    const dot = document.createElement('span');
+                    dot.className = 'kp-status-dot';
+                    bottom.appendChild(dot);
+                }
+                if (!bottom.querySelector('.kp-claim-btn')) {
+                    const btn = document.createElement('button');
+                    btn.className = 'kp-claim-btn';
+                    btn.textContent = 'RECLAMAR';
+                    btn.setAttribute('onclick', 'kpClaim(' + lvNum + ')');
+                    bottom.appendChild(btn);
+                }
+            }
+        }
+    }
+
+    // ── Actualizar header ────────────────────────────────────────────────
+    function _kpUpdateHeader() {
+        const state   = getKpState();
+        const claimed = state.claimed.length;
+        const pct     = (claimed / KP_TOTAL) * 100;
+
+        const countEl = document.getElementById('kp-progress-count');
+        const barEl   = document.getElementById('kp-total-bar-fill');
+        const rewardEl= document.getElementById('kp-reward-total');
+
+        if (countEl)  countEl.textContent  = claimed + ' / ' + KP_TOTAL;
+        if (barEl)    barEl.style.width    = pct + '%';
+        if (rewardEl) {
+            const total = state.claimed.reduce((s, id) => {
+                const l = KP_LEVELS[id - 1]; return s + (l ? l.reward : 0);
+            }, 0);
+            rewardEl.textContent = total > 0
+                ? total.toLocaleString() + ' ℙ reclamados de 100,000'
+                : 'Sin recompensas reclamadas aún';
+        }
+    }
+    // alias público
+    function renderKpHeader() { _kpUpdateHeader(); }
+
+    // ── Actualizar badge del menú ────────────────────────────────────────
+    function _kpUpdateMenuBadge() {
+        let count = 0;
+        for (let i = 0; i < KP_TOTAL; i++) {
+            if (kpCanClaim(KP_LEVELS[i].lv)) count++;
+        }
+        const badge = document.getElementById('kpass-menu-badge');
+        if (!badge) return;
+        if (count > 0) { badge.style.display = 'inline-block'; badge.textContent = count; }
+        else             badge.style.display = 'none';
+    }
+    function updateKpassMenuBadge() { _kpUpdateMenuBadge(); }
+
+    // ── Render completo del camino ────────────────────────────────────────
+    function renderKpPath() {
+        const state = getKpState();
+        const container = document.getElementById('kp-path-container');
+        if (!container) return;
+
+        const frag = document.createDocumentFragment();
+
+        const TRAMOS = [
+            {from:1,  to:10,  name:'Iniciación',  desc:'Nv. 1–10'},
+            {from:11, to:25,  name:'Aprendiz',    desc:'Nv. 11–25'},
+            {from:26, to:40,  name:'Intermedio',  desc:'Nv. 26–40'},
+            {from:41, to:55,  name:'Avanzado',    desc:'Nv. 41–55'},
+            {from:56, to:70,  name:'Experto',     desc:'Nv. 56–70'},
+            {from:71, to:85,  name:'Élite',       desc:'Nv. 71–85'},
+            {from:86, to:99,  name:'Maestría',    desc:'Nv. 86–99'},
+            {from:100,to:100, name:'El Trayecto', desc:'Nv. 100'},
+        ];
+        const tramoStart = {}, tramoEnd = {};
+        TRAMOS.forEach(t => { tramoStart[t.from] = t; tramoEnd[t.to] = true; });
+
+        let rowIndex = 0; // zigzag counter — independent of DOM siblings
+        KP_LEVELS.forEach((lvl) => {
+            const lvNum      = lvl.lv;
+            const isClaimed  = state.claimed.includes(lvNum);
+            const isUnlocked = !isClaimed && kpCanClaim(lvNum);
+            const isFinal    = lvNum === 100;
+            const cls        = isClaimed ? 'claimed' : (isUnlocked ? 'unlocked' : '');
+            const isFirst    = !!tramoStart[lvNum];
+            const isLast     = !!tramoEnd[lvNum];
+
+            // Separador de tramo
+            if (isFirst) {
+                const t = tramoStart[lvNum];
+                const sep = document.createElement('div');
+                sep.className = 'kp-tramo-sep';
+                sep.innerHTML = '<span class="kp-tramo-name">' + t.name + '</span>' +
+                                '<span class="kp-tramo-desc">' + t.desc + '</span>';
+                frag.appendChild(sep);
+            }
+
+            // Nodo — solo muestra número o checkmark, sin botón
+            const nodeHTML = isClaimed
+                ? '<div class="kp-node-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>'
+                : '<span class="kp-node-num">' + String(lvNum).padStart(2,'0') + '</span><span class="kp-node-sub">NV</span>';
+
+            const node = document.createElement('div');
+            node.className = 'kp-node ' + cls + (isFinal ? ' final-node' : '');
+            node.setAttribute('data-kp-level', lvNum);
+            node.innerHTML = nodeHTML;
+
+            // Tarjeta — botón RECLAMAR está aquí dentro, no en el nodo
+            const statusLbl  = isClaimed ? 'COMPLETADO' : (isUnlocked ? 'DISPONIBLE' : 'BLOQUEADO');
+            const levelLabel = isFinal ? 'NIVEL FINAL' : 'NV ' + String(lvNum).padStart(3,'0');
+            const claimBtn   = isUnlocked
+                ? '<button class="kp-claim-btn" onclick="kpClaim(' + lvNum + ')">RECLAMAR</button>'
+                : '';
+            const dotHTML    = (isUnlocked && !isClaimed) ? '<span class="kp-status-dot"></span>' : '';
+
+            const card = document.createElement('div');
+            card.className = 'kp-card ' + cls + (isFinal ? ' final-card' : '');
+            card.setAttribute('data-kp-card', lvNum);
+            card.innerHTML =
+                '<div class="kp-card-level">' + levelLabel + ' · ' + statusLbl + '</div>' +
+                '<div class="kp-card-title">' + lvl.title + '</div>' +
+                '<div class="kp-card-mission">' + lvl.mission + '</div>' +
+                '<div class="kp-card-bottom">' +
+                    '<span class="kp-reward-pill">' + lvl.reward.toLocaleString() + ' ℙ</span>' +
+                    dotHTML + claimBtn +
+                '</div>';
+
+            // Fila zigzag: counter independiente del DOM (separadores no rompen el conteo)
+            const spacer = document.createElement('div');
+            spacer.className = 'kp-row-spacer';
+
+            const row = document.createElement('div');
+            row.className = 'kp-level-row';
+            row.dataset.side = (rowIndex % 2 === 0) ? 'left' : 'right';
+            rowIndex++;
+            row.appendChild(card);
+            row.appendChild(node);
+            row.appendChild(spacer);
+            frag.appendChild(row);
+        });
+
+        container.innerHTML = '';
+        container.appendChild(frag);
+
+        // Animación escalonada solo en las primeras 20 filas
+        const rows = container.querySelectorAll('.kp-level-row');
+        for (let i = 0; i < Math.min(rows.length, 20); i++) {
+            const r = rows[i];
+            r.style.opacity = '0';
+            r.style.transform = 'translateY(5px)';
+            setTimeout(((row) => () => {
+                row.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                row.style.opacity = '1';
+                row.style.transform = 'translateY(0)';
+            })(r), i * 12);
+        }
+
+        _kpUpdateHeader();
+
+        // Auto-scroll al nivel activo
+        setTimeout(() => {
+            const st = getKpState();
+            const target = KP_LEVELS.find(l => !st.claimed.includes(l.lv) && kpCanClaim(l.lv))
+                        || KP_LEVELS.find(l => !st.claimed.includes(l.lv));
+            if (target) {
+                const el = container.querySelector('[data-kp-card="' + target.lv + '"]');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 280);
+    }
+    function goToKlickPass() {
+        try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e){}
+        SFX.click();
+        renderKpPath();
+        _kpUpdateMenuBadge();
+        switchScreen('klickpass-screen');
+    }
+
+    // ── Hook en saveGameStats para trackear perfectNoError y badge ───────
+    // perfectNoError: partida con 0 wrong, 0 timeout, ≥5 preguntas respondidas.
+    // Se registra ANTES de que saveGameStats resetee las variables
+    // (no las resetea, las resetea startGame — así que podemos leerlas en endGame).
+    // La forma segura: patchar endGame, que llama saveGameStats internamente.
+    // Preferimos interceptar saveGameStats directamente.
+    (function() {
+        const _orig = saveGameStats;
+        saveGameStats = function() {
+            // Capture values BEFORE calling original (original doesn't reset them)
+            const correct   = currentQuestionIndex - (currentWrongAnswers||0) - (currentTimeoutAnswers||0);
+            const isPerfect = (currentWrongAnswers||0) === 0 &&
+                              (currentTimeoutAnswers||0) === 0 &&
+                              correct >= 5;
+            _orig.apply(this, arguments);
+            // Now update kpState
+            if (isPerfect) {
+                const kpSt = getKpState();
+                kpSt.perfectNoError = (kpSt.perfectNoError || 0) + 1;
+                saveKpState(kpSt);
+            }
+            // Refresh badge after stats are saved
+            setTimeout(_kpUpdateMenuBadge, 200);
+        };
+    })();
+
+    // ── Init ─────────────────────────────────────────────────────────────
+    // Defer until playerStats is fully loaded (it's synchronous above, but safe to run now)
+    _kpUpdateMenuBadge();
+    // ════════════════════════════════════ END KLICK PASS ═════════════════
+
+
     setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); }, 500);
+
 </script>
 </body>
 </html>
