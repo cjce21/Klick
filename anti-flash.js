@@ -1,5 +1,5 @@
 // Anti-flash: aplica el color de rango ANTES del primer render
-// Este script DEBE cargarse en <head> (sin defer/async)
+// Este archivo DEBE cargarse en <head> sin defer ni async
 
 // ANTI-FLASH: aplica el color de rango correcto antes del primer render
     (function() {
