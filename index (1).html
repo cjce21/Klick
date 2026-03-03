@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Klick</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ff66' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'%3E%3C/polygon%3E%3C/svg%3E">
+
+    <!-- Estilos -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Anti-flash: DEBE estar en head, sin defer, para evitar parpadeo de color de rango -->
+    <script src="anti-flash.js"></script>
+</head>
+<body ondragstart="return false;" ondrop="return false;">
+
+<div id="app">
+    <canvas id="particle-canvas"></canvas>
+    <div class="toast-container" id="toast-container"></div>
+
+    <div id="start-screen" class="screen active content-fit">
+        <div class="top-btn-container">
+            <button class="top-btn" onclick="goToRanking()" title="Clasificación Global">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"></rect><rect x="10" y="8" width="4" height="13"></rect><rect x="2" y="13" width="4" height="8"></rect></svg>
+            </button>
+            <button class="top-btn" onclick="openSettings()" title="Configuración">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+        </div>
+
+        <div class="logo-container" id="logo-title" onclick="onLogoClick()" style="cursor:pointer;">KLICK<span class="logo-dot">.</span></div>
+        <div class="logo-subtitle">By Didac-Click Group</div>
+
+        <div class="menu-box" id="menu-box">
+            <button class="btn-solid" onclick="startGameCheck()">¡Jugar!</button>
+            <button class="btn-outline" onclick="goToProfile()" style="margin-top: 10px;">Mi Perfil</button>
+            <button class="btn-outline" onclick="goToAchievements()">Banco de Logros</button>
+            <button class="btn-outline" onclick="goToGuide()">Instrucciones</button>
+            <button class="btn-kpass" onclick="goToKlickPass()">
+                Klick Pass
+                <span class="kpass-menu-badge" id="kpass-menu-badge" style="display:none;"></span>
+            </button>
+        </div>
+    </div>
+
+    <div id="settings-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
+            <div class="nav-title">CONFIGURACIÓN</div><div class="nav-spacer"></div>
+        </div>
+        <div class="content-scroll no-scrollbar">
+            <div class="settings-dashboard">
+                <div class="settings-grid">
+                    
+                    <div class="setting-card glass-panel">
+                        <div class="setting-header">
+                            <div class="setting-title-box">
+                                <div class="setting-icon" style="color: var(--text-primary);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                                </div>
+                                <div class="setting-label">Música Ambiental<div class="setting-desc">Volumen de la banda sonora</div></div>
+                            </div>
+                            <span id="val-music" class="setting-value">100%</span>
+                        </div>
+                        <input type="range" id="op-music" min="0" max="1" step="0.05" value="1">
+                    </div>
+
+                    <div class="setting-card glass-panel">
+                        <div class="setting-header">
+                            <div class="setting-title-box">
+                                <div class="setting-icon" style="color: var(--text-primary);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                                </div>
+                                <div class="setting-label">Efectos (SFX)<div class="setting-desc">Volumen de respuestas y clics</div></div>
+                            </div>
+                            <span id="val-sfx" class="setting-value">100%</span>
+                        </div>
+                        <input type="range" id="op-sfx" min="0" max="1" step="0.05" value="1">
+                    </div>
+
+                    <div class="setting-card glass-panel">
+                        <div class="setting-header">
+                            <div class="setting-title-box">
+                                <div class="setting-icon" style="color: var(--text-primary);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                </div>
+                                <div class="setting-label">Fondo Activo<div class="setting-desc">Opacidad de las partículas reactivas</div></div>
+                            </div>
+                            <span id="val-particles" class="setting-value">100%</span>
+                        </div>
+                        <input type="range" id="op-particles" min="0" max="1" step="0.05" value="1">
+                    </div>
+
+                    <div class="setting-card glass-panel">
+                        <div class="setting-header">
+                            <div class="setting-title-box">
+                                <div class="setting-icon" style="color: var(--text-primary);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                </div>
+                                <div class="setting-label">Fluidez (FPS)<div class="setting-desc">Tasa de refresco del sistema</div></div>
+                            </div>
+                            <span id="val-fps" class="setting-value">60 FPS</span>
+                        </div>
+                        <input type="range" id="op-fps" min="0" max="4" step="1" value="2">
+                    </div>
+
+                    <!-- Selector de Pistas — ocupa las 2 columnas del grid -->
+                    <div class="setting-card glass-panel" style="grid-column: 1/-1;">
+                        <div class="setting-header">
+                            <div class="setting-title-box">
+                                <div class="setting-icon" style="color: var(--text-primary);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                                </div>
+                                <div class="setting-label">Pista Musical<div class="setting-desc">Elige la banda sonora del juego</div></div>
+                            </div>
+                        </div>
+                        <div id="track-selector" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+                    </div>
+
+                    <!-- Modo Claro/Oscuro — ocupa las 2 columnas del grid -->
+                    <div class="setting-card glass-panel" style="grid-column: 1/-1;">
+                        <div class="setting-header">
+                            <div class="setting-title-box">
+                                <div class="setting-icon" style="color: var(--text-primary);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                                </div>
+                                <div class="setting-label">Apariencia<div class="setting-desc">Cambia entre modo oscuro y claro</div></div>
+                            </div>
+                            <span id="val-theme" class="setting-value">Oscuro</span>
+                        </div>
+                        <div style="display:flex;gap:10px;">
+                            <div onclick="setTheme('dark')" id="theme-dark-btn" style="flex:1;padding:12px 15px;border-radius:var(--radius-md);border:1.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.07);cursor:pointer;text-align:center;transition:all 0.25s;">
+                                <div style="font-size:0.85rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;">Oscuro</div>
+                                <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:3px;">Predeterminado</div>
+                            </div>
+                            <div onclick="setTheme('light')" id="theme-light-btn" style="flex:1;padding:12px 15px;border-radius:var(--radius-md);border:1.5px solid rgba(255,255,255,0.1);background:transparent;cursor:pointer;text-align:center;transition:all 0.25s;">
+                                <div style="font-size:0.85rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;">Claro</div>
+                                <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:3px;">Fondo blanco</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="abandon-modal" class="modal-overlay">
+        <div class="settings-card glass-panel" style="text-align: center; max-width: 320px; padding: 25px 30px; border-radius: var(--radius-lg); border-top: 4px solid var(--accent-red); display: flex; flex-direction: column; gap: 15px;">
+            <div style="font-size: 1.2rem; font-weight: 900; color: var(--accent-red); text-transform: uppercase;">¿Abandonar Partida?</div>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">Se aplicará una penalidad de <strong style="color: var(--accent-red);">-300 pts</strong> a tu acumulado.</p>
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <button class="btn-outline" onclick="cancelAbandon()" style="flex: 1; border-color: var(--text-secondary); color: var(--text-secondary);">Cancelar</button>
+                <button class="btn-solid" onclick="confirmAbandon()" style="flex: 1; background: transparent; color: var(--accent-red); border-color: var(--accent-red);">Salir</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ranking-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
+            <div class="nav-title">CLASIFICACIÓN</div><div class="nav-spacer"></div>
+        </div>
+        <div class="content-scroll no-scrollbar">
+            <div class="ranking-wrapper">
+                <div id="ranking-list" class="ranking-list">
+                    <div class="ranking-loading">Conectando con la base de datos global...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="profile-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
+            <div class="nav-title">PERFIL</div><div class="nav-spacer"></div>
+        </div>
+        <div class="content-scroll no-scrollbar" style="align-items:stretch;">
+            <div class="profile-dashboard" style="padding-bottom:30px;">
+
+                <!-- Hero: nombre + rango -->
+                <div class="profile-hero glass-panel" style="border-color:rgba(var(--rank-rgb),0.18);">
+                    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 0% 50%,rgba(var(--rank-rgb),0.07) 0%,transparent 60%);pointer-events:none;"></div>
+                    <div class="profile-hero-left">
+                        <div class="profile-rank" id="profile-rank-display">Rango: Novato</div>
+                        <input type="text" id="profile-name-input" class="profile-name-input" placeholder="TU NOMBRE" autocomplete="off" maxlength="12">
+                        <div id="profile-warning" class="profile-warning">Se requiere un nombre</div>
+                    </div>
+                    <div class="profile-hero-right">
+                        <div style="font-size:0.58rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;">Nivel de Poder</div>
+                        <div style="display:flex;align-items:baseline;gap:5px;">
+                            <span id="pl-hero-total" style="font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:900;color:var(--rank-color);line-height:1;font-variant-numeric:tabular-nums;transition:color 0.5s;">0</span>
+                            <span style="font-size:0.6rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;">PL</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats 4 columnas -->
+                <div class="stats-grid">
+                    <div class="stat-card glass-panel"><div class="stat-value" id="stat-score">0</div><div class="stat-label">Récord</div></div>
+                    <div class="stat-card glass-panel"><div class="stat-value" id="stat-games">0</div><div class="stat-label">Partidas</div></div>
+                    <div class="stat-card glass-panel"><div class="stat-value" id="stat-streak">0</div><div class="stat-label">Racha Máx</div></div>
+                    <div class="stat-card glass-panel"><div class="stat-value" id="stat-days">0</div><div class="stat-label">Racha Días</div></div>
+                </div>
+
+                <!-- PL Panel + Logros en dos columnas -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;align-items:stretch;">
+
+                    <!-- Panel PL -->
+                    <div class="glass-panel" id="pl-panel" style="border-radius:var(--radius-lg);border-color:rgba(var(--rank-rgb),0.22);overflow:hidden;position:relative;">
+                        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 100% 0%,rgba(var(--rank-rgb),0.07) 0%,transparent 55%);pointer-events:none;"></div>
+
+                        <!-- Cabecera: total PL + posición -->
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid rgba(255,255,255,0.05);">
+                            <div>
+                                <div style="font-size:0.55rem;font-weight:700;letter-spacing:3px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">Nivel de Poder</div>
+                                <div style="display:flex;align-items:baseline;gap:6px;">
+                                    <span id="pl-total" style="font-size:clamp(1.8rem,3vw,2.4rem);font-weight:900;color:var(--rank-color);line-height:1;font-variant-numeric:tabular-nums;transition:color 0.5s;">0</span>
+                                    <span style="font-size:0.6rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;">PL</span>
+                                </div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:0.55rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">Ranking Global</div>
+                                <div id="pl-ranking-pos" style="font-size:clamp(1.4rem,2.5vw,1.9rem);font-weight:900;color:#ffffff;line-height:1;">#—</div>
+                            </div>
+                        </div>
+
+                        <!-- Tabla de cálculo -->
+                        <div style="padding:16px 24px 8px;">
+                            <div style="font-size:0.55rem;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,0.2);text-transform:uppercase;margin-bottom:10px;">Desglose del cálculo</div>
+                            <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:0 10px;margin-bottom:6px;padding:0 4px;">
+                                <span style="font-size:0.55rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.18);text-transform:uppercase;">Fuente</span>
+                                <span style="font-size:0.55rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.18);text-transform:uppercase;text-align:right;">Valor</span>
+                                <span style="font-size:0.55rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.18);text-transform:uppercase;text-align:center;">Factor</span>
+                                <span style="font-size:0.55rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.18);text-transform:uppercase;text-align:right;">= PL</span>
+                            </div>
+                            <div id="pl-rows" style="display:flex;flex-direction:column;gap:2px;"></div>
+                        </div>
+
+                        <!-- Total bar + footer -->
+                        <div style="padding:10px 24px 18px;">
+                            <div style="height:3px;border-radius:10px;background:rgba(255,255,255,0.05);overflow:hidden;margin-bottom:10px;">
+                                <div id="pl-bar-total" style="height:100%;border-radius:10px;background:var(--rank-color);width:0%;transition:width 1s cubic-bezier(0.16,1,0.3,1),background 0.5s;"></div>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:4px;">
+                                <span id="pl-next-label" style="font-size:0.58rem;color:var(--text-secondary);font-weight:500;flex:1;line-height:1.5;"></span>
+                                <span id="pl-accuracy-pct" style="font-size:0.58rem;color:var(--text-secondary);font-weight:600;white-space:nowrap;"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logros Destacados -->
+                    <div style="display:flex;flex-direction:column;gap:10px;height:100%;">
+                        <div class="profile-achievements-title">Logros Destacados</div>
+                        <div class="profile-achievements-grid" id="profile-achievements-grid" style="flex:1;height:100%;"></div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="guide-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
+            <div class="nav-title">INSTRUCCIONES</div><div class="nav-spacer"></div>
+        </div>
+        <div class="content-scroll no-scrollbar">
+            <div class="guide-dashboard">
+                <div class="guide-grid">
+
+                    <!-- Objetivo del juego -->
+                    <div class="guide-card glass-panel full-width" style="border-color: rgba(255,255,255,0.12);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        <div class="guide-title">Objetivo del Juego</div>
+                        <div class="guide-text">Klick es un trivia de <strong>preguntas sobre Lengua Española</strong>. Tienes <strong>15 segundos</strong> para responder cada pregunta y <strong>3 vidas</strong> para sobrevivir. Si fallas una respuesta o se te acaba el tiempo, pierdes una vida. Cuando pierdes las 3, la partida termina. ¡Tu objetivo es acumular el mayor puntaje posible!</div>
+                    </div>
+
+                    <!-- Puntuación -->
+                    <div class="guide-card glass-panel" style="border-color: rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <div class="guide-title">Puntuación por Velocidad</div>
+                        <div class="guide-text">Ganar puntos depende de <strong>qué tan rápido respondas</strong>. Una respuesta en los primeros segundos vale hasta <strong>1,600 pts</strong>, mientras que responder al límite vale solo <strong>800 pts</strong>. ¡La velocidad es clave!</div>
+                    </div>
+
+                    <!-- Modo Frenesí -->
+                    <div class="guide-card glass-panel" style="border-color: rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
+                        <div class="guide-title">Modo Frenesí</div>
+                        <div class="guide-text">Al encadenar <strong>5 aciertos seguidos</strong> activas el Modo Frenesí. El fondo cambia, la música se acelera y obtienes un <strong>multiplicador de puntos (x2)</strong>. Cada 5 aciertos más, el multiplicador sube: <strong>x2 → x3 → … → x10 (máximo)</strong>. ¡Un solo fallo lo resetea todo!</div>
+                    </div>
+
+                    <!-- Ruleta de Recompensas -->
+                    <div class="guide-card full-width glass-panel" style="border-color: rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M3.05 11a9 9 0 1 1 .5 4"/></svg>
+                        <div class="guide-title">Ruleta de Recompensas</div>
+                        <div class="guide-text">Al acumular aciertos durante la partida, aparece una <strong>ruleta de premios</strong>. Puedes mezclar y girar para obtener una recompensa aleatoria. Los premios tienen distintas <strong>raridades</strong> — los más raros aparecen con menor frecuencia.</div>
+                        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;margin-top:8px;">
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                                <strong style="font-size:0.78rem;">Vida Extra</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Recuperas una vida perdida.</span>
+                            </div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                <strong style="font-size:0.78rem;">Escudo</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Protección si fallas la siguiente.</span>
+                            </div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
+                                <strong style="font-size:0.78rem;">Frenesí</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Activa el Modo Frenesí al instante.</span>
+                            </div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                                <strong style="font-size:0.78rem;">Jackpot x4</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">La próxima pregunta vale x4.</span>
+                            </div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                                <strong style="font-size:0.78rem;">Puntos x2</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">La próxima vale el doble.</span>
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;">
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                                <strong style="font-size:0.78rem;">Turbo x3</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">La próxima vale x3 puntos.</span>
+                            </div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <strong style="font-size:0.78rem;">Tiempo +8</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">8 segundos extra en la próxima.</span>
+                            </div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+                                <strong style="font-size:0.78rem;">Tiempo +5</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">5 segundos extra en la próxima.</span>
+                            </div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="4"/></svg>
+                                <strong style="font-size:0.78rem;">Pista</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Elimina una respuesta incorrecta.</span>
+                            </div>
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                                <strong style="font-size:0.78rem;">Racha Salvada</strong>
+                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Tu racha no se resetea al fallar.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sistema de Rangos completo -->
+                    <div class="guide-card full-width glass-panel" style="border-color:rgba(255,255,255,0.1);gap:7px;padding:18px;">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);width:28px;height:28px;margin-bottom:0;"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>
+                        <div class="guide-title">Sistema de Rangos</div>
+                        <div class="guide-text" style="margin-bottom:6px;">Cumple <strong>TODOS</strong> los requisitos simultáneamente para ascender.</div>
+                        <!-- 3 rangos base -->
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;">
+                            <div class="rank-item" style="border-color:rgba(0,255,102,0.35);">
+                                <span class="rank-item-name" style="color:var(--accent-green);">Novato</span>
+                                <span class="rank-item-pts">Rango inicial</span>
+                            </div>
+                            <div class="rank-item" style="border-color:rgba(0,212,255,0.35);">
+                                <span class="rank-item-name" style="color:var(--accent-blue);">Junior</span>
+                                <span class="rank-item-pts">Récord 15k · 5 partidas</span>
+                            </div>
+                            <div class="rank-item" style="border-color:rgba(255,42,95,0.35);">
+                                <span class="rank-item-name" style="color:var(--accent-red);">Pro</span>
+                                <span class="rank-item-pts">Acum. 60k · 200 aciertos · Racha 12</span>
+                            </div>
+                        </div>
+                        <!-- 2 rangos medios -->
+                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;width:100%;">
+                            <div class="rank-item" style="border-color:rgba(181,23,158,0.35);">
+                                <span class="rank-item-name" style="color:var(--accent-purple);">Maestro</span>
+                                <span class="rank-item-pts">Acum. 150k · 50 partidas · Mult. x4</span>
+                            </div>
+                            <div class="rank-item" style="border-color:rgba(255,184,0,0.35);">
+                                <span class="rank-item-name" style="color:var(--accent-yellow);">Leyenda</span>
+                                <span class="rank-item-pts">Acum. 400k · 1,500 aciertos · 10 largas</span>
+                            </div>
+                        </div>
+                        <!-- Mítico solo, ancho completo -->
+                        <div style="width:100%;">
+                            <div class="rank-item mitico-item" style="width:100%;padding:10px 14px;">
+                                <span class="rank-item-name mitico-name">Mítico</span>
+                                <span class="rank-item-pts">Acum. 1.2M · 5,000 aciertos · 50 largas · 200 logros · Racha 40 · Mult. x8 · Precisión ≥85% · 30 días seguidos</span>
+                            </div>
+                        </div>
+                        <!-- Podio -->
+                        <div style="width:100%;border-top:1px solid rgba(255,184,0,0.2);padding-top:8px;margin-top:2px;">
+                            <div style="font-size:0.62rem;font-weight:800;color:var(--accent-yellow);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;text-align:center;">Rangos de Podio — Top 3 + Leyenda</div>
+                            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;">
+                                <div class="rank-item" style="border-color:rgba(110,143,173,0.45);">
+                                    <span class="rank-item-name" style="color:#6e8fad;">Rey Klick</span>
+                                    <span class="rank-item-pts">Leyenda + 1.º</span>
+                                </div>
+                                <div class="rank-item" style="border-color:rgba(255,94,0,0.4);">
+                                    <span class="rank-item-name" style="color:#ff5e00;">Señor Klick</span>
+                                    <span class="rank-item-pts">Leyenda + 2.º</span>
+                                </div>
+                                <div class="rank-item" style="border-color:rgba(204,255,0,0.4);">
+                                    <span class="rank-item-name" style="color:#ccff00;">Caballero Klick</span>
+                                    <span class="rank-item-pts">Leyenda + 3.º</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logros -->
+                    <div class="guide-card glass-panel" style="border-color: rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        <div class="guide-title">Banco de Logros</div>
+                        <div class="guide-text">Hay <strong>276 logros</strong> para desbloquear. Algunos son escalables (por jugar más), otros son únicos y secretos. Puedes <strong>fijar hasta 3 logros</strong> en tu perfil. ¡Descúbrelos explorando todas las secciones del juego!</div>
+                    </div>
+
+                    <!-- Power Level / Ranking -->
+                    <div class="guide-card glass-panel" style="border-color: rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg>
+                        <div class="guide-title">Clasificación Global</div>
+                        <div class="guide-text">La clasificación usa tu <strong>Nivel de Poder (PL)</strong>, calculado a partir de tu récord, racha máxima, partidas perfectas, logros y precisión. Compite con jugadores del mundo en <strong>tiempo real</strong>.</div>
+                    </div>
+
+                    <!-- RECOMPENSAS DE CLASIFICACIÓN -->
+                    <div class="guide-card full-width glass-panel" style="border-color: rgba(255,184,0,0.2);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-yellow);"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+                        <div class="guide-title" style="color: var(--accent-yellow);">Recompensas Mensuales de Clasificación</div>
+                        <div class="guide-text" style="text-align:left;line-height:1.8;">
+                            Los <strong>20 mejores jugadores</strong> reciben <strong style="color:var(--accent-yellow);">Pinceles del BPD</strong> mensualmente, entregados <strong>24 horas antes de la apertura de la tienda</strong>.
+                        </div>
+
+                        <!-- Podio -->
+                        <div style="margin-top:18px;width:100%;">
+                            <div style="font-size:0.65rem;font-weight:800;color:var(--accent-yellow);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">Nivel Podio — Puestos 1 al 3</div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <div style="flex:1 1 30%;min-width:90px;padding:14px 12px;border-radius:14px;border:1.5px solid rgba(255,215,0,0.5);background:rgba(255,215,0,0.07);text-align:center;">
+                                    <div style="font-size:1.5rem;font-weight:900;color:#ffd700;text-shadow:0 0 12px rgba(255,215,0,0.5);">1.º</div>
+                                    <div style="font-size:0.9rem;font-weight:800;color:#ffd700;margin-top:4px;">50,000</div>
+                                    <div style="font-size:0.6rem;color:rgba(255,215,0,0.6);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Pinceles</div>
+                                </div>
+                                <div style="flex:1 1 30%;min-width:90px;padding:14px 12px;border-radius:14px;border:1.5px solid rgba(192,192,192,0.45);background:rgba(192,192,192,0.06);text-align:center;">
+                                    <div style="font-size:1.5rem;font-weight:900;color:#c0c0c0;">2.º</div>
+                                    <div style="font-size:0.9rem;font-weight:800;color:#c0c0c0;margin-top:4px;">35,000</div>
+                                    <div style="font-size:0.6rem;color:rgba(192,192,192,0.6);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Pinceles</div>
+                                </div>
+                                <div style="flex:1 1 30%;min-width:90px;padding:14px 12px;border-radius:14px;border:1.5px solid rgba(205,127,50,0.45);background:rgba(205,127,50,0.06);text-align:center;">
+                                    <div style="font-size:1.5rem;font-weight:900;color:#cd7f32;">3.º</div>
+                                    <div style="font-size:0.9rem;font-weight:800;color:#cd7f32;margin-top:4px;">25,000</div>
+                                    <div style="font-size:0.6rem;color:rgba(205,127,50,0.6);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Pinceles</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Niveles -->
+                        <div style="margin-top:16px;width:100%;display:flex;flex-direction:column;gap:8px;">
+                            <!-- Oro -->
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-radius:12px;border:1px solid rgba(255,215,0,0.25);background:rgba(255,215,0,0.04);">
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <div style="width:10px;height:10px;border-radius:50%;background:#ffd700;box-shadow:0 0 8px rgba(255,215,0,0.6);flex-shrink:0;"></div>
+                                    <div>
+                                        <div style="font-size:0.8rem;font-weight:800;color:#ffd700;text-transform:uppercase;letter-spacing:1px;">Nivel Oro</div>
+                                        <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">Puestos 4 al 6</div>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="font-size:1rem;font-weight:900;color:#ffd700;">18,000</div>
+                                    <div style="font-size:0.58rem;color:var(--text-secondary);letter-spacing:1px;text-transform:uppercase;">Pinceles c/u</div>
+                                </div>
+                            </div>
+                            <!-- Plata -->
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-radius:12px;border:1px solid rgba(192,192,192,0.2);background:rgba(192,192,192,0.03);">
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <div style="width:10px;height:10px;border-radius:50%;background:#c0c0c0;box-shadow:0 0 8px rgba(192,192,192,0.4);flex-shrink:0;"></div>
+                                    <div>
+                                        <div style="font-size:0.8rem;font-weight:800;color:#c0c0c0;text-transform:uppercase;letter-spacing:1px;">Nivel Plata</div>
+                                        <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">Puestos 7 al 10</div>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="font-size:1rem;font-weight:900;color:#c0c0c0;">15,000</div>
+                                    <div style="font-size:0.58rem;color:var(--text-secondary);letter-spacing:1px;text-transform:uppercase;">Pinceles c/u</div>
+                                </div>
+                            </div>
+                            <!-- Bronce -->
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-radius:12px;border:1px solid rgba(205,127,50,0.2);background:rgba(205,127,50,0.03);">
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <div style="width:10px;height:10px;border-radius:50%;background:#cd7f32;box-shadow:0 0 8px rgba(205,127,50,0.4);flex-shrink:0;"></div>
+                                    <div>
+                                        <div style="font-size:0.8rem;font-weight:800;color:#cd7f32;text-transform:uppercase;letter-spacing:1px;">Nivel Bronce</div>
+                                        <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">Puestos 11 al 15</div>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="font-size:1rem;font-weight:900;color:#cd7f32;">12,000</div>
+                                    <div style="font-size:0.58rem;color:var(--text-secondary);letter-spacing:1px;text-transform:uppercase;">Pinceles c/u</div>
+                                </div>
+                            </div>
+                            <!-- Base -->
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);">
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <div style="width:10px;height:10px;border-radius:50%;background:var(--text-secondary);flex-shrink:0;"></div>
+                                    <div>
+                                        <div style="font-size:0.8rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;">Nivel Base</div>
+                                        <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">Puestos 16 al 20</div>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <div style="font-size:1rem;font-weight:900;color:var(--text-primary);">10,000</div>
+                                    <div style="font-size:0.58rem;color:var(--text-secondary);letter-spacing:1px;text-transform:uppercase;">Pinceles c/u</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:14px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                            <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.6;text-align:center;">Los pinceles se entregan directamente a tu cuenta del BPD. La posición en el ranking se toma el día de corte mensual. Asegúrate de estar activo y en el top 20 antes del cierre.</div>
+                        </div>
+                    </div>
+
+                    <!-- LO QUE NO DEBES HACER -->
+                    <div class="guide-card full-width glass-panel" style="border-color: rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                        <div class="guide-title">Lo que NO debes hacer</div>
+                        <div class="guide-text" style="text-align:left;line-height:1.7;">
+                            <strong>Tu cuenta puede ser penalizada o marcada permanentemente si:</strong><br><br>
+                            — <strong>Cambias de pestaña o minimizas</strong> la ventana durante una partida activa — el sistema detecta la trampa, aplica penalizaciones de puntos, racha y partidas perfectas, y te marca con el logro <em>TRAMPOSO</em> imborrable.<br>
+                            — <strong>Abandonas una partida</strong> a mitad — recibes una penalidad de <strong>-300 pts</strong> en tu puntaje acumulado.<br>
+                            — <strong>No responder a tiempo</strong> (dejar el reloj llegar a cero) te quita <strong>una vida</strong> exactamente igual que una respuesta incorrecta.<br>
+                            — <strong>Perder las 3 vidas</strong> termina la partida inmediatamente — no hay forma de recuperarlas en la misma ronda.<br>
+                            — <strong>Un fallo durante una racha</strong> reinicia el multiplicador completamente a x1 y desactiva el Modo Frenesí.<br><br>
+                            — <strong>Crear múltiples cuentas</strong> para manipular el ranking está estrictamente prohibido. Solo se permite una cuenta por alumno. Las cuentas duplicadas pueden ser penalizadas o eliminadas.<br>
+                            — <strong>Usar nombres falsos, apodos o nombres que no sean el tuyo propio</strong> no está permitido. Tu nombre de usuario debe ser tu nombre real de alumno (nombre y apellido, como máximo dos palabras). No se aceptan sobrenombres, palabras sin sentido ni combinaciones de caracteres aleatorias.<br><br>
+                            <strong>Nota:</strong> La marca de TRAMPOSO aparece fijada en tu perfil de forma permanente y no puede quitarse ni ocultarse.<br><br>
+                            <strong>Advertencia:</strong> Si borras el historial del navegador o limpias los datos del sitio, <strong>perderás tu cuenta, puntajes, logros y progreso permanentemente</strong>. El juego guarda todos los datos en el almacenamiento local del navegador.
+                        </div>
+                    </div>
+
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="achievements-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
+            <div class="nav-title">LOGROS</div><div class="nav-spacer"></div>
+        </div>
+        <div class="achievements-stats" id="achievements-progress-text" style="text-align:center;color:var(--text-secondary);font-weight:600;font-size:1rem;letter-spacing:1px;padding:12px 0 8px;flex-shrink:0;">Desbloqueados: 0 / 270</div>
+        <!-- Virtual scroller: solo se renderizan las tarjetas visibles -->
+        <div id="vscroll-container" style="flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;">
+            <div id="vscroll-spacer" style="position:relative;width:100%;">
+                <div id="vscroll-content" style="position:absolute;left:0;right:0;top:0;padding:0 15px 40px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="countdown-screen" class="screen">
+        <div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:15px;">
+            <div id="countdown-number" style="font-size:clamp(8rem,25vw,14rem);font-weight:900;color:var(--rank-color);text-shadow:0 0 40px rgba(var(--rank-rgb),0.5);transition:all 0.3s var(--ease-spring);line-height:1;"></div>
+            <div id="countdown-label" style="font-size:clamp(0.8rem,2vw,1.1rem);font-weight:700;letter-spacing:4px;color:var(--text-secondary);text-transform:uppercase;"></div>
+        </div>
+    </div>
+
+    <div id="question-screen" class="screen">
+        <div class="top-bar">
+            <div>
+                <button class="btn-abandon" onclick="abandonGame()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    Salir
+                </button>
+            </div>
+            <div>
+                <div id="player-name-display">JUGADOR</div>
+                <div id="lives-container">
+                    </div>
+            </div>
+            <div>
+                <div id="multiplier-badge" class="multiplier-badge">x1</div>
+                <div class="score-badge" id="score-display">0</div>
+            </div>
+        </div>
+        <!-- Indicador de recompensa activa de la ruleta -->
+        <div id="active-reward-bar" style="display:none;width:100%;padding:4px 16px;background:rgba(0,0,0,0.35);border-bottom:1px solid rgba(255,255,255,0.06);align-items:center;justify-content:center;gap:8px;font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:#fff;position:relative;z-index:2;">
+            <span id="active-reward-icon" style="font-size:1rem;"></span>
+            <span id="active-reward-text"></span>
+        </div>
+        <div class="question-container">
+            <div class="timer-wrapper">
+                <svg class="timer-svg" viewBox="0 0 100 100"><circle class="timer-bg" cx="50" cy="50" r="45"></circle><circle class="timer-path" id="timer-path" cx="50" cy="50" r="45"></circle></svg>
+                <div class="timer-text" id="timer-display">15</div>
+            </div>
+            <div class="question-text" id="question-text">Cargando...</div>
+        </div>
+        <div class="answers-grid" id="answers-grid">
+            <button class="answer-btn color-red ans-delay-1" onclick="selectAnswer(0)"><svg class="shape-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 22 20 2 20"></polygon></svg><span id="ans-0">Opción 1</span></button>
+            <button class="answer-btn color-blue ans-delay-2" onclick="selectAnswer(1)"><svg class="shape-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 22 12 12 22 2 12"></polygon></svg><span id="ans-1">Opción 2</span></button>
+            <button class="answer-btn color-yellow ans-delay-3" onclick="selectAnswer(2)"><svg class="shape-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle></svg><span id="ans-2">Opción 3</span></button>
+            <button class="answer-btn color-green ans-delay-4" onclick="selectAnswer(3)"><svg class="shape-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect></svg><span id="ans-3">Opción 4</span></button>
+        </div>
+        <div class="progress-bar-container" id="progress-container"><div class="progress-bar" id="global-progress"></div></div>
+    </div>
+
+    <div id="feedback-screen" class="screen">
+        <div class="feedback-content">
+            <div id="feedback-icon-container"></div>
+            <div class="feedback-title" id="feedback-title">Correcto</div>
+            <div class="feedback-points" id="feedback-points">+850</div>
+            <div class="streak-box">Racha <span id="streak-display">1</span></div>
+        </div>
+    </div>
+
+    <div id="end-screen" class="screen">
+        <div class="end-fullscreen" id="end-glass-panel">
+            <div class="end-rank-label" id="end-rank-label">Resultado</div>
+            <div class="end-message" id="final-message">Buen Desempeño</div>
+            <div class="end-name" id="final-name">JUGADOR</div>
+            <div class="end-score-value" id="final-score-display">0</div>
+            <div class="end-score-label">Puntos</div>
+            <div class="end-stats-grid">
+                <div class="end-stat"><span class="end-stat-val" id="final-correct">0</span><span class="end-stat-label" id="final-correct-label">Aciertos</span></div>
+                <div class="end-stat"><span class="end-stat-val" id="final-streak">0</span><span class="end-stat-label">Racha Max</span></div>
+                <div class="end-stat"><span class="end-stat-val" id="final-speed">0</span><span class="end-stat-label">Rapidas</span></div>
+            </div>
+            <div class="end-actions">
+                <button class="btn-end-menu" onclick="goToMainMenu()">Menu</button>
+                <button class="btn-end-replay" onclick="replayGame()">Jugar de Nuevo</button>
+            </div>
+        </div>
+    </div>
+    <!-- ══════════════════════════════════════════════════════ KLICK PASS ══ -->
+    <div id="klickpass-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                <span>Regresar</span>
+            </button>
+            <div class="nav-title">KLICK PASS</div>
+            <div class="nav-spacer"></div>
+        </div>
+
+        <!-- Header con progreso global -->
+        <div id="kp-header" class="kp-header">
+            <div class="kp-cycle-label">CAMINO DE PROGRESO</div>
+            <div class="kp-progress-summary">
+                <span class="kp-progress-count" id="kp-progress-count">0 / 100</span>
+                <span class="kp-progress-label">niveles completados</span>
+            </div>
+            <div class="kp-total-bar-wrap">
+                <div class="kp-total-bar-fill" id="kp-total-bar-fill"></div>
+            </div>
+            <div class="kp-reward-total" id="kp-reward-total">0 ℙ reclamados</div>
+        </div>
+
+        <!-- Scroll con el camino de niveles -->
+        <div class="content-scroll no-scrollbar kp-scroll" id="kp-scroll">
+            <div class="kp-path-container" id="kp-path-container">
+                <!-- Se genera dinámicamente con JS -->
+            </div>
+        </div>
+    </div>
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <!-- SISTEMA DE RECOMPENSAS -->
+    <div id="roulette-overlay">
+        <canvas id="roulette-particle-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;"></canvas>
+        <div class="rl-header" style="position:relative;z-index:1;">
+            <div class="rl-label">Recompensa</div>
+            <div class="rl-title">Elige tu <span>Premio</span></div>
+        </div>
+        <div class="rl-stage" id="rl-stage" style="position:relative;z-index:1;">
+            <div class="rl-pointer"></div>
+        </div>
+        <div class="rl-result-zone" id="rl-result-zone" style="position:relative;z-index:1;">
+            <div class="rl-result-name" id="rl-result-name"></div>
+            <div class="rl-result-desc" id="rl-result-desc"></div>
+        </div>
+        <button class="rl-btn" id="roulette-spin-btn" onclick="spinRoulette()" style="position:relative;z-index:1;">MEZCLAR Y GIRAR</button>
+    </div>
+
+</div>
+
+    <!-- Script principal: al final del body para acceder al DOM completo -->
+    <script src="script.js"></script>
+</body>
+</html>
