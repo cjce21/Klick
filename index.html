@@ -270,321 +270,113 @@
             <div class="guide-dashboard">
                 <div class="guide-grid">
 
-                    <!-- Objetivo del juego -->
-                    <div class="guide-card glass-panel full-width" style="border-color: rgba(255,255,255,0.12);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                        <div class="guide-title">Objetivo del Juego</div>
-                        <div class="guide-text">Klick es un trivia de <strong>preguntas sobre Lengua Española</strong>. Tienes <strong>15 segundos</strong> para responder cada pregunta y <strong>3 vidas</strong> para sobrevivir. Si fallas una respuesta o se te acaba el tiempo, pierdes una vida. Cuando pierdes las 3, la partida termina. ¡Tu objetivo es acumular el mayor puntaje posible!</div>
+                    <!-- PROPÓSITO PEDAGÓGICO -->
+                    <div class="guide-card glass-panel full-width" style="border-color:rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                        <div class="guide-title">Propósito del juego</div>
+                        <div class="guide-text">Klick es una herramienta de práctica para el estudio de la <strong>Lengua Española</strong>, diseñada bajo principios de aprendizaje activo y recuperación espaciada. Cada partida somete al jugador a una serie de preguntas de opción múltiple que exigen recuperar conocimiento de forma activa —no pasiva— lo cual, según la investigación en psicología cognitiva, produce una retención significativamente mayor que la relectura o la revisión de apuntes. El componente de presión temporal, la progresión de dificultad y los sistemas de retroalimentación inmediata están diseñados para mantener el nivel de alerta cognitiva necesario para que el aprendizaje se consolide.</div>
                     </div>
 
-                    <!-- Puntuación -->
-                    <div class="guide-card glass-panel" style="border-color: rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        <div class="guide-title">Puntuación por Velocidad</div>
-                        <div class="guide-text">Ganar puntos depende de <strong>qué tan rápido respondas</strong>. Una respuesta en los primeros segundos vale hasta <strong>1,600 pts</strong>, mientras que responder al límite vale solo <strong>800 pts</strong>. ¡La velocidad es clave!</div>
-                        <div style="margin-top:8px;padding:8px 11px;border-radius:8px;background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.18);font-size:0.68rem;color:var(--text-secondary);line-height:1.6;">
-                            🕐 <strong style="color:#00d4ff;">Preguntas largas</strong> — Las preguntas con mucho texto reciben automáticamente <strong style="color:var(--text-primary);">el doble de tiempo</strong> (30 s) para que puedas leerlas con calma. La puntuación se normaliza igual que en preguntas cortas.
-                        </div>
+                    <!-- MECÁNICA CENTRAL -->
+                    <div class="guide-card glass-panel" style="border-color:rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        <div class="guide-title">Mecánica central</div>
+                        <div class="guide-text">El jugador dispone de <strong>3 vidas</strong> y un tiempo límite por pregunta. Un error o un tiempo agotado descuenta una vida. Al perder las tres, la partida concluye. Esta estructura de riesgo sostenido —donde cada fallo tiene consecuencia real pero no termina la sesión de inmediato— busca inducir un estado de atención sostenida sin generar ansiedad paralizante, manteniendo al jugador cognitivamente presente a lo largo de toda la sesión.</div>
                     </div>
 
-                    <!-- Modo Frenesí -->
-                    <div class="guide-card glass-panel" style="border-color: rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
-                        <div class="guide-title">Modo Frenesí</div>
-                        <div class="guide-text">Al encadenar <strong>5 aciertos seguidos</strong> activas el Modo Frenesí. El fondo cambia, la música se acelera y obtienes un <strong>multiplicador de puntos (x2)</strong>. Cada 5 aciertos más, el multiplicador sube: <strong>x2 → x3 → … → x10 (máximo)</strong>. ¡Un solo fallo lo resetea todo!</div>
+                    <!-- TIEMPO Y LECTURA -->
+                    <div class="guide-card glass-panel" style="border-color:rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <div class="guide-title">Tiempo y puntuación por velocidad</div>
+                        <div class="guide-text">Las preguntas cortas disponen de <strong>15 segundos</strong>; las preguntas largas reciben automáticamente <strong>30 segundos</strong> para garantizar una lectura comprensiva. En ambos casos, la puntuación es proporcional a la velocidad de respuesta: responder en los primeros instantes puede otorgar hasta <strong>1.600 puntos</strong>, mientras que responder al límite reduce esa cifra a <strong>800 puntos</strong>. Este mecanismo recompensa la certeza rápida —fruto del conocimiento bien consolidado— sin penalizar a quien necesita un momento adicional para razonar.</div>
                     </div>
 
-                    <!-- Ruleta de Recompensas -->
-                    <div class="guide-card full-width glass-panel" style="border-color: rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M3.05 11a9 9 0 1 1 .5 4"/></svg>
-                        <div class="guide-title">Ruleta de Recompensas</div>
-                        <div class="guide-text">Cada <strong>10 aciertos acumulados</strong> durante la partida aparece la ruleta. Mezcla y gira para obtener un premio aleatorio. Hay <strong>10 premios únicos</strong> agrupados en 5 niveles de raridad — los más raros tienen menor probabilidad de aparecer.</div>
-
-                        <!-- Etiquetas de raridad -->
-                        <div style="display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-top:6px;margin-bottom:2px;">
-                            <span style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;padding:3px 9px;border-radius:20px;background:rgba(255,42,95,0.15);color:#ff2a5f;border:1px solid rgba(255,42,95,0.3);">LEGENDARIO</span>
-                            <span style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;padding:3px 9px;border-radius:20px;background:rgba(181,23,158,0.15);color:#b5179e;border:1px solid rgba(181,23,158,0.3);">ÉPICO</span>
-                            <span style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;padding:3px 9px;border-radius:20px;background:rgba(255,184,0,0.15);color:#ffb800;border:1px solid rgba(255,184,0,0.3);">RARO</span>
-                            <span style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;padding:3px 9px;border-radius:20px;background:rgba(0,255,102,0.1);color:#00ff66;border:1px solid rgba(0,255,102,0.2);">NORMAL</span>
-                            <span style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;padding:3px 9px;border-radius:20px;background:rgba(170,170,255,0.1);color:#aaaaff;border:1px solid rgba(170,170,255,0.2);">BÁSICO</span>
-                        </div>
-
-                        <!-- Fila 1: Legendario + Épico (3) -->
-                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-top:8px;">
-                            <!-- Vida Extra — Legendario -->
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(255,42,95,0.07);border:1px solid rgba(255,42,95,0.25);border-radius:10px;padding:12px 8px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:#ff2a5f;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                                <strong style="font-size:0.78rem;color:#ff2a5f;">Vida Extra</strong>
-                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">Recupera una vida perdida.</span>
-                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#ff2a5f;opacity:0.7;">LEGENDARIO</span>
-                            </div>
-                            <!-- Frenesí — Épico -->
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(181,23,158,0.07);border:1px solid rgba(181,23,158,0.25);border-radius:10px;padding:12px 8px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:#b5179e;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                                <strong style="font-size:0.78rem;color:#b5179e;">Frenesí</strong>
-                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">Activa el Modo Frenesí inmediatamente.</span>
-                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#b5179e;opacity:0.7;">ÉPICO</span>
-                            </div>
-                            <!-- Jackpot x4 — Épico -->
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(255,0,144,0.07);border:1px solid rgba(255,0,144,0.25);border-radius:10px;padding:12px 8px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:#ff0090;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                                <strong style="font-size:0.78rem;color:#ff0090;">Jackpot x4</strong>
-                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">La próxima pregunta vale x4 puntos.</span>
-                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#ff0090;opacity:0.7;">ÉPICO</span>
-                            </div>
-                        </div>
-
-                        <!-- Fila 2: Raro (3) -->
-                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;">
-                            <!-- Escudo — Raro -->
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.22);border-radius:10px;padding:12px 8px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:#00d4ff;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                <strong style="font-size:0.78rem;color:#00d4ff;">Escudo</strong>
-                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">Falla sin perder vida la próxima vez.</span>
-                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#00d4ff;opacity:0.7;">RARO</span>
-                            </div>
-                            <!-- Puntos x2 — Raro -->
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(255,184,0,0.07);border:1px solid rgba(255,184,0,0.22);border-radius:10px;padding:12px 8px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:#ffb800;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-                                <strong style="font-size:0.78rem;color:#ffb800;">Puntos x2</strong>
-                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">La próxima vale el doble de puntos.</span>
-                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#ffb800;opacity:0.7;">RARO</span>
-                            </div>
-                            <!-- Turbo x3 — Raro -->
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(204,255,0,0.07);border:1px solid rgba(204,255,0,0.22);border-radius:10px;padding:12px 8px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:#ccff00;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
-                                <strong style="font-size:0.78rem;color:#ccff00;">Turbo x3</strong>
-                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">La próxima vale x3 puntos.</span>
-                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#ccff00;opacity:0.7;">RARO</span>
-                            </div>
-                        </div>
-
-                        <!-- Fila 3: Normal (2) + Básico (1) -->
-                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:100%;">
-                            <!-- Tiempo +8 — Normal -->
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(0,255,204,0.06);border:1px solid rgba(0,255,204,0.18);border-radius:10px;padding:12px 8px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:#00ffcc;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
-                                <strong style="font-size:0.78rem;color:#00ffcc;">Tiempo +8</strong>
-                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">8 segundos extra en la próxima pregunta.</span>
-                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#00ffcc;opacity:0.7;">NORMAL</span>
-                            </div>
-                            <!-- Pista — Normal -->
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(247,127,0,0.06);border:1px solid rgba(247,127,0,0.18);border-radius:10px;padding:12px 8px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:#f77f00;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                <strong style="font-size:0.78rem;color:#f77f00;">Pista</strong>
-                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">Elimina una respuesta incorrecta.</span>
-                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#f77f00;opacity:0.7;">NORMAL</span>
-                            </div>
-                        </div>
-                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:100%;">
-                            <!-- Tiempo +5 — Normal -->
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(0,255,102,0.06);border:1px solid rgba(0,255,102,0.18);border-radius:10px;padding:12px 8px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:#00ff66;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                                <strong style="font-size:0.78rem;color:#00ff66;">Tiempo +5</strong>
-                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">5 segundos extra en la próxima pregunta.</span>
-                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#00ff66;opacity:0.7;">NORMAL</span>
-                            </div>
-                            <!-- Racha Salvada — Básico -->
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(170,170,255,0.06);border:1px solid rgba(170,170,255,0.18);border-radius:10px;padding:12px 8px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:#aaaaff;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                                <strong style="font-size:0.78rem;color:#aaaaff;">Racha Salvada</strong>
-                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">Si fallas la siguiente, tu racha no se pierde.</span>
-                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#aaaaff;opacity:0.7;">BÁSICO</span>
-                            </div>
-                        </div>
-
-                        <!-- Nota: multiplicadores se combinan con el multiplicador de racha -->
-                        <div style="width:100%;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);font-size:0.68rem;color:var(--text-secondary);line-height:1.6;margin-top:4px;">
-                            💡 <strong style="color:var(--text-primary);">Multiplicadores:</strong> Los premios x2, x3 y x4 se <em>multiplican sobre</em> tu multiplicador de racha actual. En Frenesí con x5 de racha, un Jackpot x4 da ¡x20 efectivo!
-                        </div>
+                    <!-- RACHA Y MULTIPLICADOR -->
+                    <div class="guide-card glass-panel" style="border-color:rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
+                        <div class="guide-title">Racha y modo frenesí</div>
+                        <div class="guide-text">Encadenar <strong>5 aciertos consecutivos</strong> activa el Modo Frenesí y un multiplicador de puntos (<strong>×2</strong>). Por cada 5 aciertos adicionales el multiplicador asciende: ×3, ×4 … hasta ×10. Un único error interrumpe la racha y devuelve el multiplicador a ×1. Este sistema introduce el concepto de <em>flujo cognitivo</em>: el incremento de recompensa proporcional al rendimiento sostenido refuerza los comportamientos de estudio perseverante y penaliza la dispersión, incentivando al alumno a mantener la concentración de forma continua.</div>
                     </div>
 
-                    <!-- Sistema de Rangos completo -->
-                    <div class="guide-card full-width glass-panel" style="border-color:rgba(255,255,255,0.1);gap:7px;padding:18px;">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);width:28px;height:28px;margin-bottom:0;"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>
-                        <div class="guide-title">Sistema de Rangos</div>
-                        <div class="guide-text" style="margin-bottom:6px;">Cumple <strong>TODOS</strong> los requisitos simultáneamente para ascender.</div>
-                        <!-- 3 rangos base -->
-                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;">
-                            <div class="rank-item" style="border-color:rgba(0,255,102,0.35);">
-                                <span class="rank-item-name" style="color:var(--accent-green);">Novato</span>
-                                <span class="rank-item-pts">Rango inicial</span>
+                    <!-- RULETA DE RECOMPENSAS -->
+                    <div class="guide-card glass-panel full-width" style="border-color:rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M3.05 11a9 9 0 1 1 .5 4"/></svg>
+                        <div class="guide-title">Ruleta de recompensas</div>
+                        <div class="guide-text">Cada <strong>10 aciertos acumulados</strong> en la partida se activa la ruleta, que otorga un premio aleatorio según probabilidades diferenciadas por rareza. Su función pedagógica es doble: por un lado introduce un refuerzo variable —el tipo de recompensa más potente para sostener la motivación a largo plazo, documentado extensamente en la literatura conductista—; por otro, los premios orientados al tiempo (Tiempo +5, Tiempo +8) atenúan la presión cognitiva en momentos de sobrecarga, mientras que los orientados a puntuación (×2, ×3, ×4) crean picos de motivación intrínseca que el alumno asocia con sus propios aciertos acumulados. Los <strong>10 premios</strong> disponibles, agrupados por rareza, son:</div>
+                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:7px;width:100%;margin-top:10px;">
+                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#ff2a5f;margin-bottom:4px;">LEGENDARIO</div>
+                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Vida Extra</div>
+                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">Recupera una vida perdida.</div>
                             </div>
-                            <div class="rank-item" style="border-color:rgba(0,212,255,0.35);">
-                                <span class="rank-item-name" style="color:var(--accent-blue);">Junior</span>
-                                <span class="rank-item-pts">Récord 15k · 5 partidas</span>
+                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#b5179e;margin-bottom:4px;">ÉPICO</div>
+                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Frenesí</div>
+                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">Activa el Modo Frenesí de inmediato.</div>
                             </div>
-                            <div class="rank-item" style="border-color:rgba(255,42,95,0.35);">
-                                <span class="rank-item-name" style="color:var(--accent-red);">Pro</span>
-                                <span class="rank-item-pts">Acum. 60k · 200 aciertos · Racha 12</span>
+                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#b5179e;margin-bottom:4px;">ÉPICO</div>
+                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Jackpot ×4</div>
+                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">La siguiente pregunta vale cuatro veces los puntos habituales.</div>
                             </div>
-                        </div>
-                        <!-- 2 rangos medios -->
-                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;width:100%;">
-                            <div class="rank-item" style="border-color:rgba(181,23,158,0.35);">
-                                <span class="rank-item-name" style="color:var(--accent-purple);">Maestro</span>
-                                <span class="rank-item-pts">Acum. 150k · 50 partidas · Mult. x4</span>
+                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#00d4ff;margin-bottom:4px;">RARO</div>
+                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Escudo</div>
+                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">Absorbe un fallo en la siguiente pregunta sin costar vida.</div>
                             </div>
-                            <div class="rank-item" style="border-color:rgba(255,184,0,0.35);">
-                                <span class="rank-item-name" style="color:var(--accent-yellow);">Leyenda</span>
-                                <span class="rank-item-pts">Acum. 400k · 1,500 aciertos · 10 largas</span>
+                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#ffb800;margin-bottom:4px;">RARO</div>
+                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Puntos ×2</div>
+                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">La siguiente pregunta otorga el doble de puntos.</div>
                             </div>
-                        </div>
-                        <!-- Mítico solo, ancho completo -->
-                        <div style="width:100%;">
-                            <div class="rank-item mitico-item" style="width:100%;padding:10px 14px;">
-                                <span class="rank-item-name mitico-name">Mítico</span>
-                                <span class="rank-item-pts">Acum. 1.2M · 5,000 aciertos · 50 largas · 200 logros · Racha 40 · Mult. x8 · Precisión ≥85% · 30 días seguidos</span>
+                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#ccff00;margin-bottom:4px;">RARO</div>
+                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Turbo ×3</div>
+                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">La siguiente pregunta vale el triple de puntos.</div>
                             </div>
-                        </div>
-                        <!-- Podio -->
-                        <div style="width:100%;border-top:1px solid rgba(255,184,0,0.2);padding-top:8px;margin-top:2px;">
-                            <div style="font-size:0.62rem;font-weight:800;color:var(--accent-yellow);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;text-align:center;">Rangos de Podio — Top 3 + Leyenda</div>
-                            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;">
-                                <div class="rank-item" style="border-color:rgba(110,143,173,0.45);">
-                                    <span class="rank-item-name" style="color:#6e8fad;">Rey Klick</span>
-                                    <span class="rank-item-pts">Leyenda + 1.º</span>
-                                </div>
-                                <div class="rank-item" style="border-color:rgba(255,94,0,0.4);">
-                                    <span class="rank-item-name" style="color:#ff5e00;">Señor Klick</span>
-                                    <span class="rank-item-pts">Leyenda + 2.º</span>
-                                </div>
-                                <div class="rank-item" style="border-color:rgba(204,255,0,0.4);">
-                                    <span class="rank-item-name" style="color:#ccff00;">Caballero Klick</span>
-                                    <span class="rank-item-pts">Leyenda + 3.º</span>
-                                </div>
+                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#00ffcc;margin-bottom:4px;">NORMAL</div>
+                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Tiempo +8</div>
+                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">Añade ocho segundos al reloj de la siguiente pregunta.</div>
+                            </div>
+                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#f77f00;margin-bottom:4px;">NORMAL</div>
+                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Pista</div>
+                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">Elimina una opción incorrecta de la siguiente pregunta.</div>
+                            </div>
+                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#00ff66;margin-bottom:4px;">NORMAL</div>
+                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Tiempo +5</div>
+                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">Añade cinco segundos al reloj de la siguiente pregunta.</div>
+                            </div>
+                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#aaaaff;margin-bottom:4px;">BÁSICO</div>
+                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Racha Salvada</div>
+                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">Si se falla la siguiente pregunta, la racha y el multiplicador se conservan.</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Logros -->
-                    <div class="guide-card glass-panel" style="border-color: rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                        <div class="guide-title">Banco de Logros</div>
-                        <div class="guide-text">Hay <strong>276 logros</strong> para desbloquear. Algunos son escalables (por jugar más), otros son únicos y secretos. Puedes <strong>fijar hasta 3 logros</strong> en tu perfil. ¡Descúbrelos explorando todas las secciones del juego!</div>
+                    <!-- SISTEMA DE PROGRESIÓN -->
+                    <div class="guide-card glass-panel full-width" style="border-color:rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <div class="guide-title">Sistema de progresión y rangos</div>
+                        <div class="guide-text">El progreso del jugador se articula en torno a tres ejes complementarios. El <strong>puntaje acumulado</strong> refleja el volumen total de práctica realizada. El <strong>récord por partida</strong> mide la calidad del rendimiento puntual. La <strong>racha máxima</strong> evidencia la capacidad de mantener precisión sostenida bajo presión. La combinación de estos tres indicadores determina el <strong>rango</strong> del jugador —Novato, Junior, Pro, Maestro, Leyenda o Mítico— que funciona como un indicador externo de progreso académico comparable a una rúbrica de desempeño. El Nivel de Poder (PL) integra adicionalmente la precisión global, las partidas perfectas y los logros desbloqueados para construir una métrica multidimensional del aprendizaje.</div>
                     </div>
 
-                    <!-- Power Level / Ranking -->
-                    <div class="guide-card glass-panel" style="border-color: rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg>
-                        <div class="guide-title">Clasificación Global</div>
-                        <div class="guide-text">La clasificación usa tu <strong>Nivel de Poder (PL)</strong>, calculado a partir de tu récord, racha máxima, partidas perfectas, logros y precisión. Compite con jugadores del mundo en <strong>tiempo real</strong>.</div>
+                    <!-- LOGROS Y MOTIVACIÓN -->
+                    <div class="guide-card glass-panel full-width" style="border-color:rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        <div class="guide-title">Banco de logros y motivación intrínseca</div>
+                        <div class="guide-text">El juego incorpora un sistema de logros que registra hitos de rendimiento de naturaleza muy variada: velocidad de respuesta, constancia diaria, exploración de funciones, errores acumulados, partidas perfectas y combinaciones de condiciones poco probables. Desde la perspectiva de la motivación, los logros operan como metas parciales que mantienen el compromiso del alumno más allá del resultado de una partida aislada. Los logros escalables —obtenibles en múltiples umbrales— producen un ciclo continuo de retroalimentación positiva, mientras que los logros únicos y secretos estimulan la curiosidad y la exploración autónoma, componentes clave del aprendizaje autorregulado.</div>
                     </div>
 
-                    <!-- RECOMPENSAS DE CLASIFICACIÓN -->
-                    <div class="guide-card full-width glass-panel" style="border-color: rgba(255,184,0,0.2);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-yellow);"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
-                        <div class="guide-title" style="color: var(--accent-yellow);">Recompensas Mensuales de Clasificación</div>
-                        <div class="guide-text" style="text-align:left;line-height:1.8;">
-                            Los <strong>20 mejores jugadores</strong> reciben <strong style="color:var(--accent-yellow);">Pinceles del BPD</strong> mensualmente, entregados <strong>24 horas antes de la apertura de la tienda</strong>.
-                        </div>
-
-                        <!-- Podio -->
-                        <div style="margin-top:18px;width:100%;">
-                            <div style="font-size:0.65rem;font-weight:800;color:var(--accent-yellow);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">Nivel Podio — Puestos 1 al 3</div>
-                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                                <div style="flex:1 1 30%;min-width:90px;padding:14px 12px;border-radius:14px;border:1.5px solid rgba(255,215,0,0.5);background:rgba(255,215,0,0.07);text-align:center;">
-                                    <div style="font-size:1.5rem;font-weight:900;color:#ffd700;text-shadow:0 0 12px rgba(255,215,0,0.5);">1.º</div>
-                                    <div style="font-size:0.9rem;font-weight:800;color:#ffd700;margin-top:4px;">50,000</div>
-                                    <div style="font-size:0.6rem;color:rgba(255,215,0,0.6);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Pinceles</div>
-                                </div>
-                                <div style="flex:1 1 30%;min-width:90px;padding:14px 12px;border-radius:14px;border:1.5px solid rgba(192,192,192,0.45);background:rgba(192,192,192,0.06);text-align:center;">
-                                    <div style="font-size:1.5rem;font-weight:900;color:#c0c0c0;">2.º</div>
-                                    <div style="font-size:0.9rem;font-weight:800;color:#c0c0c0;margin-top:4px;">35,000</div>
-                                    <div style="font-size:0.6rem;color:rgba(192,192,192,0.6);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Pinceles</div>
-                                </div>
-                                <div style="flex:1 1 30%;min-width:90px;padding:14px 12px;border-radius:14px;border:1.5px solid rgba(205,127,50,0.45);background:rgba(205,127,50,0.06);text-align:center;">
-                                    <div style="font-size:1.5rem;font-weight:900;color:#cd7f32;">3.º</div>
-                                    <div style="font-size:0.9rem;font-weight:800;color:#cd7f32;margin-top:4px;">25,000</div>
-                                    <div style="font-size:0.6rem;color:rgba(205,127,50,0.6);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;">Pinceles</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Niveles -->
-                        <div style="margin-top:16px;width:100%;display:flex;flex-direction:column;gap:8px;">
-                            <!-- Oro -->
-                            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-radius:12px;border:1px solid rgba(255,215,0,0.25);background:rgba(255,215,0,0.04);">
-                                <div style="display:flex;align-items:center;gap:12px;">
-                                    <div style="width:10px;height:10px;border-radius:50%;background:#ffd700;box-shadow:0 0 8px rgba(255,215,0,0.6);flex-shrink:0;"></div>
-                                    <div>
-                                        <div style="font-size:0.8rem;font-weight:800;color:#ffd700;text-transform:uppercase;letter-spacing:1px;">Nivel Oro</div>
-                                        <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">Puestos 4 al 6</div>
-                                    </div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <div style="font-size:1rem;font-weight:900;color:#ffd700;">18,000</div>
-                                    <div style="font-size:0.58rem;color:var(--text-secondary);letter-spacing:1px;text-transform:uppercase;">Pinceles c/u</div>
-                                </div>
-                            </div>
-                            <!-- Plata -->
-                            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-radius:12px;border:1px solid rgba(192,192,192,0.2);background:rgba(192,192,192,0.03);">
-                                <div style="display:flex;align-items:center;gap:12px;">
-                                    <div style="width:10px;height:10px;border-radius:50%;background:#c0c0c0;box-shadow:0 0 8px rgba(192,192,192,0.4);flex-shrink:0;"></div>
-                                    <div>
-                                        <div style="font-size:0.8rem;font-weight:800;color:#c0c0c0;text-transform:uppercase;letter-spacing:1px;">Nivel Plata</div>
-                                        <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">Puestos 7 al 10</div>
-                                    </div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <div style="font-size:1rem;font-weight:900;color:#c0c0c0;">15,000</div>
-                                    <div style="font-size:0.58rem;color:var(--text-secondary);letter-spacing:1px;text-transform:uppercase;">Pinceles c/u</div>
-                                </div>
-                            </div>
-                            <!-- Bronce -->
-                            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-radius:12px;border:1px solid rgba(205,127,50,0.2);background:rgba(205,127,50,0.03);">
-                                <div style="display:flex;align-items:center;gap:12px;">
-                                    <div style="width:10px;height:10px;border-radius:50%;background:#cd7f32;box-shadow:0 0 8px rgba(205,127,50,0.4);flex-shrink:0;"></div>
-                                    <div>
-                                        <div style="font-size:0.8rem;font-weight:800;color:#cd7f32;text-transform:uppercase;letter-spacing:1px;">Nivel Bronce</div>
-                                        <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">Puestos 11 al 15</div>
-                                    </div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <div style="font-size:1rem;font-weight:900;color:#cd7f32;">12,000</div>
-                                    <div style="font-size:0.58rem;color:var(--text-secondary);letter-spacing:1px;text-transform:uppercase;">Pinceles c/u</div>
-                                </div>
-                            </div>
-                            <!-- Base -->
-                            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);">
-                                <div style="display:flex;align-items:center;gap:12px;">
-                                    <div style="width:10px;height:10px;border-radius:50%;background:var(--text-secondary);flex-shrink:0;"></div>
-                                    <div>
-                                        <div style="font-size:0.8rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;">Nivel Base</div>
-                                        <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:2px;">Puestos 16 al 20</div>
-                                    </div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <div style="font-size:1rem;font-weight:900;color:var(--text-primary);">10,000</div>
-                                    <div style="font-size:0.58rem;color:var(--text-secondary);letter-spacing:1px;text-transform:uppercase;">Pinceles c/u</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style="margin-top:14px;padding:10px 14px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
-                            <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.6;text-align:center;">Los pinceles se entregan directamente a tu cuenta del BPD. La posición en el ranking se toma el día de corte mensual. Asegúrate de estar activo y en el top 20 antes del cierre.</div>
-                        </div>
+                    <!-- INTEGRIDAD Y DATOS -->
+                    <div class="guide-card glass-panel full-width" style="border-color:rgba(255,255,255,0.1);">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <div class="guide-title">Integridad del juego y persistencia de datos</div>
+                        <div class="guide-text">El sistema detecta automáticamente comportamientos que comprometen la validez del rendimiento registrado —como cambiar de pestaña o minimizar la ventana durante una partida activa— y aplica penalizaciones que quedan registradas de forma permanente en el perfil. Esta medida garantiza que los indicadores de desempeño reflejen el trabajo real del alumno y no artefactos de manipulación externa.<br><br>Toda la información del perfil —puntajes, logros, progreso y configuración— se almacena exclusivamente en el almacenamiento local del navegador. Limpiar el historial o los datos del sitio borra esta información de forma irreversible. Se recomienda utilizar siempre el mismo dispositivo y navegador para preservar la continuidad del progreso.</div>
                     </div>
-
-                    <!-- LO QUE NO DEBES HACER -->
-                    <div class="guide-card full-width glass-panel" style="border-color: rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-                        <div class="guide-title">Lo que NO debes hacer</div>
-                        <div class="guide-text" style="text-align:left;line-height:1.7;">
-                            <strong>Tu cuenta puede ser penalizada o marcada permanentemente si:</strong><br><br>
-                            — <strong>Cambias de pestaña o minimizas</strong> la ventana durante una partida activa — el sistema detecta la trampa, aplica penalizaciones de puntos, racha y partidas perfectas, y te marca con el logro <em>TRAMPOSO</em> imborrable.<br>
-                            — <strong>Abandonas una partida</strong> a mitad — recibes una penalidad de <strong>-300 pts</strong> en tu puntaje acumulado.<br>
-                            — <strong>No responder a tiempo</strong> (dejar el reloj llegar a cero) te quita <strong>una vida</strong> exactamente igual que una respuesta incorrecta.<br>
-                            — <strong>Perder las 3 vidas</strong> termina la partida inmediatamente — no hay forma de recuperarlas en la misma ronda.<br>
-                            — <strong>Un fallo durante una racha</strong> reinicia el multiplicador completamente a x1 y desactiva el Modo Frenesí.<br><br>
-                            — <strong>Crear múltiples cuentas</strong> para manipular el ranking está estrictamente prohibido. Solo se permite una cuenta por alumno. Las cuentas duplicadas pueden ser penalizadas o eliminadas.<br>
-                            — <strong>Usar nombres falsos, apodos o nombres que no sean el tuyo propio</strong> no está permitido. Tu nombre de usuario debe ser tu nombre real de alumno (nombre y apellido, como máximo dos palabras). No se aceptan sobrenombres, palabras sin sentido ni combinaciones de caracteres aleatorias.<br><br>
-                            <strong>Nota:</strong> La marca de TRAMPOSO aparece fijada en tu perfil de forma permanente y no puede quitarse ni ocultarse.<br><br>
-                            <strong>Advertencia:</strong> Si borras el historial del navegador o limpias los datos del sitio, <strong>perderás tu cuenta, puntajes, logros y progreso permanentemente</strong>. El juego guarda todos los datos en el almacenamiento local del navegador.
-                        </div>
-                    </div>
-
-
 
                 </div>
             </div>
@@ -701,11 +493,7 @@
                 <div class="kp-total-bar-fill" id="kp-total-bar-fill"></div>
             </div>
             <div class="kp-reward-total" id="kp-reward-total">0 ℙ reclamados</div>
-            <!-- Aviso: la recompensa máxima solo se obtiene al completar el pase entero -->
-            <div style="margin-top:10px;padding:9px 14px;border-radius:10px;background:rgba(255,184,0,0.08);border:1px solid rgba(255,184,0,0.22);display:flex;align-items:flex-start;gap:9px;">
-                <svg style="width:15px;height:15px;flex-shrink:0;margin-top:1px;color:#ffb800;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                <span style="font-size:0.66rem;color:rgba(255,184,0,0.85);line-height:1.55;font-weight:600;">Las recompensas se desbloquean nivel a nivel en orden. Para acceder al siguiente nivel debes reclamar el anterior. La recompensa total de <strong style="color:#ffb800;">100,000 ℙ</strong> solo está disponible al completar el Pase en su totalidad.</span>
-            </div>
+            <div style="margin-top:8px;font-size:0.63rem;color:var(--text-secondary);line-height:1.5;opacity:0.7;">Los niveles se desbloquean en orden secuencial. Cada recompensa requiere haber reclamado la anterior.</div>
         </div>
 
         <!-- Scroll con el camino de niveles -->
