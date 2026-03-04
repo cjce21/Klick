@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════
-//  KLICK — Service Worker  v2  (auto-update fiable)
+//  KLICK — Service Worker  v3  (auto-update fiable)
 //
 //  Problema del v1:  skipWaiting() en install() activaba el SW de
 //  inmediato en la primera carga, pero clients.claim() corría antes
@@ -12,7 +12,7 @@
 //  • Garantizado: siempre hay clientes cuando activate corre.
 // ══════════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'klick-cache-v2';
+const CACHE_NAME = 'klick-cache-v3';
 
 const PRECACHE = [
     './',
