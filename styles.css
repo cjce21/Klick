@@ -518,7 +518,7 @@ body.light-mode #track-selector .track-option.selected { background: rgba(0,0,0,
 #app.streak-active { background: radial-gradient(circle at 50% 50%, rgba(var(--rank-rgb), 0.15) 0%, var(--bg-base) 80%); animation: streak-pulse 1.5s infinite alternate ease-out; }
 @keyframes streak-pulse { 0% { box-shadow: inset 0 0 0px rgba(var(--rank-rgb), 0); } 100% { box-shadow: inset 0 0 60px rgba(var(--rank-rgb), 0.15); } }
 
-#particle-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+#particle-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; will-change: contents; }
 
 .screen { width: 100%; height: 100%; flex-direction: column; position: absolute; top: 0; left: 0; opacity: 0; visibility: hidden; pointer-events: none; transform: scale(0.97) translateY(10px); transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s; display: flex; z-index: 1; will-change: opacity, transform; -webkit-transform: scale(0.97) translateY(10px); }
 .screen.active { opacity: 1; visibility: visible; pointer-events: auto; transform: scale(1) translateY(0); -webkit-transform: scale(1) translateY(0); z-index: 10; }
@@ -888,7 +888,7 @@ body.light-mode .rank-item.mitico-item .mitico-name {
 .timer-wrapper { position: relative; width: 60px; height: 60px; display: flex; justify-content: center; align-items: center; }
 .timer-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
 .timer-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 6; }
-.timer-path { fill: none; stroke: var(--text-primary); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 283; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear, stroke 0.3s ease; }
+.timer-path { fill: none; stroke: var(--text-primary); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 283; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear, stroke 0.3s ease; will-change: stroke-dashoffset; }
 .timer-text { font-size: 1.4rem; font-weight: 800; color: var(--text-primary); font-variant-numeric: tabular-nums; }
 .question-text { font-size: clamp(1.4rem, 4vw, 2.5rem); font-weight: 800; text-align: center; line-height: 1.2; width: 100%; letter-spacing: -1px; background: rgba(5,5,5,0.45); padding: 16px 22px; border-radius: 14px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .answers-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px; padding: 10px 20px 30px 20px; flex: 0 0 45vh; max-width: 1400px; width: 100%; margin: 0 auto; z-index: 5; }
