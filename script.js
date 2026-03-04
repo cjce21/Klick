@@ -1051,11 +1051,19 @@ function openPlayerCard(index) {
     overlay.style.setProperty('--pcard-rgb', rgb);
 
     // Hero
-    document.getElementById('pcard-big-name').textContent = p.name;
+    const nameEl = document.getElementById('pcard-big-name');
+    nameEl.textContent = p.name;
+    nameEl.style.color = color;
+    nameEl.style.textShadow = `0 0 60px rgba(${rgb},0.45)`;
+    // Escala el font-size para que el nombre siempre quepa en una línea
+    const len = p.name.length;
+    const fs = len <= 6  ? 'clamp(2.8rem,10vw,5rem)'
+              : len <= 9  ? 'clamp(2rem,8vw,4rem)'
+              : len <= 12 ? 'clamp(1.5rem,6.5vw,3rem)'
+              :              'clamp(1.1rem,5.5vw,2.4rem)';
+    nameEl.style.fontSize = fs;
     document.getElementById('pcard-chip-dot').style.cssText = `background:${color}; box-shadow:0 0 6px rgba(${rgb},0.8)`;
     document.getElementById('pcard-chip-title').textContent = displayTitle;
-    document.getElementById('pcard-big-name').style.color = color;
-    document.getElementById('pcard-big-name').style.textShadow = `0 0 60px rgba(${rgb},0.45)`;
 
     // Badge "eres tú"
     document.getElementById('pcard-me-pill').classList.toggle('show', isMe);
