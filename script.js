@@ -886,6 +886,9 @@ async function fetchLeaderboard() {
             }
         }
         
+        // Store leaderboard data for profile cards
+        window._leaderboardData = topPlayers;
+
         let html = "";
         topPlayers.forEach((p, index) => {
             const pos = index + 1;
@@ -899,7 +902,7 @@ async function fetchLeaderboard() {
 
             const meClass = isMe ? 'is-me' : '';
 
-            html += `<div class="rank-card ${meClass}">
+            html += `<div class="rank-card ${meClass}" onclick="openPlayerCard(${index})" title="Ver perfil de ${p.name}">
                 <div class="rc-pos">${pos}</div>
                 <div class="rc-info">
                     <div class="rc-name">${p.name}</div>
@@ -923,6 +926,112 @@ setInterval(() => {
         submitLeaderboard(); fetchLeaderboard();
     }
 }, 60000);
+
+// ── Player Profile Card ───────────────────────────────────────────
+// Datos disponibles por jugador (payload de submitLeaderboard):
+//   uuid, name, rankTitle, powerLevel, totalScore, maxStreak
+// Para el jugador propio se usan sus datos locales completos.
+
+function _rankTitleToColorVars(title) {
+    const isLight = document.body.classList.contains('light-mode');
+    switch(title) {
+        case 'Mítico':  return { color: isLight ? '#000000' : '#ffffff', rgb: '255,255,255' };
+        case 'Leyenda': return { color: isLight ? '#8a6200' : '#ffb800', rgb: '255,184,0' };
+        case 'Maestro': return { color: isLight ? '#7a0a8c' : '#b5179e', rgb: '181,23,158' };
+        case 'Pro':     return { color: isLight ? '#c41940' : '#ff2a5f', rgb: '255,42,95' };
+        case 'Junior':  return { color: isLight ? '#0070a8' : '#00d4ff', rgb: '0,212,255' };
+        default:        return { color: isLight ? '#0a7a3e' : '#00ff66', rgb: '0,255,102' };
+    }
+}
+
+function openPlayerCard(index) {
+    const data = window._leaderboardData;
+    if (!data || !data[index]) return;
+    const p = data[index];
+    const pos = index + 1;
+    const isMe = p.uuid === playerStats.uuid;
+
+    const baseRank = p.rankTitle || 'Novato';
+    const { color, rgb } = _rankTitleToColorVars(baseRank);
+
+    // Título de podio (solo visual)
+    let displayTitle = baseRank;
+    const podiumTitles = { 1: 'Rey Klick', 2: 'Señor Klick', 3: 'Caballero Klick' };
+    if (pos <= 3 && (baseRank === 'Leyenda' || baseRank === 'Mítico')) displayTitle = podiumTitles[pos];
+
+    // CSS vars
+    const card = document.getElementById('player-card');
+    card.style.setProperty('--pcard-color', color);
+    card.style.setProperty('--pcard-rgb', rgb);
+
+    // Cabecera
+    document.getElementById('pcard-accent').style.background = color;
+    document.getElementById('pcard-name').textContent = p.name;
+    document.getElementById('pcard-rank-dot').style.background = color;
+    document.getElementById('pcard-rank-title').textContent = displayTitle;
+    document.getElementById('pcard-pl-val').style.color = color;
+    document.getElementById('pcard-pl-val').textContent = (p.powerLevel || 0).toLocaleString();
+
+    // Posición
+    const posEl = document.getElementById('pcard-pos-val');
+    posEl.textContent = `#${pos}`;
+    posEl.classList.toggle('is-me-pos', isMe);
+
+    // Stats: totalScore y maxStreak vienen del servidor para todos.
+    // bestScore y gamesPlayed solo existen en local → solo se muestran para el propio jugador.
+    document.getElementById('pcard-totalscore').textContent = (p.totalScore || 0).toLocaleString();
+    document.getElementById('pcard-streak').textContent = (p.maxStreak || 0).toLocaleString();
+
+    const bestScoreRow = document.getElementById('pcard-bestscore-row');
+    const gamesRow = document.getElementById('pcard-games-row');
+    const accRow = document.getElementById('pcard-acc-row');
+
+    if (isMe) {
+        // Datos locales exactos
+        bestScoreRow.style.display = '';
+        document.getElementById('pcard-bestscore').textContent = (playerStats.bestScore || 0).toLocaleString();
+
+        gamesRow.style.display = '';
+        document.getElementById('pcard-games').textContent = (playerStats.gamesPlayed || 0).toLocaleString();
+
+        const tot = (playerStats.totalCorrect||0)+(playerStats.totalWrong||0)+(playerStats.totalTimeouts||0);
+        if (tot > 0) {
+            const accPct = Math.round((playerStats.totalCorrect / tot) * 100);
+            accRow.style.display = '';
+            document.getElementById('pcard-acc-pct').textContent = accPct + '%';
+            document.getElementById('pcard-acc-pct').style.color = color;
+            const fillEl = document.getElementById('pcard-acc-fill');
+            fillEl.style.width = '0%';
+            fillEl.style.background = color;
+            setTimeout(() => { fillEl.style.width = accPct + '%'; }, 60);
+        } else {
+            accRow.style.display = 'none';
+        }
+    } else {
+        bestScoreRow.style.display = 'none';
+        gamesRow.style.display = 'none';
+        accRow.style.display = 'none';
+    }
+
+    // Badge "Eres tú"
+    document.getElementById('pcard-me-badge').classList.toggle('show', isMe);
+
+    // Mostrar overlay
+    document.getElementById('player-card-overlay').classList.add('visible');
+    document.body.style.overflow = 'hidden';
+}
+
+function closePlayerCard(e) {
+    if (e && e.target !== document.getElementById('player-card-overlay')) return;
+    const overlay = document.getElementById('player-card-overlay');
+    overlay.classList.remove('visible');
+    document.body.style.overflow = '';
+}
+
+// Close with Escape key
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closePlayerCard();
+});
 
 // --- SISTEMA DE PREGUNTAS MASIVAS (JSON EXTERNO) ---
 let quizDataPool = [];
