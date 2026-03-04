@@ -843,6 +843,141 @@ body.light-mode .rank-item.mitico-item .mitico-name {
 .rc-score span { font-size: 0.52rem; color: var(--text-secondary); display: block; letter-spacing: 1px; margin-top: 1px; text-align: right; }
 .rank-card.is-me { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); }
 .ranking-loading { text-align: center; color: var(--text-secondary); padding: 40px; font-weight: 600; font-size: 1rem; letter-spacing: 1px; }
+.rank-card { cursor: pointer; }
+
+/* ── Player Profile Card Overlay ─────────────────────────────────── */
+#player-card-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.72); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.22s ease;
+    padding: 20px;
+}
+#player-card-overlay.visible { opacity: 1; pointer-events: all; }
+
+.pcard {
+    background: rgba(14,14,14,0.97);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: var(--radius-lg);
+    width: 100%; max-width: 360px;
+    overflow: hidden; position: relative;
+    transform: translateY(18px) scale(0.97);
+    transition: transform 0.28s cubic-bezier(0.16,1,0.3,1);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+}
+#player-card-overlay.visible .pcard { transform: translateY(0) scale(1); }
+
+/* Accent bar top */
+.pcard-accent { height: 4px; width: 100%; background: var(--pcard-color, #00ff66); transition: background 0.4s; }
+
+/* Header */
+.pcard-header {
+    padding: 18px 20px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    position: relative;
+}
+.pcard-header::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 0% 50%, rgba(var(--pcard-rgb,0,255,102),0.07) 0%, transparent 65%);
+    pointer-events: none;
+}
+.pcard-name-wrap { display: flex; flex-direction: column; gap: 3px; }
+.pcard-name {
+    font-size: 1.25rem; font-weight: 900; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--pcard-color, #00ff66);
+    line-height: 1; transition: color 0.4s;
+}
+.pcard-rank-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 2px; color: var(--text-secondary);
+    background: rgba(255,255,255,0.05); border-radius: 20px;
+    padding: 3px 8px; border: 1px solid rgba(255,255,255,0.07);
+}
+.pcard-rank-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--pcard-color, #00ff66); flex-shrink: 0; }
+.pcard-pl {
+    text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+}
+.pcard-pl-val {
+    font-size: 1.6rem; font-weight: 900; line-height: 1;
+    color: var(--pcard-color, #00ff66); font-variant-numeric: tabular-nums;
+    transition: color 0.4s;
+}
+.pcard-pl-label { font-size: 0.5rem; font-weight: 700; letter-spacing: 3px; color: var(--text-secondary); text-transform: uppercase; }
+
+/* Stats grid */
+.pcard-stats {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    gap: 1px; background: rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.pcard-stat {
+    background: rgba(10,10,10,0.95);
+    padding: 12px 10px; text-align: center;
+    display: flex; flex-direction: column; gap: 3px;
+}
+.pcard-stat-val { font-size: 1rem; font-weight: 900; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.pcard-stat-label { font-size: 0.52rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); }
+
+/* Position row */
+.pcard-extra-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.02);
+}
+.pcard-extra-label { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-secondary); }
+.pcard-extra-val { font-size: 0.92rem; font-weight: 900; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.pcard-pos-val.is-me-pos { color: var(--pcard-color, #00ff66); }
+
+/* Accuracy bar */
+.pcard-acc-row {
+    padding: 12px 20px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.pcard-acc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
+.pcard-acc-title { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-secondary); }
+.pcard-acc-pct { font-size: 0.75rem; font-weight: 900; color: var(--pcard-color, #00ff66); transition: color 0.4s; }
+.pcard-acc-bar { height: 4px; border-radius: 10px; background: rgba(255,255,255,0.07); overflow: hidden; }
+.pcard-acc-fill { height: 100%; border-radius: 10px; background: var(--pcard-color, #00ff66); transition: width 0.7s cubic-bezier(0.16,1,0.3,1), background 0.4s; }
+
+/* Footer: close btn + "es yo" badge */
+.pcard-footer {
+    padding: 12px 20px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.pcard-me-badge {
+    font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--pcard-color, #00ff66); background: rgba(var(--pcard-rgb,0,255,102),0.1);
+    border: 1px solid rgba(var(--pcard-rgb,0,255,102),0.25);
+    border-radius: 20px; padding: 4px 10px;
+    transition: color 0.4s, background 0.4s, border-color 0.4s;
+    visibility: hidden;
+}
+.pcard-me-badge.show { visibility: visible; }
+.pcard-close-btn {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-secondary); border-radius: var(--radius-md);
+    padding: 7px 16px; font-size: 0.7rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1.5px; cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.pcard-close-btn:hover { background: rgba(255,255,255,0.11); color: var(--text-primary); }
+
+/* Light mode overrides */
+body.light-mode .pcard { background: rgba(255,255,255,0.98); border-color: rgba(0,0,0,0.1); }
+body.light-mode .pcard-stats { background: rgba(0,0,0,0.06); }
+body.light-mode .pcard-stat { background: rgba(255,255,255,0.98); }
+body.light-mode .pcard-stat-val { color: #0d1117; }
+body.light-mode .pcard-extra-row { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.07); }
+body.light-mode .pcard-extra-val { color: #0d1117; }
+body.light-mode .pcard-pos-val { color: #0d1117; }
+body.light-mode .pcard-close-btn { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.1); color: #4a5568; }
+body.light-mode .pcard-close-btn:hover { background: rgba(0,0,0,0.09); color: #0d1117; }
+body.light-mode .pcard-acc-bar { background: rgba(0,0,0,0.08); }
+body.light-mode .pcard-rank-badge { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.08); }
 #countdown-screen { justify-content: center; align-items: center; }
 #countdown-number { transition: transform 0.25s var(--ease-spring), opacity 0.25s ease; }
 #countdown-label { transition: opacity 0.25s ease; }
