@@ -401,63 +401,76 @@
 
 </div>
 
-    <!-- ── Player Profile Card Overlay ─────────────────────────────── -->
-    <div id="player-card-overlay" onclick="closePlayerCard(event)">
-        <div class="pcard" id="player-card">
-            <div class="pcard-accent" id="pcard-accent"></div>
-            <div class="pcard-header">
-                <div class="pcard-name-wrap">
-                    <div class="pcard-name" id="pcard-name">JUGADOR</div>
-                    <div class="pcard-rank-badge">
-                        <span class="pcard-rank-dot" id="pcard-rank-dot"></span>
-                        <span id="pcard-rank-title">Novato</span>
+    <!-- ══ PLAYER CARD — Overlay pantalla completa ══════════════════ -->
+    <div id="pcard-overlay" onclick="pcardOverlayClick(event)">
+        <canvas id="pcard-particle-canvas"></canvas>
+
+        <div class="pcard-wrap">
+            <!-- Hero: nombre grande + rango -->
+            <div class="pcard-hero">
+                <div class="pcard-eyebrow">Perfil del jugador</div>
+                <div class="pcard-big-name" id="pcard-big-name">JUGADOR</div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;">
+                    <div class="pcard-rank-chip">
+                        <span class="pcard-rank-chip-dot" id="pcard-chip-dot"></span>
+                        <span id="pcard-chip-title">Novato</span>
+                    </div>
+                    <div class="pcard-me-pill" id="pcard-me-pill">✦ Eres tú</div>
+                </div>
+            </div>
+
+            <!-- Panel de datos -->
+            <div class="pcard-panel">
+
+                <!-- Fila 1: Nivel de Poder + Posición Global -->
+                <div class="pcard-top-row">
+                    <div class="pcard-top-cell">
+                        <div class="pcard-big-val" id="pcard-pl">0</div>
+                        <div class="pcard-val-label">Nivel de Poder</div>
+                    </div>
+                    <div class="pcard-divider-v"></div>
+                    <div class="pcard-top-cell">
+                        <div class="pcard-big-val pcard-pos-val" id="pcard-pos">#—</div>
+                        <div class="pcard-val-label">Posición Global</div>
                     </div>
                 </div>
-                <div class="pcard-pl">
-                    <div class="pcard-pl-val" id="pcard-pl-val">0</div>
-                    <div class="pcard-pl-label">Nivel de Poder</div>
+
+                <!-- Fila 2: Puntaje Total + Racha Máx -->
+                <div class="pcard-stats-row">
+                    <div class="pcard-stat-cell">
+                        <div class="pcard-stat-num" id="pcard-totalscore">0</div>
+                        <div class="pcard-stat-label">Puntaje Total</div>
+                    </div>
+                    <div class="pcard-divider-v"></div>
+                    <div class="pcard-stat-cell">
+                        <div class="pcard-stat-num" id="pcard-streak">0</div>
+                        <div class="pcard-stat-label">Racha Máxima</div>
+                    </div>
+                </div>
+
+                <!-- Filas exclusivas del jugador propio -->
+                <div id="pcard-own-data" style="display:none;">
+                    <div class="pcard-extra">
+                        <span class="pcard-extra-lbl">Récord Personal</span>
+                        <span class="pcard-extra-num" id="pcard-bestscore">0</span>
+                    </div>
+                    <div class="pcard-extra">
+                        <span class="pcard-extra-lbl">Partidas Jugadas</span>
+                        <span class="pcard-extra-num" id="pcard-games">0</span>
+                    </div>
+                    <div class="pcard-acc-wrap" id="pcard-acc-wrap">
+                        <div class="pcard-acc-head">
+                            <span class="pcard-acc-lbl">Precisión</span>
+                            <span class="pcard-acc-pct" id="pcard-acc-pct">0%</span>
+                        </div>
+                        <div class="pcard-acc-track">
+                            <div class="pcard-acc-fill" id="pcard-acc-fill"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Stats siempre visibles (vienen del servidor para todos) -->
-            <div class="pcard-stats">
-                <div class="pcard-stat">
-                    <div class="pcard-stat-val" id="pcard-totalscore">0</div>
-                    <div class="pcard-stat-label">Puntaje Total</div>
-                </div>
-                <div class="pcard-stat">
-                    <div class="pcard-stat-val" id="pcard-streak">0</div>
-                    <div class="pcard-stat-label">Racha Máx</div>
-                </div>
-                <div class="pcard-stat">
-                    <div class="pcard-stat-val" id="pcard-pos-val">#—</div>
-                    <div class="pcard-stat-label">Posición Global</div>
-                </div>
-            </div>
-
-            <!-- Solo visibles para el jugador propio (datos locales) -->
-            <div id="pcard-bestscore-row" class="pcard-extra-row">
-                <span class="pcard-extra-label">Récord personal</span>
-                <span class="pcard-extra-val" id="pcard-bestscore">0</span>
-            </div>
-            <div id="pcard-games-row" class="pcard-extra-row">
-                <span class="pcard-extra-label">Partidas jugadas</span>
-                <span class="pcard-extra-val" id="pcard-games">0</span>
-            </div>
-            <div id="pcard-acc-row" class="pcard-acc-row">
-                <div class="pcard-acc-top">
-                    <span class="pcard-acc-title">Precisión</span>
-                    <span class="pcard-acc-pct" id="pcard-acc-pct">0%</span>
-                </div>
-                <div class="pcard-acc-bar">
-                    <div class="pcard-acc-fill" id="pcard-acc-fill" style="width:0%"></div>
-                </div>
-            </div>
-
-            <div class="pcard-footer">
-                <span class="pcard-me-badge" id="pcard-me-badge">✦ Eres tú</span>
-                <button class="pcard-close-btn" onclick="closePlayerCard()">Cerrar</button>
-            </div>
+            <button class="pcard-close" onclick="closePlayerCard()">Cerrar</button>
         </div>
     </div>
 
