@@ -1089,6 +1089,10 @@ addAchs([
 const acTiers=[10,50,100,250,500,1000,2500,5000];
 for(let i=0;i<8;i++) addAchs([{ id:`ac${i+1}`, title:`Cerebro ${i+1}`, desc:`Acumula ${acTiers[i]} respuestas correctas en total.`, color:colors.green, icon:SVG_CORRECT }]);
 
+addAchs([
+    { id: 'u_bisturi', title: 'Bisturí', desc: 'Mantén una precisión del 90% o más con al menos 500 respuestas totales en tu carrera.', color: colors.yellow, icon: SVG_TARGET },
+]);
+
 // ─── 10. ERRORES E IRONÍA (5 fallos + 5 timeouts + únicos humorísticos) ──
 const wrnTiers=[10,50,100,250,500];
 for(let i=0;i<5;i++) addAchs([{ id:`wr${i+1}`, title:`Torpeza ${i+1}`, desc:`Acumula ${wrnTiers[i]} respuestas incorrectas en tu carrera.`, color:colors.dark, icon:SVG_INCORRECT }]);
@@ -1242,6 +1246,7 @@ addAchs([
     { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 150 logros en total.',                                  color: colors.yellow, icon: SVG_STAR },
     { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 200 logros en total.',                                  color: colors.orange, icon: SVG_STAR },
     { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 250 logros en total.',                                  color: colors.purple, icon: SVG_STAR },
+    { id: 'master5', title: 'A las Puertas', desc: 'Desbloquea 275 logros en total. El límite está a la vista.',      color: colors.yellow, icon: SVG_STAR },
     { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea todos los logros del juego. Eres absoluto.',            color: colors.red,    icon: SVG_STAR },
 ]);
 
@@ -1322,7 +1327,7 @@ function _checkAchievementsImpl() {
     if (playerStats.achViews >= 1) unlock('m4'); if (playerStats.achViews >= 10) unlock('m5'); if (playerStats.achViews >= 50) unlock('m6');
     if (playerStats.pinnedAchievements.filter(id => id !== 'tramposo').length > 0) unlock('m7'); 
     if (normalAchs >= 10) unlock('m8'); if (normalAchs >= 50) unlock('m9'); if (normalAchs >= 100) unlock('m10');
-    if (normalAchs >= 150) unlock('master1'); if (normalAchs >= 200) unlock('master2'); if (normalAchs >= 250) unlock('master4'); if (normalAchs >= 276) unlock('master3');
+    if (normalAchs >= 150) unlock('master1'); if (normalAchs >= 200) unlock('master2'); if (normalAchs >= 250) unlock('master4'); if (normalAchs >= 275) unlock('master5'); if (normalAchs >= 282) unlock('master3');
 
     // DÍAS (Consecutivos vs Totales)
     const days = playerStats.maxLoginStreak; 
@@ -1513,6 +1518,11 @@ function _checkAchievementsImpl() {
     if((playerStats.flashAnswersTotal||0)>=5) unlock('x19');
     if((playerStats.lastSecondAnswersTotal||0)>=50) unlock('u17');
 
+    // u_bisturi: 90%+ accuracy with at least 500 total answers
+    const _bTotalAns = (playerStats.totalCorrect||0)+(playerStats.totalWrong||0)+(playerStats.totalTimeouts||0);
+    const _bAcc = _bTotalAns >= 500 ? (playerStats.totalCorrect||0) / _bTotalAns : 0;
+    if (_bAcc >= 0.90) unlock('u_bisturi');
+
     // CURADOR: pin tracking
     const pinTot = playerStats.totalPins||0;
     const pinTiers2=[1,5,10,20,50]; for(let i=0;i<5;i++) if(pinTot>=pinTiers2[i]) unlock(`pin${i+1}`);
@@ -1564,7 +1574,7 @@ function togglePin(achId) {
 
 // Rarity score: how exclusive/rare is each achievement (higher = rarer)
 // ── Rarity score for auto-profile fill ──────────────────────────────────
-const RARITY_SCORE = {master3:100,master4:96,master2:91,master1:86,fin5:83,u8:81,u7:79,u15:76,nm4:74,nm3:71,nm10:69,u9:66,u23:63,u11:61,u16:59,nm9:56,u19:53,u24:51,np1:49,np3:47,u21:44};
+const RARITY_SCORE = {master3:100,master5:98,master4:96,master2:91,master1:86,fin5:83,u8:81,u7:79,u15:76,nm4:74,nm3:71,nm10:69,u9:66,u23:63,u11:61,u16:59,nm9:56,u19:53,u24:51,np1:49,np3:47,u21:44,u_bisturi:42};
 function getAchRarity(id) { return RARITY_SCORE[id] || 10; }
 
 function getAutoProfileAchs() {
@@ -1584,7 +1594,7 @@ function getAutoProfileAchs() {
 
 // ══════════════════════════════════════════════════════════════════
 //  VIRTUAL SCROLLER — solo renderiza las tarjetas visibles en pantalla
-//  Elimina el lag al hacer scroll por los 276 logros.
+//  Elimina el lag al hacer scroll por los 283 logros.
 // ══════════════════════════════════════════════════════════════════
 const CARD_HEIGHT   = 148;  // px — debe coincidir con el CSS
 const CARD_GAP      = 12;   // px gap entre cards
@@ -3014,7 +3024,7 @@ function showFeedback(isCorrect, isTimeout = false) {
         // u24: Extremis — 3 aciertos de 1 seg en una partida
         if(lastSecondAnswers >= 3) inGameUnlock('u24','Extremis', colors.red, SVG_SHIELD);
         // x19: Espectacular — 5 respuestas Flash <1 seg en partida
-        if(timeLeft <= 1 && lastSecondAnswers >= 5) inGameUnlock('x19','Espectacular', colors.yellow, SVG_BOLT);
+        if(lastSecondAnswers >= 5) inGameUnlock('x19','Espectacular', colors.yellow, SVG_BOLT);
         // np3: Sin Límites — partida >60 preguntas
         if(currentQuestionIndex >= 60) inGameUnlock('np3','Sin Límites', colors.purple, SVG_BOLT);
         // u15: Superviviente — 100 preguntas
@@ -3123,7 +3133,7 @@ function saveGameStats() {
     // x15: Punto de Quiebre — score exactamente 100k ±500 (tracked per-game, bestScore check alone fails once exceeded)
     if(score >= 99500 && score <= 100500) playerStats.hitExactly100k = true;
     if(!playerStats.maxQuestionReached || currentQuestionIndex > playerStats.maxQuestionReached) playerStats.maxQuestionReached = currentQuestionIndex;
-    if(currentQuestionIndex >= 50) playerStats.perfectGames = (playerStats.perfectGames||0) + 1;
+    if(currentQuestionIndex >= 50 && currentWrongAnswers === 0 && currentTimeoutAnswers === 0) playerStats.perfectGames = (playerStats.perfectGames||0) + 1;
     // x16: Regreso Triunfal — tras no jugar un día, supera su último récord
     if((playerStats.missedADay||false) && score > prevBest && prevBest > 0) playerStats.returnTriumph = (playerStats.returnTriumph||0) + 1;
     playerStats.missedADay = false; // reset once they play
@@ -3471,8 +3481,8 @@ const _KP_REWARDS = [
 ];
 
 // ── Condiciones de misión (usan playerStats en tiempo real) ───────────
-// Nota: perfectGames se incrementa cuando currentQuestionIndex >= 50 Y sin errores.
-// En saveGameStats: if(currentQuestionIndex >= 50) perfectGames++
+// Nota: perfectGames se incrementa cuando currentQuestionIndex >= 50 Y sin errores ni timeouts.
+// En saveGameStats: if(currentQuestionIndex >= 50 && 0 errores && 0 timeouts) perfectGames++
 // Eso es "partida larga sin importar errores". Aquí usamos hadPerfectAccuracyGame
 // que es la verdadera "partida sin errores" (≥5 preguntas, 0 wrong, 0 timeout).
 // Para niveles "Sin Fallos" usamos un contador propio en kpState.perfectNoError.
