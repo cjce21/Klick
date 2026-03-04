@@ -401,6 +401,66 @@
 
 </div>
 
+    <!-- ── Player Profile Card Overlay ─────────────────────────────── -->
+    <div id="player-card-overlay" onclick="closePlayerCard(event)">
+        <div class="pcard" id="player-card">
+            <div class="pcard-accent" id="pcard-accent"></div>
+            <div class="pcard-header">
+                <div class="pcard-name-wrap">
+                    <div class="pcard-name" id="pcard-name">JUGADOR</div>
+                    <div class="pcard-rank-badge">
+                        <span class="pcard-rank-dot" id="pcard-rank-dot"></span>
+                        <span id="pcard-rank-title">Novato</span>
+                    </div>
+                </div>
+                <div class="pcard-pl">
+                    <div class="pcard-pl-val" id="pcard-pl-val">0</div>
+                    <div class="pcard-pl-label">Nivel de Poder</div>
+                </div>
+            </div>
+
+            <!-- Stats siempre visibles (vienen del servidor para todos) -->
+            <div class="pcard-stats">
+                <div class="pcard-stat">
+                    <div class="pcard-stat-val" id="pcard-totalscore">0</div>
+                    <div class="pcard-stat-label">Puntaje Total</div>
+                </div>
+                <div class="pcard-stat">
+                    <div class="pcard-stat-val" id="pcard-streak">0</div>
+                    <div class="pcard-stat-label">Racha Máx</div>
+                </div>
+                <div class="pcard-stat">
+                    <div class="pcard-stat-val" id="pcard-pos-val">#—</div>
+                    <div class="pcard-stat-label">Posición Global</div>
+                </div>
+            </div>
+
+            <!-- Solo visibles para el jugador propio (datos locales) -->
+            <div id="pcard-bestscore-row" class="pcard-extra-row">
+                <span class="pcard-extra-label">Récord personal</span>
+                <span class="pcard-extra-val" id="pcard-bestscore">0</span>
+            </div>
+            <div id="pcard-games-row" class="pcard-extra-row">
+                <span class="pcard-extra-label">Partidas jugadas</span>
+                <span class="pcard-extra-val" id="pcard-games">0</span>
+            </div>
+            <div id="pcard-acc-row" class="pcard-acc-row">
+                <div class="pcard-acc-top">
+                    <span class="pcard-acc-title">Precisión</span>
+                    <span class="pcard-acc-pct" id="pcard-acc-pct">0%</span>
+                </div>
+                <div class="pcard-acc-bar">
+                    <div class="pcard-acc-fill" id="pcard-acc-fill" style="width:0%"></div>
+                </div>
+            </div>
+
+            <div class="pcard-footer">
+                <span class="pcard-me-badge" id="pcard-me-badge">✦ Eres tú</span>
+                <button class="pcard-close-btn" onclick="closePlayerCard()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Lógica principal: al final del body para acceder al DOM completo -->
     <script src="script.js"></script>
 </body>
