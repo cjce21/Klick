@@ -1141,9 +1141,8 @@ const rankVisTiers=[1,5,15,30,60];
 for(let i=0;i<5;i++) addAchs([{ id:`rv${i+1}`, title:`Espía de Clasificación ${i+1}`, desc:`Visita la Clasificación Global ${rankVisTiers[i]} veces.`, color:colors.blue, icon:SVG_TROPHY }]);
 addAchs([
     { id: 'ui1',  title: 'Explorador',          desc: 'Visita todas las secciones del menú en una misma sesión.',      color: colors.blue,   icon: SVG_TARGET },
-    { id: 'ui10', title: 'El Circuito',         desc: 'Navega por las 5 secciones del juego en orden secuencial.',     color: colors.purple, icon: SVG_FIRE },
+    { id: 'ui10', title: 'El Circuito',         desc: 'Navega por las 4 secciones del juego en orden secuencial.',     color: colors.purple, icon: SVG_FIRE },
     { id: 'ui2',  title: 'Vuelvo en Un Segundo',desc: 'Entra y sal del menú de Configuración en menos de 3 segundos.', color: colors.yellow, icon: SVG_BOLT },
-    { id: 'ui3',  title: 'La Guía No Miente',   desc: 'Lee el Manual y luego completa 5 aciertos en una partida.',    color: colors.green,  icon: SVG_SHIELD },
     { id: 'ui5',  title: 'El Perfil Importa',   desc: 'Visita tu perfil después de cada una de tus primeras 5 partidas.', color: colors.blue, icon: SVG_USER },
     { id: 'ui6',  title: 'Fan de Clasificación',desc: 'Visita la Clasificación mientras hay menos de 5 jugadores.',    color: colors.dark,   icon: SVG_TROPHY },
     { id: 'ui8',  title: 'Bien Conectado',      desc: 'La clasificación global carga sin errores 10 veces.',           color: colors.blue,   icon: SVG_TARGET },
@@ -1229,6 +1228,15 @@ addAchs([
     { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 200 logros en total.',                                  color: colors.orange, icon: SVG_STAR },
     { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 225 logros en total.',                                  color: colors.purple, icon: SVG_STAR },
     { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea todos los logros del juego. Eres absoluto.',            color: colors.red,    icon: SVG_STAR },
+]);
+
+// ─── 21. KLICK PASS (5) ───────────────────────────────────────────────────
+addAchs([
+    { id: 'kpa1', title: 'Primer Paso',      desc: 'Reclama tu primer nivel del Klick Pass.',                         color: colors.green,  icon: SVG_TARGET },
+    { id: 'kpa2', title: 'En Camino',        desc: 'Completa 25 niveles del Klick Pass.',                             color: colors.blue,   icon: SVG_TARGET },
+    { id: 'kpa3', title: 'A Mitad de Ruta',  desc: 'Completa 50 niveles del Klick Pass.',                             color: colors.yellow, icon: SVG_TARGET },
+    { id: 'kpa4', title: 'Casi en la Cima',  desc: 'Completa 75 niveles del Klick Pass.',                             color: colors.orange, icon: SVG_STAR },
+    { id: 'kpa5', title: 'Pase Completado',  desc: 'Reclama los 100 niveles del Klick Pass en su totalidad.',         color: colors.red,    icon: SVG_STAR },
 ]);
 
 
@@ -1375,6 +1383,14 @@ function _checkAchievementsImpl() {
     if((playerStats.rouletteLifeWins||0)>=3) unlock('rl8');
     if(playerStats.rouletteShieldUsed) unlock('rl9');
     if(playerStats.rouletteComboSpecial) unlock('rl10');
+
+    // KLICK PASS
+    const kpClaimed = (getKpState().claimed || []).length;
+    if (kpClaimed >= 1)   unlock('kpa1');
+    if (kpClaimed >= 25)  unlock('kpa2');
+    if (kpClaimed >= 50)  unlock('kpa3');
+    if (kpClaimed >= 75)  unlock('kpa4');
+    if (kpClaimed >= 100) unlock('kpa5');
 
     // ESCALABLES GENERALES
     const wr = playerStats.totalWrong||0; for(let i=0;i<5;i++) if(wr>=wrnTiers[i]) unlock(`wr${i+1}`);
