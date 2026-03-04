@@ -905,14 +905,14 @@ body.light-mode .rank-item.mitico-item .mitico-name {
     margin-bottom: 12px;
 }
 .pcard-big-name {
-    font-size: clamp(1.6rem, 8vw, 5rem);
+    font-size: clamp(1.2rem, 9vw, 5rem);
     font-weight: 900; letter-spacing: -2px; line-height: 0.95;
     color: var(--pcard-color, #00ff66);
     text-shadow: 0 0 60px rgba(var(--pcard-rgb,0,255,102), 0.45);
     text-transform: uppercase;
     transition: color 0.4s, text-shadow 0.4s;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    max-width: 100%; margin-bottom: 16px;
+    white-space: nowrap;
+    margin-bottom: 16px;
 }
 .pcard-rank-chip {
     display: inline-flex; align-items: center; gap: 6px;
