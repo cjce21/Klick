@@ -921,8 +921,8 @@ async function fetchLeaderboard() {
         }
     }
 }
-setInterval(() => { 
-    if (document.visibilityState !== 'hidden') {
+setInterval(() => {
+    if (document.visibilityState !== 'hidden' && !isAnsweringAllowed) {
         submitLeaderboard(); fetchLeaderboard();
     }
 }, 60000);
@@ -2750,6 +2750,7 @@ function updateLogoDots() {
 
 // --- Game Logic ---
 let currentSessionQuestions = [], currentQuestionIndex = 0, score = 0, streak = 0, currentMaxStreak = 0, timerInterval, timeLeft = 15;
+let _gameSessionId = 0; // increments each game/abandon to invalidate stale callbacks
 let _currentQuestion = null; // Pregunta activa (almacenada por motor, leída por selectAnswer/applyHintVisual) 
 const TIMER_LIMIT = 15;
 let currentFastAnswers = 0, currentWrongAnswers = 0, currentTimeoutAnswers = 0, isAnsweringAllowed = false, currentGameLog = [];
@@ -2764,6 +2765,7 @@ let consecutiveLivesLost = 0;  // for u19 Resurreccion tracking
 let frenziesThisGame = 0;      // for extra1 Doble Frenesí
 
 function startGame() {
+    _gameSessionId++; // invalidate stale feedback timeouts
     initAudio(); SFX.gameStart();
     
     // Track same-track-game streak for achievement
@@ -3041,6 +3043,7 @@ function _warmGameDOMCache() {
 function loadQuestion() {
     const currentQ = getNextQuestion();
     _currentQuestion = currentQ;
+    if (!currentQ) { endGame(); return; } // Guard: pool vacío
     if (!_gTimerPath) _warmGameDOMCache();
     const timerPath  = _gTimerPath;
     const timerText  = _gTimerText;
@@ -3189,6 +3192,7 @@ function cancelAbandon() {
 }
 
 function confirmAbandon() {
+    _gameSessionId++; // invalidate pending feedback timeouts
     document.getElementById('abandon-modal').classList.remove('active');
     isAnsweringAllowed = false;
     isGamePaused = false;
@@ -3212,17 +3216,22 @@ function replayGame() {
 
 let _animScoreTimer = null;
 function animateScore(target) {
-    if (_animScoreTimer) { clearInterval(_animScoreTimer); _animScoreTimer = null; }
-    const el = document.getElementById('score-display');
-    let curr = parseInt(el.innerText) || 0;
+    if (_animScoreTimer) { cancelAnimationFrame(_animScoreTimer); _animScoreTimer = null; }
+    const el = _scoreEl || document.getElementById('score-display');
+    const curr = parseInt((el.innerText || '0').replace(/[^0-9]/g, '')) || 0;
     const diff = target - curr;
-    if (diff <= 0) { el.innerText = target; return; }
-    const step = Math.ceil(diff / 20);
-    _animScoreTimer = setInterval(() => {
-        curr += step;
-        if (curr >= target) { curr = target; clearInterval(_animScoreTimer); _animScoreTimer = null; }
-        el.innerText = curr;
-    }, 20);
+    if (diff <= 0) { el.innerText = target.toLocaleString(); return; }
+    const duration = Math.min(700, Math.max(250, diff / 8));
+    const startTime = performance.now();
+    const startVal = curr;
+    function _scoreFrame(now) {
+        const t = Math.min(1, (now - startTime) / duration);
+        const eased = 1 - (1 - t) * (1 - t); // ease-out quad
+        el.innerText = Math.round(startVal + diff * eased).toLocaleString();
+        if (t < 1) { _animScoreTimer = requestAnimationFrame(_scoreFrame); }
+        else { el.innerText = target.toLocaleString(); _animScoreTimer = null; }
+    }
+    _animScoreTimer = requestAnimationFrame(_scoreFrame);
 }
 
 function showFeedback(isCorrect, isTimeout = false) {
@@ -3251,13 +3260,6 @@ function showFeedback(isCorrect, isTimeout = false) {
         if(playerStats._twoConsecLives && streak >= 10) {
             playerStats.u19Earned = true; playerStats._twoConsecLives = false;
         }
-        // np1: 10 aciertos seguidos con las 3 vidas intactas (nunca perdió vida)
-        if (streak >= 10 && livesLostThisGame === 0) {
-            inGameUnlock('np1', 'Examen de Oro', colors.yellow, SVG_SHIELD);
-        }
-        if (streak > 0 && streak % 5 === 0) { playerStats.frenziesTriggered++; playerStats.currentFrenzyStreak = (playerStats.currentFrenzyStreak||0) + 1; frenziesThisGame++; if(frenziesThisGame > (playerStats.maxFrenziesInGame||0)) playerStats.maxFrenziesInGame = frenziesThisGame; }
-        if ((playerStats.currentFrenzyStreak||0) > (playerStats.maxFrenzyStreak||0)) playerStats.maxFrenzyStreak = playerStats.currentFrenzyStreak;
-
         // In-game session achievements (unlocked immediately)
         const inGameUnlock = (id, title, col, ico) => {
             if (!_achSetFB.has(id)) {
@@ -3269,6 +3271,12 @@ function showFeedback(isCorrect, isTimeout = false) {
                 saveStatsDebounced(); renderAchievements();
             }
         };
+        // np1: 10 aciertos seguidos con las 3 vidas intactas (nunca perdió vida)
+        if (streak >= 10 && livesLostThisGame === 0) {
+            inGameUnlock('np1', 'Examen de Oro', colors.yellow, SVG_SHIELD);
+        }
+        if (streak > 0 && streak % 5 === 0) { playerStats.frenziesTriggered++; playerStats.currentFrenzyStreak = (playerStats.currentFrenzyStreak||0) + 1; frenziesThisGame++; if(frenziesThisGame > (playerStats.maxFrenziesInGame||0)) playerStats.maxFrenziesInGame = frenziesThisGame; }
+        if ((playerStats.currentFrenzyStreak||0) > (playerStats.maxFrenzyStreak||0)) playerStats.maxFrenzyStreak = playerStats.currentFrenzyStreak;
         // u5: Por los Pelos — acierta con exactamente 1 segundo
         if(timeLeft === 1) inGameUnlock('u5','Por los Pelos', colors.red, SVG_CLOCK);
         // u14: Calculador — acierta con 2-3 segundos
@@ -3368,8 +3376,10 @@ function showFeedback(isCorrect, isTimeout = false) {
     
     // Check roulette trigger: every 10 corrects (total this game)
     const shouldShowRoulette = isCorrect && totalCorrectThisGame >= nextRouletteTrigger;
+    const _fbSess = _gameSessionId; // capture for stale-callback detection
     
-    setTimeout(() => { 
+    setTimeout(() => {
+        if (_fbSess !== _gameSessionId) return; // game changed, discard
         currentQuestionIndex++;
         if(lives > 0) {
             if (shouldShowRoulette) {
@@ -3439,7 +3449,7 @@ function saveGameStats() {
 function endGame() {
     isAnsweringAllowed = false; // prevenir race con handleTimeout tras el último feedback
     clearInterval(timerInterval);
-    if (_animScoreTimer) { clearInterval(_animScoreTimer); _animScoreTimer = null; } // cancelar animación de score en curso
+    if (_animScoreTimer) { cancelAnimationFrame(_animScoreTimer); _animScoreTimer = null; } // cancelar animación de score en curso
     if (_saveTimeout) { clearTimeout(_saveTimeout); _saveTimeout = null; } // limpiar debounce pendiente
     _currentQuestion = null;
     document.getElementById('final-score-display').innerText = score.toLocaleString(); saveGameStats();
@@ -3599,7 +3609,17 @@ function animateParticles(now) {
 
 // Debounced resize to avoid thrashing on window resize
 let _resizeTimer;
-window.addEventListener('resize', () => { clearTimeout(_resizeTimer); _resizeTimer = setTimeout(initParticles, 150); });
+window.addEventListener('resize', () => {
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(() => {
+        initParticles();
+        const _po = document.getElementById('pcard-overlay');
+        if (_po && _po.style.display !== 'none') {
+            const _pc2 = document.getElementById('pcard-particle-canvas');
+            if (_pc2) { _pc2.width = window.innerWidth; _pc2.height = window.innerHeight; }
+        }
+    }, 150);
+});
 initParticles(); requestAnimationFrame(animateParticles);
 
 // Reset particle timer when tab becomes visible to prevent accumulated frame debt causing speed burst
