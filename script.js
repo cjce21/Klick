@@ -102,7 +102,9 @@ window.addEventListener("pagehide", () => {
 function punishCheater() {
     if(!isAnsweringAllowed || isGamePaused) return;
     isAnsweringAllowed = false;
+    isGamePaused = false;
     clearInterval(timerInterval);
+    lives = 0; // terminar partida de forma limpia
     _currentQuestion = null;
     
     const penalty = 2000; 
@@ -991,7 +993,7 @@ const todayTiers=[3,5,8,10,15];
 for(let i=0;i<5;i++) addAchs([{ id:`td${i+1}`, title:`Intenso ${i+1}`, desc:`Juega ${todayTiers[i]} partidas en un solo día.`, color:colors.orange, icon:SVG_FIRE }]);
 addAchs([
     { id: 'x13', title: 'Noche de Fuego',    desc: 'Juega 10 partidas o más en un único día.',                         color: colors.red,    icon: SVG_FIRE },
-    { id: 'x20', title: 'Pura Determinación',desc: 'Juega 20 partidas en un día con al menos 1 logro desbloqueado en cada.', color: colors.red, icon: SVG_FIRE },
+    { id: 'x20', title: 'Pura Determinación',desc: 'Juega 20 partidas en un mismo día.', color: colors.red, icon: SVG_FIRE },
     { id: 'u22', title: 'Maratón',           desc: 'Juega 50 partidas en un solo día.',                                color: colors.purple, icon: SVG_HEART },
 ]);
 
@@ -1250,6 +1252,9 @@ addAchs([
     { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea todos los logros del juego. Eres absoluto.',            color: colors.red,    icon: SVG_STAR },
 ]);
 
+// ── Índice O(1) para lookup por ID ──────────────────────────────────────────
+const ACHIEVEMENTS_MAP   = new Map(ACHIEVEMENTS_DATA.map(a => [a.id, a]));
+const ACHIEVEMENTS_INDEX = new Map(ACHIEVEMENTS_DATA.map((a, i) => [a.id, i]));
 
 function processDailyLogin() {
     const now = new Date(); const todayStr = now.toISOString().split('T')[0];
@@ -1305,7 +1310,7 @@ function _checkAchievementsImpl() {
         if (!achSet.has(id)) { 
             achSet.add(id);
             playerStats.achievements.push(id); 
-            const f = ACHIEVEMENTS_DATA.find(a => a.id === id); 
+            const f = ACHIEVEMENTS_MAP.get(id); 
             if(f) newlyUnlocked.push(f); 
         } 
     };
@@ -1515,7 +1520,8 @@ function _checkAchievementsImpl() {
 
     // VELOCIDAD Y REFLEJOS (por partida — tracked via persisted stats)
     if((playerStats.flashAnswersTotal||0)>=1) unlock('u13');
-    if((playerStats.flashAnswersTotal||0)>=5) unlock('x19');
+    // x19: Espectacular — requiere 5 flashes en UNA partida (gestionado por inGameUnlock + flag)
+    if(playerStats.flashInOneGame) unlock('x19');
     if((playerStats.lastSecondAnswersTotal||0)>=50) unlock('u17');
 
     // u_bisturi: 90%+ accuracy with at least 500 total answers
@@ -1543,7 +1549,7 @@ function _checkAchievementsImpl() {
     // MODO PERFECCIÓN
     let redGoldCount = 0;
     playerStats.pinnedAchievements.forEach(id => {
-        const ach = ACHIEVEMENTS_DATA.find(a => a.id === id);
+        const ach = ACHIEVEMENTS_MAP.get(id);
         if (ach && (ach.color === colors.red || ach.color === colors.yellow || ach.color === colors.orange)) redGoldCount++;
     });
     if (redGoldCount >= 3) unlock('np2');
@@ -1552,7 +1558,16 @@ function _checkAchievementsImpl() {
         // Track daily achievement unlocks for 'Productivo' da1-da5
         playerStats.dailyAchUnlocks = (playerStats.dailyAchUnlocks||0) + newlyUnlocked.length;
         saveStatsDebounced(); // no bloquear el hilo durante la partida
-        renderAchievements(); 
+        // Refresh parcial: solo las filas afectadas para evitar full flush durante partida
+        if (_vsInitialized) {
+            _vsAchSet = new Set(playerStats.achievements);
+            _vsDisplayPin = getAutoProfileAchs();
+            _vsRefreshRows(newlyUnlocked.map(a => a.id));
+            const progEl = document.getElementById('achievements-progress-text');
+            if (progEl) progEl.innerText = `Desbloqueados: ${_vsAchSet.size - (_vsAchSet.has('tramposo') ? 1 : 0)} / ${ACHIEVEMENTS_DATA.length}`;
+        } else {
+            renderAchievements();
+        }
         newlyUnlocked.forEach((ach, index) => { 
             setTimeout(() => { SFX.achievement(); showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon); }, index * 1300); 
         }); 
@@ -1566,7 +1581,7 @@ function togglePin(achId) {
     }
     if (!playerStats.achievements.includes(achId)) return; SFX.click(); const index = playerStats.pinnedAchievements.indexOf(achId);
     if (index > -1) { playerStats.pinnedAchievements.splice(index, 1); showToast('Quitado del perfil', 'Ya no aparecerá destacado.', 'var(--text-secondary)', SVG_PIN); } 
-    else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); playerStats.totalPins = (playerStats.totalPins||0) + 1; const ach_data = ACHIEVEMENTS_DATA.find(a => a.id === achId); showToast('Fijado en Perfil', ach_data ? ach_data.title : achId, ach_data ? ach_data.color : '', ach_data ? ach_data.icon : ''); }
+    else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); playerStats.totalPins = (playerStats.totalPins||0) + 1; const ach_data = ACHIEVEMENTS_MAP.get(achId); showToast('Fijado en Perfil', ach_data ? ach_data.title : achId, ach_data ? ach_data.color : '', ach_data ? ach_data.icon : ''); }
     saveStatsLocally(); checkAchievements(); renderAchievements();
 }
 
@@ -1709,7 +1724,24 @@ function _vsUpdate() {
     for (let r = firstRow; r <= lastRow; r++) _vsRenderRow(r);
 }
 
+// Actualiza solo las filas que contienen los logros con ids en `changedIds` (sin full flush)
+function _vsRefreshRows(changedIds) {
+    if (!_vsInitialized || !changedIds || changedIds.length === 0) return;
+    const cols = _vsColCount;
+    const rowsToRefresh = new Set();
+    for (const id of changedIds) {
+        const idx = ACHIEVEMENTS_INDEX.has(id) ? ACHIEVEMENTS_INDEX.get(id) : -1;
+        if (idx >= 0) rowsToRefresh.add(Math.floor(idx / cols));
+    }
+    for (const rowIdx of rowsToRefresh) {
+        _vsRemoveRow(rowIdx);
+        _vsRenderRow(rowIdx);
+    }
+}
+
 function _vsRefreshAll() {
+    // Cancelar RAF de scroll pendiente para evitar re-render de filas ya eliminadas
+    if (_vsScrollRAF) { cancelAnimationFrame(_vsScrollRAF); _vsScrollRAF = null; }
     // Flush all rendered rows and re-render visible ones
     for (const [, el] of _vsRendered) el.remove();
     _vsRendered.clear();
@@ -1761,7 +1793,7 @@ function renderAchievements() {
         let n = 0;
         _vsDisplayPin.forEach(id => {
             if (n >= 3) return;
-            let ach = ACHIEVEMENTS_DATA.find(a => a.id === id);
+            let ach = ACHIEVEMENTS_MAP.get(id);
             if (id === 'tramposo') ach = CHEATER_ACHIEVEMENT;
             if (!ach) return;
             const slot = document.createElement('div');
@@ -2003,6 +2035,7 @@ function showRoulette() {
     const descEl = document.getElementById('rl-result-desc');
 
     // Reset state
+    deckAnimating = false; // cancelar animación anterior si fue interrumpida
     btn.disabled = false;
     btn.className = 'rl-btn';
     btn.innerText = 'MEZCLAR Y GIRAR';
@@ -2054,27 +2087,27 @@ function spinRoulette() {
     let tickInterval = null;
 
     function schedNext() {
-        const progress = stepsDone / totalSteps;
-        // Ease-in: start fast (~60ms), ease-out to ~400ms at end
-        const eased = Math.pow(progress, 2.2);
-        const delay = 55 + eased * 380;
-        tickInterval = setTimeout(() => {
-            deckOffset = (deckOffset + 1) % ROULETTE_PRIZES.length;
-            applyDeckLayout(true);
-            stepsDone++;
-            // SFX tick
-            if (audioCtx) {
-                const freq = 800 - progress * 300;
-                schedNote(freq, 'square', audioCtx.currentTime, 0.035, 0.06);
-            }
-            if (stepsDone < totalSteps) {
-                schedNext();
-            } else {
-                deckAnimating = false;
-                currentPrize = ROULETTE_PRIZES[winIdx];
-                setTimeout(() => showCardPrize(currentPrize), 320);
-            }
-        }, delay);
+        try {
+            const progress = stepsDone / totalSteps;
+            const eased = Math.pow(progress, 2.2);
+            const delay = 55 + eased * 380;
+            tickInterval = setTimeout(() => {
+                deckOffset = (deckOffset + 1) % ROULETTE_PRIZES.length;
+                applyDeckLayout(true);
+                stepsDone++;
+                if (audioCtx) {
+                    const freq = 800 - progress * 300;
+                    schedNote(freq, 'square', audioCtx.currentTime, 0.035, 0.06);
+                }
+                if (stepsDone < totalSteps) {
+                    schedNext();
+                } else {
+                    deckAnimating = false;
+                    currentPrize = ROULETTE_PRIZES[winIdx];
+                    setTimeout(() => showCardPrize(currentPrize), 320);
+                }
+            }, delay);
+        } catch(e) { deckAnimating = false; }
     }
     schedNext();
 }
@@ -2477,7 +2510,7 @@ document.getElementById('profile-name-input').addEventListener('input', e => {
 });
 document.getElementById('profile-name-input').addEventListener('change', e => { 
     const n = e.target.value.trim(); 
-    if(n && n !== "JUGADOR" && n !== playerStats.playerName) playerStats.nameChanges++; 
+    // nameChanges solo se incrementa en 'blur' para evitar doble conteo (change+blur ambos disparan en desktop)
     playerStats.playerName = n || "JUGADOR"; 
     saveStatsLocally(); checkAchievements(); 
     submitLeaderboard();
@@ -2855,13 +2888,32 @@ function loadQuestion() {
     timerPath.style.transition = 'none'; timerPath.style.strokeDashoffset = '0'; timerPath.style.stroke = 'var(--text-primary)'; timerText.style.color = 'var(--text-primary)'; void timerPath.offsetWidth; timerPath.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s ease';
     
     const timerTotal = questionTime;
+    const _timerStart = performance.now();
+    let _timerLastTick = timeLeft;  // para detectar cuando hay que actualizar
+    let _timerPausedAt = 0;         // timestamp de cuando se pausó
+    let _timerPausedTotal = 0;      // ms totales de pausa acumulados
     clearInterval(timerInterval); 
     timerInterval = setInterval(() => { 
-        if (isGamePaused) return;
-        timeLeft--; timerText.innerText = timeLeft; timerPath.style.strokeDashoffset = 283 - (timeLeft/timerTotal)*283; 
-        if(timeLeft <= 5 && timeLeft > 0) { SFX.tick(); timerPath.style.stroke = 'var(--accent-red)'; timerText.style.color = 'var(--accent-red)'; } 
-        if(timeLeft <= 0) handleTimeout(); 
-    }, 1000);
+        // Trackear tiempo de pausa (ruleta, modal, etc.)
+        if (isGamePaused) {
+            if (_timerPausedAt === 0) _timerPausedAt = performance.now();
+            return;
+        }
+        if (_timerPausedAt > 0) {
+            _timerPausedTotal += performance.now() - _timerPausedAt;
+            _timerPausedAt = 0;
+        }
+        // Tiempo real transcurrido descontando pausas (evita drift en mobile/tabs throttleados)
+        const elapsed = (performance.now() - _timerStart - _timerPausedTotal) / 1000;
+        const remaining = Math.max(0, timerTotal - Math.floor(elapsed));
+        if (remaining === _timerLastTick) return; // sin cambio — evitar renders y ticks innecesarios
+        _timerLastTick = remaining;
+        timeLeft = remaining;
+        timerText.innerText = timeLeft;
+        timerPath.style.strokeDashoffset = 283 - (timeLeft / timerTotal) * 283; 
+        if (timeLeft <= 5 && timeLeft > 0) { SFX.tick(); timerPath.style.stroke = 'var(--accent-red)'; timerText.style.color = 'var(--accent-red)'; } 
+        if (timeLeft <= 0) handleTimeout(); 
+    }, 250); // poll cada 250ms — reacciona al segundo exacto sin drift
 }
 
 function selectAnswer(selectedIndex) {
@@ -2876,9 +2928,10 @@ function selectAnswer(selectedIndex) {
     
     if(isCorrect) { 
         playerStats.totalCorrect++; 
-        if(answerTime >= TIMER_LIMIT - 2) { currentFastAnswers++; playerStats.fastAnswersTotal++; }
+        const _qTimeLimit = (q && q._timeLimit) || TIMER_LIMIT;
+        if(answerTime >= _qTimeLimit - 2) { currentFastAnswers++; playerStats.fastAnswersTotal++; }
         if(answerTime <= 1) { lastSecondAnswers++; playerStats.flashAnswersTotal = (playerStats.flashAnswersTotal||0) + 1; }
-        if(answerTime >= TIMER_LIMIT - 3) { ultraFastStreak++; } else { ultraFastStreak = 0; }
+        if(answerTime >= _qTimeLimit - 3) { ultraFastStreak++; } else { ultraFastStreak = 0; }
         currentNoTimeoutStreak++;
         if(answerTime <= 2) playerStats.lastSecondAnswersTotal = (playerStats.lastSecondAnswersTotal||0) + 1;
         if(currentNoTimeoutStreak > (playerStats.maxNoTimeoutStreak||0)) playerStats.maxNoTimeoutStreak = currentNoTimeoutStreak;
@@ -2934,7 +2987,10 @@ function cancelAbandon() {
 function confirmAbandon() {
     document.getElementById('abandon-modal').classList.remove('active');
     isAnsweringAllowed = false;
+    isGamePaused = false;
     clearInterval(timerInterval);
+    lives = 0; // marcar partida terminada para evitar estado corrupto
+    _currentQuestion = null;
     initAudio(); SFX.incorrect(); 
     const penalty = 300; 
     playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
@@ -2970,6 +3026,8 @@ function showFeedback(isCorrect, isTimeout = false) {
     // Reset any inline style overrides from previous feedback (e.g. shield cyan)
     points.style.borderColor = '';
     points.style.color = '';
+    // Cache achievements Set for O(1) lookups inside inGameUnlock
+    const _achSetFB = new Set(playerStats.achievements);
     
     if (isCorrect) {
         SFX.correct(); scr.className = 'screen correct'; icon.innerHTML = SVG_CORRECT; 
@@ -2991,21 +3049,19 @@ function showFeedback(isCorrect, isTimeout = false) {
         }
         // np1: 10 aciertos seguidos con las 3 vidas intactas (nunca perdió vida)
         if (streak >= 10 && livesLostThisGame === 0) {
-            if (!playerStats.achievements.includes('np1')) {
-                playerStats.achievements.push('np1');
-                SFX.achievement();
-                showToast('Logro Desbloqueado', 'Examen de Oro', colors.yellow, SVG_SHIELD);
-                saveStatsDebounced(); renderAchievements();
-            }
+            inGameUnlock('np1', 'Examen de Oro', colors.yellow, SVG_SHIELD);
         }
         if (streak > 0 && streak % 5 === 0) { playerStats.frenziesTriggered++; playerStats.currentFrenzyStreak = (playerStats.currentFrenzyStreak||0) + 1; frenziesThisGame++; if(frenziesThisGame > (playerStats.maxFrenziesInGame||0)) playerStats.maxFrenziesInGame = frenziesThisGame; }
         if ((playerStats.currentFrenzyStreak||0) > (playerStats.maxFrenzyStreak||0)) playerStats.maxFrenzyStreak = playerStats.currentFrenzyStreak;
 
         // In-game session achievements (unlocked immediately)
         const inGameUnlock = (id, title, col, ico) => {
-            if (!playerStats.achievements.includes(id)) {
+            if (!_achSetFB.has(id)) {
+                _achSetFB.add(id);
                 playerStats.achievements.push(id); SFX.achievement();
                 showToast('Logro Desbloqueado', title, col, ico);
+                // Track daily unlocks so da1-da5 "Productivo" count in-game achievements too
+                playerStats.dailyAchUnlocks = (playerStats.dailyAchUnlocks||0) + 1;
                 saveStatsDebounced(); renderAchievements();
             }
         };
@@ -3024,13 +3080,15 @@ function showFeedback(isCorrect, isTimeout = false) {
         // u24: Extremis — 3 aciertos de 1 seg en una partida
         if(lastSecondAnswers >= 3) inGameUnlock('u24','Extremis', colors.red, SVG_SHIELD);
         // x19: Espectacular — 5 respuestas Flash <1 seg en partida
-        if(lastSecondAnswers >= 5) inGameUnlock('x19','Espectacular', colors.yellow, SVG_BOLT);
+        if(lastSecondAnswers >= 5) { playerStats.flashInOneGame = true; inGameUnlock('x19','Espectacular', colors.yellow, SVG_BOLT); }
         // np3: Sin Límites — partida >60 preguntas
         if(currentQuestionIndex >= 60) inGameUnlock('np3','Sin Límites', colors.purple, SVG_BOLT);
         // u15: Superviviente — 100 preguntas
         if(currentQuestionIndex >= 99) inGameUnlock('u15','Superviviente', colors.green, SVG_SHIELD);
         // u21: Metralleta — 10 seguidas <3 seg
         if(ultraFastStreak >= 10) inGameUnlock('u21','Metralleta', colors.red, SVG_BOLT);
+        // x7: Un Golpe Certero — más de 3,000 puntos en las primeras 3 preguntas
+        if(currentQuestionIndex === 2 && score > 3000) { playerStats.fastStart3k = true; inGameUnlock('x7','Un Golpe Certero', colors.yellow, SVG_BOLT); }
         // x9: Todo Gas — 10 primeras preguntas <3 seg
         if(currentQuestionIndex < 10 && ultraFastStreak >= 10) inGameUnlock('x9','Todo Gas', colors.red, SVG_BOLT);
         // fin3: Momento Épico — en Frenesí y luego 20 aciertos más
@@ -3078,9 +3136,11 @@ function showFeedback(isCorrect, isTimeout = false) {
             updateLivesUI();
             // In-game life-loss achievements
             const failUnlock = (id, title, col, ico) => {
-                if (!playerStats.achievements.includes(id)) {
+                if (!_achSetFB.has(id)) {
+                    _achSetFB.add(id);
                     playerStats.achievements.push(id); SFX.achievement();
                     showToast('Logro Desbloqueado', title, col, ico);
+                    playerStats.dailyAchUnlocks = (playerStats.dailyAchUnlocks||0) + 1;
                     saveStatsDebounced(); renderAchievements();
                 }
             };
@@ -3173,7 +3233,10 @@ function saveGameStats() {
 }
 
 function endGame() {
+    isAnsweringAllowed = false; // prevenir race con handleTimeout tras el último feedback
     clearInterval(timerInterval);
+    if (_animScoreTimer) { clearInterval(_animScoreTimer); _animScoreTimer = null; } // cancelar animación de score en curso
+    if (_saveTimeout) { clearTimeout(_saveTimeout); _saveTimeout = null; } // limpiar debounce pendiente
     _currentQuestion = null;
     document.getElementById('final-score-display').innerText = score.toLocaleString(); saveGameStats();
     
@@ -3258,6 +3321,7 @@ function darkenRgb(rgb, factor) {
 
 function connectParticles(pulse) { 
     if (particlesArray.length < 2) return; // nothing to connect
+    if (!playerStats || playerStats.particleOpacity <= 0) return; // partículas invisibles, evitar O(n²) innecesario
     const isStreak = streak >= 5;
     const baseOpacity = isStreak ? (_pIsLight ? 0.7 : 0.35) : (_pIsLight ? 0.4 : 0.18);
     const distMult = 1 + pulse * 0.3;
