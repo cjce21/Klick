@@ -154,7 +154,7 @@ const SVG_MOON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const defaultStats = {
     uuid: generateUUID(),
     playerName: "JUGADOR", gamesPlayed: 0, bestScore: 0, maxStreak: 0, achievements: [], pinnedAchievements: [],
-    nameChanges: 0, achViews: 0, guideViews: 0, totalScore: 0, perfectGames: 0, totalCorrect: 0, totalWrong: 0, 
+    nameChanges: 0, achViews: 0, totalScore: 0, perfectGames: 0, totalCorrect: 0, totalWrong: 0, 
     totalTimeouts: 0, fastAnswersTotal: 0, frenziesTriggered: 0, lastLoginDate: "", currentLoginStreak: 0, 
     maxLoginStreak: 0, todayGames: 0, maxScoreCount: 0, perfectStreak: 0, previousGameScore: -1,
     musicVol: 1.0, sfxVol: 1.0, particleOpacity: 1.0, maxFps: 60,
@@ -162,7 +162,7 @@ const defaultStats = {
     sectionsVisitedThisSession: [], rankingPosition: 999,
     musicSetTo0: false, sfxSetTo0: false, particles0: false,
     powerLevel: 0, maxMult: 1, maxQuestionReached: 0, totalDaysPlayed: 0,
-    profileViewedAfterGames: 0, guideViewedBeforeGame: false,
+    profileViewedAfterGames: 0,
     selectedTrack: 'track_chill', trackSwitches: 0, tracksTriedSet: [], triedAllTracks: false,
     sameTrackGames: 0, lastGameTrack: ''
 };
@@ -1134,8 +1134,7 @@ addAchs([
     { id: 'm5',  title: 'Investigador',        desc: 'Visita el Banco de Logros 10 veces.',                           color: colors.blue,   icon: SVG_TROPHY },
     { id: 'm6',  title: 'Obsesivo',            desc: 'Visita el Banco de Logros 50 veces.',                           color: colors.purple, icon: SVG_TROPHY },
 ]);
-const guideVisTiers=[1,5,10,25,50];
-for(let i=0;i<5;i++) addAchs([{ id:`gv${i+1}`, title:`Estudiante ${i+1}`, desc:`Visita las Instrucciones del juego ${guideVisTiers[i]} veces.`, color:colors.green, icon:SVG_TARGET }]);
+
 const profileVisTiers=[1,5,15,30,60];
 for(let i=0;i<5;i++) addAchs([{ id:`pv${i+1}`, title:`Egocéntrico ${i+1}`, desc:`Visita tu perfil ${profileVisTiers[i]} veces.`, color:colors.purple, icon:SVG_USER }]);
 const rankVisTiers=[1,5,15,30,60];
@@ -1329,7 +1328,7 @@ function _checkAchievementsImpl() {
     const mx = playerStats.maxMult||1; for(let i=0;i<5;i++) if(mx>=multTiers[i]) unlock(`mx${i+1}`);
     const rv = playerStats.rankingViews||0; for(let i=0;i<5;i++) if(rv>=rankVisTiers[i]) unlock(`rv${i+1}`);
     const cv = playerStats.configViews||0; for(let i=0;i<4;i++) if(cv>=cfgVisTiers[i]) unlock(`cv${i+1}`);
-    const gv = playerStats.guideViews||0; for(let i=0;i<5;i++) if(gv>=guideVisTiers[i]) unlock(`gv${i+1}`);
+
     const nt = playerStats.maxNoTimeoutStreak||0; for(let i=0;i<5;i++) if(nt>=noTimoutTiers[i]) unlock(`nt${i+1}`);
 
     // ÚNICOS
@@ -2234,13 +2233,12 @@ function trackSectionVisit(section) {
     if (!playerStats.sectionsVisitedThisSession.includes(section)) {
         playerStats.sectionsVisitedThisSession.push(section);
     }
-    const ALL_SECTIONS = ['profile', 'achievements', 'ranking', 'guide', 'settings'];
+    const ALL_SECTIONS = ['profile', 'achievements', 'ranking', 'settings'];
     if (!playerStats.allSectionsVisited && ALL_SECTIONS.every(s => playerStats.sectionsVisitedThisSession.includes(s))) {
         playerStats.allSectionsVisited = true;
     }
 }
 
-function goToGuide() { initAudio(); SFX.click(); playerStats.guideViews++; trackSectionVisit('guide'); saveStatsLocally(); checkAchievements(); switchScreen('guide-screen'); }
 function goToAchievements() { initAudio(); SFX.click(); playerStats.achViews++; trackSectionVisit('achievements'); saveStatsLocally(); checkAchievements(); renderAchievements(); switchScreen('achievements-screen'); const sc = document.getElementById('vscroll-container'); if(sc) sc.scrollTop = 0; }
 
 function goToRanking() { 
