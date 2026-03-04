@@ -103,6 +103,7 @@ function punishCheater() {
     if(!isAnsweringAllowed || isGamePaused) return;
     isAnsweringAllowed = false;
     clearInterval(timerInterval);
+    _currentQuestion = null;
     
     const penalty = 2000; 
     playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
@@ -1757,7 +1758,7 @@ function switchScreen(id) {
     if (_currentScreen) _currentScreen.classList.remove('active');
     const next = document.getElementById(id);
     // Slightly longer delay on iOS to allow Safari layout to settle
-    const delay = /iPad|iPhone|iPod/.test(navigator.userAgent) ? 80 : 50;
+    const delay = /iPad|iPhone|iPod/.test(navigator.userAgent) ? 60 : 16;
     setTimeout(() => { if(next) { next.classList.add('active'); _currentScreen = next; } }, delay);
 }
 // Initialize current screen
@@ -2524,11 +2525,13 @@ function startGame() {
     document.getElementById('player-name-display').innerText = playerStats.playerName; 
     document.getElementById('final-name').innerText = playerStats.playerName;
     
-    currentSessionQuestions = [];          // ya no se usa como buffer — el motor lo gestiona
+      currentSessionQuestions = [];
+      _currentQuestion = null;
     _qeResetGame();                        // reordena el pool respetando la tail inter-partida
     currentQuestionIndex = score = streak = currentMaxStreak = currentFastAnswers = currentWrongAnswers = currentTimeoutAnswers = 0;
     _timerPath = _timerText = _scoreEl = _streakEl = _multBadge = null; // reset DOM cache
     _gTimerPath = _gTimerText = _gQuestionEl = _gAnswerBtns = _gAnswersGrid = _gStreakDisp = null; _gAns = []; // reset game DOM cache
+      _appEl = null;
     currentGameLog = []; isGamePaused = false;
     lives = 3; multiplier = 1;
     lastSecondAnswers = 0; ultraFastStreak = 0; currentNoTimeoutStreak = 0; livesLostThisGame = 0; consecutiveLivesLost = 0; frenziesThisGame = 0;
@@ -2605,8 +2608,10 @@ function updateMultiplierUI() {
     }
 }
 
+let _appEl = null;
 function updateStreakVisuals() { 
-    const app = document.getElementById('app'); 
+    if (!_appEl) _appEl = document.getElementById('app');
+    const app = _appEl; 
     if (streak >= 5) { 
         if (!app.classList.contains('streak-active')) { app.classList.add('streak-active'); SFX.streakTrigger(); }
         // Efecto visual escalado según multiplicador alcanzado
@@ -2766,9 +2771,7 @@ function _warmGameDOMCache() {
 
 function loadQuestion() {
     const currentQ = getNextQuestion();
-    _currentQuestion = currentQ; // referencia para selectAnswer / applyHintVisual
-    // Mantener currentSessionQuestions[idx] en sync para accesos legacy
-    currentSessionQuestions[currentQuestionIndex] = currentQ;
+    _currentQuestion = currentQ;
     if (!_gTimerPath) _warmGameDOMCache();
     const timerPath  = _gTimerPath;
     const timerText  = _gTimerText;
@@ -2827,7 +2830,8 @@ function selectAnswer(selectedIndex) {
     if (!isAnsweringAllowed || isGamePaused) return; isAnsweringAllowed = false; clearInterval(timerInterval); SFX.select();
     (_gAnswersGrid||document.getElementById('answers-grid')).classList.add('answered'); (_gAnswerBtns ? _gAnswerBtns[selectedIndex] : document.querySelectorAll('.answer-btn')[selectedIndex]).classList.add('selected');
     
-    const q = currentSessionQuestions[currentQuestionIndex];
+    const q = _currentQuestion;
+    if (!q) return;
     const isCorrect = (selectedIndex === q.currentCorrectIndex); 
     const answerTime = timeLeft;
     currentGameLog.push({ correct: isCorrect, time: answerTime, category: q.category || q.type || null });
@@ -2850,7 +2854,7 @@ function selectAnswer(selectedIndex) {
 
 function applyHintVisual() {
     // Disable one WRONG answer button on the currently loaded question
-    const q = currentSessionQuestions[currentQuestionIndex];
+    const q = _currentQuestion;
     const correctIdx = q ? q.currentCorrectIndex : -1;
     const btns = document.querySelectorAll('.answer-btn');
     let hidden = false;
@@ -2908,9 +2912,19 @@ function replayGame() {
     startGame();
 }
 
+let _animScoreTimer = null;
 function animateScore(target) {
-    const el = document.getElementById('score-display'); let curr = parseInt(el.innerText); const diff = target - curr; if(diff <= 0) return;
-    const step = Math.ceil(diff / 20), t = setInterval(() => { curr += step; if(curr >= target) { curr = target; clearInterval(t); } el.innerText = curr; }, 20);
+    if (_animScoreTimer) { clearInterval(_animScoreTimer); _animScoreTimer = null; }
+    const el = document.getElementById('score-display');
+    let curr = parseInt(el.innerText) || 0;
+    const diff = target - curr;
+    if (diff <= 0) { el.innerText = target; return; }
+    const step = Math.ceil(diff / 20);
+    _animScoreTimer = setInterval(() => {
+        curr += step;
+        if (curr >= target) { curr = target; clearInterval(_animScoreTimer); _animScoreTimer = null; }
+        el.innerText = curr;
+    }, 20);
 }
 
 function showFeedback(isCorrect, isTimeout = false) {
@@ -3121,6 +3135,8 @@ function saveGameStats() {
 }
 
 function endGame() {
+    clearInterval(timerInterval);
+    _currentQuestion = null;
     document.getElementById('final-score-display').innerText = score.toLocaleString(); saveGameStats();
     
     SFX.gameEnd();
@@ -3148,6 +3164,7 @@ const ctx = canvas.getContext('2d', { alpha: true });
 let particlesArray = [];
 let fpsInterval = 1000 / playerStats.maxFps;
 let then = performance.now();
+let _cpFrame = 0;
 let _smoothDelta = fpsInterval; // EMA del delta real para suavizar jitter
 const _EMA_K = 0.12;           // factor de suavizado (menor = más suave)
 
@@ -3270,7 +3287,8 @@ function animateParticles(now) {
     // No leer el analyser si el audio está suspendido (pestaña oculta)
     const pulse = (audioAnalyser && audioCtx && audioCtx.state === 'running') ? getAudioPulse() : 0;
     updateAndDrawParticles(timeScale, pulse);
-    connectParticles(pulse);
+    if (streak >= 5 || pulse > 0.05 || (_cpFrame & 1) === 0) connectParticles(pulse);
+    _cpFrame++;
 }
 
 // Debounced resize to avoid thrashing on window resize
