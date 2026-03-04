@@ -282,6 +282,9 @@
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                         <div class="guide-title">Puntuación por Velocidad</div>
                         <div class="guide-text">Ganar puntos depende de <strong>qué tan rápido respondas</strong>. Una respuesta en los primeros segundos vale hasta <strong>1,600 pts</strong>, mientras que responder al límite vale solo <strong>800 pts</strong>. ¡La velocidad es clave!</div>
+                        <div style="margin-top:8px;padding:8px 11px;border-radius:8px;background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.18);font-size:0.68rem;color:var(--text-secondary);line-height:1.6;">
+                            🕐 <strong style="color:#00d4ff;">Preguntas largas</strong> — Las preguntas con mucho texto reciben automáticamente <strong style="color:var(--text-primary);">el doble de tiempo</strong> (30 s) para que puedas leerlas con calma. La puntuación se normaliza igual que en preguntas cortas.
+                        </div>
                     </div>
 
                     <!-- Modo Frenesí -->
@@ -295,60 +298,104 @@
                     <div class="guide-card full-width glass-panel" style="border-color: rgba(255,255,255,0.1);">
                         <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-secondary);"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M3.05 11a9 9 0 1 1 .5 4"/></svg>
                         <div class="guide-title">Ruleta de Recompensas</div>
-                        <div class="guide-text">Al acumular aciertos durante la partida, aparece una <strong>ruleta de premios</strong>. Puedes mezclar y girar para obtener una recompensa aleatoria. Los premios tienen distintas <strong>raridades</strong> — los más raros aparecen con menor frecuencia.</div>
-                        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;margin-top:8px;">
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                                <strong style="font-size:0.78rem;">Vida Extra</strong>
-                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Recuperas una vida perdida.</span>
+                        <div class="guide-text">Cada <strong>10 aciertos acumulados</strong> durante la partida aparece la ruleta. Mezcla y gira para obtener un premio aleatorio. Hay <strong>10 premios únicos</strong> agrupados en 5 niveles de raridad — los más raros tienen menor probabilidad de aparecer.</div>
+
+                        <!-- Etiquetas de raridad -->
+                        <div style="display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-top:6px;margin-bottom:2px;">
+                            <span style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;padding:3px 9px;border-radius:20px;background:rgba(255,42,95,0.15);color:#ff2a5f;border:1px solid rgba(255,42,95,0.3);">LEGENDARIO</span>
+                            <span style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;padding:3px 9px;border-radius:20px;background:rgba(181,23,158,0.15);color:#b5179e;border:1px solid rgba(181,23,158,0.3);">ÉPICO</span>
+                            <span style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;padding:3px 9px;border-radius:20px;background:rgba(255,184,0,0.15);color:#ffb800;border:1px solid rgba(255,184,0,0.3);">RARO</span>
+                            <span style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;padding:3px 9px;border-radius:20px;background:rgba(0,255,102,0.1);color:#00ff66;border:1px solid rgba(0,255,102,0.2);">NORMAL</span>
+                            <span style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;padding:3px 9px;border-radius:20px;background:rgba(170,170,255,0.1);color:#aaaaff;border:1px solid rgba(170,170,255,0.2);">BÁSICO</span>
+                        </div>
+
+                        <!-- Fila 1: Legendario + Épico (3) -->
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-top:8px;">
+                            <!-- Vida Extra — Legendario -->
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(255,42,95,0.07);border:1px solid rgba(255,42,95,0.25);border-radius:10px;padding:12px 8px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:#ff2a5f;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                                <strong style="font-size:0.78rem;color:#ff2a5f;">Vida Extra</strong>
+                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">Recupera una vida perdida.</span>
+                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#ff2a5f;opacity:0.7;">LEGENDARIO</span>
                             </div>
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                <strong style="font-size:0.78rem;">Escudo</strong>
-                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Protección si fallas la siguiente.</span>
+                            <!-- Frenesí — Épico -->
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(181,23,158,0.07);border:1px solid rgba(181,23,158,0.25);border-radius:10px;padding:12px 8px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:#b5179e;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                                <strong style="font-size:0.78rem;color:#b5179e;">Frenesí</strong>
+                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">Activa el Modo Frenesí inmediatamente.</span>
+                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#b5179e;opacity:0.7;">ÉPICO</span>
                             </div>
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
-                                <strong style="font-size:0.78rem;">Frenesí</strong>
-                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Activa el Modo Frenesí al instante.</span>
-                            </div>
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                                <strong style="font-size:0.78rem;">Jackpot x4</strong>
-                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">La próxima pregunta vale x4.</span>
-                            </div>
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                                <strong style="font-size:0.78rem;">Puntos x2</strong>
-                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">La próxima vale el doble.</span>
+                            <!-- Jackpot x4 — Épico -->
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(255,0,144,0.07);border:1px solid rgba(255,0,144,0.25);border-radius:10px;padding:12px 8px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:#ff0090;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                <strong style="font-size:0.78rem;color:#ff0090;">Jackpot x4</strong>
+                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">La próxima pregunta vale x4 puntos.</span>
+                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#ff0090;opacity:0.7;">ÉPICO</span>
                             </div>
                         </div>
-                        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;">
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                                <strong style="font-size:0.78rem;">Turbo x3</strong>
-                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">La próxima vale x3 puntos.</span>
+
+                        <!-- Fila 2: Raro (3) -->
+                        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;">
+                            <!-- Escudo — Raro -->
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.22);border-radius:10px;padding:12px 8px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:#00d4ff;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                <strong style="font-size:0.78rem;color:#00d4ff;">Escudo</strong>
+                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">Falla sin perder vida la próxima vez.</span>
+                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#00d4ff;opacity:0.7;">RARO</span>
                             </div>
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                                <strong style="font-size:0.78rem;">Tiempo +8</strong>
-                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">8 segundos extra en la próxima.</span>
+                            <!-- Puntos x2 — Raro -->
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(255,184,0,0.07);border:1px solid rgba(255,184,0,0.22);border-radius:10px;padding:12px 8px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:#ffb800;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+                                <strong style="font-size:0.78rem;color:#ffb800;">Puntos x2</strong>
+                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">La próxima vale el doble de puntos.</span>
+                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#ffb800;opacity:0.7;">RARO</span>
                             </div>
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
-                                <strong style="font-size:0.78rem;">Tiempo +5</strong>
-                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">5 segundos extra en la próxima.</span>
+                            <!-- Turbo x3 — Raro -->
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(204,255,0,0.07);border:1px solid rgba(204,255,0,0.22);border-radius:10px;padding:12px 8px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:#ccff00;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+                                <strong style="font-size:0.78rem;color:#ccff00;">Turbo x3</strong>
+                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">La próxima vale x3 puntos.</span>
+                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#ccff00;opacity:0.7;">RARO</span>
                             </div>
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="4"/></svg>
-                                <strong style="font-size:0.78rem;">Pista</strong>
-                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Elimina una respuesta incorrecta.</span>
+                        </div>
+
+                        <!-- Fila 3: Normal (2) + Básico (1) -->
+                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:100%;">
+                            <!-- Tiempo +8 — Normal -->
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(0,255,204,0.06);border:1px solid rgba(0,255,204,0.18);border-radius:10px;padding:12px 8px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:#00ffcc;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+                                <strong style="font-size:0.78rem;color:#00ffcc;">Tiempo +8</strong>
+                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">8 segundos extra en la próxima pregunta.</span>
+                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#00ffcc;opacity:0.7;">NORMAL</span>
                             </div>
-                            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 10px;text-align:center;">
-                                <svg style="width:18px;height:18px;color:var(--text-secondary);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-                                <strong style="font-size:0.78rem;">Racha Salvada</strong>
-                                <span style="color:var(--text-secondary);font-size:0.7rem;line-height:1.3;">Tu racha no se resetea al fallar.</span>
+                            <!-- Pista — Normal -->
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(247,127,0,0.06);border:1px solid rgba(247,127,0,0.18);border-radius:10px;padding:12px 8px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:#f77f00;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                <strong style="font-size:0.78rem;color:#f77f00;">Pista</strong>
+                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">Elimina una respuesta incorrecta.</span>
+                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#f77f00;opacity:0.7;">NORMAL</span>
                             </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:100%;">
+                            <!-- Tiempo +5 — Normal -->
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(0,255,102,0.06);border:1px solid rgba(0,255,102,0.18);border-radius:10px;padding:12px 8px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:#00ff66;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <strong style="font-size:0.78rem;color:#00ff66;">Tiempo +5</strong>
+                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">5 segundos extra en la próxima pregunta.</span>
+                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#00ff66;opacity:0.7;">NORMAL</span>
+                            </div>
+                            <!-- Racha Salvada — Básico -->
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:5px;background:rgba(170,170,255,0.06);border:1px solid rgba(170,170,255,0.18);border-radius:10px;padding:12px 8px;text-align:center;">
+                                <svg style="width:18px;height:18px;color:#aaaaff;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                                <strong style="font-size:0.78rem;color:#aaaaff;">Racha Salvada</strong>
+                                <span style="color:var(--text-secondary);font-size:0.68rem;line-height:1.3;">Si fallas la siguiente, tu racha no se pierde.</span>
+                                <span style="font-size:0.55rem;font-weight:800;letter-spacing:1px;color:#aaaaff;opacity:0.7;">BÁSICO</span>
+                            </div>
+                        </div>
+
+                        <!-- Nota: multiplicadores se combinan con el multiplicador de racha -->
+                        <div style="width:100%;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);font-size:0.68rem;color:var(--text-secondary);line-height:1.6;margin-top:4px;">
+                            💡 <strong style="color:var(--text-primary);">Multiplicadores:</strong> Los premios x2, x3 y x4 se <em>multiplican sobre</em> tu multiplicador de racha actual. En Frenesí con x5 de racha, un Jackpot x4 da ¡x20 efectivo!
                         </div>
                     </div>
 
@@ -654,6 +701,11 @@
                 <div class="kp-total-bar-fill" id="kp-total-bar-fill"></div>
             </div>
             <div class="kp-reward-total" id="kp-reward-total">0 ℙ reclamados</div>
+            <!-- Aviso: la recompensa máxima solo se obtiene al completar el pase entero -->
+            <div style="margin-top:10px;padding:9px 14px;border-radius:10px;background:rgba(255,184,0,0.08);border:1px solid rgba(255,184,0,0.22);display:flex;align-items:flex-start;gap:9px;">
+                <svg style="width:15px;height:15px;flex-shrink:0;margin-top:1px;color:#ffb800;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span style="font-size:0.66rem;color:rgba(255,184,0,0.85);line-height:1.55;font-weight:600;">Las recompensas se desbloquean nivel a nivel en orden. Para acceder al siguiente nivel debes reclamar el anterior. La recompensa total de <strong style="color:#ffb800;">100,000 ℙ</strong> solo está disponible al completar el Pase en su totalidad.</span>
+            </div>
         </div>
 
         <!-- Scroll con el camino de niveles -->
