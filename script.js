@@ -1113,11 +1113,11 @@ addAchs([
     { id: 'rl7',  title: 'Rulero Empedernido', desc: 'Gira la ruleta 50 veces en total.',                             color: colors.purple, icon: SVG_WHEEL },
     { id: 'rl2',  title: 'Afortunado',         desc: 'Obtén una Vida Extra en la ruleta.',                            color: colors.red,    icon: SVG_HEART },
     { id: 'rl8',  title: 'Gran Premio',        desc: 'Consigue la Vida Extra 3 veces en distintas partidas.',         color: colors.red,    icon: SVG_HEART },
-    { id: 'rl3',  title: 'Escudo Dorado',      desc: 'Obtén Protección de Escudo en la ruleta.',                      color: colors.yellow, icon: SVG_SHIELD },
-    { id: 'rl9',  title: 'Invulnerable',       desc: 'Usa el Escudo y no pierdas la vida en esa pregunta.',           color: colors.yellow, icon: SVG_SHIELD },
-    { id: 'rl4',  title: 'Potenciado',         desc: 'Obtén un Potenciador de Puntos en la ruleta.',                  color: colors.orange, icon: SVG_STAR },
-    { id: 'rl5',  title: 'Frenesí Regalado',   desc: 'Activa Frenesí mediante la ruleta.',                            color: colors.purple, icon: SVG_FIRE },
-    { id: 'rl10', title: 'Combo Especial',     desc: 'Consigue un premio de ruleta durante una racha de 20+.',        color: colors.orange, icon: SVG_BOLT },
+    { id: 'rl3',  title: 'Escudo Dorado',      desc: 'Obtén el Escudo en la ruleta.',                                 color: colors.yellow, icon: SVG_SHIELD },
+    { id: 'rl9',  title: 'Invulnerable',       desc: 'Activa el Escudo y supera la pregunta sin perder vida.',        color: colors.yellow, icon: SVG_SHIELD },
+    { id: 'rl4',  title: 'Potenciado',         desc: 'Obtén cualquier multiplicador de puntos en la ruleta.',         color: colors.orange, icon: SVG_STAR },
+    { id: 'rl5',  title: 'Frenesí Regalado',   desc: 'Activa el Frenesí mediante la ruleta.',                         color: colors.purple, icon: SVG_FIRE },
+    { id: 'rl10', title: 'Combo Especial',     desc: 'Consigue cualquier premio de ruleta durante una racha de 20+.', color: colors.orange, icon: SVG_BOLT },
 ]);
 
 // ─── 12. MÚSICA Y AUDIO (3 pistas) ───────────────────────────────────────
@@ -1814,22 +1814,19 @@ if (playerStats.theme === 'light') {
 // ══════════════════════════════════════════════════════════
 //  RULETA DE RECOMPENSAS — cada 10 aciertos (no consecutivos)
 // ══════════════════════════════════════════════════════════
+// ── RULETA: 10 elementos únicos, sin repeticiones, lógica simple ──────────
+// Pesos: cuanto mayor, más probable. Recompensas aplicadas en collectRoulettePrize().
 const ROULETTE_PRIZES = [
-    // Legendario (rarísimo)
-    { id: 'life',       label: 'VIDA EXTRA',    short: '+VIDA',   color: '#ff2a5f', rarity: 'Legendario', weight: 5,  desc: 'Recuperas una vida perdida.' },
-    // Épicos
-    { id: 'shield',     label: 'ESCUDO',         short: 'ESCUDO',  color: '#00d4ff', rarity: 'Épico',      weight: 8,  desc: 'Protección si fallas la próxima pregunta.' },
-    { id: 'frenzy',     label: 'FRENESÍ',        short: 'FRENESÍ', color: '#b5179e', rarity: 'Épico',      weight: 9,  desc: 'Activa Modo Frenesí en la siguiente pregunta.' },
-    { id: 'jackpot',    label: 'JACKPOT x4',     short: 'x4',      color: '#ff0090', rarity: 'Épico',      weight: 6,  desc: 'La próxima pregunta vale x4 puntos.' },
-    // Raros
-    { id: 'boost',      label: 'PUNTOS x2',      short: 'x2 PTS',  color: '#ffb800', rarity: 'Raro',       weight: 15, desc: 'La próxima pregunta vale puntos dobles.' },
-    { id: 'doublelife', label: 'TURBO x3',        short: 'x3 PTS',  color: '#ccff00', rarity: 'Raro',       weight: 12, desc: 'La próxima pregunta vale x3 puntos.' },
-    { id: 'freeze',     label: 'TIEMPO +8',      short: '+8 SEG',  color: '#00ffcc', rarity: 'Raro',       weight: 14, desc: 'La próxima pregunta tendrá 8 segundos extra.' },
-    // Poco comunes
-    { id: 'hint',       label: 'PISTA',           short: 'PISTA',   color: '#f77f00', rarity: 'Normal',     weight: 18, desc: 'Elimina una respuesta incorrecta.' },
-    { id: 'time',       label: 'TIEMPO +5',      short: '+5 SEG',  color: '#00ff66', rarity: 'Normal',     weight: 20, desc: 'La próxima pregunta tendrá 5 segundos extra.' },
-    // Común
-    { id: 'streak',     label: 'RACHA SALVADA',  short: 'RACHA',   color: '#aaaaff', rarity: 'Basico',     weight: 23, desc: 'Si fallas no se resetea tu racha esta vez.' },
+    { id: 'life',    label: 'VIDA EXTRA',   short: '+VIDA',   color: '#ff2a5f', rarity: 'Legendario', weight: 5,  desc: 'Recuperas una vida perdida.' },
+    { id: 'frenzy',  label: 'FRENESÍ',      short: 'FRENESÍ', color: '#b5179e', rarity: 'Épico',      weight: 8,  desc: 'Activa el Modo Frenesí inmediatamente.' },
+    { id: 'jackpot', label: 'JACKPOT x4',   short: 'x4 PTS',  color: '#ff0090', rarity: 'Épico',      weight: 8,  desc: 'La próxima pregunta vale x4 puntos.' },
+    { id: 'shield',  label: 'ESCUDO',       short: 'ESCUDO',  color: '#00d4ff', rarity: 'Raro',       weight: 12, desc: 'Si fallas la próxima pregunta no pierdes vida.' },
+    { id: 'boost',   label: 'PUNTOS x2',    short: 'x2 PTS',  color: '#ffb800', rarity: 'Raro',       weight: 14, desc: 'La próxima pregunta vale el doble de puntos.' },
+    { id: 'triple',  label: 'TURBO x3',     short: 'x3 PTS',  color: '#ccff00', rarity: 'Raro',       weight: 11, desc: 'La próxima pregunta vale x3 puntos.' },
+    { id: 'time8',   label: 'TIEMPO +8',    short: '+8 SEG',  color: '#00ffcc', rarity: 'Normal',     weight: 15, desc: 'La próxima pregunta tendrá 8 segundos extra.' },
+    { id: 'hint',    label: 'PISTA',        short: 'PISTA',   color: '#f77f00', rarity: 'Normal',     weight: 18, desc: 'Elimina una respuesta incorrecta de la siguiente pregunta.' },
+    { id: 'time5',   label: 'TIEMPO +5',    short: '+5 SEG',  color: '#00ff66', rarity: 'Normal',     weight: 20, desc: 'La próxima pregunta tendrá 5 segundos extra.' },
+    { id: 'streak',  label: 'RACHA SALVADA',short: 'RACHA',   color: '#aaaaff', rarity: 'Básico',     weight: 22, desc: 'Si fallas la siguiente, tu racha no se resetea.' },
 ];
 
 let rouletteActive = false;
@@ -1850,16 +1847,16 @@ function getPrizeAtAngle() { return ROULETTE_PRIZES[0]; } // legacy no-op
 
 // ─── Iconos SVG para cada tipo de premio ───────────────────────────────────
 const PRIZE_ICONS = {
-    life:       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
-    shield:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
-    frenzy:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
-    jackpot:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
-    boost:      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>`,
-    doublelife: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>`,
-    freeze:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-    hint:       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
-    time:       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-    streak:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+    life:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
+    frenzy:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+    jackpot: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+    shield:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+    boost:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>`,
+    triple:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>`,
+    time8:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>`,
+    hint:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+    time5:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    streak:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
 };
 
 // ─── Deck state ────────────────────────────────────────────────────────────
@@ -2082,7 +2079,7 @@ function showCardPrize(prize) {
     playerStats.rouletteSpins = (playerStats.rouletteSpins||0) + 1;
     if (prize.id === 'life')   playerStats.rouletteLifeWins   = (playerStats.rouletteLifeWins||0) + 1;
     if (prize.id === 'shield') playerStats.rouletteShieldWins = (playerStats.rouletteShieldWins||0) + 1;
-    if (prize.id === 'boost' || prize.id === 'doublelife' || prize.id === 'jackpot') playerStats.rouletteBoostWins = (playerStats.rouletteBoostWins||0) + 1;
+    if (prize.id === 'boost' || prize.id === 'triple' || prize.id === 'jackpot') playerStats.rouletteBoostWins = (playerStats.rouletteBoostWins||0) + 1;
     if (prize.id === 'frenzy') playerStats.rouletteFrenzyWins = (playerStats.rouletteFrenzyWins||0) + 1;
     if (currentMaxStreak >= 20) playerStats.rouletteComboSpecial = true;
     saveStatsDebounced();
@@ -2131,7 +2128,7 @@ function collectRoulettePrize() {
     } else if (prize.id === 'boost') {
         activeBoostNextQ = 'boost';
         showToast('PUNTOS x2', 'La próxima pregunta vale el doble.', '#ffb800', SVG_STAR);
-    } else if (prize.id === 'doublelife') {
+    } else if (prize.id === 'triple') {
         activeBoostNextQ = 'triple';
         showToast('TURBO x3', 'La próxima pregunta vale x3 puntos.', '#ccff00', SVG_BOLT);
     } else if (prize.id === 'jackpot') {
@@ -2153,10 +2150,10 @@ function collectRoulettePrize() {
         updateMultiplierUI();
         updateStreakVisuals();
         showToast('¡FRENESÍ ACTIVADO!', 'Modo Frenesí activado por la ruleta.', '#b5179e', SVG_FIRE);
-    } else if (prize.id === 'time') {
+    } else if (prize.id === 'time5') {
         extraTimeActive = 5;
         showToast('+5 SEGUNDOS', 'La próxima pregunta tendrá tiempo extra.', '#00ff66', SVG_CLOCK);
-    } else if (prize.id === 'freeze') {
+    } else if (prize.id === 'time8') {
         extraTimeActive = 8;
         showToast('+8 SEGUNDOS', 'La próxima pregunta tendrá mucho tiempo extra.', '#00ffcc', SVG_CLOCK);
     } else if (prize.id === 'hint') {
@@ -2179,9 +2176,9 @@ function updateRewardIndicator() {
     if (activeBoostNextQ === 'boost') { label = 'Puntos x2 activo'; icon = 'x2'; color = '#ffb800'; }
     else if (activeBoostNextQ === 'triple') { label = 'Turbo x3 activo'; icon = 'x3'; color = '#ccff00'; }
     else if (activeBoostNextQ === 'jackpot') { label = 'Jackpot x4 activo'; icon = 'x4'; color = '#ff0090'; }
-    else if (shieldActive) { label = 'Escudo activo'; icon = '+1'; color = '#00d4ff'; }
+    else if (shieldActive) { label = 'Escudo activo'; icon = '🛡'; color = '#00d4ff'; }
     else if (hintActive) { label = 'Pista lista'; icon = '?'; color = '#f77f00'; }
-    else if (extraTimeActive > 0) { label = `+${extraTimeActive}s de tiempo`; icon = '+t'; color = '#00ff66'; }
+    else if (extraTimeActive > 0) { label = `+${extraTimeActive}s de tiempo`; icon = '+t'; color = extraTimeActive >= 8 ? '#00ffcc' : '#00ff66'; }
     else if (streakShieldActive) { label = 'Racha protegida'; icon = 'R+'; color = '#aaaaff'; }
     if (label) {
         iconEl.textContent = icon;
@@ -2811,7 +2808,13 @@ function loadQuestion() {
     
     // Apply extra time from roulette
     let questionTime = TIMER_LIMIT;
-    if (extraTimeActive) { questionTime = TIMER_LIMIT + extraTimeActive; extraTimeActive = 0; updateRewardIndicator(); }
+    // Preguntas largas (> 120 caracteres) reciben el doble de tiempo para facilitar la lectura
+    if (currentQ.question && currentQ.question.length > 120) {
+        questionTime = TIMER_LIMIT * 2;
+    }
+    // Guardar el tiempo límite de esta pregunta para normalizar el score
+    currentQ._timeLimit = questionTime;
+    if (extraTimeActive) { questionTime += extraTimeActive; extraTimeActive = 0; updateRewardIndicator(); }
     isAnsweringAllowed = true; isGamePaused = false; timeLeft = questionTime; timerText.innerText = timeLeft;
     
     timerPath.style.transition = 'none'; timerPath.style.strokeDashoffset = '0'; timerPath.style.stroke = 'var(--text-primary)'; timerText.style.color = 'var(--text-primary)'; void timerPath.offsetWidth; timerPath.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s ease';
@@ -2936,7 +2939,7 @@ function showFeedback(isCorrect, isTimeout = false) {
     if (isCorrect) {
         SFX.correct(); scr.className = 'screen correct'; icon.innerHTML = SVG_CORRECT; 
         title.innerText = 'CORRECTO';
-        let earned = 800 + Math.round((timeLeft / TIMER_LIMIT) * 800);
+        let earned = 800 + Math.round((timeLeft / ((_currentQuestion && _currentQuestion._timeLimit) || TIMER_LIMIT)) * 800);
         // Apply active boosts from roulette
         let boostMult = multiplier;
         if (activeBoostNextQ === 'boost') { boostMult = multiplier * 2; activeBoostNextQ = null; }
@@ -3595,6 +3598,10 @@ function kpCanClaim(lvNum) {
 }
 
 // ── Reclamar nivel ───────────────────────────────────────────────────
+// IMPORTANTE: Las recompensas del Klick Pass solo se pueden cobrar
+// completando los niveles de forma SECUENCIAL. Cada nivel requiere
+// haber reclamado el anterior. La recompensa total (100,000 ℙ) solo
+// está disponible al completar el Pase en su totalidad (nivel 100).
 let _kpClaimLock = false;
 function kpClaim(lvNum) {
     if (_kpClaimLock) return;
@@ -3887,9 +3894,11 @@ setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStat
     if (!('serviceWorker' in navigator)) return;
 
     // ── Banner de actualización ───────────────────────────────────
-    // Se muestra siempre que hay una nueva versión, sin importar
-    // si el usuario está en partida o no. No desaparece solo.
+    // Aparece cuando hay una nueva versión activa. No desaparece solo.
+    let _bannerShown = false;
     function _showUpdateBanner() {
+        if (_bannerShown) return;
+        _bannerShown = true;
         if (document.getElementById('sw-update-banner')) return;
         const b = document.createElement('div');
         b.id = 'sw-update-banner';
@@ -3937,39 +3946,50 @@ setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStat
         setTimeout(check, 800);
     }
 
+    // ── Activa el SW en espera y muestra el banner ────────────────
+    // Se llama una sola vez sin importar cuántos eventos disparan.
+    let _skipSent = false;
+    function _activatePendingSW(sw) {
+        if (_skipSent) return;
+        _skipSent = true;
+        sw.postMessage({ type: 'SKIP_WAITING' });
+        // El banner se muestra al recibir controllerchange (señal más fiable)
+    }
+
     // ── Registro y detección de actualizaciones ───────────────────
     navigator.serviceWorker.register('./sw.js').then(reg => {
 
-        // Caso A: Ya hay un SW nuevo esperando (p.ej. recarga manual
-        // después de que el SW instaló pero no activó)
+        // Caso A: Ya hay un SW nuevo esperando al cargar la página
         if (reg.waiting) {
-            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            _activatePendingSW(reg.waiting);
         }
 
-        // Caso B: El SW nuevo termina de instalarse mientras la página
-        // está abierta → pedirle que tome control ya
+        // Caso B: El SW nuevo termina de instalarse mientras la página está abierta
         reg.addEventListener('updatefound', () => {
             const incoming = reg.installing;
             if (!incoming) return;
             incoming.addEventListener('statechange', () => {
-                if (incoming.state === 'installed' && navigator.serviceWorker.controller) {
-                    // Hay un SW nuevo instalado y un SW viejo aún controlando
-                    // → activar el nuevo inmediatamente
-                    incoming.postMessage({ type: 'SKIP_WAITING' });
+                if (incoming.state === 'installed') {
+                    if (navigator.serviceWorker.controller) {
+                        // Nuevo SW instalado, hay un SW viejo controlando → activar
+                        _activatePendingSW(incoming);
+                    }
+                    // Si no hay controller aún, es la primera instalación — no recargar
                 }
             });
         });
 
-        // Verificar actualizaciones cada 3 minutos (por si el usuario
-        // deja el juego abierto mucho tiempo sin recargar)
+        // Verificar actualizaciones cada 3 minutos (si el juego queda abierto)
         setInterval(() => reg.update(), 3 * 60 * 1000);
 
     }).catch(() => {}); // silencioso en file:// o sin HTTPS
 
-    // Caso C: El SW cambió de controlador (activate corrió y claim() hizo
-    // efecto) → esta es la señal más fiable de que hay nueva versión activa
+    // Caso C: El SW cambió de controlador → señal más fiable de versión nueva activa
+    // Usar un pequeño debounce para evitar doble disparo en Chrome
+    let _ccTimer = null;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        _showUpdateBanner();
+        clearTimeout(_ccTimer);
+        _ccTimer = setTimeout(() => _showUpdateBanner(), 80);
     });
 
     // Caso D: El SW envía SW_UPDATED desde activate (doble seguro)
