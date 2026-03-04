@@ -164,7 +164,8 @@ const defaultStats = {
     powerLevel: 0, maxMult: 1, maxQuestionReached: 0, totalDaysPlayed: 0,
     profileViewedAfterGames: 0,
     selectedTrack: 'track_chill', trackSwitches: 0, tracksTriedSet: [], triedAllTracks: false,
-    sameTrackGames: 0, lastGameTrack: ''
+    sameTrackGames: 0, lastGameTrack: '',
+    kpViews: 0, kpClaimDays: [], kpSessionClaims: 0
 };
 
 const STORAGE_KEY = 'klick_player_data_permanent';
@@ -1120,7 +1121,21 @@ addAchs([
     { id: 'rl10', title: 'Combo Especial',     desc: 'Consigue cualquier premio de ruleta durante una racha de 20+.', color: colors.orange, icon: SVG_BOLT },
 ]);
 
-// ─── 12. MÚSICA Y AUDIO (3 pistas) ───────────────────────────────────────
+// ─── 12. KLICK PASS (10) ──────────────────────────────────────────────────
+addAchs([
+    { id: 'kpa1', title: 'Primer Paso',      desc: 'Reclama tu primer nivel del Klick Pass.',                         color: colors.green,  icon: SVG_TARGET },
+    { id: 'kpa6', title: 'Explorador del Pase', desc: 'Abre el Klick Pass por primera vez.',                          color: colors.green,  icon: SVG_TARGET },
+    { id: 'kpa2', title: 'En Camino',        desc: 'Completa 25 niveles del Klick Pass.',                             color: colors.blue,   icon: SVG_TARGET },
+    { id: 'kpa7', title: 'Constante',        desc: 'Reclama al menos un nivel del Klick Pass en 3 días distintos.',   color: colors.blue,   icon: SVG_TARGET },
+    { id: 'kpa3', title: 'A Mitad de Ruta',  desc: 'Completa 50 niveles del Klick Pass.',                             color: colors.yellow, icon: SVG_TARGET },
+    { id: 'kpa8', title: 'Dedicado',         desc: 'Reclama al menos un nivel del Klick Pass en 7 días distintos.',   color: colors.yellow, icon: SVG_STAR },
+    { id: 'kpa4', title: 'Casi en la Cima',  desc: 'Completa 75 niveles del Klick Pass.',                             color: colors.orange, icon: SVG_STAR },
+    { id: 'kpa9', title: 'Sin Pausas',       desc: 'Completa 10 niveles del Klick Pass en una sola sesión.',          color: colors.orange, icon: SVG_BOLT },
+    { id: 'kpa5', title: 'Pase Completado',  desc: 'Reclama los 100 niveles del Klick Pass en su totalidad.',         color: colors.red,    icon: SVG_STAR },
+    { id: 'kpa10',title: 'Coleccionista Total', desc: 'Completa el Klick Pass y desbloquea más de 200 logros.',       color: colors.red,    icon: SVG_TROPHY },
+]);
+
+// ─── 13. MÚSICA Y AUDIO (3 pistas) ───────────────────────────────────────
 addAchs([
     { id: 'trk1', title: 'Explorador Musical', desc: 'Cambia de pista musical al menos una vez desde Configuración.',  color: colors.green,  icon: SVG_STAR },
     { id: 'trk2', title: 'DJ Klick',           desc: 'Prueba las 3 pistas musicales disponibles.',                    color: colors.blue,   icon: SVG_STAR },
@@ -1128,7 +1143,7 @@ addAchs([
     { id: 'extra4', title: 'Silencioso',        desc: 'Juega 5 partidas con la música completamente apagada.',         color: colors.dark,   icon: SVG_CLOCK },
 ]);
 
-// ─── 13. INTERFAZ Y EXPLORACIÓN (visitas, guía, perfil, logros meta) ─────
+// ─── 14. INTERFAZ Y EXPLORACIÓN (visitas, guía, perfil, logros meta) ─────
 addAchs([
     { id: 'm4',  title: 'Curioso',             desc: 'Abre el Banco de Logros por primera vez.',                      color: colors.orange, icon: SVG_TROPHY },
     { id: 'm5',  title: 'Investigador',        desc: 'Visita el Banco de Logros 10 veces.',                           color: colors.blue,   icon: SVG_TROPHY },
@@ -1149,7 +1164,7 @@ addAchs([
     { id: 'ui9',  title: 'Puntaje en Mente',    desc: 'Revisa tu perfil inmediatamente después de un puntaje récord.', color: colors.yellow, icon: SVG_STAR },
 ]);
 
-// ─── 14. CONFIGURACIÓN (4 visitas + 10 ajustes) ───────────────────────────
+// ─── 15. CONFIGURACIÓN (4 visitas + 10 ajustes) ───────────────────────────
 const cfgVisTiers=[1,5,15,30];
 for(let i=0;i<4;i++) addAchs([{ id:`cv${i+1}`, title:`Ajustador ${i+1}`, desc:`Abre el menú de Configuración ${cfgVisTiers[i]} veces.`, color:colors.purple, icon:SVG_USER }]);
 addAchs([
@@ -1165,13 +1180,13 @@ addAchs([
     { id: 'cfg10', title: 'Vuelta a Casa',     desc: 'Cambia del Modo Claro al Oscuro después de haberlo activado.',   color: colors.dark,   icon: SVG_MOON },
 ]);
 
-// ─── 15. NOMBRE DE JUGADOR (3) ────────────────────────────────────────────
+// ─── 16. NOMBRE DE JUGADOR (3) ────────────────────────────────────────────
 addAchs([
     { id: 'm2',  title: 'Agente Secreto', desc: 'Cambia tu nombre de jugador 5 veces.',                               color: colors.purple, icon: SVG_USER },
     { id: 'm3',  title: 'Identidad Falsa',desc: 'Cambia tu nombre de jugador 20 veces.',                              color: colors.red,    icon: SVG_USER },
 ]);
 
-// ─── 16. LOGROS META Y COLECCIÓN (m8–m10 + pins + productivo + day) ──────
+// ─── 17. LOGROS META Y COLECCIÓN (m8–m10 + pins + productivo + day) ──────
 addAchs([
     { id: 'm8',  title: 'Coleccionista',  desc: 'Desbloquea 10 logros en total.',                                     color: colors.green,  icon: SVG_STAR },
     { id: 'm9',  title: 'Completista',    desc: 'Alcanza el hito de 50 logros desbloqueados.',                        color: colors.orange, icon: SVG_STAR },
@@ -1187,7 +1202,7 @@ addAchs([
     { id: 'extra5', title: 'Día Épico',  desc: 'Desbloquea 10 logros en un mismo día.',                               color: colors.purple, icon: SVG_STAR },
 ]);
 
-// ─── 17. CLASIFICACIÓN GLOBAL Y PODER (ranking + PL) ─────────────────────
+// ─── 18. CLASIFICACIÓN GLOBAL Y PODER (ranking + PL) ─────────────────────
 addAchs([
     { id: 'nm1',  title: 'Primera Sangre',    desc: 'Aparece por primera vez en la Clasificación Global.',             color: colors.red,    icon: SVG_TROPHY },
     { id: 'nm8',  title: 'PL 10,000',         desc: 'Alcanza 10,000 Puntos de Poder (Nivel inicial).',                color: colors.green,  icon: SVG_STAR },
@@ -1204,7 +1219,7 @@ addAchs([
     { id: 'pod3', title: 'Caballero Klick',   desc: 'Eres Leyenda y ocupas el 3.er lugar de la clasificación.',       color: '#ccff00',    icon: SVG_TROPHY },
 ]);
 
-// ─── 18. RANGOS (Junior → Mítico) ─────────────────────────────────────────
+// ─── 19. RANGOS (Junior → Mítico) ─────────────────────────────────────────
 addAchs([
     { id: 'u_junior',  title: 'Junior',   desc: 'Alcanza el rango Junior.',                                           color: colors.blue,   icon: SVG_TROPHY },
     { id: 'u6',        title: 'Pro',      desc: 'Alcanza el rango Pro.',                                              color: colors.red,    icon: SVG_TROPHY },
@@ -1215,28 +1230,19 @@ addAchs([
     { id: 'x17',       title: 'Veterano', desc: 'Acumula más de 100 partidas jugadas.',                               color: colors.blue,   icon: SVG_TROPHY },
 ]);
 
-// ─── 19. ÚNICOS DE HORARIO Y SITUACIÓN (logros narrativos raros) ──────────
+// ─── 20. ÚNICOS DE HORARIO Y SITUACIÓN (logros narrativos raros) ──────────
 addAchs([
     { id: 'fin1', title: 'Nocturno',      desc: 'Juega una partida después de las 11:00 PM.',                        color: colors.dark,   icon: SVG_CLOCK },
     { id: 'fin2', title: 'Madrugador',    desc: 'Juega una partida antes de las 6:00 AM.',                          color: colors.blue,   icon: SVG_CLOCK },
     { id: 'fin5', title: 'Monarca',       desc: 'Alcanza simultáneamente el rango Leyenda y 200 logros.',            color: colors.yellow, icon: SVG_TROPHY },
 ]);
 
-// ─── 20. MAESTROS DE COLECCIÓN (logros extremos de platino) ─────────────
+// ─── 21. MAESTROS DE COLECCIÓN (logros extremos de platino) ─────────────
 addAchs([
     { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 150 logros en total.',                                  color: colors.yellow, icon: SVG_STAR },
     { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 200 logros en total.',                                  color: colors.orange, icon: SVG_STAR },
-    { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 225 logros en total.',                                  color: colors.purple, icon: SVG_STAR },
+    { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 250 logros en total.',                                  color: colors.purple, icon: SVG_STAR },
     { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea todos los logros del juego. Eres absoluto.',            color: colors.red,    icon: SVG_STAR },
-]);
-
-// ─── 21. KLICK PASS (5) ───────────────────────────────────────────────────
-addAchs([
-    { id: 'kpa1', title: 'Primer Paso',      desc: 'Reclama tu primer nivel del Klick Pass.',                         color: colors.green,  icon: SVG_TARGET },
-    { id: 'kpa2', title: 'En Camino',        desc: 'Completa 25 niveles del Klick Pass.',                             color: colors.blue,   icon: SVG_TARGET },
-    { id: 'kpa3', title: 'A Mitad de Ruta',  desc: 'Completa 50 niveles del Klick Pass.',                             color: colors.yellow, icon: SVG_TARGET },
-    { id: 'kpa4', title: 'Casi en la Cima',  desc: 'Completa 75 niveles del Klick Pass.',                             color: colors.orange, icon: SVG_STAR },
-    { id: 'kpa5', title: 'Pase Completado',  desc: 'Reclama los 100 niveles del Klick Pass en su totalidad.',         color: colors.red,    icon: SVG_STAR },
 ]);
 
 
@@ -1316,7 +1322,7 @@ function _checkAchievementsImpl() {
     if (playerStats.achViews >= 1) unlock('m4'); if (playerStats.achViews >= 10) unlock('m5'); if (playerStats.achViews >= 50) unlock('m6');
     if (playerStats.pinnedAchievements.filter(id => id !== 'tramposo').length > 0) unlock('m7'); 
     if (normalAchs >= 10) unlock('m8'); if (normalAchs >= 50) unlock('m9'); if (normalAchs >= 100) unlock('m10');
-    if (normalAchs >= 150) unlock('master1'); if (normalAchs >= 200) unlock('master2'); if (normalAchs >= 225) unlock('master4'); if (normalAchs >= 250) unlock('master3');
+    if (normalAchs >= 150) unlock('master1'); if (normalAchs >= 200) unlock('master2'); if (normalAchs >= 250) unlock('master4'); if (normalAchs >= 276) unlock('master3');
 
     // DÍAS (Consecutivos vs Totales)
     const days = playerStats.maxLoginStreak; 
@@ -1386,11 +1392,16 @@ function _checkAchievementsImpl() {
 
     // KLICK PASS
     const kpClaimed = (getKpState().claimed || []).length;
-    if (kpClaimed >= 1)   unlock('kpa1');
-    if (kpClaimed >= 25)  unlock('kpa2');
-    if (kpClaimed >= 50)  unlock('kpa3');
-    if (kpClaimed >= 75)  unlock('kpa4');
-    if (kpClaimed >= 100) unlock('kpa5');
+    if ((playerStats.kpViews||0) >= 1)                          unlock('kpa6');
+    if (kpClaimed >= 1)                                          unlock('kpa1');
+    if ((playerStats.kpClaimDays||[]).length >= 3)              unlock('kpa7');
+    if (kpClaimed >= 25)                                         unlock('kpa2');
+    if ((playerStats.kpClaimDays||[]).length >= 7)              unlock('kpa8');
+    if (kpClaimed >= 50)                                         unlock('kpa3');
+    if ((playerStats.kpSessionClaims||0) >= 10)                 unlock('kpa9');
+    if (kpClaimed >= 75)                                         unlock('kpa4');
+    if (kpClaimed >= 100)                                        unlock('kpa5');
+    if (kpClaimed >= 100 && normalAchs >= 200)                  unlock('kpa10');
 
     // ESCALABLES GENERALES
     const wr = playerStats.totalWrong||0; for(let i=0;i<5;i++) if(wr>=wrnTiers[i]) unlock(`wr${i+1}`);
@@ -3626,6 +3637,13 @@ function kpClaim(lvNum) {
     state.claimed.push(lvNum);
     saveKpState(state);
 
+    // Track claim day for kpa7/kpa8 achievements
+    const today = new Date().toISOString().split('T')[0];
+    if (!Array.isArray(playerStats.kpClaimDays)) playerStats.kpClaimDays = [];
+    if (!playerStats.kpClaimDays.includes(today)) playerStats.kpClaimDays.push(today);
+    playerStats.kpSessionClaims = (playerStats.kpSessionClaims||0) + 1;
+    saveStatsLocally();
+
     const lvl   = KP_LEVELS[lvNum - 1];
     const icon  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><polyline points="20 6 9 17 4 12"/></svg>`;
     try { initAudio(); } catch(e){}
@@ -3862,6 +3880,8 @@ function renderKpPath() {
 function goToKlickPass() {
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e){}
     SFX.click();
+    playerStats.kpViews = (playerStats.kpViews||0) + 1;
+    saveStatsLocally(); checkAchievements();
     renderKpPath();
     _kpUpdateMenuBadge();
     switchScreen('klickpass-screen');
