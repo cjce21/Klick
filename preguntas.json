@@ -1,23 +1,23 @@
 [
   {
-    "question": "Antónimo de 'amargo':",
+    "question": "Un crítico literario llama 'agridulce' al final de una novela. ¿Qué implica ese término sobre la trama?",
     "answers": [
-      "Dulce",
-      "Salado",
-      "Agrio",
-      "Picante"
+      "Que el final fue completamente feliz y sin conflictos",
+      "Que mezcla emociones positivas y negativas de forma simultánea",
+      "Que el final fue trágico y sin esperanza alguna",
+      "Que la novela no tuvo resolución del conflicto principal"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
-    "question": "Identifica el pronombre demostrativo de cercanía:",
+    "question": "Según la norma RAE vigente, los pronombres demostrativos 'este', 'ese' y 'aquel' cuando sustituyen a un sustantivo:",
     "answers": [
-      "Aquel",
-      "Ese",
-      "Este",
-      "Mío"
+      "Siempre llevan tilde para diferenciarse del adjetivo demostrativo",
+      "Ya no necesitan tilde; la norma actual los exime en todos los casos",
+      "Solo llevan tilde si hay ambigüedad comprobada en la oración",
+      "Llevan tilde exclusivamente en textos formales y académicos"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "question": "¿Cuál puntuación es correcta en esta oración? 'Trajo todo: pan, leche, queso y mantequilla.'",
@@ -40,24 +40,24 @@
     "correctIndex": 1
   },
   {
-    "question": "Identifica el verbo en 'Él baila':",
+    "question": "En la oración 'Bailar merengue en las fiestas del barrio fue su mayor pasión', la palabra 'bailar' funciona como:",
     "answers": [
-      "Él",
-      "Baila",
-      "Bien",
-      "Bachata"
+      "Verbo conjugado en presente de indicativo",
+      "Sujeto de la oración, funcionando como sustantivo verbal (infinitivo)",
+      "Complemento directo del verbo principal",
+      "Adverbio de modo que modifica al predicado"
     ],
     "correctIndex": 1
   },
   {
-    "question": "Sustantivo de 'belleza' es:",
+    "question": "En la oración 'La belleza de ese paisaje me dejó sin palabras', ¿por qué 'belleza' es un sustantivo abstracto?",
     "answers": [
-      "Común",
-      "Propio",
-      "Abstracto",
-      "Individual"
+      "Porque nombra a una persona, animal o cosa física perceptible",
+      "Porque nombra una cualidad que no se puede tocar ni ver por sí misma",
+      "Porque es un sustantivo derivado de un adjetivo mediante sufijo",
+      "Ambas B y C son correctas"
     ],
-    "correctIndex": 2
+    "correctIndex": 3
   },
   {
     "question": "Categoría de 'bajo'?:",
@@ -80,14 +80,14 @@
     "correctIndex": 1
   },
   {
-    "question": "Sujeto de 'Ríen ellos':",
+    "question": "En 'Ríen los estudiantes que aprobaron el examen, a pesar del cansancio', ¿cuál es el núcleo del sujeto?",
     "answers": [
-      "Ellos",
-      "Ríen",
-      "Fiesta",
-      "No hay"
+      "Los estudiantes",
+      "Estudiantes",
+      "Aprobaron",
+      "Los estudiantes que aprobaron"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "question": "¿Cuál de estos verbos es irregular?",
@@ -100,14 +100,14 @@
     "correctIndex": 2
   },
   {
-    "question": "Identifica el verbo en 'Ellos saltan':",
+    "question": "En 'Los muchachos del equipo, motivados por el entrenador, saltan obstáculos cada tarde', ¿cuál es el núcleo del predicado?",
     "answers": [
-      "Ellos",
+      "Los muchachos",
+      "Motivados",
       "Saltan",
-      "Cerca",
-      "Lejos"
+      "Cada tarde"
     ],
-    "correctIndex": 1
+    "correctIndex": 2
   },
   {
     "question": "Categoría gramatical de 'aunque':",
@@ -130,14 +130,14 @@
     "correctIndex": 0
   },
   {
-    "question": "¿Qué palabra lleva 'z' al final?",
+    "question": "Por el seseo del español dominicano, muchos confunden s/c/z. ¿Cuál de estas oraciones está escrita correctamente?",
     "answers": [
-      "Pece",
-      "Peces",
-      "Pez",
-      "Peze"
+      "El juez dictó sentencia en la plaza principal",
+      "El jues dictó sentencia en la plasa principal",
+      "El juez dictó sentencia en la plasa principal",
+      "El jues dictó sentencia en la plaza principal"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "question": "Participio de 'abrir':",
@@ -150,14 +150,14 @@
     "correctIndex": 1
   },
   {
-    "question": "La palabra 'teléfono' es esdrújula:",
+    "question": "La palabra 'teléfono' siempre lleva tilde. ¿Cuál es la razón correcta?",
     "answers": [
-      "Verdadero",
-      "Falso",
-      "Es aguda",
-      "Es grave"
+      "Es aguda terminada en vocal, por eso se tilda",
+      "Es grave terminada en consonante distinta de n/s",
+      "Es esdrújula: todas las esdrújulas se tildan sin excepción",
+      "Tiene un hiato acentual que obliga a marcar la tilde"
     ],
-    "correctIndex": 0
+    "correctIndex": 2
   },
   {
     "question": "¿Cuál es la función de la coma en 'Juan, ven aquí'?",
@@ -170,11 +170,11 @@
     "correctIndex": 1
   },
   {
-    "question": "En la oración 'El niño inteligente ganó el premio', ¿cuál es el núcleo del sujeto?",
+    "question": "En 'La estudiante de bachillerato, reconocida por su esfuerzo constante durante tres años, ganó la beca', ¿cuál es el núcleo del sujeto?",
     "answers": [
-      "El",
-      "Niño",
-      "Inteligente",
+      "La estudiante de bachillerato",
+      "Estudiante",
+      "Reconocida",
       "Ganó"
     ],
     "correctIndex": 1
@@ -210,12 +210,12 @@
     "correctIndex": 2
   },
   {
-    "question": "Identifica el verbo en 'Ustedes ríen':",
+    "question": "En la frase 'Dame un chin de jugo', la palabra 'chin' funciona como cuantificador. Si la sustituimos por 'poco', ¿qué categoría gramatical ocupa?",
     "answers": [
-      "Ustedes",
-      "Ríen",
-      "Mucho",
-      "Gracia"
+      "Adjetivo calificativo descriptivo",
+      "Determinante indefinido / adjetivo cuantificador",
+      "Adverbio de cantidad que modifica al verbo",
+      "Pronombre indefinido en función de sujeto"
     ],
     "correctIndex": 1
   },
@@ -300,22 +300,22 @@
     "correctIndex": 0
   },
   {
-    "question": "Adjetivo calificativo:",
+    "question": "En la oración 'Ese vecino ruidoso llegó tarde', ¿cuál palabra es un adjetivo calificativo (y no determinante)?",
     "answers": [
-      "Bueno",
-      "Este",
-      "Un",
-      "Mío"
+      "Ese",
+      "Vecino",
+      "Ruidoso",
+      "Tarde"
     ],
-    "correctIndex": 0
+    "correctIndex": 2
   },
   {
-    "question": "¿Cuál de estas palabras tiene 'j' con sonido /x/ ante vocal?",
+    "question": "Un estudiante escribe: 'El jefe de la agenda presentó un plan jenial ante la gente'. ¿Cuál palabra tiene error de g/j?",
     "answers": [
-      "Gente",
-      "Guerra",
-      "Joven",
-      "Güero"
+      "Jefe (debe escribirse 'gefe')",
+      "Agenda (debe escribirse 'ajenda')",
+      "Jenial (debe escribirse 'genial')",
+      "Gente (debe escribirse 'jente')"
     ],
     "correctIndex": 2
   },
@@ -330,14 +330,14 @@
     "correctIndex": 0
   },
   {
-    "question": "Sinónimo de 'bonito':",
+    "question": "Un poeta usa 'hermoso' para describir un paisaje. ¿Cuál sinónimo mantiene mejor el tono elevado literario?",
     "answers": [
+      "Bonito",
+      "Bello",
       "Lindo",
-      "Feo",
-      "Horrible",
-      "Malo"
+      "Chulo"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "question": "¿Cuándo se escribe punto final?",
@@ -360,14 +360,14 @@
     "correctIndex": 0
   },
   {
-    "question": "Palabra escrita con 'g':",
+    "question": "¿Cuál de estas palabras se escribe con 'g' y no con 'j', aunque ambas suenan igual ante 'e' o 'i'?",
     "answers": [
-      "Geranio",
-      "Jeranio",
-      "Heranio",
-      "Xeranio"
+      "Jirafa",
+      "Genio",
+      "Reloj",
+      "Jinete"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "question": "¿Cuál es el antónimo de la palabra 'artificial'?",
@@ -390,14 +390,14 @@
     "correctIndex": 1
   },
   {
-    "question": "Identifica el hiato en 'día':",
+    "question": "¿Por qué 'había' lleva tilde pero 'causa' no, si ambas tienen vocales juntas?",
     "answers": [
-      "Día",
-      "Aire",
-      "Fuego",
-      "Auto"
+      "Porque 'había' es esdrújula y 'causa' no tiene acento marcado",
+      "'Había' tiene hiato acentual (vocal cerrada tónica rompe el diptongo); 'causa' tiene diptongo natural sin ruptura",
+      "Ambas deberían llevar tilde según la RAE actual",
+      "Porque 'había' es grave y 'causa' es aguda"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "question": "Núcleo del predicado en 'Él ríe de alegría':",
@@ -430,32 +430,32 @@
     "correctIndex": 1
   },
   {
-    "question": "La palabra 'guagua' en República Dominicana significa:",
+    "question": "Un estudiante escribe en su solicitud de beca: 'Me desplazo en guagua hasta la universidad'. ¿Cuál es el problema lingüístico?",
     "answers": [
-      "Perro",
-      "Autobús",
-      "Niño pequeño",
-      "Lluvia"
+      "Ninguno; 'guagua' es aceptable en cualquier registro formal o informal",
+      "Usa un dominicanismo coloquial inadecuado para un texto formal académico",
+      "La oración tiene un error de concordancia de género",
+      "El verbo 'desplazo' está conjugado incorrectamente"
     ],
     "correctIndex": 1
   },
   {
-    "question": "¿Cómo se divide 'guagua'?",
+    "question": "La palabra 'guagua' se divide 'gua-gua'. ¿Por qué 'ua' forma diptongo y no hiato en este caso?",
     "answers": [
-      "Gua-gua",
-      "Gu-a-gu-a",
-      "Guag-ua",
-      "G-u-a-g-u-a"
+      "Porque la 'u' es tónica y la 'a' es átona, lo que las separa",
+      "Porque 'ua' combina vocal débil átona ('u') con vocal fuerte ('a'), formando diptongo",
+      "Porque la 'g' antes de 'ua' siempre crea diptongo automáticamente",
+      "Porque es una palabra de origen taíno y no sigue las reglas generales"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
-    "question": "Identifica el verbo en 'Nosotros bailamos':",
+    "question": "En 'Nosotros bailamos bachata todas las semanas', el verbo 'bailamos' está en:",
     "answers": [
-      "Nosotros",
-      "Bailamos",
-      "Bachata",
-      "Bien"
+      "Pretérito indefinido, primera persona plural",
+      "Presente de indicativo, primera persona plural, expresando hábito",
+      "Futuro simple, primera persona plural",
+      "Subjuntivo presente, expresando deseo"
     ],
     "correctIndex": 1
   },
@@ -500,14 +500,14 @@
     "correctIndex": 0
   },
   {
-    "question": "¿Qué categoría gramatical es 'aquél' cuando sustituye a un sustantivo?",
+    "question": "Según la RAE actual, en la oración 'Vi dos libros: este me gustó más que aquel', la palabra 'aquel' (sin tilde):",
     "answers": [
-      "Sustantivo",
-      "Verbo",
-      "Pronombre demostrativo",
-      "Adverbio"
+      "Es incorrecta; debe llevar tilde obligatoriamente como pronombre",
+      "Es correcta; la norma actual no exige tilde en demostrativos aunque funcionen como pronombres",
+      "Es un adjetivo demostrativo que acompaña a un sustantivo",
+      "Solo es correcta en textos informales o conversacionales"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "question": "Selecciona la palabra que utiliza correctamente la 'v':",
@@ -580,22 +580,22 @@
     "correctIndex": 1
   },
   {
-    "question": "Sujeto de 'Baila Ana':",
+    "question": "En 'Baila Ana, la campeona del concurso nacional, con una gracia impresionante', ¿cuál es el sujeto gramatical?",
     "answers": [
-      "Baila",
+      "Ana, la campeona del concurso nacional",
       "Ana",
-      "Merengue",
+      "La campeona del concurso nacional",
       "Baila Ana"
     ],
     "correctIndex": 1
   },
   {
-    "question": "En la oración 'El perro ladra fuerte', el núcleo del sujeto es:",
+    "question": "En 'El perro de mi vecino, viejo y cansado, ladra toda la noche', ¿cuál es el núcleo del sujeto?",
     "answers": [
-      "El",
+      "El perro de mi vecino",
       "Perro",
-      "Ladra",
-      "Fuerte"
+      "Viejo",
+      "Ladra"
     ],
     "correctIndex": 1
   },
@@ -630,22 +630,22 @@
     "correctIndex": 1
   },
   {
-    "question": "Identifica el determinante posesivo:",
+    "question": "En 'Mi escuela, que fundaron mis abuelos, celebra su aniversario hoy', ¿cuántos determinantes posesivos hay?",
     "answers": [
-      "Ese",
-      "Mi",
-      "El",
-      "Un"
+      "Uno: 'mi'",
+      "Dos: 'mi' y 'mis'",
+      "Tres: 'mi', 'mis' y 'su'",
+      "Cuatro, contando el artículo 'su'"
     ],
-    "correctIndex": 1
+    "correctIndex": 2
   },
   {
-    "question": "Identifica el verbo en 'Ana canta':",
+    "question": "En 'Ana lleva semanas cantando en el coro del colegio', ¿qué tipo de construcción verbal es 'lleva... cantando'?",
     "answers": [
-      "Ana",
-      "Canta",
-      "Mucho",
-      "Canción"
+      "Un verbo simple en presente de indicativo",
+      "Una perífrasis verbal que indica acción continuada o prolongada",
+      "Un tiempo compuesto formado con el verbo auxiliar 'haber'",
+      "Un gerundio independiente sin relación con el verbo principal"
     ],
     "correctIndex": 1
   },
@@ -700,12 +700,12 @@
     "correctIndex": 1
   },
   {
-    "question": "¿Cuál de estas opciones es un dequeísmo (uso incorrecto de 'de que')?",
+    "question": "¿Cuál de estas oraciones contiene un dequeísmo (uso incorrecto de 'de que')?",
     "answers": [
-      "Pienso que es tarde",
-      "Pienso de que es tarde",
-      "Creo que vendrá",
-      "Sé que está aquí"
+      "Me alegra de que hayas venido",
+      "Pienso de que es tarde para salir",
+      "Estoy seguro de que vendrá mañana",
+      "Me di cuenta de que estaba equivocado"
     ],
     "correctIndex": 1
   },
@@ -760,12 +760,12 @@
     "correctIndex": 0
   },
   {
-    "question": "Identifica el diptongo creciente:",
+    "question": "¿Cuál de estas palabras contiene un diptongo creciente (vocal débil átona + vocal fuerte)?",
     "answers": [
-      "Aire",
-      "Fuego",
-      "Peine",
-      "Pausa"
+      "Peine (ei: fuerte + débil)",
+      "Fuego (ue: débil + fuerte ✓)",
+      "Pausa (au: fuerte + débil)",
+      "Aire (ai: fuerte + débil)"
     ],
     "correctIndex": 1
   },
@@ -790,14 +790,14 @@
     "correctIndex": 0
   },
   {
-    "question": "Identifica la palabra con 'b':",
+    "question": "¿Cuál de estas reglas sobre el uso de 'b' es correcta y cuál es el ejemplo que la ilustra?",
     "answers": [
-      "Escribir",
-      "Vivir",
-      "Servir",
-      "Hervir"
+      "Los verbos en imperfecto de indicativo (-aba, -abas...) se escriben con 'v': 'cantava'",
+      "Los verbos en imperfecto de indicativo (-aba, -abas...) se escriben con 'b': 'cantaba'",
+      "Las palabras con prefijo 'sub-' siempre se escriben con 'v': 'subvivir'",
+      "La 'b' y la 'v' tienen sonidos distintos que ayudan a identificar cuál usar"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "question": "Sinónimo de 'persistir':",
@@ -820,22 +820,22 @@
     "correctIndex": 2
   },
   {
-    "question": "La palabra 'sofá' lleva tilde porque:",
+    "question": "La palabra 'sofá' lleva tilde. ¿Cuál es la razón correcta?",
     "answers": [
-      "Termina en vocal",
-      "Es grave",
-      "Es esdrújula",
-      "Es monosílaba"
+      "Es grave y termina en vocal, lo que siempre exige tilde",
+      "Es aguda y termina en vocal, y las agudas se tildan cuando terminan en vocal, n o s",
+      "Es esdrújula y todas las esdrújulas llevan tilde",
+      "Es un préstamo del árabe y por eso lleva tilde especial"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
-    "question": "En la oración 'La guagua está llena', 'está' es un verbo:",
+    "question": "En 'La guagua está llena y no para en esta parada', el verbo 'está' funciona como copulativo. ¿Qué información aporta en este contexto?",
     "answers": [
-      "De acción",
-      "Copulativo (estado)",
-      "Auxiliar",
-      "Transitivo"
+      "Indica una acción que realiza la guagua activamente",
+      "Expresa un estado temporal del sujeto (guagua) mediante verbo copulativo",
+      "Es un verbo auxiliar que forma un tiempo compuesto",
+      "Indica desplazamiento físico del sujeto"
     ],
     "correctIndex": 1
   },
@@ -910,12 +910,12 @@
     "correctIndex": 3
   },
   {
-    "question": "¿Cuándo se usa la coma en una enumeración?",
+    "question": "Le pedí a mi hermano que trajera el zafacón; ________, trajo una escoba. ¿Qué conector de contraste encaja mejor para dar sentido a la queja?",
     "answers": [
-      "Para separar párrafos",
-      "Para separar elementos de una serie",
-      "Para indicar pausa larga",
-      "Para cerrar preguntas"
+      "Además",
+      "Sin embargo",
+      "Porque",
+      "Por lo tanto"
     ],
     "correctIndex": 1
   },
@@ -950,14 +950,14 @@
     "correctIndex": 0
   },
   {
-    "question": "La palabra 'teléfono' lleva tilde porque:",
+    "question": "La palabra 'teléfono' lleva tilde. ¿Qué tiene en común con 'música' y 'cámara' que justifica la misma regla?",
     "answers": [
-      "Es aguda terminada en vocal",
-      "Es grave terminada en vocal",
-      "Todas las esdrújulas se acentúan",
-      "Tiene un hiato acentual"
+      "Las tres tienen hiato acentual entre vocales que rompe un diptongo",
+      "Las tres son esdrújulas (acento en la antepenúltima sílaba) y todas las esdrújulas se tildan",
+      "Las tres son palabras graves que terminan en consonante distinta de n o s",
+      "Las tres son palabras de origen griego que conservan tilde especial"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "question": "Selecciona la forma correcta para referirse a una cuidadora de niños:",
@@ -980,14 +980,14 @@
     "correctIndex": 0
   },
   {
-    "question": "La tilde diacrítica de 'sé' (del verbo saber) lo distingue de:",
+    "question": "En 'Sé tú mismo y sé que puedes lograrlo', ¿cuántas formas diferentes de 'sé' hay y qué función cumple cada una?",
     "answers": [
-      "Se (reflexivo)",
-      "Sé (imperativo de ser)",
-      "Ambas opciones son válidas",
-      "Ninguna diferencia existe"
+      "Solo una: ambas son del verbo saber",
+      "Dos: 'sé' imperativo de 'ser' y 'sé' de primera persona del verbo saber",
+      "Dos: ambas del verbo ser, en tiempos distintos",
+      "Solo una forma: ambas son del verbo ser"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "question": "Antónimo de 'valiente':",
@@ -1020,34 +1020,34 @@
     "correctIndex": 2
   },
   {
-    "question": "Se escribe con 'v' después de la sílaba:",
+    "question": "Se escribe con 'v' después de las partículas 'ad-', 'sub-', 'ob-'. ¿Cuál ejemplo sigue correctamente esta regla?",
     "answers": [
-      "sub-",
-      "ob-",
-      "ad-",
-      "tras-"
-    ],
-    "correctIndex": 2
-  },
-  {
-    "question": "La rima consonante es aquella en que:",
-    "answers": [
-      "Solo coinciden las vocales desde la última tónica",
-      "Coinciden todos los sonidos (vocales y consonantes) desde la última vocal tónica",
-      "No hay ninguna coincidencia",
-      "Solo riman las consonantes"
+      "Subbenir (de sub- + venir)",
+      "Advertir (de ad- + vertir ✓)",
+      "Obiarse (de ob- + iarse)",
+      "Adbirtiria (incorrecto)"
     ],
     "correctIndex": 1
   },
   {
-    "question": "Identifica la palabra que tiene un triptongo (tres vocales en una sílaba):",
+    "question": "Lee: 'Tú me quemaste viva / con fuego de mentiras, / y yo seguí cantando / aunque el alma iba en llamas'. ¿Qué figura retórica predomina?",
     "answers": [
-      "Cielo",
-      "Uruguay",
-      "Miau",
-      "Ambas B y C son correctas"
+      "Hipérbaton: altera el orden sintáctico natural de la oración",
+      "Metáfora e hipérbole: compara sentimientos con fuego y exagera el sufrimiento",
+      "Aliteración: repite sonidos consonánticos en versos consecutivos",
+      "Anáfora: repite la misma palabra al inicio de cada verso"
     ],
-    "correctIndex": 3
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Cuál de estas palabras contiene un triptongo (tres vocales en una sola sílaba)?",
+    "answers": [
+      "Cielo (diptongo, solo dos vocales juntas)",
+      "Uruguay (el triptongo está en 'uay')",
+      "Poeta (hiato: po-e-ta)",
+      "Baúl (hiato acentual)"
+    ],
+    "correctIndex": 1
   },
   {
     "question": "El sufijo '-ero/-era' generalmente indica:",
@@ -1070,22 +1070,22 @@
     "correctIndex": 0
   },
   {
-    "question": "Antónimo de 'miedo'?:",
+    "question": "En la novela, el personaje supera su miedo y actúa con ______. ¿Qué antónimo de 'miedo' encaja mejor en este contexto?",
     "answers": [
-      "Valor",
       "Susto",
+      "Valor",
       "Temor",
       "Espanto"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
-    "question": "La palabra 'heroísmo' lleva tilde porque presenta un:",
+    "question": "La palabra 'heroísmo' lleva tilde. ¿Cuál es la razón correcta?",
     "answers": [
-      "Diptongo",
-      "Hiato acentual",
-      "Triptongo",
-      "Es esdrújula"
+      "Es una palabra esdrújula con acento en la antepenúltima sílaba",
+      "Tiene hiato acentual: la 'i' cerrada tónica está junto a la 'o' fuerte y se rompe el diptongo",
+      "Es una palabra aguda terminada en vocal",
+      "Es una excepción ortográfica sin regla definida"
     ],
     "correctIndex": 1
   },
@@ -1100,14 +1100,14 @@
     "correctIndex": 0
   },
   {
-    "question": "Categoría de 'él' con tilde:",
+    "question": "En 'Él llegó primero, pero el libro no era de él', ¿cuántas formas de 'él/el' aparecen y cuál lleva tilde diacrítica?",
     "answers": [
-      "Artículo",
-      "Pronombre",
-      "Nombre",
-      "Verbo"
+      "Solo 'él' (pronombre personal); 'el' sin tilde es el artículo",
+      "Ambas formas son pronombres y ambas llevan tilde",
+      "Ninguna debe llevar tilde según la RAE actual",
+      "Solo la última forma ('de él') lleva tilde porque es enfática"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "question": "Participio de 'morir':",
@@ -1120,12 +1120,12 @@
     "correctIndex": 1
   },
   {
-    "question": "¿Cuál par de palabras son homófonas gracias a la 'h'?",
+    "question": "Un jardinero dice: 'Hay que valla a colocar la valla en la baya del jardín'. ¿Cuál es el orden correcto?",
     "answers": [
-      "Hora/hora",
-      "Hola/ola",
-      "Humo/umo",
-      "Hasta/asta"
+      "valla / vaya / baya",
+      "vaya / valla / baya",
+      "baya / valla / vaya",
+      "haya / valla / baya"
     ],
     "correctIndex": 1
   },
@@ -1180,22 +1180,22 @@
     "correctIndex": 0
   },
   {
-    "question": "El seseo en el español dominicano consiste en:",
+    "question": "El seseo en el español dominicano provoca que s, c (ante e/i) y z suenen igual. ¿Cuál es su consecuencia ortográfica más importante?",
     "answers": [
-      "Pronunciar 'z' como la 's' española peninsular",
-      "Pronunciar 's', 'c' (ante e,i) y 'z' con el mismo sonido /s/",
-      "Omitir siempre la 'h'",
-      "Pronunciar 'll' como 'y'"
+      "Que no existe diferencia alguna entre estas letras en ningún contexto",
+      "Que los hablantes deben memorizar la escritura correcta porque el sonido no distingue entre c/s/z",
+      "Que se puede escribir cualquiera de las tres letras sin cometer error",
+      "Que solo afecta al habla oral y nunca genera errores escritos"
     ],
     "correctIndex": 1
   },
   {
-    "question": "Núcleo del sujeto en 'La guagua roja se dañó':",
+    "question": "En 'La guagua roja del barrio, que llevaba años en mal estado, se dañó en la autopista', ¿cuál es el núcleo del sujeto?",
     "answers": [
-      "La",
+      "La guagua roja",
       "Guagua",
-      "Roja",
-      "Dañó"
+      "La guagua roja del barrio",
+      "Se dañó"
     ],
     "correctIndex": 1
   },
@@ -1230,12 +1230,12 @@
     "correctIndex": 0
   },
   {
-    "question": "¿Cuál es el núcleo del sujeto en 'Ese lapicero azul no raya'?",
+    "question": "En 'Ese lapicero azul que me regalaste ayer, aunque ya no escribe bien, es mi favorito', ¿cuál es el núcleo del sujeto?",
     "answers": [
-      "Ese",
+      "Ese lapicero azul",
       "Lapicero",
-      "Azul",
-      "Raya"
+      "El que me regalaste",
+      "Es mi favorito"
     ],
     "correctIndex": 1
   },
@@ -1290,14 +1290,14 @@
     "correctIndex": 1
   },
   {
-    "question": "¿Cuál de estos monosílabos SÍ lleva tilde diacrítica?",
+    "question": "¿Cuál de estos monosílabos SÍ debe llevar tilde diacrítica según la RAE?",
     "answers": [
-      "El (artículo)",
-      "De (preposición)",
-      "Más (adverbio de cantidad)",
-      "Fe (sustantivo)"
+      "Fe (siempre átona)",
+      "Sé (verbo saber/imperativo de ser)",
+      "Fue (pretérito de ser/ir)",
+      "Vi (pretérito de ver)"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "question": "Sinónimo de 'habitual':",
@@ -1310,12 +1310,12 @@
     "correctIndex": 1
   },
   {
-    "question": "En 'El zafacón está en la esquina', ¿cuál es el predicado?",
+    "question": "En 'El zafacón, lleno de basura y mal ubicado, está en la esquina del aula', ¿cuál es el predicado?",
     "answers": [
       "El zafacón",
       "Está",
-      "Está en la esquina",
-      "Zafacón"
+      "Está en la esquina del aula",
+      "Lleno de basura y mal ubicado, está en la esquina del aula"
     ],
     "correctIndex": 2
   },
@@ -1380,14 +1380,14 @@
     "correctIndex": 1
   },
   {
-    "question": "Identifica la palabra que presenta un hiato (separación de vocales):",
+    "question": "¿Cuál de estas palabras presenta un hiato (separación de vocales en sílabas distintas)?",
     "answers": [
-      "Causa",
-      "Hielo",
-      "Río",
-      "Peine"
+      "Fuego (diptongo: fue-go)",
+      "Caída (hiato: ca-í-da)",
+      "Peine (diptongo: pei-ne)",
+      "Auto (diptongo: au-to)"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "question": "¿Cuál es el sinónimo más apropiado de 'valiente'?",
@@ -1480,12 +1480,12 @@
     "correctIndex": 0
   },
   {
-    "question": "Un texto descriptivo busca:",
+    "question": "Un texto descriptivo busca principalmente:",
     "answers": [
-      "Narrar una historia",
-      "Dar una imagen detallada de personas, lugares o cosas",
-      "Argumentar una posición",
-      "Dar instrucciones"
+      "Convencer al lector de adoptar una posición o punto de vista",
+      "Representar con detalle las características de personas, lugares u objetos",
+      "Narrar una secuencia de eventos con inicio, nudo y desenlace",
+      "Explicar causas y consecuencias de un fenómeno"
     ],
     "correctIndex": 1
   },
@@ -1510,14 +1510,14 @@
     "correctIndex": 0
   },
   {
-    "question": "En el español dominicano, ¿cuál es el fenómeno donde ll e y suenan igual?",
+    "question": "El yeísmo hace que 'll' y 'y' suenen igual en el español dominicano. ¿Cuál par de palabras puede confundirse por esto?",
     "answers": [
-      "Seseo",
-      "Yeísmo",
-      "Distinción",
-      "Aspiración"
+      "Valla y vaya (valla: cerco; vaya: del verbo ir)",
+      "Casa y caza",
+      "Hola y ola",
+      "Bello y vello"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "question": "Identifica el verbo en 'Yo como arroz':",
@@ -1550,14 +1550,14 @@
     "correctIndex": 0
   },
   {
-    "question": "Categoría de 'concho' en 'El concho pasó rápido':",
+    "question": "En 'El concho pasó rápido sin detenerse', la palabra 'concho' funciona como núcleo del sujeto. ¿Qué tipo de sustantivo es en el español dominicano?",
     "answers": [
-      "Sustantivo",
-      "Adjetivo",
-      "Verbo",
-      "Adverbio"
+      "Sustantivo propio de un lugar geográfico",
+      "Sustantivo común coloquial que designa un tipo de transporte informal",
+      "Sustantivo abstracto que nombra una sensación",
+      "Sustantivo colectivo que agrupa varios vehículos"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "question": "Antónimo de 'rico':",
@@ -1630,12 +1630,12 @@
     "correctIndex": 2
   },
   {
-    "question": "'El viento me habló al oído' es un ejemplo de:",
+    "question": "En el verso 'El viento me habló al oído secretos del otoño', ¿qué figura retórica aparece y qué efecto crea?",
     "answers": [
-      "Metáfora",
-      "Personificación (o prosopopeya)",
-      "Hipérbole",
-      "Antítesis"
+      "Hipérbole: exagera el volumen del viento para crear dramatismo",
+      "Personificación: atribuye al viento la capacidad humana de hablar, creando intimidad poética",
+      "Metáfora: compara el viento con una persona desconocida",
+      "Onomatopeya: imita el sonido del viento con las palabras"
     ],
     "correctIndex": 1
   },
@@ -1820,44 +1820,44 @@
     "correctIndex": 0
   },
   {
-    "question": "Los adverbios terminados en '-mente' conservan la tilde del adjetivo base. ¿Cuál ejemplo es correcto?",
+    "question": "Los adverbios terminados en '-mente' conservan la tilde del adjetivo base. ¿Cuál ejemplo aplica correctamente esta regla?",
     "answers": [
-      "Rapidamente",
-      "Rápidamente",
-      "Facilmente",
-      "Tranquilamente (si tranquilo no tiene tilde)"
+      "Facilmente (de fácil → fácilmente ✓)",
+      "Fácilmente (de fácil, que lleva tilde ✓)",
+      "Rapidamente (de rápido → rapidamente)",
+      "Claramente (de claro, pero claro sin tilde → claramente ✓)"
     ],
     "correctIndex": 1
   },
   {
-    "question": "¿Qué es un triptongo?:",
+    "question": "¿Cuál de estas palabras ilustra mejor un triptongo real y cuál sílaba lo contiene?",
     "answers": [
-      "2 vocales juntas",
-      "3 vocales juntas",
-      "Sílaba fuerte",
-      "Un hiato"
+      "Cuidado (cui: vocal débil + fuerte + débil ✓)",
+      "Averiguáis (guáis: u+á+i, triptongo real ✓)",
+      "Poeta (po-e: hiato, no triptongo)",
+      "Ambas A y B son correctas"
     ],
-    "correctIndex": 1
+    "correctIndex": 3
   },
   {
-    "question": "Palabra que se escribe con 'j':",
+    "question": "¿Cuál de estas palabras se escribe con 'j' y no con 'g', aunque el sonido sea el mismo ante 'e' o 'i'?",
     "answers": [
+      "Genio",
       "Gente",
-      "Jirafa",
-      "Gitano",
-      "Girasol"
-    ],
-    "correctIndex": 1
-  },
-  {
-    "question": "'Dormía como un tronco' es un ejemplo de:",
-    "answers": [
-      "Metáfora",
-      "Hipérbole",
-      "Símil (comparación con 'como')",
-      "Personificación"
+      "Jinete",
+      "Gemelo"
     ],
     "correctIndex": 2
+  },
+  {
+    "question": "En 'Dormía como un tronco después del partido', ¿qué figura retórica aparece y qué revela sobre el estado del sujeto?",
+    "answers": [
+      "Metáfora: el sujeto se convierte en un tronco de árbol literalmente",
+      "Símil: compara el dormir profundo con la inmovilidad de un tronco, enfatizando el agotamiento",
+      "Hipérbole: exagera que durmió más de lo normal",
+      "Personificación: el tronco adquiere la capacidad de dormir"
+    ],
+    "correctIndex": 1
   },
   {
     "question": "Modo de 'salten' (orden):",
@@ -1950,14 +1950,14 @@
     "correctIndex": 0
   },
   {
-    "question": "La palabra 'sí' lleva tilde cuando expresa:",
+    "question": "En 'Sí, creo que sí lo haré por mí mismo', ¿cuántas palabras con tilde diacrítica hay?",
     "answers": [
-      "Condición",
-      "Afirmación",
-      "Sustantivo",
-      "Preposición"
+      "Una: 'sí' (adverbio de afirmación)",
+      "Dos: ambas 'sí' (afirmaciones)",
+      "Tres: los dos 'sí' y 'mí' (pronombre tónico)",
+      "Cuatro, contando 'mí' dos veces"
     ],
-    "correctIndex": 1
+    "correctIndex": 2
   },
   {
     "question": "Identifica el diptongo:",
@@ -2040,14 +2040,14 @@
     "correctIndex": 1
   },
   {
-    "question": "¿Cuál de estas palabras requiere tilde diacrítica para diferenciar su función como pronombre?",
+    "question": "En 'Él sabe que tú llegaste tarde, pero él no te dijo nada a ti'. ¿Cuántas tildes diacríticas hay en total?",
     "answers": [
-      "Mesa",
-      "Él",
-      "Casa",
-      "Libro"
+      "Una: solo el primer 'él'",
+      "Dos: 'él' y 'tú'",
+      "Tres: los dos 'él' y 'tú'",
+      "Cuatro: los dos 'él', 'tú' y 'ti'"
     ],
-    "correctIndex": 1
+    "correctIndex": 2
   },
   {
     "question": "Sujeto tácito en 'Corren por la pista':",
@@ -2100,12 +2100,12 @@
     "correctIndex": 1
   },
   {
-    "question": "En la oración 'Ese colmado vende barato', ¿qué función cumple 'Ese'?",
+    "question": "En 'Ese colmado vende barato', 'Ese' funciona como determinante demostrativo. ¿Cómo cambiaría su función en 'Ese vende barato'?",
     "answers": [
-      "Pronombre",
-      "Adjetivo demostrativo",
-      "Artículo",
-      "Sustantivo"
+      "Seguiría siendo determinante porque acompaña al verbo",
+      "Pasaría a ser pronombre demostrativo porque sustituye al sustantivo 'colmado'",
+      "Se convertiría en adverbio de lugar",
+      "Se volvería un pronombre personal de tercera persona"
     ],
     "correctIndex": 1
   },
@@ -2140,14 +2140,14 @@
     "correctIndex": 3
   },
   {
-    "question": "¿Cuál de estas oraciones tiene un error de concordancia?",
+    "question": "¿Cuál de estas oraciones tiene un error de concordancia que refleja un rasgo típico del habla informal dominicana?",
     "answers": [
-      "Las flores son bonitas",
-      "El cielo está azul",
-      "Los niños juega en el parque",
-      "Ella come mucho"
+      "Las flores del jardín son hermosas",
+      "Los estudiante estudian mucho para el examen",
+      "El maestro explicó la lección con paciencia",
+      "Ella llegó tarde porque el tráfico estaba terrible"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "question": "Sujeto omitido de 'Caminamos'?:",
@@ -2240,14 +2240,14 @@
     "correctIndex": 3
   },
   {
-    "question": "En 'El niño compró un chin de dulces', la palabra 'un chin' es una:",
+    "question": "En 'El niño pidió un chin de dulces al vendedor', la expresión 'un chin' funciona como:",
     "answers": [
-      "Locución adverbial",
-      "Preposición",
-      "Conjunción",
-      "Interjección"
+      "Sujeto de la oración principal",
+      "Cuantificador indefinido que determina la cantidad del sustantivo 'dulces'",
+      "Complemento circunstancial de modo",
+      "Predicado nominal de la oración"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "question": "Identifica el sustantivo propio:",
@@ -2370,14 +2370,14 @@
     "correctIndex": 1
   },
   {
-    "question": "¿Cuáles son los tres géneros literarios principales?",
+    "question": "Los tres géneros literarios principales son narrativa, lírica y drama. ¿A cuál pertenecería un merengue que narra la historia de amor de un personaje?",
     "answers": [
-      "Cuento, novela, poema",
-      "Narrativo, lírico y dramático",
-      "Épico, cómico y trágico",
-      "Romance, drama y comedia"
+      "Drama, porque se representa en escena",
+      "Narrativa, porque cuenta una historia de un personaje",
+      "Lírica, porque expresa sentimientos mediante versos y musicalidad",
+      "Ensayo, porque reflexiona sobre el amor"
     ],
-    "correctIndex": 1
+    "correctIndex": 2
   },
   {
     "question": "Identifica el verbo escrito correctamente con 'b':",
@@ -2450,12 +2450,12 @@
     "correctIndex": 1
   },
   {
-    "question": "'Falleció' es un eufemismo de:",
+    "question": "El término 'falleció' es un eufemismo para evitar la palabra 'murió'. ¿Cuál de estas opciones también es un eufemismo común en el habla dominicana?",
     "answers": [
-      "Enfermó",
+      "Se murió",
+      "Se nos fue",
       "Murió",
-      "Viajó",
-      "Descansó"
+      "Está muerto"
     ],
     "correctIndex": 1
   },
@@ -2530,14 +2530,14 @@
     "correctIndex": 2
   },
   {
-    "question": "¿Cuándo lleva tilde el pronombre interrogativo 'qué'?",
+    "question": "¿Cuándo lleva tilde el pronombre 'qué' y cuándo no?",
     "answers": [
-      "Siempre",
-      "Nunca",
-      "En preguntas directas e indirectas",
-      "Solo en preguntas directas"
+      "Siempre lleva tilde cuando introduce una oración",
+      "'Qué' lleva tilde en preguntas e interrogativas indirectas; 'que' sin tilde es conjunción o relativo",
+      "Solo lleva tilde cuando va entre signos de interrogación directa",
+      "Nunca lleva tilde según la norma actualizada de la RAE"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "question": "El género dramático está escrito para:",
@@ -2570,24 +2570,24 @@
     "correctIndex": 0
   },
   {
-    "question": "Categoría de 'un chin':",
+    "question": "En 'Solo quiero un chin de paz en esta casa', ¿qué categoría gramatical funcional tiene la expresión 'un chin'?",
     "answers": [
-      "Locución adverbial",
-      "Sustantivo",
-      "Verbo",
-      "Preposición"
+      "Pronombre indefinido en función de sujeto",
+      "Locución cuantificadora coloquial equivalente a 'un poco' que funciona como determinante",
+      "Adverbio de cantidad que modifica directamente al verbo",
+      "Sustantivo en función de complemento directo"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
-    "question": "La palabra 'guagua' en República Dominicana es un sustantivo:",
+    "question": "La palabra 'guagua' es un sustantivo común en el español dominicano. ¿Qué la diferencia de 'autobús' desde el punto de vista sociolingüístico?",
     "answers": [
-      "Común",
-      "Propio",
-      "Abstracto",
-      "Colectivo"
+      "Son completamente sinónimas y siempre intercambiables en cualquier contexto",
+      "'Guagua' es un dominicanismo coloquial; 'autobús' es el término estándar apropiado para registros formales",
+      "'Guagua' es un préstamo del inglés; 'autobús' es del francés",
+      "'Guagua' es formal en Dominicana y 'autobús' es coloquial"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "question": "Identifica el artículo definido masculino singular:",
@@ -2640,12 +2640,12 @@
     "correctIndex": 1
   },
   {
-    "question": "En 'El play está lleno', ¿qué es 'play'?",
+    "question": "En 'El play está lleno de niños esta tarde', la palabra 'play' es un anglicismo. ¿Qué nos indica esto sobre el español dominicano?",
     "answers": [
-      "Verbo",
-      "Sustantivo",
-      "Adjetivo",
-      "Adverbio"
+      "Que el español dominicano está siendo reemplazado por el inglés",
+      "Que el español dominicano incorpora préstamos del inglés adaptados al uso cotidiano",
+      "Que 'play' tiene el mismo significado que en inglés ('jugar')",
+      "Que es un error que debe corregirse siempre en cualquier registro"
     ],
     "correctIndex": 1
   },
@@ -2670,12 +2670,12 @@
     "correctIndex": 0
   },
   {
-    "question": "En el español dominicano, ¿cuál fenómeno es típico de la pronunciación?",
+    "question": "En el español dominicano, la aspiración de la 's' al final de sílaba ('los niños' → 'loh niñoh') es un fenómeno fonético. ¿Qué consecuencia tiene esto en la escritura?",
     "answers": [
-      "Distinción entre c/s/z",
-      "Seseo (c, s y z suenan igual)",
-      "Ceceo",
-      "Ningún fenómeno especial"
+      "Permite omitir la 's' final en textos escritos formales",
+      "No afecta la escritura; la ortografía estándar debe mantenerse aunque se aspire en la pronunciación",
+      "Obliga a escribir 'h' en lugar de 's' en todos los finales de sílaba",
+      "Solo afecta el plural de los sustantivos masculinos"
     ],
     "correctIndex": 1
   },
@@ -2760,12 +2760,12 @@
     "correctIndex": 0
   },
   {
-    "question": "¿Qué es un modismo o expresión idiomática?",
+    "question": "Un modismo o expresión idiomática es una frase cuyo significado no se deduce de sus palabras individuales. ¿Cuál de estas es un modismo del español dominicano?",
     "answers": [
-      "Una palabra técnica",
-      "Frase cuyo significado no se deduce de sus partes ('meter la pata')",
-      "Un tipo de sinónimo",
-      "Una figura retórica formal"
+      "La casa está limpia (significado literal)",
+      "Está en la luna (no se entiende literalmente: significa 'está distraído')",
+      "El carro es nuevo (descripción directa)",
+      "Comimos juntos (acción literal sin sentido figurado)"
     ],
     "correctIndex": 1
   },
@@ -3120,12 +3120,12 @@
     "correctIndex": 1
   },
   {
-    "question": "¿Qué tipo de oración es 'Llueve mucho en diciembre'?",
+    "question": "¿Qué tipo de oración es 'Llueve mucho en diciembre en el Cibao'?",
     "answers": [
-      "Personal activa",
-      "Impersonal (sin sujeto)",
-      "Pasiva refleja",
-      "Copulativa"
+      "Una oración personal con sujeto tácito de tercera persona",
+      "Una oración impersonal: el verbo meteorológico 'llover' no puede tener sujeto gramatical",
+      "Una oración pasiva refleja con 'se'",
+      "Una oración compuesta subordinada causal"
     ],
     "correctIndex": 1
   },
@@ -3180,14 +3180,14 @@
     "correctIndex": 0
   },
   {
-    "question": "En '¡Cuidado con el zafacón!', el núcleo del sujeto es:",
+    "question": "En la oración exclamativa '¡Cuidado con el zafacón!', ¿cuál es el sujeto?",
     "answers": [
+      "El zafacón",
       "Cuidado",
-      "Zafacón",
-      "El",
-      "Sujeto tácito"
+      "No tiene sujeto; es una oración impersonal exclamativa",
+      "El sujeto está tácito: 'tú'"
     ],
-    "correctIndex": 1
+    "correctIndex": 2
   },
   {
     "question": "La palabra 'sofá' es aguda:",
@@ -3200,14 +3200,14 @@
     "correctIndex": 0
   },
   {
-    "question": "¿Cuál es el antónimo más preciso de la palabra 'efímero' (claro/breve)?",
+    "question": "Un periodista escribe: 'La fama de esa canción fue efímera'. ¿Cuál antónimo de 'efímero' expresaría lo contrario?",
     "answers": [
-      "Pasajero",
-      "Limpio",
-      "Perpetuo",
+      "Claro",
+      "Duradero o perdurable",
+      "Breve",
       "Oscuro"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "question": "¿Cómo se divide silábicamente 'recreo'?",
@@ -3320,22 +3320,22 @@
     "correctIndex": 0
   },
   {
-    "question": "¿Cuál es la diferencia entre pretérito indefinido y copretérito?",
+    "question": "¿Cuál par de oraciones ilustra correctamente la diferencia entre pretérito indefinido y pretérito imperfecto?",
     "answers": [
-      "No hay diferencia",
-      "El indefinido marca acción puntual; el copretérito, acción habitual o continua en el pasado",
-      "El copretérito es futuro",
-      "El indefinido solo se usa en España"
+      "'Comí arroz' (acción terminada) vs 'Comía arroz cuando llegaste' (acción en desarrollo en el pasado)",
+      "'Comí arroz' vs 'Comeré arroz' (presente y futuro)",
+      "'Comía arroz' (terminado) vs 'Comí arroz' (habitual pasado)",
+      "No hay diferencia real entre ambos tiempos en el español actual"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
-    "question": "En la oración 'El conuco de mi abuelo es grande', ¿cuál es el sujeto?",
+    "question": "En 'El conuco de mi abuelo, sembrado con amor durante décadas, produce los mejores guandules del campo', ¿cuál es el sujeto gramatical completo (sin el inciso)?",
     "answers": [
-      "El conuco",
+      "El conuco de mi abuelo, sembrado con amor durante décadas",
       "El conuco de mi abuelo",
-      "Abuelo",
-      "Mi abuelo"
+      "El conuco",
+      "Produce los mejores guandules"
     ],
     "correctIndex": 1
   },
@@ -3470,12 +3470,12 @@
     "correctIndex": 1
   },
   {
-    "question": "La aspiración de la 's' en posición final de sílaba es una característica:",
+    "question": "La aspiración de la 's' en posición final de sílaba ('estos' → 'ehtoh') es una característica del español dominicano. ¿Cómo debe tratarse este fenómeno en la escritura formal?",
     "answers": [
-      "Exclusiva del español de Castilla",
-      "Típica del español caribeño, incluyendo el dominicano",
-      "Del español andino",
-      "Del español mexicano solo"
+      "Debe reflejarse en la escritura para representar la cultura dominicana auténticamente",
+      "La escritura debe mantener la 's' estándar independientemente de la pronunciación dialectal",
+      "Solo se acepta en textos literarios y poéticos que buscan representar el habla local",
+      "La RAE ha aprobado que se puede omitir la 's' en textos informales dominicanos"
     ],
     "correctIndex": 1
   },
@@ -3590,24 +3590,24 @@
     "correctIndex": 0
   },
   {
-    "question": "La palabra 'banco' es polisémica porque puede significar:",
+    "question": "La palabra 'banco' es polisémica. ¿Cuál de estos usos en oración muestra dos significados distintos de la misma palabra?",
     "answers": [
-      "Solo asiento",
-      "Asiento, entidad financiera, o banco de peces",
-      "Solo entidad financiera",
-      "Solo banco de peces"
-    ],
-    "correctIndex": 1
-  },
-  {
-    "question": "Sinónimo de 'pana' (amigo):",
-    "answers": [
-      "Amigo",
-      "Enemigo",
-      "Desconocido",
-      "Rival"
+      "Fui al banco a cobrar y me senté en el banco de la plaza a esperar",
+      "El banco es un lugar de dinero y el dinero es importante",
+      "El banco azul está cerca del banco verde en el parque",
+      "Fui al banco y el banco fue conmigo"
     ],
     "correctIndex": 0
+  },
+  {
+    "question": "Un estudiante dominicano escribe en un ensayo: 'Mi pana me ayudó con el proyecto'. ¿Cuál es el problema y cuál sería la corrección adecuada?",
+    "answers": [
+      "No hay problema; 'pana' es sinónimo aceptado en todos los registros",
+      "Usa un coloquialismo inapropiado para el registro formal; debería escribir 'amigo' o 'compañero'",
+      "El error es de concordancia: 'pana' debería concordar en género con el sustantivo",
+      "La corrección es sustituir 'pana' por 'parcero', que es más formal"
+    ],
+    "correctIndex": 1
   },
   {
     "question": "El antónimo de 'amanecer' es:",
@@ -3820,12 +3820,12 @@
     "correctIndex": 2
   },
   {
-    "question": "'No hay mal que por bien no venga' es un ejemplo de:",
+    "question": "'No hay mal que por bien no venga' es un refrán. ¿Qué intención comunicativa tiene principalmente?",
     "answers": [
-      "Metáfora",
-      "Refrán popular",
-      "Eufemismo",
-      "Arcaísmo"
+      "Describir objetivamente una situación negativa",
+      "Transmitir una enseñanza moral sobre la capacidad de encontrar aspectos positivos en las dificultades",
+      "Narrar un evento histórico que ocurrió en el pasado",
+      "Dar una orden directa sobre cómo comportarse"
     ],
     "correctIndex": 1
   },
@@ -3870,22 +3870,22 @@
     "correctIndex": 1
   },
   {
-    "question": "Los gentilicios (dominicano, español, americano) se escriben:",
+    "question": "Los gentilicios (dominicano, español, americano) según la RAE se escriben:",
     "answers": [
-      "Con mayúscula siempre",
-      "Con minúscula (a menos que inicien oración)",
-      "Con mayúscula en documentos",
-      "Depende del estilo"
+      "Con mayúscula siempre, como los nombres propios de países",
+      "Con minúscula cuando funcionan como adjetivos o sustantivos comunes",
+      "Con mayúscula solo cuando aparecen al inicio de la oración o en documentos oficiales",
+      "Con mayúscula solo si acompañan a un nombre propio de persona"
     ],
     "correctIndex": 1
   },
   {
-    "question": "En 'Tengo un chin de sed', la palabra 'chin' funciona como:",
+    "question": "En 'Tengo un chin de sed después de tanto bailar', ¿qué función sintáctica cumple 'un chin de sed'?",
     "answers": [
-      "Sustantivo",
-      "Adverbio de cantidad",
-      "Adjetivo",
-      "Verbo"
+      "Sujeto de la oración",
+      "Complemento directo del verbo 'tengo'",
+      "Complemento circunstancial de cantidad",
+      "Atributo del sujeto tácito"
     ],
     "correctIndex": 1
   },
@@ -3950,14 +3950,14 @@
     "correctIndex": 1
   },
   {
-    "question": "¿Cuál de estas opciones usa correctamente las mayúsculas?",
+    "question": "¿Cuál de estas oraciones usa correctamente las mayúsculas según la norma española?",
     "answers": [
-      "El río Ozama pasa por Santo Domingo",
-      "El Río Ozama pasa por Santo Domingo",
-      "el río ozama pasa por santo domingo",
-      "El río Ozama pasa por santo domingo"
+      "El Presidente de la República dominicana viajó a España",
+      "El presidente de la República Dominicana viajó a España",
+      "El presidente de la república dominicana viajó a España",
+      "El presidente de la República dominicana viajó A España"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "question": "Sustantivo común de 'Rex':",
@@ -4120,12 +4120,12 @@
     "correctIndex": 2
   },
   {
-    "question": "Un texto argumentativo tiene como objetivo:",
+    "question": "Un estudiante escribe: 'El uso del celular en clase debe prohibirse porque afecta la concentración'. ¿Qué tipo de texto está produciendo?",
     "answers": [
-      "Narrar eventos",
-      "Convencer o persuadir al lector de una posición",
-      "Describir un lugar",
-      "Dar instrucciones de uso"
+      "Narrativo: narra una situación que ocurre en clase",
+      "Argumentativo: presenta una tesis y una razón para convencer al lector",
+      "Descriptivo: describe cómo se usan los celulares en clase",
+      "Expositivo: informa sobre el uso del celular sin tomar posición"
     ],
     "correctIndex": 1
   },
@@ -4490,12 +4490,12 @@
     "correctIndex": 1
   },
   {
-    "question": "En la escritura formal, 'caza' (acción de cazar) y 'casa' (vivienda):",
+    "question": "En la escritura formal, 'caza' (acción de cazar) y 'casa' (vivienda) se pronuncian igual en el español dominicano por el seseo. ¿Cómo se distinguen?",
     "answers": [
-      "Se escriben igual",
-      "Se escriben diferente aunque suenen igual en RD",
-      "Son sinónimos",
-      "Se confunden siempre"
+      "No se distinguen en ningún contexto; son completamente equivalentes",
+      "Solo por el contexto de la oración y por su ortografía diferente (z vs s)",
+      "Por la entonación: 'caza' se pronuncia más fuerte que 'casa'",
+      "Por el artículo: 'caza' siempre va con artículo masculino"
     ],
     "correctIndex": 1
   },
@@ -4550,12 +4550,12 @@
     "correctIndex": 0
   },
   {
-    "question": "La antítesis es una figura que consiste en:",
+    "question": "Lee este fragmento: 'Eres el cielo que adoro y el infierno que temo'. ¿Qué figura retórica aparece?",
     "answers": [
-      "Repetir sonidos",
-      "Oponer dos ideas contrarias",
-      "Exagerar para dar énfasis",
-      "Omitir palabras"
+      "Anáfora: repite la misma estructura al inicio",
+      "Antítesis: contrapone ideas opuestas (cielo/infierno, adoro/temo) en la misma oración",
+      "Hipérbole: exagera los sentimientos hasta lo imposible",
+      "Metáfora: identifica a una persona con el cielo"
     ],
     "correctIndex": 1
   },
@@ -4600,12 +4600,12 @@
     "correctIndex": 1
   },
   {
-    "question": "La palabra 'guion' según la RAE actual:",
+    "question": "Según la RAE actual, la palabra 'guion' (signo ortográfico):",
     "answers": [
-      "Siempre lleva tilde",
-      "Es monosílaba y no lleva tilde obligatoria",
-      "Solo lleva tilde en RD",
-      "Depende del autor"
+      "Siempre lleva tilde porque es un hiato",
+      "Puede escribirse con o sin tilde ('guion'/'guión') ya que la RAE acepta ambas formas",
+      "Nunca lleva tilde porque es monosílabo según la norma más reciente",
+      "Solo lleva tilde en textos formales y académicos"
     ],
     "correctIndex": 1
   },
@@ -4660,14 +4660,14 @@
     "correctIndex": 3
   },
   {
-    "question": "¿Cuándo llevan tilde los pronombres demostrativos 'este', 'ese', 'aquel'?",
+    "question": "Según la RAE (norma vigente desde 2010), ¿cuándo llevan tilde los pronombres demostrativos 'este', 'ese', 'aquel'?",
     "answers": [
-      "Siempre",
-      "Cuando son adjetivos",
-      "La RAE ya no exige tilde en ellos",
-      "Solo cuando hay ambigüedad vital"
+      "Siempre que funcionen como pronombres sustituyendo a un sustantivo",
+      "Nunca; la tilde fue eliminada de los demostrativos en la norma actual",
+      "Solo cuando hay ambigüedad que no pueda resolverse por el contexto",
+      "Solo en textos académicos o jurídicos que así lo requieran"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "question": "¿Cómo se escribe correctamente el número 26?",
@@ -4920,14 +4920,14 @@
     "correctIndex": 1
   },
   {
-    "question": "En 'El niño compró un chin de dulces', ¿qué significa 'chin'?",
+    "question": "En 'El niño compró un chin de dulces', ¿cuál es el equivalente estándar de 'chin' y qué nos revela su uso sobre el registro del texto?",
     "answers": [
-      "Mucho",
-      "Nada",
-      "Poquita cantidad",
-      "Regalo"
+      "'Chin' equivale a 'poco'; su uso indica un registro coloquial propio del español dominicano",
+      "'Chin' equivale a 'mucho'; su uso es formal en el español estándar",
+      "'Chin' es un préstamo del inglés 'chin' (barbilla)",
+      "'Chin' no tiene equivalente; es un término exclusivo sin sinónimo"
     ],
-    "correctIndex": 2
+    "correctIndex": 0
   },
   {
     "question": "Antónimo de 'poco'?:",
@@ -5050,14 +5050,14 @@
     "correctIndex": 1
   },
   {
-    "question": "En '¡Qué vaina!', los signos expresan:",
+    "question": "En la exclamación '¡Qué vaina!', los signos expresan emoción. Pero desde el punto de vista del registro lingüístico, ¿en qué situación sería inapropiado usarla?",
     "answers": [
-      "Pregunta",
-      "Duda",
-      "Emoción o exclamación",
-      "Silencio"
+      "En una conversación con amigos dominicanos",
+      "En una presentación oral ante el Ministerio de Educación",
+      "En un mensaje de texto a un familiar cercano",
+      "En una conversación informal en el recreo escolar"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "question": "La conclusión de un texto debe:",
@@ -5230,14 +5230,14 @@
     "correctIndex": 1
   },
   {
-    "question": "'Tengo millones de tareas' es un ejemplo de:",
+    "question": "En 'Tengo millones de tareas para mañana', ¿qué figura retórica aparece y qué efecto comunica el hablante?",
     "answers": [
-      "Metáfora",
-      "Símil",
-      "Hipérbole (exageración)",
-      "Antítesis"
+      "Metáfora: compara las tareas con millones de objetos físicos",
+      "Hipérbole: exagera la cantidad de tareas para transmitir agobio o carga excesiva",
+      "Ironía: en realidad el hablante no tiene ninguna tarea pendiente",
+      "Personificación: las tareas tienen vida propia y se multiplican"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "question": "Adjetivo en 'Carro azul':",
@@ -5290,22 +5290,22 @@
     "correctIndex": 1
   },
   {
-    "question": "¿Cuál de estos es un dominicanismo léxico (palabra propia del español de RD)?",
+    "question": "¿Cuál de estos es un dominicanismo léxico (palabra propia del español de RD) y en qué registro sería inadecuado?",
     "answers": [
-      "Teléfono",
-      "Frizado (referido al freezer o congelador)",
-      "Computadora",
-      "Televisor"
+      "'Autobús': es formal y apropiado en cualquier contexto",
+      "'Zafacón': es un dominicanismo coloquial; en un texto científico debería usarse 'basurero' o 'recipiente de desechos'",
+      "'Casa': es una palabra estándar del español general",
+      "'Estudiante': es neutral y válida en todos los registros"
     ],
     "correctIndex": 1
   },
   {
-    "question": "¿Qué figura literaria usa 'sus dientes son perlas'?",
+    "question": "En 'Sus dientes son perlas', ¿qué figura retórica es y en qué se diferencia del símil?",
     "answers": [
-      "Símil",
-      "Metáfora",
-      "Hipérbole",
-      "Personificación"
+      "Símil: compara usando la palabra 'como' de forma implícita",
+      "Metáfora: establece una identificación directa sin 'como'; el símil usaría 'sus dientes son como perlas'",
+      "Personificación: atribuye a los dientes cualidades de las perlas",
+      "Hipérbole: exagera el tamaño de los dientes"
     ],
     "correctIndex": 1
   },
@@ -5510,14 +5510,14 @@
     "correctIndex": 1
   },
   {
-    "question": "Sujeto en 'El perro de Juan ladra':",
+    "question": "En 'El perro de Juan, el que asustó a todos en el vecindario, ladra sin parar', ¿cuál es el sujeto sin el inciso?",
     "answers": [
-      "El perro",
-      "Juan",
+      "El perro de Juan, el que asustó a todos",
       "El perro de Juan",
-      "Ladra"
+      "Perro",
+      "Ladra sin parar"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "question": "Categoría de 'allá'?:",
@@ -5680,12 +5680,12 @@
     "correctIndex": 2
   },
   {
-    "question": "El narrador en primera persona:",
+    "question": "Un narrador en primera persona dice: 'No pude dormir esa noche; los recuerdos me perseguían'. ¿Qué efecto produce esto en el lector?",
     "answers": [
-      "No participa en la historia",
-      "Participa en la historia y cuenta desde su perspectiva",
-      "Conoce todo sobre todos los personajes",
-      "Solo describe el ambiente"
+      "Crea distancia entre el lector y el personaje, haciéndolo más objetivo",
+      "Genera cercanía e intimidad: el lector accede directamente a los pensamientos y emociones del narrador",
+      "Indica que la historia es un documento histórico verídico",
+      "Muestra que el narrador es omnisciente y sabe todo lo que pasa"
     ],
     "correctIndex": 1
   },
@@ -5770,14 +5770,14 @@
     "correctIndex": 0
   },
   {
-    "question": "Identifica el núcleo del sujeto en: 'Los hermosos campos de mi país son verdes'.",
+    "question": "En 'Los hermosos campos de mi país, verdes y fértiles desde siempre, son nuestra riqueza', ¿cuál es el núcleo del sujeto?",
     "answers": [
-      "Los",
-      "Hermosos",
+      "Los hermosos campos",
       "Campos",
-      "País"
+      "Los hermosos campos de mi país",
+      "Son nuestra riqueza"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "question": "Palabra que se escribe con 'h' inicial:",
@@ -5850,12 +5850,12 @@
     "correctIndex": 1
   },
   {
-    "question": "La palabra 'tú' lleva tilde diacrítica cuando funciona como:",
+    "question": "En 'Tú sabes que tu opinión cuenta para nosotros', ¿por qué 'tú' lleva tilde y 'tu' no?",
     "answers": [
-      "Adjetivo posesivo",
-      "Pronombre personal",
-      "Sustantivo",
-      "Preposición"
+      "Porque 'tú' al inicio de oración siempre lleva tilde como norma general",
+      "'Tú' con tilde es pronombre personal (sujeto); 'tu' sin tilde es determinante posesivo que acompaña a 'opinión'",
+      "Ambas formas deberían llevar tilde para evitar confusión",
+      "La RAE actual eliminó esta distinción y ya no es necesario tildar 'tú'"
     ],
     "correctIndex": 1
   },
@@ -5960,12 +5960,12 @@
     "correctIndex": 1
   },
   {
-    "question": "'El mago hizo su truco.' La palabra 'mago' se escribe con 'g' porque:",
+    "question": "'El mago hizo su truco'. La palabra 'mago' se escribe con 'g'. ¿Por qué no hay duda ortográfica aquí (a diferencia de 'maje' o 'magia')?",
     "answers": [
-      "Siempre va con g",
-      "Sigue la regla de palabras terminadas en -ago",
-      "Es un préstamo del inglés",
-      "La g es decorativa"
+      "Porque la 'g' ante 'a', 'o', 'u' siempre suena suave y nunca genera confusión con 'j'",
+      "Porque la 'g' ante 'a', 'o', 'u' suena suave (/g/), no como /x/, así que no hay posibilidad de confundir con 'j'",
+      "Porque 'mago' es una palabra de origen extranjero que conserva la 'g' etimológica",
+      "Porque la 'g' en esta posición siempre es fuerte, como en 'gente'"
     ],
     "correctIndex": 1
   },
@@ -6010,14 +6010,14 @@
     "correctIndex": 0
   },
   {
-    "question": "Identifica el adjetivo posesivo en: 'Mi casa es tu casa'.",
+    "question": "En 'Mi casa es tu casa', ¿qué función cumplen 'mi' y 'tu' (sin tilde)?",
     "answers": [
-      "Mi",
-      "Yo",
-      "El",
-      "Este"
+      "Son pronombres posesivos que sustituyen a sustantivos",
+      "Son determinantes posesivos átonos que acompañan y modifican a los sustantivos 'casa'",
+      "Son adverbios que indican posesión de lugar",
+      "Son pronombres personales de primera y segunda persona"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "question": "Antónimo de 'oscuro':",
@@ -6050,14 +6050,14 @@
     "correctIndex": 1
   },
   {
-    "question": "Los verbos terminados en '-ger' o '-gir' se conjugan con 'j' cuando:",
+    "question": "Los verbos terminados en '-ger' o '-gir' se conjugan con 'j' cuando la desinencia empieza por 'a' u 'o'. ¿Cuál ejemplo aplica esta regla correctamente?",
     "answers": [
-      "Están en infinitivo",
-      "La g va ante a u o",
-      "Están en modo subjuntivo",
-      "Son irregulares"
+      "Escojo (de escoger: e-s-c-o-j-o ante 'o' ✓)",
+      "Escogo (incorrecto)",
+      "Ejijo (de elegir: incorrecto)",
+      "Protego (de proteger: incorrecto)"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "question": "¿Cuál es el sinónimo de 'docente'?",
@@ -6090,14 +6090,14 @@
     "correctIndex": 0
   },
   {
-    "question": "Los pronombres relativos sirven para:",
+    "question": "Los pronombres relativos ('que', 'quien', 'cuyo'...) sirven para introducir oraciones subordinadas adjetivas. ¿Cuál ejemplo los usa correctamente?",
     "answers": [
-      "Señalar personas u objetos",
-      "Relacionar dos proposiciones",
-      "Preguntar",
-      "Exclamar"
+      "'La maestra que explicó bien' (que = relativo, introduce la subordinada adjetiva ✓)",
+      "'La maestra, pero explicó bien' (conjunción adversativa, no relativo)",
+      "'La maestra cuando explicó bien' (cuando es adverbial, no adjetivo)",
+      "'La maestra porque explicó bien' (porque es causal, no relativo)"
     ],
-    "correctIndex": 1
+    "correctIndex": 0
   },
   {
     "question": "En 'El concho se detuvo', ¿cuál es el núcleo del predicado?",
@@ -6270,14 +6270,14 @@
     "correctIndex": 2
   },
   {
-    "question": "Identifica el hiato acentual en la palabra 'río':",
+    "question": "La palabra 'río' lleva tilde porque presenta un hiato acentual. ¿Cuál es la explicación correcta?",
     "answers": [
-      "Rí-o",
-      "Rio",
-      "Ri-o",
-      "No tiene"
+      "Es esdrújula y todas las esdrújulas se tildan siempre",
+      "La 'i' es vocal cerrada tónica que, junto a la 'o' fuerte, formaría diptongo sin la tilde; la tilde marca el hiato",
+      "Es aguda terminada en vocal, lo que siempre exige tilde",
+      "Es una excepción ortográfica histórica sin regla aplicable"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "question": "La palabra 'teléfono' es:",
@@ -6300,12 +6300,12 @@
     "correctIndex": 0
   },
   {
-    "question": "Las palabras parónimas son aquellas que:",
+    "question": "Las palabras parónimas son aquellas que se parecen en sonido o escritura pero difieren en significado. ¿Cuál par son parónimas?",
     "answers": [
-      "Tienen el mismo significado",
-      "Se pronuncian de manera similar pero tienen diferente significado",
-      "Son completamente diferentes",
-      "Se escriben igual"
+      "Casa / caza (homófonas por seseo, no parónimas en sentido estricto)",
+      "Actitud / aptitud (similares pero diferentes: disposición anímica vs capacidad)",
+      "Rápido / veloz (sinónimos, no parónimas)",
+      "Libro / libra (relacionadas etimológicamente pero no parónimas típicas)"
     ],
     "correctIndex": 1
   },
@@ -6390,12 +6390,12 @@
     "correctIndex": 1
   },
   {
-    "question": "La palabra 'aún' (con tilde) equivale a:",
+    "question": "En 'Aún no han llegado, aunque aun los esperamos con paciencia', ¿por qué 'aún' lleva tilde la primera vez y 'aun' no la segunda?",
     "answers": [
-      "También",
-      "Todavía",
-      "Aunque",
-      "Sino"
+      "La primera es un error; ambas formas deben llevar tilde siempre",
+      "'Aún' con tilde equivale a 'todavía' (puede sustituirse); 'aun' sin tilde equivale a 'incluso' o 'hasta'",
+      "La tilde es opcional en ambos casos y depende del estilo del autor",
+      "La segunda 'aun' lleva tilde cuando va seguida de verbo"
     ],
     "correctIndex": 1
   },
@@ -6550,12 +6550,12 @@
     "correctIndex": 0
   },
   {
-    "question": "Sinónimo de 'triste':",
+    "question": "Un poeta busca un sinónimo de 'triste' que tenga un tono más literario y evocador para su verso. ¿Cuál recomendarías?",
     "answers": [
-      "Alegre",
-      "Apenado",
-      "Feliz",
-      "Contento"
+      "Malo",
+      "Lúgubre o melancólico",
+      "Feo",
+      "Difícil"
     ],
     "correctIndex": 1
   },
@@ -6620,24 +6620,24 @@
     "correctIndex": 1
   },
   {
-    "question": "¿Qué es la polisemia?",
+    "question": "¿Qué es la polisemia y cuál ejemplo del español dominicano la ilustra mejor?",
     "answers": [
-      "Una palabra con un solo significado",
-      "Una palabra con varios significados relacionados",
-      "Un grupo de sinónimos",
-      "Un tipo de figura retórica"
+      "Tener dos palabras para un mismo significado: 'guagua' y 'autobús'",
+      "Que una palabra tenga varios significados distintos: 'concho' puede ser vehículo informal o residuo de café",
+      "Que una palabra suene igual que otra: 'caza' y 'casa'",
+      "Que una palabra tenga origen en otra lengua: 'play' del inglés"
     ],
     "correctIndex": 1
   },
   {
-    "question": "Para que la 'g' suene suave ante 'e' o 'i', se escribe:",
+    "question": "Para que la 'g' suene suave (/g/) ante 'e' o 'i', se escribe 'gu'. ¿Cuál par ilustra esta regla?",
     "answers": [
-      "gu (sin diéresis)",
-      "gü (con diéresis)",
-      "gi directamente",
-      "ge directamente"
+      "Gente/guante (gente tiene /x/, no /g/ suave)",
+      "Guerra/guitarra (gu ante e/i: sonido suave ✓ en ambas)",
+      "Gato/gula (ante a/u: no necesita 'gu')",
+      "Jirafa/jinete (estas usan 'j', no 'g')"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "question": "La palabra 'café' es aguda y se tilda porque:",
@@ -6930,12 +6930,12 @@
     "correctIndex": 1
   },
   {
-    "question": "La palabra 'bahía' posee un hiato porque:",
+    "question": "La palabra 'bahía' tiene hiato acentual. ¿Por qué la 'i' lleva tilde?",
     "answers": [
-      "Se unen dos vocales fuertes",
-      "La vocal débil 'í' lleva tilde y rompe el diptongo",
-      "Tiene tres vocales seguidas",
-      "Es una palabra aguda"
+      "Porque es esdrújula y todas las esdrújulas se tildan",
+      "Porque la 'i' cerrada tónica rompe el diptongo que formaría con la 'a', creando hiato; la tilde marca esa separación",
+      "Porque es aguda terminada en vocal",
+      "Porque la 'h' intermedia genera una excepción ortográfica especial"
     ],
     "correctIndex": 1
   },
@@ -6960,12 +6960,12 @@
     "correctIndex": 0
   },
   {
-    "question": "El voseo es común en:",
+    "question": "El voseo (uso de 'vos' en lugar de 'tú') es común en países como Argentina y Uruguay, pero no en República Dominicana, donde se usa el tuteo. ¿Qué nos dice esto sobre el español?",
     "answers": [
-      "República Dominicana",
-      "Argentina, Uruguay y parte de Centroamérica",
-      "España",
-      "Cuba"
+      "Que el español de Argentina es incorrecto y el dominicano es el estándar",
+      "Que el español tiene variantes regionales válidas; ninguna es superior a la otra",
+      "Que el voseo es un arcaísmo en extinción que debe evitarse globalmente",
+      "Que el tuteo es más informal que el voseo en todos los países hispanohablantes"
     ],
     "correctIndex": 1
   },
@@ -7070,14 +7070,14 @@
     "correctIndex": 1
   },
   {
-    "question": "La rima asonante es aquella en que:",
+    "question": "Lee estos versos: 'Me fui sin saber por qué / y llegué sin recordar'. ¿Qué tipo de rima presentan?",
     "answers": [
-      "Solo coinciden las vocales desde la última vocal tónica",
-      "Coinciden todos los sonidos",
-      "No hay rima",
-      "Solo coinciden las consonantes finales"
+      "Consonante: coinciden todos los sonidos desde la última vocal tónica",
+      "Asonante: solo coinciden las vocales ('é' y 'á') desde la última vocal tónica, no las consonantes",
+      "No tienen rima porque los versos son muy diferentes",
+      "Rima interna: las palabras riman dentro del mismo verso"
     ],
-    "correctIndex": 0
+    "correctIndex": 1
   },
   {
     "question": "¿Cuál de estas palabras lleva 'h' intercalada correctamente?",
@@ -7100,12 +7100,12 @@
     "correctIndex": 0
   },
   {
-    "question": "¿Qué es una anáfora?",
+    "question": "Lee: 'No me rindo, no me canso, no me olvido de ti'. ¿Qué figura retórica hay y qué efecto produce?",
     "answers": [
-      "Tipo de sustantivo",
-      "Repetición de palabras al inicio de frases consecutivas",
-      "Figura de omisión",
-      "Tipo de verbo"
+      "Hipérbole: exagera la resistencia emocional del hablante de forma irreal",
+      "Anáfora: la repetición de 'no me' al inicio de cada cláusula enfatiza la determinación",
+      "Antítesis: contrapone ideas opuestas en el mismo verso",
+      "Personificación: el olvido actúa como persona que persigue al hablante"
     ],
     "correctIndex": 1
   },
@@ -7480,12 +7480,12 @@
     "correctIndex": 1
   },
   {
-    "question": "Los verbos irregulares son aquellos que:",
+    "question": "Los verbos irregulares son aquellos que alteran su raíz o terminaciones al conjugarse. ¿Cuál ejemplo lo demuestra?",
     "answers": [
-      "Siempre tienen la misma raíz",
-      "Cambian su raíz o desinencias al conjugarse",
-      "Solo se usan en infinitivo",
-      "Son siempre reflexivos"
+      "Hablar → hablo, hablas, habla (regular: solo cambia la terminación)",
+      "Poder → puedo, puedes, puede (irregular: la 'o' de la raíz cambia a 'ue')",
+      "Comer → como, comes, come (regular)",
+      "Vivir → vivo, vives, vive (regular)"
     ],
     "correctIndex": 1
   },
@@ -7540,24 +7540,24 @@
     "correctIndex": 1
   },
   {
-    "question": "El verso libre se caracteriza por:",
+    "question": "El verso libre se caracteriza por no seguir esquemas fijos de rima ni métrica. ¿Cuál de estos fragmentos es un ejemplo de verso libre?",
     "answers": [
-      "Tener rima consonante siempre",
-      "No tener rima ni medida fija",
-      "Tener exactamente 8 sílabas",
-      "Ser siempre de 14 versos"
+      "'En abril / aguas mil' (rima y medida fija)",
+      "'Volveré / y seré / eterno' (rima asonante regular)",
+      "'Camino sin saber adónde voy. El polvo se levanta detrás de mis pasos.' (sin rima ni metro fijo)",
+      "'Noche, noche, qué fría y qué oscura' (paralelismo formal)"
     ],
-    "correctIndex": 1
+    "correctIndex": 2
   },
   {
-    "question": "El español dominicano pertenece a la variedad:",
+    "question": "El español dominicano pertenece a la variedad caribeña del español. ¿Cuál de estos rasgos fonéticos NO es típico del habla dominicana?",
     "answers": [
-      "Castellana peninsular",
-      "Caribeña del español americano",
-      "Andina",
-      "Rioplatense"
+      "La aspiración de la 's' implosiva: 'estos' → 'ehtoh'",
+      "El seseo: s, c, z suenan igual",
+      "El voseo: uso de 'vos' en lugar de 'tú'",
+      "El yeísmo: 'll' y 'y' suenan igual"
     ],
-    "correctIndex": 1
+    "correctIndex": 2
   },
   {
     "question": "Sujeto de 'Cantó Pedro una hermosa melodía':",
@@ -7710,12 +7710,12 @@
     "correctIndex": 0
   },
   {
-    "question": "¿Cuál palabra lleva tilde porque tiene hiato acentual?",
+    "question": "¿Cuál de estas palabras lleva tilde específicamente porque tiene hiato acentual (vocal cerrada tónica junto a fuerte)?",
     "answers": [
-      "Aire",
-      "Causa",
-      "Maíz",
-      "Reino"
+      "Canción (aguda terminada en -n)",
+      "Rápido (esdrújula)",
+      "Grúa (hiato acentual: ú-a, vocal cerrada tónica + vocal fuerte ✓)",
+      "Árbol (grave terminada en -l)"
     ],
     "correctIndex": 2
   },
@@ -7800,14 +7800,14 @@
     "correctIndex": 2
   },
   {
-    "question": "La palabra 'héroe' lleva tilde porque:",
+    "question": "La palabra 'héroe' lleva tilde porque es esdrújula (hé-ro-e). ¿Qué regla aplica?",
     "answers": [
-      "Es aguda",
-      "Es grave",
-      "Es esdrújula",
-      "Es un hiato"
+      "Es aguda terminada en vocal, por eso se tilda",
+      "Es esdrújula (acento en la antepenúltima sílaba 'hé') y todas las esdrújulas llevan tilde sin excepción",
+      "Tiene un hiato acentual entre 'o' y 'e' que obliga a marcar la tilde",
+      "Es una excepción ortográfica de palabras de origen griego"
     ],
-    "correctIndex": 2
+    "correctIndex": 1
   },
   {
     "question": "Verbo 'ser' en presente (Nosotros):",
@@ -8050,12 +8050,12 @@
     "correctIndex": 0
   },
   {
-    "question": "¿Qué tipo de palabra es 'aunque'?",
+    "question": "En 'Iré a la fiesta aunque llueva toda la noche', ¿qué tipo de conjunción es 'aunque' y qué relación lógica establece?",
     "answers": [
-      "Preposición",
-      "Conjunción adversativa",
-      "Interjección",
-      "Adverbio de lugar"
+      "Conjunción copulativa que une dos ideas equivalentes",
+      "Conjunción concesiva que introduce un obstáculo que no impide la acción principal",
+      "Conjunción causal que explica el motivo de ir a la fiesta",
+      "Conjunción adversativa que contradice la idea anterior"
     ],
     "correctIndex": 1
   },
@@ -8170,12 +8170,12 @@
     "correctIndex": 2
   },
   {
-    "question": "¿Qué diferencia un cuento de una novela?",
+    "question": "¿Cuál es la diferencia fundamental entre un cuento y una novela?",
     "answers": [
-      "El tema",
-      "La extensión y complejidad narrativa",
-      "El número de figuras literarias",
-      "El tipo de lenguaje"
+      "El cuento es siempre infantil; la novela es solo para adultos",
+      "El cuento es breve, con pocos personajes y una trama concentrada; la novela es extensa con mayor complejidad narrativa",
+      "El cuento no tiene personajes; la novela sí los tiene",
+      "La novela usa verso; el cuento usa prosa únicamente"
     ],
     "correctIndex": 1
   },
@@ -8372,10 +8372,10 @@
   {
     "question": "La coherencia en un texto significa que:",
     "answers": [
-      "Tiene muchos adjetivos",
-      "Las ideas están organizadas y se relacionan lógicamente",
-      "Tiene muchos conectores",
-      "Está escrito en primera persona"
+      "Tiene muchas comas y puntos colocados en los lugares correctos",
+      "Las ideas se desarrollan con lógica y unidad temática, sin contradicciones ni saltos bruscos de tema",
+      "Usa vocabulario técnico y sofisticado en todos los párrafos",
+      "Contiene oraciones cortas y sin subordinadas para ser comprensible"
     ],
     "correctIndex": 1
   },
@@ -8570,14 +8570,14 @@
     "correctIndex": 0
   },
   {
-    "question": "La cohesión textual se logra mediante:",
+    "question": "La cohesión textual se logra mediante recursos que conectan las partes del texto. ¿Cuál de estos NO es un recurso de cohesión?",
     "answers": [
-      "Solo puntuación",
-      "El uso de conectores, pronombres y referencias que unen las oraciones",
-      "Párrafos muy cortos",
-      "Repetir siempre el mismo sustantivo"
+      "Uso de conectores ('sin embargo', 'por lo tanto')",
+      "Sustitución pronominal (usar 'él' en lugar de repetir el nombre del personaje)",
+      "Repetición del mismo argumento en distintas palabras para convencer",
+      "Elipsis (omitir elementos que ya se sobreentienden por el contexto)"
     ],
-    "correctIndex": 1
+    "correctIndex": 2
   },
   {
     "question": "Sujeto de 'Cantó Pedro':",
@@ -8710,12 +8710,12 @@
     "correctIndex": 1
   },
   {
-    "question": "'Selfie', 'chat', 'link' son ejemplos de:",
+    "question": "'Selfie', 'chat', 'link' son anglicismos usados en el español dominicano. ¿Cuál actitud lingüística es más adecuada respecto a ellos?",
     "answers": [
-      "Arcaísmos",
-      "Neologismos (del inglés)",
-      "Eufemismos",
-      "Hipérboles"
+      "Deben eliminarse completamente porque corrompen el español",
+      "Son parte de la evolución natural del idioma; en registros informales son aceptables, aunque en textos formales conviene usar equivalentes españoles si los hay",
+      "Deben usarse siempre en lugar de cualquier palabra española",
+      "Solo son aceptables si la RAE los ha incluido en el diccionario"
     ],
     "correctIndex": 1
   },
@@ -8820,12 +8820,12 @@
     "correctIndex": 0
   },
   {
-    "question": "¿Cuál es un ejemplo de palabra del español dominicano que tiene influencia del taíno?",
+    "question": "¿Cuál de estas palabras del español dominicano tiene influencia del taíno (lengua indígena originaria de la isla)?",
     "answers": [
-      "Libro",
-      "Hamaca",
-      "Casa",
-      "Árbol"
+      "Guagua (del taíno o de influencia africana)",
+      "Conuco (parcela de cultivo, de origen taíno ✓)",
+      "Zafacón (del inglés 'safe can')",
+      "Play (del inglés 'playground')"
     ],
     "correctIndex": 1
   },
@@ -9000,12 +9000,12 @@
     "correctIndex": 0
   },
   {
-    "question": "¿Cuál de estas oraciones tiene un error de redundancia?",
+    "question": "¿Cuál de estas oraciones tiene un error de redundancia (repetición innecesaria de una idea)?",
     "answers": [
-      "Subir arriba",
-      "Llegar a tiempo",
-      "Estudiar con esfuerzo",
-      "Hablar con claridad"
+      "Subí arriba las escaleras corriendo para no llegar tarde",
+      "Llegué a tiempo al colegio esta mañana",
+      "El estudiante entregó el trabajo antes del plazo",
+      "La maestra explicó el tema con claridad y paciencia"
     ],
     "correctIndex": 0
   },
@@ -9630,12 +9630,12 @@
     "correctIndex": 0
   },
   {
-    "question": "¿Qué es un eufemismo?",
+    "question": "Un eufemismo es una expresión que suaviza algo desagradable. ¿Cuál de estas es un eufemismo típico del habla dominicana?",
     "answers": [
-      "Expresión directa y brusca",
-      "Expresión suavizada para evitar algo desagradable",
-      "Figura de comparación",
-      "Tipo de metáfora"
+      "'Se murió' (expresión directa)",
+      "'Está en mejor lugar' (para evitar decir 'murió' directamente ✓)",
+      "'Falleció' (término formal, no coloquial)",
+      "'Era viejo de todas formas' (comentario, no eufemismo)"
     ],
     "correctIndex": 1
   },
@@ -9840,12 +9840,12 @@
     "correctIndex": 2
   },
   {
-    "question": "Un soneto es una composición poética de:",
+    "question": "Un soneto es una composición poética de catorce versos endecasílabos divididos en dos cuartetos y dos tercetos. ¿Cuál es su característica más exigente?",
     "answers": [
-      "10 versos de libre extensión",
-      "14 versos distribuidos en dos cuartetos y dos tercetos",
-      "8 versos en una sola estrofa",
-      "Versos de distinta medida libres"
+      "Que no puede tener rima de ningún tipo",
+      "Que debe respetar la métrica de once sílabas y el esquema de rima fijo en cada estrofa",
+      "Que solo puede tratar temas amorosos o religiosos",
+      "Que debe ser escrito en latín o italiano para ser auténtico"
     ],
     "correctIndex": 1
   },
@@ -9860,14 +9860,14 @@
     "correctIndex": 0
   },
   {
-    "question": "¿Cuál de estas frases es una redundancia incorrecta?",
+    "question": "¿Cuál de estas frases es una redundancia incorrecta que suele aparecer en el habla coloquial dominicana?",
     "answers": [
-      "Volver a repetir",
-      "Pensar con la mente",
-      "Salir afuera",
-      "Todas las anteriores son redundancias"
+      "'Salió afuera a jugar' (salir ya implica 'afuera')",
+      "'Llegó tarde al colegio' (oración correcta sin redundancia)",
+      "'El niño estudia matemáticas' (construcción correcta)",
+      "'El carro paró en la parada' (correcto, 'parada' es el nombre del lugar)"
     ],
-    "correctIndex": 3
+    "correctIndex": 0
   },
   {
     "question": "Categoría de 'lentamente'?",
@@ -10260,12 +10260,12 @@
     "correctIndex": 3
   },
   {
-    "question": "En 'Las flores rojas huelen bien', ¿cuál es el núcleo del sujeto?",
+    "question": "En 'Las flores rojas del jardín de mi abuela, que florecen cada primavera, huelen maravillosamente', ¿cuál es el núcleo del sujeto?",
     "answers": [
-      "Las",
+      "Las flores rojas",
       "Flores",
-      "Rojas",
-      "Huelen"
+      "Las flores rojas del jardín de mi abuela",
+      "Huelen maravillosamente"
     ],
     "correctIndex": 1
   },
@@ -10278,5 +10278,615 @@
       "Ninguno es correcto."
     ],
     "correctIndex": 0
+  },
+  {
+    "question": "En 'La profesora de Lengua, admirada por todos sus alumnos durante años, ganó el premio nacional de educación', el núcleo del sujeto es:",
+    "answers": [
+      "La profesora de Lengua",
+      "Profesora",
+      "Admirada",
+      "Ganó"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "En 'Los libros que me regalaste en mi cumpleaños, aunque estaban viejos y gastados, me encantaron', ¿cuál es el núcleo del sujeto?",
+    "answers": [
+      "Los libros que me regalaste",
+      "Libros",
+      "Los libros",
+      "Me encantaron"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "En 'El equipo nacional de baloncesto, entrenado durante meses con gran disciplina, perdió en la final por un punto', ¿qué función cumple 'entrenado durante meses con gran disciplina'?",
+    "answers": [
+      "Núcleo del sujeto gramatical",
+      "Inciso explicativo (aposición adjetival) sobre el sujeto",
+      "Complemento directo del verbo principal",
+      "Predicado nominal de la oración compuesta"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "En 'Los jóvenes dominicanos, a pesar de las dificultades económicas, sueñan con un futuro mejor para sus familias', ¿cuáles palabras forman el sujeto gramatical sin el inciso?",
+    "answers": [
+      "Los jóvenes",
+      "Los jóvenes dominicanos",
+      "Jóvenes dominicanos",
+      "Todos, incluyendo el inciso"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "En 'María, quien llegó tarde por el tráfico con su hermano, tampoco entendió la clase de gramática', ¿cuál es el sujeto gramatical mínimo?",
+    "answers": [
+      "María, quien llegó tarde por el tráfico con su hermano",
+      "María",
+      "Quien llegó tarde",
+      "Su hermano"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Cuál de estas oraciones tiene un error ortográfico relacionado con el seseo del español dominicano?",
+    "answers": [
+      "La caza del zorro fue emocionante en el monte",
+      "La casa del pueblo fue construida hace cien años",
+      "El lapiz rojo está en el estuche de la mochila",
+      "La voz del cantante retumbó en todo el coliseo"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "question": "Un estudiante escribe: 'la bellesa del paizaje me dejo sin palavras'. ¿Cuántos errores ortográficos hay en total?",
+    "answers": [
+      "Uno: 'bellesa' (debería ser 'belleza')",
+      "Dos: 'bellesa' y 'paizaje'",
+      "Tres: 'bellesa', 'paizaje' y 'dejo' (falta tilde)",
+      "Cuatro, incluyendo 'palavras'"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "question": "¿Por qué 'corazón' cambia la 'z' a 'c' en su plural 'corazones'?",
+    "answers": [
+      "Porque la 'z' nunca puede ir antes de ninguna vocal en español",
+      "Porque la 'z' se convierte en 'c' ante la vocal 'e' para mantener el mismo sonido",
+      "Porque es una excepción ortográfica sin regla definida",
+      "Porque el plural de las agudas siempre cambia la consonante final"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Cuál par de palabras ilustra mejor el reto del seseo para un escritor dominicano?",
+    "answers": [
+      "Comer / beber (no tienen s/c/z)",
+      "Abrazar / abrasar (abrazar: rodear con brazos; abrasar: quemar)",
+      "Mesa / pesa (no presentan confusión por seseo)",
+      "Taza / laza (solo una existe en español estándar)"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Cuál de estas reglas sobre g/j es completamente correcta?",
+    "answers": [
+      "La 'g' siempre suena igual sin importar la vocal que la sigue",
+      "Ante 'e' e 'i', tanto 'g' como 'j' producen el mismo sonido /x/; la distinción es solo ortográfica",
+      "La 'j' nunca puede ir antes de 'a', 'o' o 'u'",
+      "La 'g' ante 'a', 'o', 'u' suena como /x/ igual que la 'j'"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "En 'El agente viajó en jeep hasta la región selvática', ¿cuántas palabras contienen el sonido /x/ (como en 'jota')?",
+    "answers": [
+      "Una: 'viajó'",
+      "Dos: 'agente' y 'región'",
+      "Tres: 'agente', 'viajó' y 'región'",
+      "Cuatro: 'agente', 'viajó', 'jeep' y 'región'"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "question": "¿Cuál de estas palabras contiene un hiato acentual que obliga a poner tilde?",
+    "answers": [
+      "Suave (diptongo: sua-ve)",
+      "Ruido (diptongo: rui-do)",
+      "Grúa (hiato acentual: grú-a ✓)",
+      "Cielo (diptongo: cie-lo)"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "question": "La tilde diacrítica sirve para distinguir palabras de igual escritura. ¿Cuál par muestra correctamente este uso?",
+    "answers": [
+      "Mas (adversativo: 'pero') / más (cantidad: 'mucho')",
+      "El (artículo) / ello (pronombre distinto)",
+      "Se (verbo) / se (reflexivo, misma función)",
+      "Te (infusión, con tilde) / te (pronombre, sin tilde)"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "question": "¿Cuál oración tiene todas sus tildes diacríticas correctamente colocadas según la RAE?",
+    "answers": [
+      "El me dijo que tú lo sabes y que sí vendrás mañana",
+      "Él me dijo que tu lo sabes y que si vendrás mañana",
+      "Él me dijo que tú lo sabes y que sí vendrás mañana",
+      "El me dijo que tú lo sabes y que si vendrás mañana"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "question": "La palabra 'continúa' lleva tilde porque:",
+    "answers": [
+      "Es esdrújula con acento en la antepenúltima sílaba",
+      "Tiene hiato acentual: la 'ú' cerrada tónica rompe el posible diptongo con la 'a'",
+      "Es aguda terminada en vocal",
+      "Es una excepción ortográfica del verbo continuar"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "Analiza la frase: 'El sabe que tu libro es para mi'. ¿Cuántas tildes diacríticas faltan?",
+    "answers": [
+      "Ninguna: la frase está correcta",
+      "Una: falta tilde en 'mí'",
+      "Dos: faltan tildes en 'él' y 'mí'",
+      "Tres: faltan tildes en 'él', 'tú' y 'mí'"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "question": "Lee: 'Camina sobre el agua de tus miedos / y no te hundas en lo que ya pasó' (fragmento de canción urbana). ¿Qué figura retórica aparece?",
+    "answers": [
+      "Hipérbole: exagera la capacidad física de caminar sobre el agua",
+      "Metáfora: los miedos se comparan implícitamente con el agua sin usar 'como'",
+      "Aliteración: repite sonidos similares en cada verso",
+      "Anáfora: repite la misma palabra al inicio de ambos versos"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "En el fragmento: 'Soy el que muere en silencio / el que grita sin que nadie oiga'. ¿Qué intención expresa el autor?",
+    "answers": [
+      "Narrar un accidente histórico con objetividad periodística",
+      "Expresar la contradicción entre el dolor interno y la invisibilidad ante los demás",
+      "Describir un paisaje urbano ruidoso y caótico",
+      "Criticar a quienes no saben escuchar a los demás"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "Fragmento de reguetón: 'El tiempo es un ladrón que no devuelve nada'. ¿Qué figuras combina?",
+    "answers": [
+      "Símil y aliteración: compara con 'como' y repite sonidos",
+      "Personificación y metáfora: el tiempo actúa como persona (ladrón) y se le atribuye esa identidad",
+      "Hipérbaton y anáfora: altera el orden y repite palabras",
+      "Eufemismo y paradoja: suaviza la idea de la muerte"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "Lee: 'Mil veces me llamaste, mil veces no contesté'. ¿Qué figura predomina y qué revela sobre el hablante?",
+    "answers": [
+      "Anáfora para describir una situación literal y objetiva",
+      "Hipérbole para enfatizar la indiferencia o distancia emocional del hablante",
+      "Paradoja para mostrar una contradicción lógica irresoluble",
+      "Metáfora para comparar el teléfono con el corazón del hablante"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "Fragmento poético: 'Las manos de mi madre / tejían el mundo cada mañana'. ¿Cuál es la intención del autor?",
+    "answers": [
+      "Describir literalmente el oficio de costurera de su madre",
+      "Exaltar metafóricamente el poder creador y sustentador de la figura materna",
+      "Criticar el trabajo doméstico femenino no remunerado",
+      "Narrar un hecho histórico específico de su infancia"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "En la letra: 'Me dejaste como isla, / rodeada de gente y sola'. ¿Qué figuras combina el autor?",
+    "answers": [
+      "Hipérbole y anáfora: exagera y repite",
+      "Símil y paradoja: compara con isla y contrapone 'rodeada de gente' con 'sola'",
+      "Metáfora y aliteración: identifica y repite sonidos",
+      "Personificación e hipérbaton: humaniza y altera el orden"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "Un estudiante escribe en un ensayo académico: 'La situación económica era una vaina muy complicada'. ¿Cuál es el problema lingüístico principal?",
+    "answers": [
+      "Error gramatical de concordancia entre sujeto y predicado",
+      "Uso de léxico informal (dominicanismo coloquial) inadecuado para el registro académico",
+      "Error ortográfico en la palabra 'vaina'",
+      "Problema de puntuación al final de la oración"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Cuál de estas oraciones usa correctamente un dominicanismo en un registro apropiado?",
+    "answers": [
+      "Estimado director: le informo que la vaina del presupuesto está resuelta por fin",
+      "Oye, chamo, ese proyecto quedó brutal, de verdad",
+      "El análisis de la vaina económica revela tendencias muy preocupantes",
+      "Según el informe técnico, la vaina principal es la falta de recursos"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "La palabra 'zafacón' es un dominicanismo. ¿Qué factor explica mejor su origen etimológico?",
+    "answers": [
+      "Proviene del taíno: lengua indígena de la isla Quisqueya",
+      "Proviene del inglés 'safe can' (recipiente seguro) adaptado al español dominicano",
+      "Es una creación del español medieval conservada solo en el Caribe",
+      "Proviene del francés 'sac fon' (bolsa del fondo)"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿En qué contexto sería apropiado usar la expresión 'eso está brutal' como sinónimo de 'excelente'?",
+    "answers": [
+      "En una carta formal de solicitud de empleo",
+      "En una conversación informal con amigos dominicanos de confianza",
+      "En un informe científico presentado ante la universidad",
+      "En un discurso de graduación ante toda la comunidad escolar"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "La adecuación textual se refiere a elegir el registro apropiado según la situación. ¿Cuál ejemplo muestra adecuación correcta?",
+    "answers": [
+      "Escribir 'ta bien, profe' en un correo formal al director del colegio",
+      "Usar 'estimado director' en una carta formal y 'oye, chamo' con un amigo",
+      "Hablar en registro formal con los amigos para impresionarlos",
+      "Usar jerga coloquial en todos los contextos para ser auténtico"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Cuál es la diferencia fundamental entre complemento directo e indirecto?",
+    "answers": [
+      "El directo responde a '¿a quién?' y el indirecto a '¿qué?' siempre",
+      "El directo recibe la acción directamente (¿qué? / ¿a quién?); el indirecto es el destinatario (¿a quién? / ¿para quién?)",
+      "Son términos sinónimos intercambiables en la gramática moderna",
+      "El directo siempre lleva preposición; el indirecto nunca la lleva"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "En 'Le regalé flores a mi madre en su cumpleaños', ¿cuál es el complemento indirecto?",
+    "answers": [
+      "Flores (complemento directo, no indirecto)",
+      "Le / a mi madre (doble forma del complemento indirecto)",
+      "En su cumpleaños (circunstancial de tiempo)",
+      "Mi madre sola, sin el pronombre 'le'"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Qué tipo de oración compuesta es 'Aunque llovía intensamente, salimos a caminar por el malecón'?",
+    "answers": [
+      "Simple, porque tiene un solo verbo principal conjugado",
+      "Compuesta subordinada adverbial concesiva ('aunque' introduce el obstáculo)",
+      "Compuesta coordinada adversativa unida por conjunción 'pero'",
+      "Yuxtapuesta, porque no hay ningún conector visible"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "En 'Se venden apartamentos en el Distrito Nacional', ¿qué construcción gramatical es 'se'?",
+    "answers": [
+      "Pronombre reflexivo de tercera persona del singular",
+      "Partícula de pasiva refleja o impersonalidad",
+      "Conjunción coordinante que une dos cláusulas",
+      "Determinante posesivo que acompaña al sustantivo"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Qué función cumple el conector 'por consiguiente' en un texto argumentativo?",
+    "answers": [
+      "Introduce una causa que explica lo ocurrido anteriormente",
+      "Expresa una consecuencia lógica de lo dicho en la oración anterior",
+      "Contrasta dos ideas opuestas para crear debate",
+      "Añade información adicional sin relación causal con lo anterior"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "La coherencia textual garantiza que un texto:",
+    "answers": [
+      "Tenga muchas comas y puntos en los lugares correctos siempre",
+      "Desarrolle un tema con sentido lógico, sin contradicciones ni cambios bruscos",
+      "Use vocabulario técnico y sofisticado en cada párrafo del escrito",
+      "Contenga oraciones cortas y sencillas sin subordinadas"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Cuándo se usan los dos puntos correctamente en un texto?",
+    "answers": [
+      "Antes de cualquier lista, sin importar si la oración anterior es completa",
+      "Para introducir una explicación, una cita directa o una enumeración, tras una oración completa",
+      "Para separar cláusulas subordinadas del resto de la oración",
+      "Siempre después del verbo principal de la oración"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Cuál de estas oraciones usa el punto y coma de manera correcta?",
+    "answers": [
+      "Llegué tarde; aunque lo prefiero sin azúcar y muy caliente",
+      "Llegué tarde; sin embargo, pude entregar el trabajo a tiempo",
+      "El libro es interesante; que lo compraste ayer en la feria",
+      "Juan estudia mucho; y María también lo hace sin falta"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "En el texto: 'Trajo lo que pedí pan, leche y mantequilla'. ¿Qué signo falta y dónde?",
+    "answers": [
+      "Una coma después de 'pedí' para separar elementos",
+      "Dos puntos después de 'pedí' para introducir la enumeración",
+      "Un punto y coma después de 'pedí' para dividir las cláusulas",
+      "Comillas alrededor de 'pan, leche y mantequilla'"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Qué diferencia fundamental hay entre un prefijo y un sufijo?",
+    "answers": [
+      "El prefijo va al final de la raíz léxica; el sufijo va al principio",
+      "El prefijo se antepone a la raíz modificando su significado; el sufijo se pospone y puede cambiar la categoría gramatical",
+      "Son términos sinónimos usados indistintamente en morfología española",
+      "El prefijo cambia el género de la palabra; el sufijo cambia el número"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "El sufijo '-ísimo/-ísima' expresa el grado superlativo absoluto. ¿En cuál oración se usa incorrectamente?",
+    "answers": [
+      "La tarea era dificilísima para todos los estudiantes",
+      "El mangú estaba ricísimo esta mañana en el desayuno",
+      "El maestro fue muy buenísimo con nosotros todo el año",
+      "La película fue larguísima pero muy interesante al final"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "question": "¿Para qué se usa principalmente el modo subjuntivo en español?",
+    "answers": [
+      "Para afirmar hechos reales, objetivos y comprobables",
+      "Para expresar deseos, dudas, emociones, hipótesis o situaciones no reales",
+      "Solo para dar órdenes directas y prohibiciones formales",
+      "Exclusivamente para narrar hechos ocurridos en el pasado remoto"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Cuál de estas oraciones usa correctamente el subjuntivo?",
+    "answers": [
+      "Espero que vengas pronto a mi casa esta tarde",
+      "Espero que vienes pronto a mi casa esta tarde",
+      "Quiero que viene mañana sin falta al colegio",
+      "Deseo que llegó a tiempo a la reunión de ayer"
+    ],
+    "correctIndex": 0
+  },
+  {
+    "question": "En 'Si estudiara más cada noche, aprobaría el examen con buena nota', ¿qué modo verbal aparece en la oración condicional?",
+    "answers": [
+      "Indicativo presente: 'estudia'",
+      "Subjuntivo imperfecto: 'estudiara' (condición hipotética o irreal)",
+      "Imperativo: orden directa de estudiar",
+      "Infinitivo compuesto: acción anterior a otra"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "El texto expositivo tiene como propósito principal:",
+    "answers": [
+      "Convencer al lector de adoptar un punto de vista específico",
+      "Narrar hechos ficticios de manera cronológica y emotiva",
+      "Informar y explicar un tema de manera objetiva y organizada",
+      "Expresar las emociones y sentimientos personales del autor"
+    ],
+    "correctIndex": 2
+  },
+  {
+    "question": "¿Cuál de estas estructuras corresponde a un texto argumentativo bien organizado?",
+    "answers": [
+      "Introducción, nudo y desenlace narrativo",
+      "Tesis, argumentos de apoyo y conclusión",
+      "Planteamiento del tema, descripción y enumeración de datos",
+      "Inicio, desarrollo de acciones y moraleja final"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "La idea principal de un párrafo se distingue porque:",
+    "answers": [
+      "Siempre es la oración más larga del párrafo",
+      "Contiene la información más importante que las demás oraciones apoyan o desarrollan",
+      "Se encuentra obligatoriamente al final del párrafo",
+      "Incluye siempre datos numéricos o estadísticas concretas"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "Las palabras polisémicas son aquellas que:",
+    "answers": [
+      "Suenan igual pero tienen distinta escritura (homófonas)",
+      "Tienen varios significados distintos según el contexto en que aparecen",
+      "Son sinónimas perfectas en todos los contextos posibles",
+      "Pertenecen a otros idiomas pero se usan en español"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "La denotación de una palabra es:",
+    "answers": [
+      "Su significado emocional o subjetivo cargado de valores culturales",
+      "Su significado literal, objetivo y referencial registrado en el diccionario",
+      "El uso figurado en un texto literario o poético específico",
+      "La variante regional o dialectal de la palabra en cuestión"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Cuál ejemplo muestra la connotación negativa de la palabra 'serpiente'?",
+    "answers": [
+      "La serpiente es un reptil que muda de piel regularmente",
+      "Ese político es una serpiente: siempre traiciona a sus aliados",
+      "Vi una serpiente en el zoológico nacional el domingo",
+      "El cuerpo de la serpiente es largo, escamoso y sin extremidades"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Cuál es la diferencia semántica entre 'haya' y 'halla' que puede confundirse por el yeísmo?",
+    "answers": [
+      "Son sinónimos perfectos que se usan indistintamente en cualquier contexto",
+      "'Haya' es del verbo haber (subjuntivo: 'espero que haya llegado'); 'halla' es del verbo hallar (encontrar: 'lo halla en el cajón')",
+      "'Halla' pertenece al verbo haber y 'haya' al verbo hallar, al contrario",
+      "Solo 'haya' está registrada en el diccionario de la RAE actual"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Cuál par de palabras puede confundirse en el español dominicano por el yeísmo (ll=y)?",
+    "answers": [
+      "Casa / caza (por el seseo, no el yeísmo)",
+      "Pollo / poyo (pollo: ave; poyo: banco de piedra)",
+      "Mesa / pesa (no tienen ll ni y)",
+      "Niño / niña (diferencia de género, no yeísmo)"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Qué fenómeno fonético del español dominicano consiste en debilitar o eliminar la 's' al final de sílaba?",
+    "answers": [
+      "El seseo: s/c/z suenan igual en todos los contextos",
+      "La aspiración o elisión de la /s/ implosiva: 'estos' → 'ehtoh' o 'etoh'",
+      "El yeísmo: pronunciar 'll' y 'y' de la misma manera",
+      "El voseo: uso de 'vos' en lugar de 'tú' como pronombre"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Por qué el español dominicano pertenece a la variedad 'caribeña' y no a la 'castellana' del español?",
+    "answers": [
+      "Porque usa más palabras del inglés que del castellano medieval",
+      "Porque comparte rasgos fonéticos con Cuba y Puerto Rico (seseo, aspiración de /s/, yeísmo) propios de la colonización atlántica",
+      "Porque fue colonizado directamente desde Castilla sin influencia caribeña",
+      "Porque tiene una gramática diferente al español peninsular en todos los aspectos"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿A qué género literario pertenece una obra escrita en forma de diálogo para ser representada en un escenario?",
+    "answers": [
+      "Narrativa, porque cuenta una historia",
+      "Drama o teatro, porque está estructurada en actos y escenas para ser actuada",
+      "Lírica, porque expresa sentimientos mediante versos",
+      "Ensayo, porque reflexiona sobre un tema de forma argumentativa"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "La intertextualidad en literatura ocurre cuando:",
+    "answers": [
+      "Un texto cita directamente la norma de la RAE como fuente de autoridad",
+      "Un texto hace referencia, alusión o diálogo con otros textos previos de la tradición literaria",
+      "Se usan palabras de otro idioma dentro del texto en español",
+      "El autor usa un seudónimo para firmar su obra y proteger su identidad"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "Antes de redactar un texto, la etapa de planificación consiste en:",
+    "answers": [
+      "Corregir la ortografía y la puntuación del borrador final",
+      "Definir el propósito comunicativo, la audiencia y organizar las ideas principales",
+      "Buscar sinónimos en el diccionario para enriquecer el vocabulario usado",
+      "Copiar modelos de otros autores para inspirarse en su estilo"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "Un párrafo bien estructurado generalmente incluye:",
+    "answers": [
+      "Solo ejemplos y datos sin oración temática que los encuadre",
+      "Una oración temática que presenta la idea central, oraciones de desarrollo y opcionalmente una de cierre",
+      "Al menos cinco oraciones exclamativas para captar la atención del lector",
+      "Solo preguntas retóricas para involucrar emocionalmente al lector"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Cuál de estas palabras tiene género epiceno, es decir, designa ambos sexos con una sola forma gramatical?",
+    "answers": [
+      "Actriz (femenino específico)",
+      "Víctima (epiceno: 'la víctima' para hombre o mujer)",
+      "Profesora (femenino específico)",
+      "Reina (femenino específico)"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "El plural de 'régimen' cambia su acentuación. ¿Cuál es la forma correcta?",
+    "answers": [
+      "Régimens (conserva la tilde del singular)",
+      "Regímenes (se desplaza el acento: la tilde cambia de sílaba)",
+      "Régimenes (mantiene tilde en la misma sílaba)",
+      "Regimenes (pierde la tilde en el plural)"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Qué tipo de oración compuesta es 'Trabaja duro todos los días porque necesita dinero para su familia'?",
+    "answers": [
+      "Coordinada copulativa unida por 'y'",
+      "Subordinada adverbial causal: 'porque' introduce la causa",
+      "Yuxtapuesta: sin ningún conector visible entre las cláusulas",
+      "Coordinada adversativa unida por 'pero' o 'sino'"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "Una oración yuxtapuesta se caracteriza por:",
+    "answers": [
+      "Usar conjunciones subordinantes para unir sus cláusulas",
+      "Unir dos o más proposiciones mediante signos de puntuación, sin conjunciones",
+      "Tener siempre el verbo al final de la oración en todos los casos",
+      "Expresar obligatoriamente una condición hipotética o irreal"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "Un crítico usa 'sublime' para describir una sinfonía. ¿Cuál sinónimo mantiene mejor el tono elevado del registro crítico?",
+    "answers": [
+      "Bonita",
+      "Excelsa o magnífica",
+      "Buena",
+      "Chévere"
+    ],
+    "correctIndex": 1
+  },
+  {
+    "question": "¿Cuál es el antónimo más preciso de 'veraz' en el contexto del periodismo de investigación?",
+    "answers": [
+      "Curioso o investigador",
+      "Mendaz (mentiroso, que falta a la verdad deliberadamente)",
+      "Impuntual o tardío",
+      "Imparcial o neutral"
+    ],
+    "correctIndex": 1
   }
 ]
