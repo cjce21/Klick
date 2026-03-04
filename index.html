@@ -266,124 +266,50 @@
             <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
             <div class="nav-title">INSTRUCCIONES</div><div class="nav-spacer"></div>
         </div>
-        <div class="content-scroll no-scrollbar">
-            <div class="guide-dashboard">
-                <div class="guide-grid">
+        <div class="content-scroll no-scrollbar" style="overflow:hidden;">
+            <div class="guide-dashboard" style="padding:12px 0 0;height:100%;box-sizing:border-box;">
+                <div class="guide-grid" style="grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(3,1fr);gap:10px;height:100%;align-items:stretch;">
 
-                    <!-- PROPÓSITO PEDAGÓGICO -->
-                    <div class="guide-card glass-panel full-width" style="border-color:rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-                        <div class="guide-title">Propósito del juego</div>
-                        <div class="guide-text">Klick es una herramienta de práctica para el estudio de la <strong>Lengua Española</strong>, diseñada bajo principios de aprendizaje activo y recuperación espaciada. Cada partida somete al jugador a una serie de preguntas de opción múltiple que exigen recuperar conocimiento de forma activa —no pasiva— lo cual, según la investigación en psicología cognitiva, produce una retención significativamente mayor que la relectura o la revisión de apuntes. El componente de presión temporal, la progresión de dificultad y los sistemas de retroalimentación inmediata están diseñados para mantener el nivel de alerta cognitiva necesario para que el aprendizaje se consolide.</div>
+                    <div class="guide-card glass-panel" style="border-color:rgba(255,255,255,0.08);padding:14px 16px;text-align:left;align-items:flex-start;gap:6px;">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);width:20px;height:20px;flex-shrink:0;"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                        <div class="guide-title" style="font-size:0.7rem;letter-spacing:0.5px;">Propósito</div>
+                        <div class="guide-text" style="font-size:0.72rem;line-height:1.45;">Klick es una herramienta de práctica activa para <strong>Lengua Española</strong>. Recuperar conocimiento bajo presión temporal produce mayor retención que la relectura pasiva, fundamento de su diseño pedagógico.</div>
                     </div>
 
-                    <!-- MECÁNICA CENTRAL -->
-                    <div class="guide-card glass-panel" style="border-color:rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                        <div class="guide-title">Mecánica central</div>
-                        <div class="guide-text">El jugador dispone de <strong>3 vidas</strong> y un tiempo límite por pregunta. Un error o un tiempo agotado descuenta una vida. Al perder las tres, la partida concluye. Esta estructura de riesgo sostenido —donde cada fallo tiene consecuencia real pero no termina la sesión de inmediato— busca inducir un estado de atención sostenida sin generar ansiedad paralizante, manteniendo al jugador cognitivamente presente a lo largo de toda la sesión.</div>
+                    <div class="guide-card glass-panel" style="border-color:rgba(255,255,255,0.08);padding:14px 16px;text-align:left;align-items:flex-start;gap:6px;">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);width:20px;height:20px;flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        <div class="guide-title" style="font-size:0.7rem;letter-spacing:0.5px;">Mecánica</div>
+                        <div class="guide-text" style="font-size:0.72rem;line-height:1.45;"><strong>3 vidas</strong>, tiempo límite por pregunta. Fallar o agotar el tiempo descuenta una vida. Al perder las tres, la partida termina. El riesgo sostenido mantiene la atención cognitiva sin generar ansiedad paralizante.</div>
                     </div>
 
-                    <!-- TIEMPO Y LECTURA -->
-                    <div class="guide-card glass-panel" style="border-color:rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        <div class="guide-title">Tiempo y puntuación por velocidad</div>
-                        <div class="guide-text">Las preguntas cortas disponen de <strong>15 segundos</strong>; las preguntas largas reciben automáticamente <strong>30 segundos</strong> para garantizar una lectura comprensiva. En ambos casos, la puntuación es proporcional a la velocidad de respuesta: responder en los primeros instantes puede otorgar hasta <strong>1.600 puntos</strong>, mientras que responder al límite reduce esa cifra a <strong>800 puntos</strong>. Este mecanismo recompensa la certeza rápida —fruto del conocimiento bien consolidado— sin penalizar a quien necesita un momento adicional para razonar.</div>
+                    <div class="guide-card glass-panel" style="border-color:rgba(255,255,255,0.08);padding:14px 16px;text-align:left;align-items:flex-start;gap:6px;">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);width:20px;height:20px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <div class="guide-title" style="font-size:0.7rem;letter-spacing:0.5px;">Tiempo y puntuación</div>
+                        <div class="guide-text" style="font-size:0.72rem;line-height:1.45;"><strong>15 s</strong> por pregunta; <strong>30 s</strong> automáticos si el enunciado es extenso. Responder rápido vale hasta <strong>1.600 pts</strong>; al límite, <strong>800 pts</strong>. La velocidad refleja conocimiento bien consolidado.</div>
                     </div>
 
-                    <!-- RACHA Y MULTIPLICADOR -->
-                    <div class="guide-card glass-panel" style="border-color:rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
-                        <div class="guide-title">Racha y modo frenesí</div>
-                        <div class="guide-text">Encadenar <strong>5 aciertos consecutivos</strong> activa el Modo Frenesí y un multiplicador de puntos (<strong>×2</strong>). Por cada 5 aciertos adicionales el multiplicador asciende: ×3, ×4 … hasta ×10. Un único error interrumpe la racha y devuelve el multiplicador a ×1. Este sistema introduce el concepto de <em>flujo cognitivo</em>: el incremento de recompensa proporcional al rendimiento sostenido refuerza los comportamientos de estudio perseverante y penaliza la dispersión, incentivando al alumno a mantener la concentración de forma continua.</div>
+                    <div class="guide-card glass-panel" style="border-color:rgba(255,255,255,0.08);padding:14px 16px;text-align:left;align-items:flex-start;gap:6px;">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);width:20px;height:20px;flex-shrink:0;"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>
+                        <div class="guide-title" style="font-size:0.7rem;letter-spacing:0.5px;">Racha y frenesí</div>
+                        <div class="guide-text" style="font-size:0.72rem;line-height:1.45;"><strong>5 aciertos seguidos</strong> activan el Modo Frenesí (multiplicador <strong>×2</strong>). Cada 5 más sube: ×3 … ×10. Un fallo lo reinicia. El incremento de recompensa proporcional al rendimiento sostenido refuerza la concentración continua.</div>
                     </div>
 
-                    <!-- RULETA DE RECOMPENSAS -->
-                    <div class="guide-card glass-panel full-width" style="border-color:rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M3.05 11a9 9 0 1 1 .5 4"/></svg>
-                        <div class="guide-title">Ruleta de recompensas</div>
-                        <div class="guide-text">Cada <strong>10 aciertos acumulados</strong> en la partida se activa la ruleta, que otorga un premio aleatorio según probabilidades diferenciadas por rareza. Su función pedagógica es doble: por un lado introduce un refuerzo variable —el tipo de recompensa más potente para sostener la motivación a largo plazo, documentado extensamente en la literatura conductista—; por otro, los premios orientados al tiempo (Tiempo +5, Tiempo +8) atenúan la presión cognitiva en momentos de sobrecarga, mientras que los orientados a puntuación (×2, ×3, ×4) crean picos de motivación intrínseca que el alumno asocia con sus propios aciertos acumulados. Los <strong>10 premios</strong> disponibles, agrupados por rareza, son:</div>
-                        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:7px;width:100%;margin-top:10px;">
-                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
-                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#ff2a5f;margin-bottom:4px;">LEGENDARIO</div>
-                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Vida Extra</div>
-                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">Recupera una vida perdida.</div>
-                            </div>
-                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
-                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#b5179e;margin-bottom:4px;">ÉPICO</div>
-                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Frenesí</div>
-                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">Activa el Modo Frenesí de inmediato.</div>
-                            </div>
-                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
-                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#b5179e;margin-bottom:4px;">ÉPICO</div>
-                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Jackpot ×4</div>
-                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">La siguiente pregunta vale cuatro veces los puntos habituales.</div>
-                            </div>
-                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
-                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#00d4ff;margin-bottom:4px;">RARO</div>
-                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Escudo</div>
-                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">Absorbe un fallo en la siguiente pregunta sin costar vida.</div>
-                            </div>
-                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
-                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#ffb800;margin-bottom:4px;">RARO</div>
-                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Puntos ×2</div>
-                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">La siguiente pregunta otorga el doble de puntos.</div>
-                            </div>
-                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
-                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#ccff00;margin-bottom:4px;">RARO</div>
-                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Turbo ×3</div>
-                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">La siguiente pregunta vale el triple de puntos.</div>
-                            </div>
-                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
-                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#00ffcc;margin-bottom:4px;">NORMAL</div>
-                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Tiempo +8</div>
-                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">Añade ocho segundos al reloj de la siguiente pregunta.</div>
-                            </div>
-                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
-                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#f77f00;margin-bottom:4px;">NORMAL</div>
-                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Pista</div>
-                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">Elimina una opción incorrecta de la siguiente pregunta.</div>
-                            </div>
-                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
-                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#00ff66;margin-bottom:4px;">NORMAL</div>
-                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Tiempo +5</div>
-                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">Añade cinco segundos al reloj de la siguiente pregunta.</div>
-                            </div>
-                            <div style="padding:10px 12px;border-radius:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
-                                <div style="font-size:0.6rem;font-weight:800;letter-spacing:1.5px;color:#aaaaff;margin-bottom:4px;">BÁSICO</div>
-                                <div style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Racha Salvada</div>
-                                <div style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;">Si se falla la siguiente pregunta, la racha y el multiplicador se conservan.</div>
-                            </div>
-                        </div>
+                    <div class="guide-card glass-panel" style="border-color:rgba(255,255,255,0.08);padding:14px 16px;text-align:left;align-items:flex-start;gap:6px;">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);width:20px;height:20px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M3.05 11a9 9 0 1 1 .5 4"/></svg>
+                        <div class="guide-title" style="font-size:0.7rem;letter-spacing:0.5px;">Ruleta de recompensas</div>
+                        <div class="guide-text" style="font-size:0.72rem;line-height:1.45;">Cada <strong>10 aciertos</strong> acumulados se activa una ruleta de premios aleatorios. El refuerzo variable —el más potente para sostener motivación a largo plazo— vincula el esfuerzo del alumno con la obtención de ventajas útiles en partida.</div>
                     </div>
 
-                    <!-- SISTEMA DE PROGRESIÓN -->
-                    <div class="guide-card glass-panel full-width" style="border-color:rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                        <div class="guide-title">Sistema de progresión y rangos</div>
-                        <div class="guide-text">El progreso del jugador se articula en torno a tres ejes complementarios. El <strong>puntaje acumulado</strong> refleja el volumen total de práctica realizada. El <strong>récord por partida</strong> mide la calidad del rendimiento puntual. La <strong>racha máxima</strong> evidencia la capacidad de mantener precisión sostenida bajo presión. La combinación de estos tres indicadores determina el <strong>rango</strong> del jugador —Novato, Junior, Pro, Maestro, Leyenda o Mítico— que funciona como un indicador externo de progreso académico comparable a una rúbrica de desempeño. El Nivel de Poder (PL) integra adicionalmente la precisión global, las partidas perfectas y los logros desbloqueados para construir una métrica multidimensional del aprendizaje.</div>
-                    </div>
-
-                    <!-- LOGROS Y MOTIVACIÓN -->
-                    <div class="guide-card glass-panel full-width" style="border-color:rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                        <div class="guide-title">Banco de logros y motivación intrínseca</div>
-                        <div class="guide-text">El juego incorpora un sistema de logros que registra hitos de rendimiento de naturaleza muy variada: velocidad de respuesta, constancia diaria, exploración de funciones, errores acumulados, partidas perfectas y combinaciones de condiciones poco probables. Desde la perspectiva de la motivación, los logros operan como metas parciales que mantienen el compromiso del alumno más allá del resultado de una partida aislada. Los logros escalables —obtenibles en múltiples umbrales— producen un ciclo continuo de retroalimentación positiva, mientras que los logros únicos y secretos estimulan la curiosidad y la exploración autónoma, componentes clave del aprendizaje autorregulado.</div>
-                    </div>
-
-                    <!-- INTEGRIDAD Y DATOS -->
-                    <div class="guide-card glass-panel full-width" style="border-color:rgba(255,255,255,0.1);">
-                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        <div class="guide-title">Integridad del juego y persistencia de datos</div>
-                        <div class="guide-text">El sistema detecta automáticamente comportamientos que comprometen la validez del rendimiento registrado —como cambiar de pestaña o minimizar la ventana durante una partida activa— y aplica penalizaciones que quedan registradas de forma permanente en el perfil. Esta medida garantiza que los indicadores de desempeño reflejen el trabajo real del alumno y no artefactos de manipulación externa.<br><br>Toda la información del perfil —puntajes, logros, progreso y configuración— se almacena exclusivamente en el almacenamiento local del navegador. Limpiar el historial o los datos del sitio borra esta información de forma irreversible. Se recomienda utilizar siempre el mismo dispositivo y navegador para preservar la continuidad del progreso.</div>
+                    <div class="guide-card glass-panel" style="border-color:rgba(255,255,255,0.08);padding:14px 16px;text-align:left;align-items:flex-start;gap:6px;">
+                        <svg class="guide-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);width:20px;height:20px;flex-shrink:0;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <div class="guide-title" style="font-size:0.7rem;letter-spacing:0.5px;">Progresión e integridad</div>
+                        <div class="guide-text" style="font-size:0.72rem;line-height:1.45;">El <strong>rango</strong> y el <strong>Nivel de Poder</strong> integran precisión, constancia y logros como métrica multidimensional del aprendizaje. El sistema penaliza trampas y el progreso se guarda en el navegador —no borrar datos del sitio.</div>
                     </div>
 
                 </div>
             </div>
         </div>
     </div>
-
-
     <div id="achievements-screen" class="screen nav-screen">
         <div class="top-nav">
             <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
@@ -493,7 +419,7 @@
                 <div class="kp-total-bar-fill" id="kp-total-bar-fill"></div>
             </div>
             <div class="kp-reward-total" id="kp-reward-total">0 ℙ reclamados</div>
-            <div style="margin-top:8px;font-size:0.63rem;color:var(--text-secondary);line-height:1.5;opacity:0.7;">Los niveles se desbloquean en orden secuencial. Cada recompensa requiere haber reclamado la anterior.</div>
+            <div style="margin-top:8px;font-size:0.63rem;color:var(--text-secondary);line-height:1.5;opacity:0.65;">Los niveles se desbloquean en orden. La recompensa final solo se entrega al completar el pase en su totalidad.</div>
         </div>
 
         <!-- Scroll con el camino de niveles -->
