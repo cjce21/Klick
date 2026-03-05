@@ -1706,110 +1706,188 @@ body.light-mode .kp-tramo-sep { border-bottom-color: var(--bg-elevated); }
     .achievements-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 }
 
-/* ═══════════════════════════════════════════════════
-   MODO RENDIMIENTO — Optimización para gama baja
-   Añade body.perf-mode para desactivar efectos caros
-   ═══════════════════════════════════════════════════ */
 
-/* 1. Eliminar backdrop-filter (blur de cristal) — muy costoso en GPU */
-body.perf-mode .glass-panel,
-body.perf-mode .top-nav,
-body.perf-mode .top-bar,
-body.perf-mode .answer-btn,
-body.perf-mode .question-text,
-body.perf-mode .toast-item,
-body.perf-mode .modal-overlay,
-body.perf-mode .pcard-panel,
-body.perf-mode .kp-header,
-body.perf-mode #roulette-overlay,
-body.perf-mode .achievement-slot.unlocked {
+/* ─────────────────────────────────────────────────────────────
+   QUALITY MODE BUTTONS
+   ─────────────────────────────────────────────────────────────*/
+.quality-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+.quality-btn {
+    padding: 10px 8px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    background: transparent;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.2s, background 0.2s;
+    touch-action: manipulation;
+}
+.quality-btn:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.04); }
+.quality-btn.active {
+    border-color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.07);
+}
+.quality-btn-name {
+    font-size: clamp(0.7rem, 1.1vw, 0.82rem);
+    font-weight: 800;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    line-height: 1.2;
+}
+.quality-btn.active .quality-btn-name { color: var(--text-primary); }
+.quality-btn-desc {
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    margin-top: 3px;
+    line-height: 1.3;
+    opacity: 0.7;
+}
+
+/* Light mode */
+body.light-mode .quality-btn { border-color: rgba(0,0,0,0.1); }
+body.light-mode .quality-btn:hover { border-color: rgba(0,0,0,0.2); background: rgba(0,0,0,0.03); }
+body.light-mode .quality-btn.active { border-color: rgba(0,0,0,0.4); background: rgba(0,0,0,0.05); }
+body.light-mode .quality-btn-name { color: #4a5568; }
+body.light-mode .quality-btn.active .quality-btn-name { color: #0d1117; }
+
+/* ─────────────────────────────────────────────────────────────
+   MODO MAXIMO — Liquid Glass (inspirado en iOS visionOS)
+   Añade body.quality-max
+   ─────────────────────────────────────────────────────────────*/
+body.quality-max .glass-panel {
+    background: rgba(255,255,255,0.06) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(1.8) brightness(1.1) !important;
+    backdrop-filter: blur(32px) saturate(1.8) brightness(1.1) !important;
+    border-color: rgba(255,255,255,0.18) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35),
+                0 1px 0 rgba(255,255,255,0.12) inset,
+                0 -1px 0 rgba(255,255,255,0.04) inset !important;
+}
+body.quality-max.light-mode .glass-panel {
+    background: rgba(255,255,255,0.55) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(1.9) brightness(1.05) !important;
+    backdrop-filter: blur(32px) saturate(1.9) brightness(1.05) !important;
+    border-color: rgba(255,255,255,0.85) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08),
+                0 1px 0 rgba(255,255,255,0.9) inset !important;
+}
+body.quality-max .top-nav {
+    -webkit-backdrop-filter: blur(40px) saturate(1.8) !important;
+    backdrop-filter: blur(40px) saturate(1.8) !important;
+    background: rgba(5,5,5,0.45) !important;
+    border-bottom-color: rgba(255,255,255,0.12) !important;
+}
+body.quality-max.light-mode .top-nav {
+    -webkit-backdrop-filter: blur(40px) saturate(1.9) !important;
+    backdrop-filter: blur(40px) saturate(1.9) !important;
+    background: rgba(242,244,247,0.6) !important;
+}
+body.quality-max .top-bar {
+    -webkit-backdrop-filter: blur(28px) saturate(1.7) !important;
+    backdrop-filter: blur(28px) saturate(1.7) !important;
+}
+body.quality-max .pcard-panel {
+    -webkit-backdrop-filter: blur(40px) saturate(1.8) brightness(1.1) !important;
+    backdrop-filter: blur(40px) saturate(1.8) brightness(1.1) !important;
+    background: rgba(17,17,17,0.45) !important;
+    border-color: rgba(255,255,255,0.14) !important;
+}
+/* Glows intensificados en modo máximo */
+body.quality-max .feedback-title {
+    text-shadow: 0 0 30px rgba(var(--rank-rgb),0.9), 0 0 60px rgba(var(--rank-rgb),0.5) !important;
+}
+body.quality-max .end-score-value {
+    text-shadow: 0 0 80px rgba(var(--rank-rgb),0.6) !important;
+}
+body.quality-max .ach-card.pinned {
+    box-shadow: 0 0 22px rgba(255,184,0,0.6) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MODO RENDIMIENTO — body.quality-perf
+   Desactiva todo lo costoso para GPU/CPU
+   ─────────────────────────────────────────────────────────────*/
+body.quality-perf .glass-panel,
+body.quality-perf .top-nav,
+body.quality-perf .top-bar,
+body.quality-perf .answer-btn,
+body.quality-perf .question-text,
+body.quality-perf .toast-item,
+body.quality-perf .modal-overlay,
+body.quality-perf .pcard-panel,
+body.quality-perf .kp-header,
+body.quality-perf #roulette-overlay,
+body.quality-perf .achievement-slot.unlocked {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
 }
-
-/* 2. Eliminar animaciones CSS costosas (streak-pulse, frenzy neon, etc.) */
-body.perf-mode * {
-    animation-play-state: paused !important;
+/* Animaciones decorativas pausadas */
+body.quality-perf .kp-status-dot,
+body.quality-perf .kp-node.final-node.unlocked,
+body.quality-perf .kp-total-bar-fill::after,
+body.quality-perf #app.streak-active,
+body.quality-perf .rank-item.mitico-item,
+body.quality-perf .mult-x2,
+body.quality-perf .mult-x3,
+body.quality-perf .mult-x4,
+body.quality-perf .mult-x5,
+body.quality-perf .mult-x6,
+body.quality-perf .mult-x7,
+body.quality-perf .mult-x8,
+body.quality-perf .mult-x9,
+body.quality-perf .mult-x10 {
+    animation: none !important;
 }
-/* Excepciones: animaciones funcionales que deben seguir activas */
-body.perf-mode .screen,
-body.perf-mode .feedback-content,
-body.perf-mode .pcard-wrap,
-body.perf-mode .end-fullscreen,
-body.perf-mode .end-score-value,
-body.perf-mode #countdown-number,
-body.perf-mode .toast-item,
-body.perf-mode .toast-item.show,
-body.perf-mode .kp-total-bar-fill,
-body.perf-mode .answer-btn.q-enter,
-body.perf-mode .answer-btn.q-exit,
-body.perf-mode .question-text.q-enter,
-body.perf-mode .question-text.q-exit {
-    animation-play-state: running !important;
+/* Streak background — sin pulso */
+body.quality-perf #app.streak-active {
+    background: var(--bg-base) !important;
 }
-
-/* 3. Reducir transiciones largas a versiones instantáneas */
-body.perf-mode .setting-card,
-body.perf-mode .rank-card,
-body.perf-mode .ach-card,
-body.perf-mode .btn-solid,
-body.perf-mode .btn-outline,
-body.perf-mode .btn-back,
-body.perf-mode .top-btn,
-body.perf-mode .kp-node,
-body.perf-mode .kp-card,
-body.perf-mode .rl-card,
-body.perf-mode .pcard-close {
+/* Text-shadow y glows — off */
+body.quality-perf .feedback-title,
+body.quality-perf .end-message,
+body.quality-perf .end-score-value,
+body.quality-perf .pcard-big-name,
+body.quality-perf #countdown-number,
+body.quality-perf .mult-x2,
+body.quality-perf .mult-x3,
+body.quality-perf .mult-x4,
+body.quality-perf .mult-x5,
+body.quality-perf .mult-x6,
+body.quality-perf .mult-x7,
+body.quality-perf .mult-x8,
+body.quality-perf .mult-x9,
+body.quality-perf .mult-x10 {
+    text-shadow: none !important;
+}
+body.quality-perf #feedback-icon-container svg {
+    filter: none !important;
+}
+/* Box-shadow glow — off */
+body.quality-perf .rank-card.is-me,
+body.quality-perf .ach-card.pinned,
+body.quality-perf .kp-node.unlocked,
+body.quality-perf .kp-node.final-node.unlocked,
+body.quality-perf input[type=range]::-webkit-slider-thumb:hover {
+    box-shadow: none !important;
+}
+/* Transiciones reducidas */
+body.quality-perf .setting-card,
+body.quality-perf .rank-card,
+body.quality-perf .ach-card,
+body.quality-perf .btn-solid,
+body.quality-perf .btn-outline,
+body.quality-perf .top-btn,
+body.quality-perf .kp-node,
+body.quality-perf .kp-card,
+body.quality-perf .rl-card,
+body.quality-perf .pcard-close,
+body.quality-perf .quality-btn {
     transition-duration: 0.05s !important;
 }
 
-/* 4. Eliminar box-shadow glow decorativo (carga la GPU) */
-body.perf-mode input[type=range]::-webkit-slider-thumb:hover {
-    box-shadow: none !important;
-}
-body.perf-mode .rank-card.is-me,
-body.perf-mode .ach-card.pinned,
-body.perf-mode .kp-node.unlocked,
-body.perf-mode .kp-node.final-node.unlocked {
-    box-shadow: none !important;
-}
-
-/* 5. Desactivar text-shadow en elementos glow */
-body.perf-mode .feedback-title,
-body.perf-mode .end-message,
-body.perf-mode .end-score-value,
-body.perf-mode .pcard-big-name,
-body.perf-mode #countdown-number {
-    text-shadow: none !important;
-    filter: none !important;
-}
-
-/* 6. Desactivar drop-shadow de iconos de feedback */
-body.perf-mode #feedback-screen .feedback-content svg,
-body.perf-mode #feedback-icon-container svg {
-    filter: none !important;
-}
-
-/* 7. Multiplicadores de frenesí: sin animación de pulso */
-body.perf-mode .mult-x2,
-body.perf-mode .mult-x3,
-body.perf-mode .mult-x4,
-body.perf-mode .mult-x5,
-body.perf-mode .mult-x6,
-body.perf-mode .mult-x7,
-body.perf-mode .mult-x8,
-body.perf-mode .mult-x9,
-body.perf-mode .mult-x10 {
-    animation: none !important;
-    text-shadow: none !important;
-}
-
-/* 8. Streak pulse del fondo — off */
-body.perf-mode #app.streak-active {
-    animation: none !important;
-    background: var(--bg-base) !important;
-}
-
-/* Modo Rendimiento — ajustes para modo claro */
-body.light-mode #perf-off-btn,
-body.light-mode #perf-on-btn { color: #0d1117; }
+/* Compact layout fix: reduce setting-card padding in all modes */
+.setting-card { padding: clamp(14px, 2vh, 22px); gap: clamp(10px, 1.5vh, 16px); }
