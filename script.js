@@ -3024,6 +3024,7 @@ let _gameSessionId = 0; // increments each game/abandon to invalidate stale call
 let _currentQuestion = null; // Pregunta activa (almacenada por motor, leída por selectAnswer/applyHintVisual) 
 let _gameStartHour = -1; // hora al inicio de partida — se valida al terminar
 const TIMER_LIMIT = 15;
+let _gameStatsRecorded = false; // guard: saveGameStats solo cuenta una vez por partida
 let currentFastAnswers = 0, currentWrongAnswers = 0, currentTimeoutAnswers = 0, isAnsweringAllowed = false, currentGameLog = [];
 let isGamePaused = false;
 let lives = 3;
@@ -3078,6 +3079,8 @@ function startGame() {
       _currentQuestion = null;
     _qeResetGame();                        // reordena el pool respetando la tail inter-partida
     currentQuestionIndex = score = streak = currentMaxStreak = currentFastAnswers = currentWrongAnswers = currentTimeoutAnswers = 0;
+    isAnsweringAllowed = false; // reset defensivo: asegura estado limpio antes del countdown
+    _gameStatsRecorded = false; // reset guard: permite que saveGameStats corra una vez por partida
     _timerPath = _timerText = _scoreEl = _streakEl = _multBadge = null; // reset DOM cache
     _gTimerPath = _gTimerText = _gQuestionEl = _gAnswerBtns = _gAnswersGrid = _gStreakDisp = null; _gAns = []; // reset game DOM cache
       _appEl = null;
@@ -3695,6 +3698,8 @@ function showFeedback(isCorrect, isTimeout = false) {
 }
 
 function saveGameStats() {
+    if (_gameStatsRecorded) return; // guard: evita doble conteo si se llama dos veces por partida
+    _gameStatsRecorded = true;
     playerStats.gamesPlayed++; playerStats.todayGames++; playerStats.totalScore += score; 
     const prevBest = playerStats.bestScore || 0;
     if(score > playerStats.bestScore) { playerStats.bestScore = score; playerStats._justSetRecord = true; } 
