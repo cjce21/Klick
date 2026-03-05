@@ -1,7 +1,7 @@
 // ════════════════════════════════════════════════════════════════
 //  MÓDULO 04 — MOTOR DE AUDIO
 //  Contenido: WebAudio API, scheduler de música procedural,
-//             sistema de pistas, SFX, gestión de volumen.
+//             TRACK_CONFIGS, sistema de pistas, SFX, volúmenes.
 //
 //  DEPENDENCIAS: playerStats [03-player-stats.js]
 // ════════════════════════════════════════════════════════════════
@@ -12,8 +12,8 @@ let masterMusicGain, masterSFXGain, masterLimiter, audioAnalyser, audioDataArray
 let isMusicPlaying = false, musicSeqStep = 0, nextNoteTime = 0, musicTimerID = null;
 let chordIndex = 0;
 
-const SCHED_AHEAD    = 0.12;  // segundos de anticipación al programar notas
-const SCHED_INTERVAL = 25;    // ms entre ticks del scheduler
+const SCHED_AHEAD    = 0.12;
+const SCHED_INTERVAL = 25;
 
 function initAudio() {
     if (!audioCtx) {
@@ -31,7 +31,6 @@ function initAudio() {
         audioAnalyser = audioCtx.createAnalyser();
         audioAnalyser.fftSize = 64;
         audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
-        // Enrutado: music → analyser → limiter → out ; sfx → limiter → out
         masterMusicGain.connect(audioAnalyser);
         audioAnalyser.connect(masterLimiter);
         masterSFXGain.connect(masterLimiter);
@@ -101,12 +100,44 @@ function playNoiseAt(time, duration, vol, cutoff = 5000) {
     src.start(time);
 }
 
-// ── Sistema de pistas musicales ──────────────────────────────────────────────
+// ── Sistema de pistas musicales ────────────────────────────────────────────────
 const MUSIC_TRACKS = [
-    { id: 'track_chill', name: 'Neon Chill',    desc: 'Ambiental · Suave',  color: 'var(--accent-blue)'   },
-    { id: 'track_pulse', name: 'Dark Tide',     desc: 'Oscuro · Profundo', color: 'var(--accent-green)'  },
-    { id: 'track_bass',  name: 'Deep Current',  desc: 'Bass · Groovy',     color: 'var(--accent-purple)' }
+    { id: 'track_chill', name: 'Neon Chill',   desc: 'Ambiental · Suave',  color: 'var(--accent-blue)'   },
+    { id: 'track_pulse', name: 'Dark Tide',    desc: 'Oscuro · Profundo',  color: 'var(--accent-green)'  },
+    { id: 'track_bass',  name: 'Deep Current', desc: 'Bass · Groovy',      color: 'var(--accent-purple)' }
 ];
+
+// Track-specific music definitions
+const TRACK_CONFIGS = {
+    track_chill: {
+        bpmBase: 88, bpmFrenzy: 104,
+        CHORD_PROG: [[57,62,65,69],[60,65,67,72],[62,65,69,74],[55,60,62,67]],
+        ARP_PAT: [0,2,1,3,0,1,2,0,3,1,0,2,1,3,2,0],
+        arpType: 'sine', bassType: 'sine', kickFreq: 80,
+        kickVol: 0.3, bassVol: 0.2, arpVol: 0.18,
+        hasPad: true, hasHihat: false
+    },
+    track_pulse: {
+        bpmBase: 60, bpmFrenzy: 78,
+        CHORD_PROG: [[40,47,52,55],[38,45,50,53],[36,43,48,52],[41,48,53,57]],
+        ARP_PAT: [0,2,1,3,2,0,3,1,0,2,3,0,1,3,2,1],
+        arpType: 'sawtooth', bassType: 'sawtooth', kickFreq: 42,
+        kickVol: 0.85, bassVol: 0.62, arpVol: 0.13,
+        hasPad: true, hasHihat: false, hasDrone: true
+    },
+    track_bass: {
+        bpmBase: 98, bpmFrenzy: 118,
+        CHORD_PROG: [[48,55,60,67],[50,57,62,69],[52,55,59,64],[46,53,58,65]],
+        ARP_PAT: [1,0,2,0,3,0,1,2,0,3,1,0,2,0,3,1],
+        arpType: 'triangle', bassType: 'sawtooth', kickFreq: 55,
+        kickVol: 0.7, bassVol: 0.55, arpVol: 0.15,
+        hasPad: false, hasHihat: false, hasWobble: true
+    }
+};
+
+function getActiveTrack() {
+    return TRACK_CONFIGS[playerStats.selectedTrack || 'track_chill'] || TRACK_CONFIGS.track_chill;
+}
 
 function renderTrackSelector() {
     const container = document.getElementById('track-selector');
@@ -142,13 +173,155 @@ function selectTrack(trackId) {
         if (playerStats.tracksTriedSet.length >= 3) playerStats.triedAllTracks = true;
         checkAchievements();
     }
-    // Reiniciar motor musical con la nueva pista
-    stopMusicEngine();
-    chordIndex = 0; musicSeqStep = 0;
-    startMusicEngine();
+    if (isMusicPlaying && audioCtx) {
+        stopMusicEngine();
+        startMusicEngine();
+    }
 }
 
-// ── SFX ──────────────────────────────────────────────────────────────────────
+function stopMusicEngine() {
+    isMusicPlaying = false;
+    clearTimeout(musicTimerID);
+    musicSeqStep = 0;
+    chordIndex = 0;
+}
+
+function startMusicEngine() {
+    isMusicPlaying = true;
+    musicSeqStep = 0;
+    chordIndex = 0;
+    nextNoteTime = audioCtx.currentTime + 0.05;
+    schedulerTick();
+}
+
+function schedulerTick() {
+    if (!isMusicPlaying || !audioCtx) return;
+    while (nextNoteTime < audioCtx.currentTime + SCHED_AHEAD) {
+        playMusicStep(nextNoteTime);
+        advanceMusicStep();
+    }
+    musicTimerID = setTimeout(schedulerTick, SCHED_INTERVAL);
+}
+
+function advanceMusicStep() {
+    const tc = getActiveTrack();
+    const bpm = (typeof streak !== 'undefined' && streak >= 5) ? tc.bpmFrenzy : tc.bpmBase;
+    nextNoteTime += 60.0 / bpm / 4;
+    musicSeqStep++;
+    if (musicSeqStep >= 16) { musicSeqStep = 0; chordIndex = (chordIndex + 1) % 4; }
+}
+
+const midiToHz = m => 440 * Math.pow(2, (m - 69) / 12);
+
+function playMusicStep(t) {
+    const isFrenzy = (typeof streak !== 'undefined' && streak >= 5);
+    const tc = getActiveTrack();
+    const chord = tc.CHORD_PROG[chordIndex];
+    const step  = musicSeqStep;
+
+    // Kick (every 4 steps)
+    if (step % 4 === 0) {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(tc.kickFreq, t);
+        o.frequency.exponentialRampToValueAtTime(0.01, t + 0.35);
+        const kv = tc.kickVol || 0.7;
+        g.gain.setValueAtTime(isFrenzy ? kv * 1.2 : kv, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
+        o.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 0.4);
+    }
+
+    // Snare on beat 2 and 4
+    if (tc.hasSnare && (step === 4 || step === 12)) {
+        playNoiseAt(t, 0.25, 0.12, 3000);
+        playNoiseAt(t, 0.18, 0.08, 8000);
+    }
+
+    // Bass (every 2 steps)
+    if (step % 2 === 0) {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain(), f = audioCtx.createBiquadFilter();
+        o.type = tc.bassType;
+        o.frequency.setValueAtTime(midiToHz(chord[0] - 12), t);
+        f.type = 'lowpass';
+        const bv = tc.bassVol || 0.3;
+        f.frequency.setValueAtTime(isFrenzy ? 900 : 400, t);
+        f.frequency.exponentialRampToValueAtTime(80, t + 0.18);
+        if (tc.hasWobble) {
+            const lfo = audioCtx.createOscillator();
+            const lfoGain = audioCtx.createGain();
+            lfo.frequency.setValueAtTime(isFrenzy ? 6 : 3, t);
+            lfoGain.gain.setValueAtTime(120, t);
+            lfo.connect(lfoGain); lfoGain.connect(f.frequency);
+            lfo.start(t); lfo.stop(t + 0.4);
+        }
+        g.gain.setValueAtTime(isFrenzy ? bv * 1.3 : bv, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+        o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 0.25);
+    }
+
+    // Drone: Dark Tide — continuous low sub-bass (every 8 steps)
+    if (tc.hasDrone && step % 8 === 0) {
+        const droneDur = 2.4;
+        [chord[0] - 24, chord[0] - 12].forEach((m, idx) => {
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = 'sine';
+            o.frequency.setValueAtTime(midiToHz(m), t);
+            if (idx === 1) o.detune.setValueAtTime(8, t);
+            const dv = idx === 0 ? 0.18 : 0.10;
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.linearRampToValueAtTime(dv, t + 0.5);
+            g.gain.setValueAtTime(dv, t + droneDur - 0.5);
+            g.gain.linearRampToValueAtTime(0.0001, t + droneDur);
+            o.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + droneDur + 0.05);
+        });
+    }
+
+    // Pad: sustained chord (every 16 steps = new chord)
+    if (tc.hasPad && step === 0) {
+        chord.forEach((note) => {
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = tc.hasDrone ? 'sawtooth' : 'sine';
+            o.frequency.setValueAtTime(midiToHz(note), t);
+            const padV = tc.hasDrone ? 0.045 : 0.06;
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.linearRampToValueAtTime(padV, t + 0.5);
+            g.gain.setValueAtTime(padV, t + 1.6);
+            g.gain.linearRampToValueAtTime(0.0001, t + 2.4);
+            const f = audioCtx.createBiquadFilter();
+            f.type = 'lowpass';
+            f.frequency.setValueAtTime(tc.hasDrone ? 600 : 4000, t);
+            o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 2.5);
+        });
+    }
+
+    // Arp melody — Dark Tide: sparse, only on some steps
+    const doArp = tc.hasDrone ? (step % 4 === 0 || step % 4 === 3) : true;
+    if (doArp) {
+        const noteMidi = chord[tc.ARP_PAT[step]] + (isFrenzy ? 0 : -12);
+        const arpDur = isFrenzy ? 0.18 : 0.35;
+        const av = tc.arpVol || 0.25;
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain(), f = audioCtx.createBiquadFilter();
+        o.type = tc.arpType;
+        o.frequency.setValueAtTime(midiToHz(noteMidi), t);
+        f.type = 'lowpass';
+        f.frequency.setValueAtTime(tc.hasDrone ? 500 : (isFrenzy ? 3000 : 1200), t);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(av, t + 0.025);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + arpDur);
+        o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + arpDur + 0.01);
+    }
+
+    // Hi-hat / frenzy noise
+    if (tc.hasHihat) {
+        if (step % 2 !== 0) playNoiseAt(t, 0.04, 0.08, 9000);
+        if (step === 0 || step === 8) playNoiseAt(t, 0.1, 0.15, 5000);
+    } else if (isFrenzy) {
+        if (step % 2 !== 0) playNoiseAt(t, 0.03, 0.12, 8000);
+        if (step === 0 || step === 8) playNoiseAt(t, 0.08, 0.2, 2000);
+    }
+}
+
+// ── SFX ───────────────────────────────────────────────────────────────────────
 const SFX = {
     click:         () => playSFX([[1200, 'sine', 0, 0.06, 0.05]]),
     tick:          () => playSFX([[880, 'square', 0, 0.03, 0.03]]),
@@ -181,7 +354,7 @@ const SFX = {
     }
 };
 
-// iOS/iPad: desbloquear AudioContext en el primer gesto del usuario
+// iOS/iPad: desbloquear AudioContext en el primer gesto
 function _iosAudioUnlock() {
     try {
         if (!audioCtx) initAudio();
