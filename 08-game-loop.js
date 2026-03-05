@@ -493,3 +493,165 @@ function confirmAbandon() {
 }
 
 function replayGame() { SFX.click(); startGame(); }
+
+// ── Sistema de preguntas: carga y smart engine ────────────────────────────────
+let quizDataPool = [];
+async function loadQuestions() {
+    try {
+        const response = await fetch('preguntas.json');
+        if (!response.ok) throw new Error('No se pudo cargar el archivo');
+        quizDataPool = await response.json();
+        while(quizDataPool.length < 20) {
+            quizDataPool.push({ "question": "Por favor, carga el juego en un servidor web.", "answers": ["Entendido", "Ok", "Comprendo", "Solucionar"], "correctIndex": 0 });
+        }
+    } catch (error) {
+        quizDataPool = [
+            { "question": "ERROR: No se pudo cargar 'preguntas.json'. ¿Estás abriendo el HTML directamente (file://) en vez de usar un servidor local?", "answers": ["Sí, ese es el error", "Debo usar Live Server", "Falta el archivo JSON", "Todas las anteriores"], "correctIndex": 3 }
+        ];
+    }
+    _qeSync();
+}
+
+function shuffleArray(array) {
+    let current = array.length, random;
+    while (current !== 0) { random = Math.floor(Math.random() * current); current--; [array[current], array[random]] = [array[random], array[current]]; }
+    return array;
+}
+
+// ── Motor de preguntas inteligente (_qe) ─────────────────────────────────────
+const _qe = {
+    pool: [], queue: [], tail: [], tailSize: 20, lastKey: ''
+};
+
+function _qKey(q) {
+    let h = 5381;
+    const s = q.question;
+    for (let i = 0; i < s.length; i++) { h = ((h << 5) + h) ^ s.charCodeAt(i); h = h >>> 0; }
+    return h.toString(36);
+}
+
+function _qRefill(excludeSet) {
+    const pool = _qe.pool;
+    if (!pool.length) return;
+    const valid = [], invalid = [];
+    for (let i = 0; i < pool.length; i++) {
+        const k = _qKey(pool[i]);
+        if (excludeSet && excludeSet.has(k)) invalid.push(pool[i]);
+        else valid.push(pool[i]);
+    }
+    const useValid = valid.length >= Math.max(5, Math.floor(pool.length * 0.3));
+    const source = useValid ? valid : [...pool];
+    for (let i = source.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [source[i], source[j]] = [source[j], source[i]];
+    }
+    if (invalid.length) {
+        for (let i = invalid.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [invalid[i], invalid[j]] = [invalid[j], invalid[i]];
+        }
+        _qe.queue = [...source, ...invalid];
+    } else {
+        _qe.queue = source;
+    }
+}
+
+function _qeSync() {
+    _qe.pool = quizDataPool;
+    _qe.tailSize = Math.min(120, Math.max(20, Math.floor(quizDataPool.length * 0.4)));
+    if (_qe.queue.length === 0) _qRefill(new Set(_qe.tail));
+}
+
+function _qeResetGame() {
+    _qe.queue = [];
+    _qRefill(new Set(_qe.tail));
+}
+
+function _qeGetNext() {
+    if (!_qe.pool.length) return null;
+    if (_qe.queue.length === 0) _qRefill(new Set(_qe.tail));
+    const q = _qe.queue.shift();
+    if (!q) return null;
+    const key = _qKey(q);
+    _qe.tail.push(key);
+    if (_qe.tail.length > _qe.tailSize) _qe.tail.shift();
+    _qe.lastKey = key;
+    return q;
+}
+
+function getNextQuestion() { return _qeGetNext(); }
+function _markUsed() {}
+const _recentQuestionIds = { clear: () => {} };
+
+// ── showCountdown ─────────────────────────────────────────────────────────────
+function showCountdown(callback) {
+    switchScreen('countdown-screen');
+    const numEl = document.getElementById('countdown-number');
+    const lblEl = document.getElementById('countdown-label');
+    const steps = [
+        { text: '3', label: 'Prepárate...' },
+        { text: '2', label: '¡Concéntrate!' },
+        { text: '1', label: '¡Ya casi!' },
+        { text: '¡YA!', label: '' }
+    ];
+    let i = 0;
+    function tick() {
+        if (i >= steps.length) { callback(); return; }
+        numEl.style.transform = 'scale(0.5)'; numEl.style.opacity = '0';
+        lblEl.style.opacity = '0';
+        setTimeout(() => {
+            numEl.textContent = steps[i].text;
+            lblEl.textContent = steps[i].label;
+            numEl.style.transform = 'scale(1)'; numEl.style.opacity = '1';
+            lblEl.style.opacity = '1';
+            SFX.tick();
+            i++;
+            setTimeout(tick, i < steps.length ? 800 : 400);
+        }, 150);
+    }
+    tick();
+}
+
+// ── HUD updates ───────────────────────────────────────────────────────────────
+function updateLivesUI() {
+    const c = document.getElementById('lives-container');
+    c.innerHTML = '';
+    for(let i = 0; i < 3; i++) {
+        let el = document.createElement('div');
+        el.innerHTML = SVG_BOLT;
+        if(i >= lives) el.classList.add('life-lost');
+        c.appendChild(el);
+    }
+}
+
+function updateMultiplierUI() {
+    const b = document.getElementById('multiplier-badge');
+    multiplier = Math.min(10, Math.max(1, Math.floor(streak / 5) + 1));
+    if(multiplier > (playerStats.maxMult||1)) { playerStats.maxMult = multiplier; }
+    if(multiplier > 1) {
+        b.style.display = 'block';
+        b.innerText = `x${multiplier}`;
+        const cls = multiplier <= 6 ? `mult-x${multiplier}` :
+                    multiplier === 7 ? 'mult-x7' :
+                    multiplier === 8 ? 'mult-x8' :
+                    multiplier === 9 ? 'mult-x9' : 'mult-x10';
+        b.className = 'multiplier-badge ' + cls;
+    } else {
+        b.style.display = 'none';
+        b.className = 'multiplier-badge';
+    }
+}
+
+let _appEl = null;
+function updateStreakVisuals() {
+    if (!_appEl) _appEl = document.getElementById('app');
+    const app = _appEl;
+    if (streak >= 5) {
+        if (!app.classList.contains('streak-active')) { app.classList.add('streak-active'); SFX.streakTrigger(); }
+        if (streak % 5 === 0) triggerMultiplierEffect(multiplier);
+    } else app.classList.remove('streak-active');
+}
+
+function triggerMultiplierEffect(mult) {
+    // Effects removed per user request — multiplier badge CSS handles visual feedback
+}
