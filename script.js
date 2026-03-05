@@ -2082,10 +2082,10 @@ if (playerStats.theme === 'light') {
 // Definición de cada modo: valores que se aplican a los sliders visibles
 // y flags internos que ajustan el motor de partículas.
 const QUALITY_PRESETS = {
-    max:    { fps: 120, particles: 1.0, bodyClass: 'quality-max',  label: 'Maximo',       desc: 'Liquid glass · Glows intensificados · 120 FPS' },
-    normal: { fps: 60,  particles: 1.0, bodyClass: '',              label: 'Normal',       desc: 'Equilibrio ideal entre calidad y rendimiento' },
-    perf:   { fps: 30,  particles: 0.5, bodyClass: 'quality-perf', label: 'Rendimiento',  desc: 'Sin blur · Sin glows · Particulas reducidas · 30 FPS' },
-    custom: { fps: null, particles: null, bodyClass: '',            label: 'Personalizado',desc: 'Configuracion ajustada manualmente' }
+    max:    { fps: 240, particles: 1.0, musicVol: 1.0, sfxVol: 1.0, bodyClass: 'quality-max',  label: 'Maximo',       desc: 'Efecto Cristalix · Glows maximos · 240 FPS · Todo al maximo' },
+    normal: { fps: 60,  particles: 1.0, musicVol: 1.0, sfxVol: 1.0, bodyClass: '',              label: 'Normal',       desc: '60 FPS · Blur estandar · Configuracion de equilibrio' },
+    perf:   { fps: 30,  particles: 0.4, musicVol: 1.0, sfxVol: 1.0, bodyClass: 'quality-perf', label: 'Rendimiento',  desc: 'Sin blur · Sin glows · Sin conexiones · 30 FPS · Maximo ahorro' },
+    custom: { fps: null, particles: null, musicVol: null, sfxVol: null, bodyClass: '',           label: 'Personalizado',desc: 'Valores ajustados manualmente' }
 };
 
 function _applyQualityBodyClasses(mode) {
@@ -2096,9 +2096,6 @@ function _applyQualityBodyClasses(mode) {
 
 function _syncQualityButtons(mode, isLight) {
     const ids = { max: 'q-max', normal: 'q-normal', perf: 'q-perf', custom: 'q-custom' };
-    // Show custom btn only when mode is custom
-    const customBtn = document.getElementById('q-custom');
-    if (customBtn) customBtn.style.display = (mode === 'custom') ? '' : 'none';
 
     Object.keys(ids).forEach(k => {
         const btn = document.getElementById(ids[k]);
@@ -2136,6 +2133,24 @@ function setQualityMode(mode, silent) {
         const pLabel  = document.getElementById('val-particles');
         if (pSlider) pSlider.value = preset.particles;
         if (pLabel)  pLabel.innerText = Math.round(preset.particles * 100) + '%';
+
+        // Apply musicVol and sfxVol if preset defines them
+        if (preset.musicVol !== null) {
+            playerStats.musicVol = preset.musicVol;
+            const mSlider = document.getElementById('op-music');
+            const mLabel  = document.getElementById('val-music');
+            if (mSlider) mSlider.value = preset.musicVol;
+            if (mLabel)  mLabel.innerText = Math.round(preset.musicVol * 100) + '%';
+            updateVolumes();
+        }
+        if (preset.sfxVol !== null) {
+            playerStats.sfxVol = preset.sfxVol;
+            const sSlider = document.getElementById('op-sfx');
+            const sLabel  = document.getElementById('val-sfx');
+            if (sSlider) sSlider.value = preset.sfxVol;
+            if (sLabel)  sLabel.innerText = Math.round(preset.sfxVol * 100) + '%';
+            updateVolumes();
+        }
 
         // Reinit particles to apply new count ceiling
         initParticles();
@@ -3647,9 +3662,9 @@ function initParticles() {
     // Fewer particles = smoother, still visually rich
     const area = canvas.width * canvas.height;
     const _qmode = playerStats && playerStats.qualityMode;
-    let num = Math.round(Math.min(area / 15000, isMobile ? 30 : 60));
-    if (_qmode === 'perf') num = Math.max(5, Math.round(num / 2));
-    else if (_qmode === 'max') num = Math.min(80, Math.round(num * 1.4));
+    let num = Math.round(Math.min(area / 15000, isMobile ? 20 : 50));
+    if (_qmode === 'perf')   num = Math.max(4, Math.round(num * 0.4));
+    else if (_qmode === 'max') num = Math.min(90, Math.round(num * 1.7));
     for (let i = 0; i < num; i++) {
         particlesArray.push({
             x: Math.random() * canvas.width,
