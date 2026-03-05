@@ -119,7 +119,12 @@ let _saveLastForced = 0;
 function saveStatsDebounced(force = false) {
     clearTimeout(_saveTimeout);
     const now = Date.now();
-    if (force || (now - _saveLastForced) > 10000) {
+    if (force) {
+        _saveLastForced = now;
+        saveStatsLocally();
+        return;
+    }
+    if ((now - _saveLastForced) > 10000) {
         _saveLastForced = now;
         saveStatsLocally();
         return;
@@ -186,6 +191,7 @@ function processDailyLogin() {
         playerStats.lastLoginDate = todayStr;
         playerStats.todayGames = 0;
         playerStats.dailyAchUnlocks = 0;
+        playerStats.totalDaysPlayed = (playerStats.totalDaysPlayed || 0) + 1;
         saveStatsLocally(); checkAchievements();
     }
 }
