@@ -758,6 +758,7 @@ const FPS_VALUES = [15, 30, 60, 120, 240];
 function openSettings() {
     initAudio(); SFX.click();
     playerStats.configViews = (playerStats.configViews||0) + 1;
+    playerStats._settingsOpenedAt = Date.now();
     trackSectionVisit('settings');
     saveStatsLocally(); checkAchievements();
     document.getElementById('op-music').value = playerStats.musicVol; document.getElementById('op-sfx').value = playerStats.sfxVol; 
@@ -863,6 +864,15 @@ async function submitLeaderboard() {
             powerLevel: pl, totalScore: playerStats.totalScore, maxStreak: playerStats.maxStreak
         };
         try { await fetch(GAS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) });
+            // nm6: Impostado — after submitting, check if we outranked a player who had 1000+ more PL
+            if (window._leaderboardData && Array.isArray(window._leaderboardData)) {
+                const myPos = playerStats.rankingPosition || 999;
+                window._leaderboardData.forEach((p, idx) => {
+                    if (p.uuid !== playerStats.uuid && (p.powerLevel||0) > pl + 1000 && (idx+1) > myPos) {
+                        playerStats.surpassedHighPLPlayer = true;
+                    }
+                });
+            }
         } catch(e) {}
     }, 1200);
 }
@@ -893,7 +903,32 @@ async function fetchLeaderboard() {
         topPlayers.forEach((p, index) => {
             const pos = index + 1;
             const isMe = p.uuid === playerStats.uuid;
-            if(isMe) { playerStats.rankingPosition = pos; saveStatsLocally(); checkAchievements(); }
+            if(isMe) {
+                const prevPos = playerStats.rankingPosition || 999;
+                playerStats.rankingPosition = pos;
+                // nm5: Vigilia — rank up on 3 consecutive days
+                const todayStr = new Date().toISOString().split('T')[0];
+                if (pos < prevPos) {
+                    if (playerStats._lastRankUpDate !== todayStr) {
+                        const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+                        const yesterdayStr = yesterday.toISOString().split('T')[0];
+                        if (playerStats._lastRankUpDate === yesterdayStr) {
+                            playerStats.consecutiveRankUpDays = (playerStats.consecutiveRankUpDays||0) + 1;
+                        } else {
+                            playerStats.consecutiveRankUpDays = 1;
+                        }
+                        playerStats._lastRankUpDate = todayStr;
+                    }
+                }
+                // nm7: Remontada — jump from position 15+ to Top 5 in one game
+                if (prevPos >= 15 && pos <= 5) playerStats.rankRemontada = true;
+                saveStatsLocally(); checkAchievements();
+            }
+            // nm6: Impostado — surpass a player who had 1000+ more PL than you
+            // (their entry appears above me in old data but below me now = I surpassed them)
+            if (!p.isMe && (p.powerLevel||0) > (playerStats.powerLevel||0) + 1000) {
+                // they still rank below me means surpassed — track via my PL delta stored at submit time
+            }
 
             // Podio titles — requiere Leyenda o superior
             let rankTitle = p.rankTitle;
@@ -996,22 +1031,32 @@ function _pcDraw(now) {
     }
     c.fill();
 
-    // Líneas de conexión
+    // Líneas de conexión — batched by alpha bucket for performance
     const maxD2 = (W / 8) * (H / 8);
     c.lineWidth = 0.6;
+    const alphaBuckets = {};
     for (let a = 0; a < pts.length; a++) {
         for (let b = a + 1; b < pts.length; b++) {
             const dx = pts[a].x - pts[b].x, dy = pts[a].y - pts[b].y;
             const d2 = dx*dx + dy*dy;
             if (d2 < maxD2) {
-                const alpha = (1 - d2 / maxD2) * 0.22;
-                c.strokeStyle = `rgba(${_pc.rgb},${alpha.toFixed(2)})`;
-                c.beginPath();
-                c.moveTo(pts[a].x, pts[a].y);
-                c.lineTo(pts[b].x, pts[b].y);
-                c.stroke();
+                const alpha = Math.round((1 - d2 / maxD2) * 0.22 * 20) / 20;
+                const key = alpha.toFixed(2);
+                if (!alphaBuckets[key]) alphaBuckets[key] = [];
+                alphaBuckets[key].push(a, b);
             }
         }
+    }
+    for (const key in alphaBuckets) {
+        c.strokeStyle = `rgba(${_pc.rgb},${key})`;
+        c.beginPath();
+        const bucket = alphaBuckets[key];
+        for (let i = 0; i < bucket.length; i += 2) {
+            const a = bucket[i], b = bucket[i+1];
+            c.moveTo(pts[a].x, pts[a].y);
+            c.lineTo(pts[b].x, pts[b].y);
+        }
+        c.stroke();
     }
 }
 
@@ -1472,6 +1517,7 @@ function processDailyLogin() {
         }
         playerStats.lastLoginDate = todayStr;
         playerStats.todayGames = 0;
+        playerStats.totalDaysPlayed = (playerStats.totalDaysPlayed || 0) + 1;
         // Reset daily achievement counter so da1-da5 and extra5 track per-day correctly
         playerStats.dailyAchUnlocks = 0;
         saveStatsLocally(); checkAchievements();
@@ -1675,6 +1721,16 @@ function _checkAchievementsImpl() {
     if((playerStats.extremisCount||0)>=1) unlock('u24');
     // ui5 El Perfil Importa: visit profile after each of first 5 games
     if((playerStats.profileViewedAfterGames||0)>=5) unlock('ui5');
+    // ui9 Puntaje en Mente: view profile immediately after a new record
+    if(playerStats.viewedProfileAfterRecord) unlock('ui9');
+    // ui2 Vuelvo en Un Segundo: exit settings in <3 seconds
+    if(playerStats.quickSettingsExit) unlock('ui2');
+    // ui6 Fan de Clasificación: visit ranking while <5 players
+    if(playerStats.visitedRankingWithFewPlayers) unlock('ui6');
+    // ui10 El Circuito: navigate 4 sections in sequential order
+    if(playerStats.circuitCompleted) unlock('ui10');
+    // x2 Paciente: wait 10 seconds in main menu
+    if(playerStats.idledOnMainMenu) unlock('x2');
     // nm5 Vigilia: rank up in 3 consecutive days (tracked via rankUpDays)
     if((playerStats.consecutiveRankUpDays||0)>=3) unlock('nm5');
     // nm6 Impostado, nm7 Remontada — tracked in game
@@ -2032,6 +2088,14 @@ function switchScreen(id) {
     // Slightly longer delay on iOS to allow Safari layout to settle
     const delay = /iPad|iPhone|iPod/.test(navigator.userAgent) ? 60 : 16;
     setTimeout(() => { if(next) { next.classList.add('active'); _currentScreen = next; } }, delay);
+    // x2: Paciente — wait 10 seconds in main menu without doing anything
+    if (window._pacienteTimer) { clearTimeout(window._pacienteTimer); window._pacienteTimer = null; }
+    if (id === 'start-screen') {
+        window._pacienteTimer = setTimeout(() => {
+            playerStats.idledOnMainMenu = true;
+            saveStatsLocally(); checkAchievements();
+        }, 10000);
+    }
 }
 // Initialize current screen
 _currentScreen = document.querySelector('.screen.active');
@@ -2487,7 +2551,15 @@ function closeRoulette() {
     }, 300);
 }
 
-function goToMainMenu() { SFX.click(); switchScreen('start-screen'); }
+function goToMainMenu() {
+    SFX.click();
+    // ui2: Vuelvo en Un Segundo — exit settings in <3 seconds
+    if (playerStats._settingsOpenedAt && (Date.now() - playerStats._settingsOpenedAt) < 3000) {
+        playerStats.quickSettingsExit = true;
+    }
+    playerStats._settingsOpenedAt = null;
+    switchScreen('start-screen');
+}
 
 function onLogoClick() {
     initAudio();
@@ -2511,6 +2583,25 @@ function trackSectionVisit(section) {
     if (!playerStats.allSectionsVisited && ALL_SECTIONS.every(s => playerStats.sectionsVisitedThisSession.includes(s))) {
         playerStats.allSectionsVisited = true;
     }
+    // ui10: El Circuito — navigate 4 sections in sequential order: profile → achievements → ranking → settings
+    const CIRCUIT_ORDER = ['profile', 'achievements', 'ranking', 'settings'];
+    if (!playerStats.circuitCompleted) {
+        if (!Array.isArray(playerStats._circuitSequence)) playerStats._circuitSequence = [];
+        const seq = playerStats._circuitSequence;
+        const expected = CIRCUIT_ORDER[seq.length];
+        if (section === expected) {
+            seq.push(section);
+            if (seq.length === CIRCUIT_ORDER.length) {
+                playerStats.circuitCompleted = true;
+                playerStats._circuitSequence = [];
+            }
+        } else if (section === CIRCUIT_ORDER[0]) {
+            // restart sequence if they go back to first step
+            playerStats._circuitSequence = [section];
+        } else {
+            playerStats._circuitSequence = [];
+        }
+    }
 }
 
 function goToAchievements() { initAudio(); SFX.click(); playerStats.achViews++; trackSectionVisit('achievements'); saveStatsLocally(); checkAchievements(); renderAchievements(); switchScreen('achievements-screen'); const sc = document.getElementById('vscroll-container'); if(sc) sc.scrollTop = 0; }
@@ -2519,6 +2610,10 @@ function goToRanking() {
     initAudio(); SFX.click();
     playerStats.rankingViews = (playerStats.rankingViews||0) + 1;
     trackSectionVisit('ranking');
+    // ui6: Fan de Clasificación — visit ranking while fewer than 5 players exist
+    if (window._leaderboardData && window._leaderboardData.length > 0 && window._leaderboardData.length < 5) {
+        playerStats.visitedRankingWithFewPlayers = true;
+    }
     saveStatsLocally(); checkAchievements();
     switchScreen('ranking-screen');
 }
@@ -2528,6 +2623,17 @@ function goToProfile(needsName = false) {
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
     SFX.click();
     playerStats.profileViews = (playerStats.profileViews||0) + 1;
+    // ui5: El Perfil Importa — visit profile after each of first 5 games
+    const gp = playerStats.gamesPlayed || 0;
+    if (gp > 0 && gp <= 5 && (playerStats._lastProfileViewAfterGame||0) < gp) {
+        playerStats._lastProfileViewAfterGame = gp;
+        playerStats.profileViewedAfterGames = (playerStats.profileViewedAfterGames||0) + 1;
+    }
+    // ui9: Puntaje en Mente — visit profile within 30s of a new best score
+    if (playerStats._newBestScoreTime && (Date.now() - playerStats._newBestScoreTime) < 30000) {
+        playerStats.viewedProfileAfterRecord = true;
+        playerStats._newBestScoreTime = null;
+    }
     trackSectionVisit('profile');
     document.getElementById('stat-games').innerText = playerStats.gamesPlayed; document.getElementById('stat-score').innerText = playerStats.bestScore.toLocaleString(); document.getElementById('stat-streak').innerText = playerStats.maxStreak; document.getElementById('stat-days').innerText = playerStats.maxLoginStreak;
     document.getElementById('profile-name-input').value = (playerStats.playerName === "JUGADOR") ? "" : playerStats.playerName;
@@ -3401,7 +3507,7 @@ function showFeedback(isCorrect, isTimeout = false) {
 function saveGameStats() {
     playerStats.gamesPlayed++; playerStats.todayGames++; playerStats.totalScore += score; 
     const prevBest = playerStats.bestScore || 0;
-    if(score > playerStats.bestScore) playerStats.bestScore = score; 
+    if(score > playerStats.bestScore) { playerStats.bestScore = score; playerStats._newBestScoreTime = Date.now(); }
     if(currentMaxStreak > playerStats.maxStreak) playerStats.maxStreak = currentMaxStreak;
     if(score >= 100000) playerStats.maxScoreCount++;
     // x15: Punto de Quiebre — score exactamente 100k ±500 (tracked per-game, bestScore check alone fails once exceeded)
