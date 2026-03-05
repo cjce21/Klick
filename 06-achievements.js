@@ -110,31 +110,31 @@ addAchs([
     { id: 'u24', title: 'Extremis',         desc: 'Responde 3 preguntas en 1 segundo o menos en una partida.',  color: colors.red,    icon: SVG_SHIELD },
     { id: 'x19', title: 'Espectacular',     desc: 'Responde 5 preguntas en menos de 1 segundo en una partida.', color: colors.yellow, icon: SVG_BOLT },
 ]);
-const fastTiers=[10,50,100,250,500];
-for(let i=0;i<5;i++) addAchs([{ id:`fa${i+1}`, title:`Veloz ${i+1}`, desc:`Acumula ${fastTiers[i]} respuestas rápidas (casi sin tiempo) en tu carrera.`, color:colors.blue, icon:SVG_BOLT }]);
+const fastTiers=[5,15,30,60,100];
+for(let i=0;i<5;i++) addAchs([{ id:`sp${i+1}`, title:`Reflejos ${i+1}`, desc:`Responde correctamente en los primeros 2s en ${fastTiers[i]} ocasiones.`, color:colors.blue, icon:SVG_BOLT }]);
 const noTOTiers=[5,15,30,50,75];
 for(let i=0;i<5;i++) addAchs([{ id:`nt${i+1}`, title:`Sin Timeout ${i+1}`, desc:`Completa ${noTOTiers[i]} preguntas seguidas sin dejar que el tiempo expire.`, color:colors.green, icon:SVG_CLOCK }]);
 
 // ─── 8. FRENESÍ ──────────────────────────────────────────────────────────────
-const frenTiers=[1,3,5,10,20];
-for(let i=0;i<5;i++) addAchs([{ id:`fr${i+1}`, title:`Frenesí ${i+1}`, desc:`Activa el Frenesí ${frenTiers[i]} veces en total.`, color:colors.orange, icon:SVG_FIRE }]);
+const frenTiers=[1,5,10,25,50];
+for(let i=0;i<5;i++) addAchs([{ id:`r${i+1}`, title:`Frenesí ${i+1}`, desc:`Activa el Frenesí ${frenTiers[i]} veces en total.`, color:colors.orange, icon:SVG_FIRE }]);
 addAchs([
-    { id: 'fin3',   title: 'Momento Épico',   desc: 'Activa el Frenesí 4 veces seguidas en una misma partida.',   color: colors.red,    icon: SVG_FIRE },
-    { id: 'extra6', title: 'Frenesí Supremo', desc: 'Activa el Frenesí 30 veces en partidas distintas.',          color: colors.red,    icon: SVG_FIRE },
-    { id: 'u_bisturi',title:'Bisturí',        desc: 'Activa el Frenesí y acumula 5,000 puntos solo durante él.',  color: colors.orange, icon: SVG_FIRE, hidden: true },
+    { id: 'fin3',   title: 'Momento Épico',   desc: 'Activa el Frenesí 4 veces en una misma partida.',            color: colors.red,    icon: SVG_FIRE },
+    { id: 'u_bisturi',title:'Bisturí',        desc: 'Mantén 90%+ de precisión con al menos 500 respuestas totales.', color: colors.orange, icon: SVG_FIRE, hidden: true },
 ]);
 
 // ─── 9. ACIERTOS ACUMULADOS ──────────────────────────────────────────────────
 const corrTiers=[10,50,100,250,500,1000,2500,5000];
-for(let i=0;i<8;i++) addAchs([{ id:`cr${i+1}`, title:`Aciertos ${i+1}`, desc:`Acumula ${corrTiers[i].toLocaleString()} respuestas correctas en tu carrera.`, color:colors.green, icon:SVG_CORRECT }]);
+for(let i=0;i<8;i++) addAchs([{ id:`ac${i+1}`, title:`Aciertos ${i+1}`, desc:`Acumula ${corrTiers[i].toLocaleString()} respuestas correctas en tu carrera.`, color:colors.green, icon:SVG_CORRECT }]);
 addAchs([
     { id: 'x8',   title: 'Perfeccionista',desc: 'Termina una partida con todas las vidas intactas.',            color: colors.yellow, icon: SVG_HEART },
     { id: 'x5',   title: 'La Revancha',   desc: 'Después de una partida con 0 aciertos, consigue más de 10.',  color: colors.orange, icon: SVG_FIRE },
     { id: 'u11',  title: 'Fénix',         desc: 'Pierde 2 vidas al inicio pero llega a 30 aciertos consecutivos.', color: colors.orange, icon: SVG_FIRE },
     { id: 'u19',  title: 'Resurrección',  desc: 'Pierde 2 vidas seguidas y encadena 10 aciertos consecutivos.', color: colors.yellow, icon: SVG_HEART },
 ]);
-const pfGamesTiers=[1,3,5,10,20,35,50,100];
-for(let i=0;i<8;i++) addAchs([{ id:`pg${i+1}`, title:`Partida Perfecta ${i+1}`, desc:`Completa ${pfGamesTiers[i]} partidas largas (≥50 preguntas) sin errores ni timeouts.`, color:colors.purple, icon:SVG_STAR }]);
+// Additional frenzy milestone achievements (r6-r8)
+const frenTiers2=[100,200,500];
+for(let i=0;i<3;i++) addAchs([{ id:`r${i+6}`, title:`Frenesí ${i+6}`, desc:`Activa el Frenesí ${frenTiers2[i]} veces en total.`, color:colors.red, icon:SVG_FIRE }]);
 
 // ─── 10. ERRORES E IRONÍA ────────────────────────────────────────────────────
 const wrnTiers=[10,50,100,250,500];
@@ -147,7 +147,6 @@ addAchs([
     { id: 'u10', title: 'Desastre',    desc: 'Pierde las 3 vidas en las primeras 3 preguntas.',                color: colors.dark,   icon: SVG_SKULL },
     { id: 'u18', title: 'Suicida',     desc: 'Pierde las 3 vidas en menos de 30 segundos de partida.',         color: colors.dark,   icon: SVG_SKULL },
     { id: 'u12', title: 'Tragedia',    desc: 'Pierde la última vida durante una racha de 20 o más.',           color: colors.dark,   icon: SVG_INCORRECT },
-    { id: 'x5',  title: 'La Revancha', desc: 'Después de una partida con 0 aciertos, consigue más de 10 aciertos.', color: colors.orange, icon: SVG_FIRE },
 ]);
 
 // ─── 11. RULETA DE RECOMPENSAS ───────────────────────────────────────────────
