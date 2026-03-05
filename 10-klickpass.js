@@ -166,8 +166,9 @@ function kpClaim(lv) {
     state.claimDays = state.claimDays || [];
     if (!state.claimDays.includes(today)) state.claimDays.push(today);
 
-    // Sesión de reclamaciones
+    // Sesión de reclamaciones (sincronizar en playerStats para que checkAchievements lo lea)
     state.sessionClaims = (state.sessionClaims || 0) + 1;
+    playerStats.kpSessionClaims = Math.max(playerStats.kpSessionClaims || 0, state.sessionClaims);
 
     saveKpState(state);
 
