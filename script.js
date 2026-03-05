@@ -2247,8 +2247,12 @@ function setQualityMode(mode, silent) {
         // que ya se hayan procesado antes de permitir cambios manuales de nuevo.
         setTimeout(() => { window._kPreset = false; }, 0);
 
-        // Reinit particles to apply new count ceiling
-        initParticles();
+        // No se reinician las partículas al cambiar de modo:
+        // el loop existente ya lee qualityMode cada frame y ajusta
+        // velocidad, conexiones y opacidad al vuelo.
+        // Solo reseteamos el timer para evitar un burst de frames acumulados.
+        then = performance.now();
+        _smoothDelta = fpsInterval;
 
         // Aplicar body classes — inmediato, sin retardo
         _applyQualityBodyClasses(mode);
@@ -3772,24 +3776,36 @@ let then = performance.now();
 let _cpFrame = 0;
 let _smoothDelta = fpsInterval; // EMA del delta real para suavizar jitter
 const _EMA_K = 0.12;           // factor de suavizado (menor = más suave)
+let _particleRaf = null;        // handle del loop principal — garantiza un único loop activo
 
-function initParticles() { 
-    canvas.width = window.innerWidth; canvas.height = window.innerHeight; particlesArray = []; 
+// ─────────────────────────────────────────────────────────────────────────────
+// SISTEMA DE PARTÍCULAS — cantidad fija, comportamiento dinámico por modo.
+// Las partículas se crean UNA SOLA VEZ (o al resize). Al cambiar de modo de
+// calidad NO se reinician: el loop lee qualityMode en cada frame y ajusta
+// velocidad, conexiones y opacidad al vuelo. Cero loops paralelos posibles.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Velocidad base almacenada en cada partícula (normalizada a modo normal).
+// El loop la escala según el modo activo sin recrear el array.
+const _P_SPEED_NORMAL = 0.7;  // referencia: velocidad en modo normal
+
+function initParticles() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    particlesArray = [];
     const isMobile = window.innerWidth < 768;
     const area = canvas.width * canvas.height;
-    const _qmode = playerStats && playerStats.qualityMode;
-    let num = Math.round(Math.min(area / 15000, isMobile ? 20 : 50));
-    if (_qmode === 'perf')   num = Math.max(3, Math.round(num * 0.3));
-    else if (_qmode === 'max') num = Math.min(100, Math.round(num * 2.0));
-    // Velocidad base según modo
-    const speedBase = _qmode === 'max' ? 1.1 : (_qmode === 'perf' ? 0.4 : 0.7);
+    // Cantidad FIJA: la misma para todos los modos (el modo solo cambia comportamiento)
+    const num = Math.round(Math.min(area / 15000, isMobile ? 20 : 50));
     for (let i = 0; i < num; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = _P_SPEED_NORMAL * (0.5 + Math.random());
         particlesArray.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            dx: (Math.random() - 0.5) * speedBase * 2,
-            dy: (Math.random() - 0.5) * speedBase * 2,
-            s: Math.random() * 1.4 + 0.4
+            x:  Math.random() * canvas.width,
+            y:  Math.random() * canvas.height,
+            dx: Math.cos(angle) * speed,
+            dy: Math.sin(angle) * speed,
+            s:  Math.random() * 1.4 + 0.4
         });
     }
 }
@@ -3798,22 +3814,25 @@ function initParticles() {
 let _pIsLight = false, _pRgb = '0,255,102';
 
 function updateAndDrawParticles(timeScale, pulse) {
+    const _qm = playerStats.qualityMode;
+    // Velocidad escalada por modo — sin recrear partículas
+    const modeSpeed = _qm === 'max' ? 1.6 : (_qm === 'perf' ? 0.45 : 1.0);
     const m = streak >= 5 ? 2.5 : 1;
     const speedBoost = 1 + (pulse * 1.2);
-    const sizeBoost = 1 + pulse * 0.8;
+    const sizeBoost  = 1 + pulse * 0.8;
     const baseOpacity = streak >= 5 ? 0.65 : 0.42;
     const dynamicOpacity = Math.min(1, (_pIsLight ? baseOpacity * 2.2 : baseOpacity) * playerStats.particleOpacity + pulse * 0.12);
     const W = canvas.width, H = canvas.height;
-    
+
     ctx.beginPath();
     ctx.fillStyle = `rgba(${_pRgb}, ${dynamicOpacity})`;
-    
+
     for (let i = 0; i < particlesArray.length; i++) {
         const p = particlesArray[i];
         if (p.x > W || p.x < 0) p.dx = -p.dx;
         if (p.y > H || p.y < 0) p.dy = -p.dy;
-        p.x += p.dx * m * timeScale * speedBoost;
-        p.y += p.dy * m * timeScale * speedBoost;
+        p.x += p.dx * m * modeSpeed * timeScale * speedBoost;
+        p.y += p.dy * m * modeSpeed * timeScale * speedBoost;
         const r = (p.s + pulse * 1.0) * sizeBoost;
         ctx.moveTo(p.x + r, p.y);
         ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
@@ -3875,7 +3894,7 @@ function connectParticles(pulse) {
 }
 
 function animateParticles(now) {
-    requestAnimationFrame(animateParticles);
+    _particleRaf = requestAnimationFrame(animateParticles);
     const raw = now - then;
     // Solo actuar cuando ha pasado al menos un intervalo de frame
     if (raw < fpsInterval) return;
@@ -3922,7 +3941,10 @@ let _resizeTimer;
 window.addEventListener('resize', () => {
     clearTimeout(_resizeTimer);
     _resizeTimer = setTimeout(() => {
+        if (_particleRaf) { cancelAnimationFrame(_particleRaf); _particleRaf = null; }
         initParticles();
+        then = performance.now();
+        _particleRaf = requestAnimationFrame(animateParticles);
         const _po = document.getElementById('pcard-overlay');
         if (_po && _po.style.display !== 'none') {
             const _pc2 = document.getElementById('pcard-particle-canvas');
@@ -3930,7 +3952,11 @@ window.addEventListener('resize', () => {
         }
     }, 150);
 });
-initParticles(); requestAnimationFrame(animateParticles);
+// Iniciar el loop de partículas — cancelar cualquier loop previo antes de lanzar uno nuevo
+if (_particleRaf) { cancelAnimationFrame(_particleRaf); _particleRaf = null; }
+initParticles();
+then = performance.now();
+_particleRaf = requestAnimationFrame(animateParticles);
 
 // Reset particle timer when tab becomes visible to prevent accumulated frame debt causing speed burst
 // También restaura el audio si estaba silenciado por pérdida de foco
