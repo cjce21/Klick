@@ -1705,3 +1705,111 @@ body.light-mode .kp-tramo-sep { border-bottom-color: var(--bg-elevated); }
     .toast-item.show { transform: translateY(0); }
     .achievements-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 }
+
+/* ═══════════════════════════════════════════════════
+   MODO RENDIMIENTO — Optimización para gama baja
+   Añade body.perf-mode para desactivar efectos caros
+   ═══════════════════════════════════════════════════ */
+
+/* 1. Eliminar backdrop-filter (blur de cristal) — muy costoso en GPU */
+body.perf-mode .glass-panel,
+body.perf-mode .top-nav,
+body.perf-mode .top-bar,
+body.perf-mode .answer-btn,
+body.perf-mode .question-text,
+body.perf-mode .toast-item,
+body.perf-mode .modal-overlay,
+body.perf-mode .pcard-panel,
+body.perf-mode .kp-header,
+body.perf-mode #roulette-overlay,
+body.perf-mode .achievement-slot.unlocked {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+/* 2. Eliminar animaciones CSS costosas (streak-pulse, frenzy neon, etc.) */
+body.perf-mode * {
+    animation-play-state: paused !important;
+}
+/* Excepciones: animaciones funcionales que deben seguir activas */
+body.perf-mode .screen,
+body.perf-mode .feedback-content,
+body.perf-mode .pcard-wrap,
+body.perf-mode .end-fullscreen,
+body.perf-mode .end-score-value,
+body.perf-mode #countdown-number,
+body.perf-mode .toast-item,
+body.perf-mode .toast-item.show,
+body.perf-mode .kp-total-bar-fill,
+body.perf-mode .answer-btn.q-enter,
+body.perf-mode .answer-btn.q-exit,
+body.perf-mode .question-text.q-enter,
+body.perf-mode .question-text.q-exit {
+    animation-play-state: running !important;
+}
+
+/* 3. Reducir transiciones largas a versiones instantáneas */
+body.perf-mode .setting-card,
+body.perf-mode .rank-card,
+body.perf-mode .ach-card,
+body.perf-mode .btn-solid,
+body.perf-mode .btn-outline,
+body.perf-mode .btn-back,
+body.perf-mode .top-btn,
+body.perf-mode .kp-node,
+body.perf-mode .kp-card,
+body.perf-mode .rl-card,
+body.perf-mode .pcard-close {
+    transition-duration: 0.05s !important;
+}
+
+/* 4. Eliminar box-shadow glow decorativo (carga la GPU) */
+body.perf-mode input[type=range]::-webkit-slider-thumb:hover {
+    box-shadow: none !important;
+}
+body.perf-mode .rank-card.is-me,
+body.perf-mode .ach-card.pinned,
+body.perf-mode .kp-node.unlocked,
+body.perf-mode .kp-node.final-node.unlocked {
+    box-shadow: none !important;
+}
+
+/* 5. Desactivar text-shadow en elementos glow */
+body.perf-mode .feedback-title,
+body.perf-mode .end-message,
+body.perf-mode .end-score-value,
+body.perf-mode .pcard-big-name,
+body.perf-mode #countdown-number {
+    text-shadow: none !important;
+    filter: none !important;
+}
+
+/* 6. Desactivar drop-shadow de iconos de feedback */
+body.perf-mode #feedback-screen .feedback-content svg,
+body.perf-mode #feedback-icon-container svg {
+    filter: none !important;
+}
+
+/* 7. Multiplicadores de frenesí: sin animación de pulso */
+body.perf-mode .mult-x2,
+body.perf-mode .mult-x3,
+body.perf-mode .mult-x4,
+body.perf-mode .mult-x5,
+body.perf-mode .mult-x6,
+body.perf-mode .mult-x7,
+body.perf-mode .mult-x8,
+body.perf-mode .mult-x9,
+body.perf-mode .mult-x10 {
+    animation: none !important;
+    text-shadow: none !important;
+}
+
+/* 8. Streak pulse del fondo — off */
+body.perf-mode #app.streak-active {
+    animation: none !important;
+    background: var(--bg-base) !important;
+}
+
+/* Modo Rendimiento — ajustes para modo claro */
+body.light-mode #perf-off-btn,
+body.light-mode #perf-on-btn { color: #0d1117; }
