@@ -328,7 +328,7 @@ function showFeedback(isCorrect, isTimeout = false) {
                 scr.className = isTimeout ? 'screen timeout' : 'screen incorrect';
                 icon.innerHTML = isTimeout ? SVG_TIMEOUT : SVG_INCORRECT;
                 title.innerText = isTimeout ? 'TIEMPO' : 'INCORRECTO';
-                streak = 0; playerStats.currentFrenzyStreak = 0;
+                streak = 0; playerStats.currentFrenzyStreak = 0; multiplier = 1;
                 lives--;
                 if (lives < 0) lives = 0;
                 livesLostThisGame++;
@@ -376,21 +376,64 @@ function showFeedback(isCorrect, isTimeout = false) {
 }
 
 function saveGameStats() {
-    const prevBest = playerStats.bestScore;
+    const prevBest = playerStats.bestScore || 0;
     if (score > playerStats.bestScore) {
         playerStats.bestScore = score;
-        if(score >= 100000) playerStats.maxScoreCount = (playerStats.maxScoreCount||0) + 1;
+        if (score >= 100000) playerStats.maxScoreCount = (playerStats.maxScoreCount || 0) + 1;
         playerStats.ui9Pending = true;
     }
-    if (score === prevBest) playerStats.previousGameScore = score;
+    // x15: Punto de Quiebre — score exactamente 100k ±500
+    if (score >= 99500 && score <= 100500) playerStats.hitExactly100k = true;
     playerStats.gamesPlayed++;
-    playerStats.todayGames = (playerStats.todayGames||0) + 1;
+    playerStats.todayGames = (playerStats.todayGames || 0) + 1;
     playerStats.totalScore += score;
-    playerStats.totalDaysPlayed = playerStats.totalDaysPlayed || 0; // incrementado por processDailyLogin
     if (playerStats.maxStreak < currentMaxStreak) playerStats.maxStreak = currentMaxStreak;
-    if (currentMaxStreak > 0 && livesLostThisGame === 0) playerStats.perfectGames++;
-    if (currentQuestionIndex > (playerStats.maxQuestionReached||0)) playerStats.maxQuestionReached = currentQuestionIndex;
-    playerStats.profileViewedAfterGames = 0; // reset para logro ui5
+    // perfectGames: solo cuando acaba sin errores ni timeouts Y ≥50 preguntas
+    if (currentQuestionIndex >= 50 && currentWrongAnswers === 0 && currentTimeoutAnswers === 0) {
+        playerStats.perfectGames = (playerStats.perfectGames || 0) + 1;
+    }
+    if (currentQuestionIndex > (playerStats.maxQuestionReached || 0)) playerStats.maxQuestionReached = currentQuestionIndex;
+    // extra2 Precisionista: 100% precisión con mín. 5 respuestas
+    const gameCorrect = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
+    if (currentWrongAnswers === 0 && currentTimeoutAnswers === 0 && gameCorrect >= 5) playerStats.hadPerfectAccuracyGame = true;
+    // x5: La Revancha
+    const prevGameCorrect = playerStats.lastGameCorrect || 0;
+    playerStats.revengeGame = (prevGameCorrect === 0 && gameCorrect >= 10);
+    // x8: Sin Prisa — termina con <5 respuestas rápidas
+    playerStats.xSinPrisa = (currentFastAnswers < 5 && currentQuestionIndex >= 5);
+    // x12: Principiante Letal — 50k en la primera partida del día
+    if (playerStats.todayGames === 1 && score >= 50000) playerStats.firstGameOfDay50k = true;
+    // x16: Regreso Triunfal — tras no jugar un día, supera su último récord
+    if ((playerStats.missedADay || false) && score > prevBest && prevBest > 0) {
+        playerStats.returnTriumph = (playerStats.returnTriumph || 0) + 1;
+    }
+    playerStats.missedADay = false;
+    // x4: Doble Victoria — supera 75k dos partidas seguidas
+    if (score >= 75000 && (playerStats.previousGameScore || 0) >= 75000) playerStats.doubleVictory = true;
+    // x6: Consistente — 5 partidas seguidas con ≥25k
+    if (score >= 25000) {
+        playerStats.consecutiveGames25k = (playerStats.consecutiveGames25k || 0) + 1;
+    } else {
+        playerStats.consecutiveGames25k = 0;
+    }
+    if ((playerStats.consecutiveGames25k || 0) >= 5) playerStats.consistent5Games = true;
+    playerStats.previousGameScore = score;
+    // extra4 Silencioso: partida con música a 0%
+    if ((playerStats.musicVol || 1) === 0) playerStats.gamesAtMusicZero = (playerStats.gamesAtMusicZero || 0) + 1;
+    // u11: Fénix
+    if (livesLostThisGame >= 2 && currentMaxStreak >= 30) playerStats.fenixEarned = true;
+    // u19: Resurrección
+    if (playerStats.u19Earned) { playerStats.u19PersistEarned = true; playerStats.u19Earned = false; }
+    // Pista de música
+    if (playerStats.lastGameTrack && playerStats.lastGameTrack === playerStats.selectedTrack) {
+        playerStats.sameTrackGames = (playerStats.sameTrackGames || 0) + 1;
+    } else {
+        playerStats.sameTrackGames = 1;
+    }
+    playerStats.lastGameTrack = playerStats.selectedTrack;
+    playerStats.lastGameCorrect = gameCorrect;
+    playerStats.profileViewedAfterGames = 0;
+    currentRankInfo = getRankInfo(playerStats);
     saveStatsLocally();
     checkAchievements();
     submitLeaderboard();
@@ -399,14 +442,21 @@ function saveGameStats() {
 function endGame() {
     clearInterval(timerInterval);
     isAnsweringAllowed = false;
+    if (_animScoreTimer) { cancelAnimationFrame(_animScoreTimer); _animScoreTimer = null; }
+    _currentQuestion = null;
     document.getElementById('app').classList.remove('streak-active');
     SFX.gameEnd();
     saveGameStats();
 
-    document.getElementById('end-score').innerText    = score.toLocaleString();
-    document.getElementById('end-streak').innerText   = currentMaxStreak;
-    document.getElementById('end-correct').innerText  = totalCorrectThisGame;
-    document.getElementById('end-questions').innerText = currentQuestionIndex;
+    // Support both possible element IDs for the final score
+    const finalEl = document.getElementById('final-score-display') || document.getElementById('end-score');
+    if (finalEl) finalEl.innerText = score.toLocaleString();
+    const endStreak = document.getElementById('end-streak');
+    const endCorrect = document.getElementById('end-correct');
+    const endQuestions = document.getElementById('end-questions');
+    if (endStreak) endStreak.innerText   = currentMaxStreak;
+    if (endCorrect) endCorrect.innerText  = totalCorrectThisGame;
+    if (endQuestions) endQuestions.innerText = currentQuestionIndex;
 
     switchScreen('end-screen');
     streak = 0;
