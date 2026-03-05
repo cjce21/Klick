@@ -1,3 +1,4 @@
+// --- SISTEMAS DE PROTECCIÓN ANTI-TRAMPAS ---
 document.addEventListener('contextmenu', e => e.preventDefault());
 
 document.addEventListener('keydown', e => {
@@ -9,7 +10,14 @@ document.addEventListener('keydown', e => {
     }
 });
 
+// ── Gestión de foco / visibilidad ───────────────────────────────────────
+// Cuando el usuario sale del juego (otra pestaña, minimizar, superposición,
+// etc.) la música se silencia de inmediato. Al volver, se reactiva.
+// El anti-trampas sigue funcionando igual dentro de este bloque.
+
 let _cheaterCooldown = false;
+
+// Estado de silencio por pérdida de foco (independiente del vol del usuario)
 let _audioPausedByFocus = false;
 
 function _muteByFocus() {
@@ -67,18 +75,14 @@ document.addEventListener("visibilitychange", () => {
     }
 });
 
+// blur: cubre superposición de otra ventana, diálogos del sistema, cambio de app
+// (no dispara en móvil al bajar el teclado virtual — eso lo cubre visibilitychange)
 window.addEventListener("blur", () => {
     _muteByFocus();
     if (isAnsweringAllowed && !isGamePaused) {
-        // Small delay to filter out transient blurs (e.g. native dialogs, virtual keyboard on mobile)
-        if (_cheaterCooldown) return;
-        setTimeout(() => {
-            if (!document.hasFocus() && isAnsweringAllowed && !isGamePaused) {
-                if (_cheaterCooldown) return; _cheaterCooldown = true;
-                setTimeout(() => { _cheaterCooldown = false; }, 3000);
-                punishCheater();
-            }
-        }, 200);
+        if (_cheaterCooldown) return; _cheaterCooldown = true;
+        setTimeout(() => { _cheaterCooldown = false; }, 3000);
+        punishCheater();
     }
 });
 
@@ -100,11 +104,13 @@ function punishCheater() {
     isAnsweringAllowed = false;
     isGamePaused = false;
     clearInterval(timerInterval);
+    lives = 0; // terminar partida de forma limpia
     _currentQuestion = null;
     
     const penalty = 2000; 
     playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
     
+    // --- LOGRO OCULTO TRAMPOSO ---
     if (!playerStats.achievements.includes('tramposo')) {
         playerStats.achievements.push('tramposo');
     }
@@ -117,7 +123,6 @@ function punishCheater() {
     
     document.getElementById('app').classList.remove('streak-active');
     streak = 0;
-    lives = 0;
     switchScreen('start-screen');
 }
 
@@ -162,7 +167,8 @@ const defaultStats = {
     profileViewedAfterGames: 0,
     selectedTrack: 'track_chill', trackSwitches: 0, tracksTriedSet: [], triedAllTracks: false,
     sameTrackGames: 0, lastGameTrack: '',
-    kpViews: 0, kpClaimDays: [], kpSessionClaims: 0
+    kpViews: 0, kpClaimDays: [], kpSessionClaims: 0,
+    perfMode: false
 };
 
 const STORAGE_KEY = 'klick_player_data_permanent';
@@ -172,23 +178,10 @@ let playerStats = { ...defaultStats, ...JSON.parse(savedData) };
 
 if(!playerStats.uuid) playerStats.uuid = generateUUID();
 
-// Verify integrity on load (detect localStorage tampering between sessions)
-(function() {
-    try {
-        const s = playerStats;
-        if (s._h) {
-            const expected = _statsHash(s);
-            if (s._h !== expected) {
-                s.totalScore = Math.max(0, Math.floor((s.totalScore||0) * 0.5));
-                s.bestScore = Math.max(0, Math.floor((s.bestScore||0) * 0.5));
-                if (!s.achievements.includes('tramposo')) s.achievements.push('tramposo');
-                s._h = _statsHash(s);
-            }
-        }
-    } catch(e) {}
-})();
-
-// ── MIGRACIÓN v2: revoca logros que no se han ganado realmente ──
+// ── MIGRACIÓN v2: retira logros que el jugador no ha ganado realmente ──
+// Se ejecuta UNA vez por perfil (marca con migratedV2=true al terminar).
+// Compara stats reales contra los nuevos umbrales del modo infinito y
+// elimina del array achievements cualquier id que ya no se cumpla.
 (function migrateAchievementsV2() {
     if (playerStats.migratedV2) {
         // ── Migración v2b: revoca fin1/fin2 si se ganaron sin el flag real ──
@@ -291,40 +284,11 @@ if(!playerStats.uuid) playerStats.uuid = generateUUID();
     }
 })();
 
-function _statsHash(s) {
-    const key = `${s.uuid||''}|${s.totalScore||0}|${s.bestScore||0}|${s.gamesPlayed||0}|${s.maxStreak||0}|${s.totalCorrect||0}`;
-    let h = 2166136261;
-    for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = (h * 16777619) >>> 0; }
-    return h.toString(36);
-}
-
 function saveStatsLocally() {
-    try {
-        playerStats._h = _statsHash(playerStats);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(playerStats));
-    } catch(e) {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(playerStats)); } catch(e) { /* Safari private mode */ }
 }
-
-function _verifyStatsIntegrity() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const s = JSON.parse(raw);
-        if (!s._h) return;
-        const expected = _statsHash(s);
-        if (s._h !== expected) {
-            // Datos alterados externamente — aplicar penalización
-            playerStats.totalScore = Math.max(0, Math.floor((playerStats.totalScore||0) * 0.5));
-            playerStats.bestScore = Math.max(0, Math.floor((playerStats.bestScore||0) * 0.5));
-            if (!playerStats.achievements.includes('tramposo')) {
-                playerStats.achievements.push('tramposo');
-            }
-            playerStats._h = _statsHash(playerStats);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(playerStats));
-            showToast('Datos Alterados', 'Se detectaron modificaciones externas. Penalización aplicada.', 'var(--accent-red)', SVG_SKULL);
-        }
-    } catch(e) {}
-}
+// Versión debounced para guardados frecuentes durante gameplay (evita bloquear el hilo principal)
+// Usa 1500ms de delay — suficiente para batear ráfagas de checkAchievements mid-game
 let _saveTimeout = null;
 let _saveLastForced = 0;
 function saveStatsDebounced(force = false) {
@@ -339,6 +303,8 @@ function saveStatsDebounced(force = false) {
     _saveTimeout = setTimeout(() => { _saveLastForced = Date.now(); saveStatsLocally(); }, 1500);
 }
 
+// ── Revoca logros obtenidos por bugs/errores de lógica ──────────────────────
+// Función pública: puede llamarse en cualquier momento para limpiar logros inválidos.
 function revokeInvalidAchievements() {
     const before = playerStats.achievements.length;
     const toRevoke = new Set();
@@ -382,31 +348,39 @@ window.addEventListener('beforeunload', () => {
     saveStatsLocally();
 });
 
-// --- Audio ---
+// --- Audio y Reactividad Musical ---
+// ── AUDIO ENGINE (Web Audio API – lookahead scheduler) ──────────────────
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
 let masterMusicGain, masterSFXGain, masterLimiter, audioAnalyser, audioDataArray;
 let isMusicPlaying = false, musicSeqStep = 0, nextNoteTime = 0, musicTimerID = null;
 let chordIndex = 0;
-const SCHED_AHEAD = 0.12;
-const SCHED_INTERVAL = 25;
+// Lookahead and schedule interval (seconds / ms) – tight for accuracy
+const SCHED_AHEAD = 0.12;   // schedule this far ahead
+const SCHED_INTERVAL = 25;  // scheduler polling interval ms
 
 function initAudio() {
     if (!audioCtx) {
         audioCtx = new AudioContext();
+        // Master music gain (lower so it doesn't overpower SFX)
         masterMusicGain = audioCtx.createGain();
         masterMusicGain.gain.value = playerStats.musicVol * 0.8;
+        // Master SFX gain
         masterSFXGain = audioCtx.createGain();
         masterSFXGain.gain.value = playerStats.sfxVol;
+        // Limiter/compressor to avoid clipping
         masterLimiter = audioCtx.createDynamicsCompressor();
         masterLimiter.threshold.value = -3;
         masterLimiter.knee.value = 3;
         masterLimiter.ratio.value = 12;
         masterLimiter.attack.value = 0.001;
         masterLimiter.release.value = 0.1;
+        // Analyser for visuals
         audioAnalyser = audioCtx.createAnalyser();
         audioAnalyser.fftSize = 64;
         audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
+        // Routing: music -> analyser -> limiter -> out
+        //          sfx             -> limiter -> out
         masterMusicGain.connect(audioAnalyser);
         audioAnalyser.connect(masterLimiter);
         masterSFXGain.connect(masterLimiter);
@@ -482,7 +456,7 @@ function playNoiseAt(time, duration, vol, cutoff = 5000) {
     src.start(time);
 }
 
-
+// ── TRACK SELECTION SYSTEM ───────────────────────────────────────────────
 const MUSIC_TRACKS = [
     {
         id: 'track_chill',
@@ -558,7 +532,9 @@ function stopMusicEngine() {
     chordIndex = 0;
 }
 
+// Track-specific music definitions
 const TRACK_CONFIGS = {
+    // NEON CHILL: slow ambient, sine waves only, pads, no percussion aggression
     track_chill: {
         bpmBase: 88, bpmFrenzy: 104,
         CHORD_PROG: [[57,62,65,69],[60,65,67,72],[62,65,69,74],[55,60,62,67]],
@@ -567,6 +543,8 @@ const TRACK_CONFIGS = {
         kickVol: 0.3, bassVol: 0.2, arpVol: 0.18,
         hasPad: true, hasHihat: false
     },
+    // DARK TIDE: tétrico, profundo, oscuro. Órgano menor, bajo de dron, grave e inquietante.
+    // Sin campanas, sin brillos. Todo en registro bajo, progresión menor, lento y sombrío.
     track_pulse: {
         bpmBase: 60, bpmFrenzy: 78,
         CHORD_PROG: [[40,47,52,55],[38,45,50,53],[36,43,48,52],[41,48,53,57]],
@@ -575,6 +553,7 @@ const TRACK_CONFIGS = {
         kickVol: 0.85, bassVol: 0.62, arpVol: 0.13,
         hasPad: true, hasHihat: false, hasDrone: true
     },
+    // DEEP CURRENT: slow to mid, sawtooth bass dominant, sparse melody, groovey feel
     track_bass: {
         bpmBase: 98, bpmFrenzy: 118,
         CHORD_PROG: [[48,55,60,67],[50,57,62,69],[52,55,59,64],[46,53,58,65]],
@@ -726,7 +705,7 @@ function playMusicStep(t) {
     }
 }
 
-
+// ── SFX definitions (all notes pre-scheduled via WebAudio clock) ─────────
 const SFX = {
     // UI click: short crisp high tick
     click:        () => playSFX([[1200, 'sine', 0, 0.06, 0.05]]),
@@ -804,6 +783,35 @@ function openSettings() {
             _lightBtn.style.borderColor = 'rgba(255,255,255,0.1)'; _lightBtn.style.background = 'transparent'; _lightBtn.firstElementChild.style.color = 'var(--text-secondary)';
         }
     }
+    // Sync perf mode UI
+    const _perfEnabled = !!(playerStats.perfMode);
+    const _isLightTheme = (playerStats.theme || 'dark') === 'light';
+    const _perfOffBtn = document.getElementById('perf-off-btn');
+    const _perfOnBtn  = document.getElementById('perf-on-btn');
+    const _valPerf    = document.getElementById('val-perf');
+    const _descPerf   = document.getElementById('perf-desc');
+    if (_perfOffBtn && _perfOnBtn) {
+        if (_perfEnabled) {
+            _perfOnBtn.style.borderColor  = _isLightTheme ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)';
+            _perfOnBtn.style.background   = _isLightTheme ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.07)';
+            _perfOnBtn.firstElementChild.style.color = 'var(--text-primary)';
+            _perfOffBtn.style.borderColor = _isLightTheme ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+            _perfOffBtn.style.background  = 'transparent';
+            _perfOffBtn.firstElementChild.style.color = 'var(--text-secondary)';
+        } else {
+            _perfOffBtn.style.borderColor = _isLightTheme ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)';
+            _perfOffBtn.style.background  = _isLightTheme ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.07)';
+            _perfOffBtn.firstElementChild.style.color = 'var(--text-primary)';
+            _perfOnBtn.style.borderColor  = _isLightTheme ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+            _perfOnBtn.style.background   = 'transparent';
+            _perfOnBtn.firstElementChild.style.color = 'var(--text-secondary)';
+        }
+    }
+    if (_valPerf)  _valPerf.innerText  = _perfEnabled ? 'On' : 'Off';
+    if (_descPerf) _descPerf.innerText = _perfEnabled
+        ? 'Blur, glows y animaciones decorativas desactivados'
+        : 'Reduce efectos visuales para eliminar el lag';
+
     renderTrackSelector();
     switchScreen('settings-screen');
 }
@@ -950,7 +958,14 @@ setInterval(() => {
     }
 }, 60000);
 
+// ══════════════════════════════════════════════════════════════════
+//  PLAYER CARD — Pantalla completa con partículas propias
+//  Datos reales disponibles por jugador (payload submitLeaderboard):
+//    uuid, name, rankTitle, powerLevel, totalScore, maxStreak
+//  Datos propios adicionales: bestScore, gamesPlayed, precisión
+// ══════════════════════════════════════════════════════════════════
 
+// ── Resolución de color por rango ─────────────────────────────────
 function _pcardRankVars(title) {
     const light = document.body.classList.contains('light-mode');
     const map = {
@@ -963,7 +978,7 @@ function _pcardRankVars(title) {
     return map[title] || { color: light ? '#0a7a3e' : '#00ff66', rgb: '0,255,102' };
 }
 
-
+// ── Canvas de partículas exclusivo de la tarjeta ──────────────────
 const _pc = {
     canvas: null, ctx: null,
     particles: [], rgb: '0,255,102',
@@ -1045,7 +1060,7 @@ function _pcStop() {
     if (_pc.ctx && _pc.canvas) _pc.ctx.clearRect(0, 0, _pc.canvas.width, _pc.canvas.height);
 }
 
-
+// ── Abrir tarjeta ─────────────────────────────────────────────────
 function openPlayerCard(index) {
     const data = window._leaderboardData;
     if (!data || !data[index]) return;
@@ -1131,7 +1146,7 @@ function openPlayerCard(index) {
     document.body.style.overflow = 'hidden';
 }
 
-
+// ── Cerrar tarjeta ────────────────────────────────────────────────
 function closePlayerCard() {
     document.getElementById('pcard-overlay').classList.remove('active');
     document.body.style.overflow = '';
@@ -1142,12 +1157,7 @@ function pcardOverlayClick(e) {
     if (e.target === document.getElementById('pcard-overlay')) closePlayerCard();
 }
 
-document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-        const overlay = document.getElementById('pcard-overlay');
-        if (overlay && overlay.classList.contains('active')) closePlayerCard();
-    }
-});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayerCard(); });
 
 // --- SISTEMA DE PREGUNTAS MASIVAS (JSON EXTERNO) ---
 let quizDataPool = [];
@@ -1167,6 +1177,28 @@ async function loadQuestions() {
     // Conectar el pool cargado al motor de selección inteligente
     _qeSync();
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  BANCO DE LOGROS — orden temático y por dificultad creciente
+//
+//  Bloques (de más accesible a más difícil / oculto):
+//   1. BIENVENIDA       — primer día, nombre, primera partida            (fáciles)
+//   2. PARTIDAS         — partidas jugadas y por día                     (progresión)
+//   3. DÍAS & FIDELIDAD — rachas de login, días totales, retornos        (constancia)
+//   4. PUNTUACIÓN       — récords por partida y totales de carrera       (habilidad)
+//   5. SUPERVIVENCIA    — preguntas alcanzadas, sin perder vidas         (resistencia)
+//   6. RACHA & MULT     — racha máx, multiplicadores                    (combo)
+//   7. VELOCIDAD        — respuestas rápidas, Flash, sin timeout        (reflejos)
+//   8. FRENESÍ          — activaciones de frenesí y frenesí eterno      (intensidad)
+//   9. ACIERTOS         — aciertos acumulados en carrera                (volumen)
+//  10. ERRORES          — fallos e intentos fallidos                    (humor/ironía)
+//  11. RULETA           — premios de la ruleta de recompensas           (suerte)
+//  12. INTERFAZ         — logros de navegación, perfil, guía, ranking   (exploración)
+//  13. CONFIGURACIÓN    — música, FPS, partículas, temas                (tweaker)
+//  14. CLASIFICACIÓN    — ranking global, PL, podio                     (competitivo)
+//  15. ESPECIALES       — únicos narrativos, raros y secretos           (difíciles)
+//  16. MAESTROS         — coleccionismo extremo                         (platino)
+// ═══════════════════════════════════════════════════════════════════════════
 
 // --- Data Logros ---
 const ACHIEVEMENTS_DATA = [];
@@ -1455,7 +1487,7 @@ addAchs([
     { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea todos los logros del juego. Eres absoluto.',            color: colors.red,    icon: SVG_STAR },
 ]);
 
-
+// ── Índice O(1) para lookup por ID ──────────────────────────────────────────
 const ACHIEVEMENTS_MAP   = new Map(ACHIEVEMENTS_DATA.map(a => [a.id, a]));
 const ACHIEVEMENTS_INDEX = new Map(ACHIEVEMENTS_DATA.map((a, i) => [a.id, i]));
 
@@ -1776,7 +1808,7 @@ function togglePin(achId) {
 // togglePin y revokeInvalidAchievements usan el virtual scroller automáticamente
 
 // Rarity score: how exclusive/rare is each achievement (higher = rarer)
-
+// ── Rarity score for auto-profile fill ──────────────────────────────────
 const RARITY_SCORE = {master3:100,master5:98,master4:96,master2:91,master1:86,fin5:83,u8:81,u7:79,u15:76,nm4:74,nm3:71,nm10:69,u9:66,u23:63,u11:61,u16:59,nm9:56,u19:53,u24:51,np1:49,np3:47,u21:44,u_bisturi:42};
 function getAchRarity(id) { return RARITY_SCORE[id] || 10; }
 
@@ -1795,10 +1827,14 @@ function getAutoProfileAchs() {
     return result;
 }
 
-const CARD_HEIGHT   = 148;
-const CARD_GAP      = 12;
-const ROW_PAD_PX    = 15;
-const OVERSCAN_ROWS = 4;
+// ══════════════════════════════════════════════════════════════════
+//  VIRTUAL SCROLLER — solo renderiza las tarjetas visibles en pantalla
+//  Elimina el lag al hacer scroll por los 283 logros.
+// ══════════════════════════════════════════════════════════════════
+const CARD_HEIGHT   = 148;  // px — debe coincidir con el CSS
+const CARD_GAP      = 12;   // px gap entre cards
+const ROW_PAD_PX    = 15;   // padding lateral del contenedor
+const OVERSCAN_ROWS = 4;    // filas extra arriba/abajo para suavidad (más en gama baja)
 
 let _vsColCount   = 2;      // columnas actuales (se recalcula)
 let _vsRowHeight  = CARD_HEIGHT + CARD_GAP;
@@ -2063,9 +2099,64 @@ if (playerStats.theme === 'light') {
     document.body.classList.add('light-mode');
 }
 
+// MODO RENDIMIENTO
+// Desactiva efectos costosos para GPU/CPU: backdrop-filter, glows, animaciones
+// decorativas, y reduce particulas a la mitad con lineas de conexion desactivadas.
+function setPerfMode(enabled) {
+    playerStats.perfMode = !!enabled;
+    saveStatsLocally();
+
+    if (enabled) {
+        document.body.classList.add('perf-mode');
+    } else {
+        document.body.classList.remove('perf-mode');
+    }
+
+    // Reiniciar particulas para aplicar el nuevo limite de cantidad
+    initParticles();
+
+    // Actualizar UI del boton
+    const offBtn = document.getElementById('perf-off-btn');
+    const onBtn  = document.getElementById('perf-on-btn');
+    const valEl  = document.getElementById('val-perf');
+    const descEl = document.getElementById('perf-desc');
+    const isLight = (playerStats.theme || 'dark') === 'light';
+
+    if (offBtn && onBtn) {
+        if (enabled) {
+            onBtn.style.borderColor  = isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)';
+            onBtn.style.background   = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.07)';
+            onBtn.firstElementChild.style.color = 'var(--text-primary)';
+            offBtn.style.borderColor = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+            offBtn.style.background  = 'transparent';
+            offBtn.firstElementChild.style.color = 'var(--text-secondary)';
+        } else {
+            offBtn.style.borderColor = isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)';
+            offBtn.style.background  = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.07)';
+            offBtn.firstElementChild.style.color = 'var(--text-primary)';
+            onBtn.style.borderColor  = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+            onBtn.style.background   = 'transparent';
+            onBtn.firstElementChild.style.color = 'var(--text-secondary)';
+        }
+    }
+    if (valEl)  valEl.innerText  = enabled ? 'On' : 'Off';
+    if (descEl) descEl.innerText = enabled
+        ? 'Blur, glows y animaciones decorativas desactivados'
+        : 'Reduce efectos visuales para eliminar el lag';
+
+    SFX.click();
+}
+
+// Apply saved perf mode on load
+if (playerStats.perfMode) {
+    document.body.classList.add('perf-mode');
+}
+
 // ══════════════════════════════════════════════════════════
-//  RULETA DE RECOMPENSAS — cada 10 aciertos
+//  RULETA DE RECOMPENSAS — cada 10 aciertos (no consecutivos)
 // ══════════════════════════════════════════════════════════
+// ── RULETA: 10 elementos únicos, sin repeticiones, lógica simple ──────────
+// Pesos: cuanto mayor, más probable. Recompensas aplicadas en collectRoulettePrize().
 const ROULETTE_PRIZES = [
     { id: 'life',    label: 'VIDA EXTRA',   short: '+VIDA',   color: '#ff2a5f', rarity: 'Legendario', weight: 5,  desc: 'Recuperas una vida perdida.' },
     { id: 'frenzy',  label: 'FRENESÍ',      short: 'FRENESÍ', color: '#b5179e', rarity: 'Épico',      weight: 8,  desc: 'Activa el Modo Frenesí inmediatamente.' },
@@ -2081,15 +2172,21 @@ const ROULETTE_PRIZES = [
 
 let rouletteActive = false;
 let currentPrize = null;
-let activeBoostNextQ = null;
+let rouletteAngle = 0;     // legacy, no-op
+let rouletteAnimFrame = null; // legacy, no-op
+let activeBoostNextQ = null; // current active power-up for next question
 let shieldActive = false;
 let hintActive = false;
 let extraTimeActive = 0;
 let streakShieldActive = false;
-let totalCorrectThisGame = 0;
-let nextRouletteTrigger = 10;
+let totalCorrectThisGame = 0; // counts all corrects in game for roulette trigger
+let nextRouletteTrigger = 10; // fire roulette when this many corrects reached
 
+function drawRouletteWheel() {} // legacy no-op, kept for safety
 
+function getPrizeAtAngle() { return ROULETTE_PRIZES[0]; } // legacy no-op
+
+// ─── Iconos SVG para cada tipo de premio ───────────────────────────────────
 const PRIZE_ICONS = {
     life:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
     frenzy:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
@@ -2103,7 +2200,7 @@ const PRIZE_ICONS = {
     streak:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
 };
 
-
+// ─── Deck state ────────────────────────────────────────────────────────────
 // (rouletteActive, currentPrize, activeBoostNextQ, etc. declared above in the prizes block)
 
 // El deck visible son 5 cartas: [0..4], la carta central [2] es la seleccionada
@@ -2777,7 +2874,7 @@ function updateLogoDots() {
     document.documentElement.style.setProperty('--rank-rgb', currentRankInfo.rgb);
     document.documentElement.style.setProperty('--rank-color', currentRankInfo.color);
     const isLight = document.body.classList.contains('light-mode');
-    _logoDotsCached = document.querySelectorAll('.logo-dot');
+    if (!_logoDotsCached || !_logoDotsCached.length) _logoDotsCached = document.querySelectorAll('.logo-dot');
     const shadow = isLight ? 'none' : `0 0 15px rgba(${currentRankInfo.rgb}, 0.5)`;
     for (let i = 0; i < _logoDotsCached.length; i++) {
         _logoDotsCached[i].style.color = currentRankInfo.color;
@@ -2938,39 +3035,77 @@ function triggerMultiplierEffect(mult) {
     // Effects removed per user request — multiplier badge CSS handles visual feedback
 }
 
+// Smart question engine: tracks recently used questions to avoid repetition
+// ══════════════════════════════════════════════════════════════════
+//  MOTOR DE PREGUNTAS INTELIGENTE
+//
+//  Garantías:
+//  • Nunca repite una pregunta hasta haber dado TODAS las del pool
+//    (ciclo completo). Solo entonces vuelve a mezclar.
+//  • Entre ciclos aplica una "zona de exclusión" igual al 40% del
+//    pool: las últimas N preguntas del ciclo anterior no pueden ser
+//    las primeras del siguiente.
+//  • La primera pregunta de una nueva partida nunca coincide con
+//    la última de la partida anterior (exclusión inter-partida).
+//  • Clave de identidad = hash completo del texto (no los primeros
+//    30 chars, que pueden colisionar).
+//  • Sin estado global que se borre entre partidas —_qe persiste
+//    durante toda la sesión de navegador.
+// ══════════════════════════════════════════════════════════════════
+
 const _qe = {
+    // Pool completo (referencia a quizDataPool, se reasigna al cargar)
     pool: [],
+    // Cola de preguntas del ciclo actual (pendientes de entregar)
     queue: [],
+    // Conjunto de claves de las últimas N preguntas entregadas
+    // (zona de exclusión inter-ciclo e inter-partida)
     tail: [],
+    // Tamaño de la zona de exclusión (40% del pool, mín 20, máx 120)
     tailSize: 20,
+    // Última clave entregada (evita primera === última)
     lastKey: '',
 };
 
+// Genera una clave única y compacta para una pregunta
 function _qKey(q) {
+    // Usar el texto completo hasheado (djb2) para evitar colisiones
     let h = 5381;
     const s = q.question;
     for (let i = 0; i < s.length; i++) {
         h = ((h << 5) + h) ^ s.charCodeAt(i);
-        h = h >>> 0;
+        h = h >>> 0; // keep unsigned 32-bit
     }
     return h.toString(36);
 }
 
+// Inicializa / reinicia la cola cuando el pool cambia o se agota
 function _qRefill(excludeSet) {
     const pool = _qe.pool;
     if (!pool.length) return;
-    const valid = [], invalid = [];
+
+    // Separar candidatos válidos (no en zona de exclusión) e inválidos
+    const valid   = [];
+    const invalid = [];
     for (let i = 0; i < pool.length; i++) {
         const k = _qKey(pool[i]);
         if (excludeSet && excludeSet.has(k)) invalid.push(pool[i]);
         else valid.push(pool[i]);
     }
+
+    // Si los candidatos válidos son menos del 30% del pool, ignorar exclusión
+    // (situación de pool muy pequeño — evitar bucle infinito)
     const useValid = valid.length >= Math.max(5, Math.floor(pool.length * 0.3));
     const source = useValid ? valid : [...pool];
+
+    // Fisher-Yates shuffle
     for (let i = source.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [source[i], source[j]] = [source[j], source[i]];
     }
+
+    // Si hay preguntas excluidas, añadirlas al final shuffleadas
+    // (se verán al completar el ciclo válido, garantizando variedad)
     if (invalid.length) {
         for (let i = invalid.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -3024,6 +3159,12 @@ function getNextQuestion() {
     return q;
 }
 
+// _markUsed ya no es necesaria (el motor la gestiona internamente)
+// Se mantiene como no-op por si algún llamador antiguo la referencia
+function _markUsed() {}
+
+// Alias legacy que ya no se usa (startGame llama _qeResetGame directamente)
+const _recentQuestionIds = { clear: () => {} };
 let _recentQueue = [];
 
 // Cached game DOM elements (reset each game in startGame)
@@ -3236,7 +3377,7 @@ function showFeedback(isCorrect, isTimeout = false) {
     if (isCorrect) {
         SFX.correct(); scr.className = 'screen correct'; icon.innerHTML = SVG_CORRECT; 
         title.innerText = 'CORRECTO';
-        let earned = 800 + Math.round((Math.min(timeLeft, (_currentQuestion && _currentQuestion._timeLimit) || TIMER_LIMIT) / ((_currentQuestion && _currentQuestion._timeLimit) || TIMER_LIMIT)) * 800);
+        let earned = 800 + Math.round((timeLeft / ((_currentQuestion && _currentQuestion._timeLimit) || TIMER_LIMIT)) * 800);
         // Apply active boosts from roulette
         let boostMult = multiplier;
         if (activeBoostNextQ === 'boost') { boostMult = multiplier * 2; activeBoostNextQ = null; }
@@ -3486,8 +3627,11 @@ const _EMA_K = 0.12;           // factor de suavizado (menor = más suave)
 function initParticles() { 
     canvas.width = window.innerWidth; canvas.height = window.innerHeight; particlesArray = []; 
     const isMobile = window.innerWidth < 768;
+    // Fewer particles = smoother, still visually rich
     const area = canvas.width * canvas.height;
-    let num = Math.round(Math.min(area / 15000, isMobile ? 20 : 50));
+    const _perf = !!(playerStats && playerStats.perfMode);
+    let num = Math.round(Math.min(area / 15000, isMobile ? 30 : 60));
+    if (_perf) num = Math.max(5, Math.round(num / 2));
     for (let i = 0; i < num; i++) {
         particlesArray.push({
             x: Math.random() * canvas.width,
@@ -3602,7 +3746,7 @@ function animateParticles(now) {
     // No leer el analyser si el audio está suspendido (pestaña oculta)
     const pulse = (audioAnalyser && audioCtx && audioCtx.state === 'running') ? getAudioPulse() : 0;
     updateAndDrawParticles(timeScale, pulse);
-    if (streak >= 5 || pulse > 0.05 || (_cpFrame & 1) === 0) connectParticles(pulse);
+    if (!playerStats.perfMode && (streak >= 5 || pulse > 0.05 || (_cpFrame & 1) === 0)) connectParticles(pulse);
     _cpFrame++;
 }
 
@@ -3633,7 +3777,7 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
-// ── Roulette overlay particle canvas ──────────────────────────────────────
+// ── Roulette overlay particle canvas (ambient particles while roulette is open) ──
 const rlCanvas = document.getElementById('roulette-particle-canvas');
 const rlCtx = rlCanvas ? rlCanvas.getContext('2d', { alpha: true }) : null;
 let rlParticles = [];
@@ -3747,10 +3891,13 @@ function _iosAudioUnlock() {
 document.addEventListener('touchstart', _iosAudioUnlock, { once: true, passive: true });
 document.addEventListener('mousedown', _iosAudioUnlock, { once: true, passive: true });
 
-// ══════════════════════════════════════════════════════════════════
-//  KLICK PASS — 100 niveles permanentes y secuenciales
-// ══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  KLICK PASS — 100 niveles permanentes, progresivos, secuenciales
+//  Desbloqueados en orden estricto al jugar. Sin quincenas ni reinicios.
+//  Premio total: exactamente 100,000 Pinceles.
+// ═══════════════════════════════════════════════════════════════════════
 
+// ── Rewards (suma exacta 100,000 ℙ: niveles 1-99 = 95,000 + nivel 100 = 5,000) ──
 const _KP_REWARDS = [
   100,104,108,111,116,120,124,129,134,139,  // 1-10
   144,149,154,160,166,172,178,185,192,199,  // 11-20
@@ -3763,6 +3910,13 @@ const _KP_REWARDS = [
   1811,1877,1947,2018,2093,2170,2250,2333,2419,2508, // 81-90
   2601,2697,2796,2899,3006,3117,3232,3351,3476,5000  // 91-100
 ];
+
+// ── Condiciones de misión (usan playerStats en tiempo real) ───────────
+// Nota: perfectGames se incrementa cuando currentQuestionIndex >= 50 Y sin errores ni timeouts.
+// En saveGameStats: if(currentQuestionIndex >= 50 && 0 errores && 0 timeouts) perfectGames++
+// Eso es "partida larga sin importar errores". Aquí usamos hadPerfectAccuracyGame
+// que es la verdadera "partida sin errores" (≥5 preguntas, 0 wrong, 0 timeout).
+// Para niveles "Sin Fallos" usamos un contador propio en kpState.perfectNoError.
 
 const _KP_MISSIONS = [
 // TRAMO 1 — INICIACIÓN (1-10) ——————————————————————————————————————————
@@ -3879,6 +4033,7 @@ const _KP_MISSIONS = [
 const KP_LEVELS = _KP_MISSIONS.map((m, i) => ({ ...m, reward: _KP_REWARDS[i] }));
 const KP_TOTAL  = 100;
 
+// ── Storage (permanente, no por ciclo) ───────────────────────────────
 const KP_KEY = 'klickpass_v2';
 
 function getKpState() {
@@ -3903,14 +4058,21 @@ function saveKpState(state) {
     try { localStorage.setItem(KP_KEY, JSON.stringify(state)); } catch(e) {}
 }
 
+// ── Evaluar si un nivel está disponible para reclamar ────────────────
+// Regla: el nivel anterior debe estar reclamado (excepto nivel 1)
 function kpCanClaim(lvNum) {
     const state = getKpState();
-    if (state.claimed.includes(lvNum)) return false;
-    if (lvNum > 1 && !state.claimed.includes(lvNum - 1)) return false;
+    if (state.claimed.includes(lvNum)) return false;           // ya reclamado
+    if (lvNum > 1 && !state.claimed.includes(lvNum - 1)) return false; // bloqueo secuencial
     const lvl = KP_LEVELS[lvNum - 1];
     return lvl ? lvl.chk(playerStats, state) : false;
 }
 
+// ── Reclamar nivel ───────────────────────────────────────────────────
+// IMPORTANTE: Las recompensas del Klick Pass solo se pueden cobrar
+// completando los niveles de forma SECUENCIAL. Cada nivel requiere
+// haber reclamado el anterior. La recompensa total (100,000 ℙ) solo
+// está disponible al completar el Pase en su totalidad (nivel 100).
 let _kpClaimLock = false;
 function kpClaim(lvNum) {
     if (_kpClaimLock) return;
@@ -4197,13 +4359,13 @@ function goToKlickPass() {
     };
 })();
 
-
+// ── Init ─────────────────────────────────────────────────────────────
 // Defer until playerStats is fully loaded (it's synchronous above, but safe to run now)
 _kpUpdateMenuBadge();
+// ════════════════════════════════════ END KLICK PASS ═════════════════
 
 
-
-setTimeout(() => { _verifyStatsIntegrity(); processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); }, 500);
+setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); }, 500);
 
 // x2 Paciente: espera 10 segundos en la pantalla principal sin hacer nada
 (function() {
@@ -4238,7 +4400,9 @@ setTimeout(() => { _verifyStatsIntegrity(); processDailyLogin(); currentRankInfo
     setTimeout(_startPacienteTimer, 600);
 })();
 
-// ── Service Worker — Auto-actualización ──────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+//  SERVICE WORKER — Auto-actualización con notificación visible
+// ══════════════════════════════════════════════════════════════════
 (function registerSW() {
     if (!('serviceWorker' in navigator)) return;
 
