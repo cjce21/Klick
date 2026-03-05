@@ -472,7 +472,22 @@
         </div>
     </div>
 
-    <!-- Lógica principal: al final del body para acceder al DOM completo -->
+    <!-- ═══════════════════════════════════════════════════════════
+         MÓDULOS — cargar en este orden exacto (dependencias en cadena)
+         ═══════════════════════════════════════════════════════════ -->
+    <script src="01-security.js"></script>
+    <script src="02-svgs.js"></script>
+    <script src="03-player-stats.js"></script>
+    <script src="04-audio.js"></script>
+    <script src="05-leaderboard.js"></script>
+    <script src="06-achievements.js"></script>
+    <script src="07-ui.js"></script>
+    <script src="08-game-loop.js"></script>
+    <script src="09-roulette.js"></script>
+    <script src="10-klickpass.js"></script>
+    <script src="11-virtual-scroller.js"></script>
+    <script src="12-service-worker.js"></script>
+    <!-- script.js principal: motor musical, partículas, perfil, motor de preguntas, init -->
     <script src="script.js"></script>
 </body>
 </html>
