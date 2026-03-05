@@ -7,6 +7,22 @@
 //                switchScreen [07], loadQuestion [08]
 // ════════════════════════════════════════════════════════════════
 
+// ── Utilidades de color (compartidas con otros módulos) ───────────────────────
+function darkenHex(hex, factor) {
+    const h = hex.replace('#', '');
+    if (h.length !== 6) return hex;
+    const r = Math.round(parseInt(h.slice(0,2),16) * (1-factor));
+    const g = Math.round(parseInt(h.slice(2,4),16) * (1-factor));
+    const b = Math.round(parseInt(h.slice(4,6),16) * (1-factor));
+    return `rgb(${r},${g},${b})`;
+}
+
+function darkenRgb(rgb, factor) {
+    const [r, g, b] = rgb.split(',').map(Number);
+    return `${Math.round(r*(1-factor))},${Math.round(g*(1-factor))},${Math.round(b*(1-factor))}`;
+}
+
+
 let rouletteActive = false, currentPrize = null, deckAnimating = false;
 
 // ── Partículas del overlay de ruleta ─────────────────────────────────────────
