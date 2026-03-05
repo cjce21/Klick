@@ -332,14 +332,250 @@ function togglePin(achId) {
     saveStatsLocally(); checkAchievements(); renderAchievements();
 }
 
-// ── checkAchievements (stub — implementación completa en script original) ─────
-// La lógica de checkAchievements es extensa (~300 líneas). Se mantiene tal cual
-// del script original y se coloca aquí como punto de extensión.
+// ── checkAchievements ────────────────────────────────────────────────────────
 let _achCheckPending = false;
 let _deferAchTimer = 0;
 function _deferredCheckAch() {
     clearTimeout(_deferAchTimer);
     _deferAchTimer = setTimeout(checkAchievements, 800);
 }
-// checkAchievements() y _checkAchievementsImpl() se definen a continuación
-// (copiados literalmente del script original para evitar errores de refactorización).
+function checkAchievements() {
+    if (_achCheckPending) return;
+    _achCheckPending = true;
+    try { _checkAchievementsImpl(); } finally { _achCheckPending = false; }
+}
+function _checkAchievementsImpl() {
+    let newlyUnlocked = [];
+    const achSet = new Set(playerStats.achievements);
+    const unlock = (id) => {
+        if (!achSet.has(id)) {
+            achSet.add(id);
+            playerStats.achievements.push(id);
+            const f = ACHIEVEMENTS_MAP.get(id);
+            if(f) newlyUnlocked.push(f);
+        }
+    };
+
+    if (achSet.has('tramposo')) {
+        if (!playerStats.pinnedAchievements.includes('tramposo')) {
+            playerStats.pinnedAchievements.unshift('tramposo');
+            if (playerStats.pinnedAchievements.length > 3) playerStats.pinnedAchievements.pop();
+        } else if (playerStats.pinnedAchievements.indexOf('tramposo') !== 0) {
+            playerStats.pinnedAchievements.splice(playerStats.pinnedAchievements.indexOf('tramposo'), 1);
+            playerStats.pinnedAchievements.unshift('tramposo');
+        }
+    }
+
+    const normalAchs = playerStats.achievements.filter(id => id !== 'tramposo').length;
+
+    // META
+    if (playerStats.nameChanges >= 1) unlock('m1'); if (playerStats.nameChanges >= 5) unlock('m2'); if (playerStats.nameChanges >= 20) unlock('m3');
+    if (playerStats.achViews >= 1) unlock('m4'); if (playerStats.achViews >= 10) unlock('m5'); if (playerStats.achViews >= 50) unlock('m6');
+    if (playerStats.pinnedAchievements.filter(id => id !== 'tramposo').length > 0) unlock('m7');
+    if (normalAchs >= 10) unlock('m8'); if (normalAchs >= 50) unlock('m9'); if (normalAchs >= 100) unlock('m10');
+    if (normalAchs >= 150) unlock('master1'); if (normalAchs >= 200) unlock('master2'); if (normalAchs >= 250) unlock('master4'); if (normalAchs >= 275) unlock('master5'); if (normalAchs >= 282) unlock('master3');
+
+    // DÍAS
+    const days = playerStats.maxLoginStreak;
+    for(let i=0;i<5;i++) if(days>=daysTiers[i]) unlock(`d${i+1}`);
+    const totalDays = playerStats.totalDaysPlayed || 0;
+    for(let i=5;i<10;i++) if(totalDays>=daysTiers[i]) unlock(`d${i+1}`);
+
+    // PARTIDAS
+    const pts = playerStats.gamesPlayed; for(let i=0;i<8;i++) if(pts>=ptTiers[i]) unlock(`p${i+1}`);
+    const tot = playerStats.totalScore; for(let i=0;i<8;i++) if(tot>=ptsTiers[i]) unlock(`pt${i+1}`);
+    const hsc = playerStats.maxScoreCount; for(let i=0;i<8;i++) if(hsc>=hsCountTiers[i]) unlock(`hs${i+1}`);
+    const fr = playerStats.frenziesTriggered; for(let i=0;i<8;i++) if(fr>=frTiers[i]) unlock(`r${i+1}`);
+    const pf = playerStats.maxQuestionReached||0; for(let i=0;i<8;i++) if(pf>=pfTiers[i]) unlock(`pf${i+1}`);
+    const sp = playerStats.fastAnswersTotal; for(let i=0;i<8;i++) if(sp>=spdTiers[i]) unlock(`sp${i+1}`);
+    const ac = playerStats.totalCorrect; for(let i=0;i<8;i++) if(ac>=acTiers[i]) unlock(`ac${i+1}`);
+    const sk = playerStats.maxStreak; for(let i=0;i<8;i++) if(sk>=strkTiers[i]) unlock(`sk${i+1}`);
+    const mx = playerStats.maxMult||1; for(let i=0;i<5;i++) if(mx>=multTiers[i]) unlock(`mx${i+1}`);
+    const rv = playerStats.rankingViews||0; for(let i=0;i<5;i++) if(rv>=rankVisTiers[i]) unlock(`rv${i+1}`);
+    const cv = playerStats.configViews||0; for(let i=0;i<4;i++) if(cv>=cfgVisTiers[i]) unlock(`cv${i+1}`);
+    const nt = playerStats.maxNoTimeoutStreak||0; for(let i=0;i<5;i++) if(nt>=noTimoutTiers[i]) unlock(`nt${i+1}`);
+
+    // ÚNICOS
+    if (playerStats.totalWrong > 0) unlock('u1'); if (playerStats.totalWrong >= 100) unlock('u2');
+    if (playerStats.totalTimeouts > 0) unlock('u3'); if (playerStats.totalTimeouts >= 50) unlock('u4');
+    if (playerStats.todayGames >= 50) unlock('u22'); if ((playerStats.maxStreak||0) >= 25) unlock('u23');
+    const rank = getRankInfo(playerStats).title;
+    let projectedRank = rank;
+    if (typeof score !== 'undefined' && score > 0 && typeof currentQuestionIndex !== 'undefined') {
+        const proj = Object.assign({}, playerStats, {
+            totalScore: (playerStats.totalScore || 0) + score,
+            bestScore: Math.max(playerStats.bestScore || 0, score),
+            gamesPlayed: (playerStats.gamesPlayed || 0) + 1,
+            totalCorrect: (playerStats.totalCorrect || 0) + (currentQuestionIndex - (currentWrongAnswers||0) - (currentTimeoutAnswers||0)),
+            maxStreak: Math.max(playerStats.maxStreak || 0, typeof currentMaxStreak !== 'undefined' ? currentMaxStreak : 0),
+            maxMult: Math.max(playerStats.maxMult || 1, typeof multiplier !== 'undefined' ? multiplier : 1)
+        });
+        projectedRank = getRankInfo(proj).title;
+    }
+    const effectiveRank = [rank, projectedRank].includes('Mítico') ? 'Mítico'
+        : [rank, projectedRank].includes('Leyenda') ? 'Leyenda'
+        : [rank, projectedRank].includes('Maestro') ? 'Maestro'
+        : [rank, projectedRank].includes('Pro') ? 'Pro'
+        : [rank, projectedRank].includes('Junior') ? 'Junior' : 'Novato';
+    if (effectiveRank==="Junior"||effectiveRank==="Pro"||effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico") unlock('u_junior');
+    if (effectiveRank==="Pro"||effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico") unlock('u6');
+    if (effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico") unlock('u7');
+    if (effectiveRank==="Leyenda"||effectiveRank==="Mítico") unlock('u8');
+    if (effectiveRank==="Mítico") unlock('u_mitico');
+    if (playerStats.clickedLogo) unlock('secret_logo');
+
+    // RULETA
+    const rlSpins = playerStats.rouletteSpins||0;
+    if(rlSpins>=1) unlock('rl1'); if(rlSpins>=10) unlock('rl6'); if(rlSpins>=50) unlock('rl7');
+    if((playerStats.rouletteLifeWins||0)>=1) unlock('rl2');
+    if((playerStats.rouletteShieldWins||0)>=1) unlock('rl3');
+    if((playerStats.rouletteBoostWins||0)>=1) unlock('rl4');
+    if((playerStats.rouletteFrenzyWins||0)>=1) unlock('rl5');
+    if((playerStats.rouletteLifeWins||0)>=3) unlock('rl8');
+    if(playerStats.rouletteShieldUsed) unlock('rl9');
+    if(playerStats.rouletteComboSpecial) unlock('rl10');
+
+    // KLICK PASS
+    const kpClaimed = (typeof getKpState === 'function' ? getKpState().claimed : []).length || 0;
+    if ((playerStats.kpViews||0) >= 1) unlock('kpa6');
+    if (kpClaimed >= 1) unlock('kpa1');
+    if ((playerStats.kpClaimDays||[]).length >= 3) unlock('kpa7');
+    if (kpClaimed >= 25) unlock('kpa2');
+    if ((playerStats.kpClaimDays||[]).length >= 7) unlock('kpa8');
+    if (kpClaimed >= 50) unlock('kpa3');
+    if ((playerStats.kpSessionClaims||0) >= 10) unlock('kpa9');
+    if (kpClaimed >= 75) unlock('kpa4');
+    if (kpClaimed >= 100) unlock('kpa5');
+    if (kpClaimed >= 100 && normalAchs >= 200) unlock('kpa10');
+
+    // ESCALABLES GENERALES
+    const wr = playerStats.totalWrong||0; for(let i=0;i<5;i++) if(wr>=wrnTiers[i]) unlock(`wr${i+1}`);
+    const to = playerStats.totalTimeouts||0; for(let i=0;i<5;i++) if(to>=toTiers[i]) unlock(`to${i+1}`);
+    const td = playerStats.todayGames||0; for(let i=0;i<5;i++) if(td>=todayTiers[i]) unlock(`td${i+1}`);
+
+    // CLASIFICACIÓN
+    const pl = playerStats.powerLevel||0;
+    if(pl>=10000) unlock('nm8'); if(pl>=100000) unlock('nm9'); if(pl>=1000000) unlock('nm10');
+    const rp = playerStats.rankingPosition||999;
+    if(rp<=20) unlock('nm1'); if(rp<=10) unlock('nm2'); if(rp<=3) unlock('nm3'); if(rp===1) unlock('nm4');
+    if(rp===1 && (rank==='Leyenda'||rank==='Mítico')) unlock('pod1');
+    if(rp===2 && (rank==='Leyenda'||rank==='Mítico')) unlock('pod2');
+    if(rp===3 && (rank==='Leyenda'||rank==='Mítico')) unlock('pod3');
+
+    // MULTIPLICADORES x6-x10
+    if(mx>=6) unlock('mx6'); if(mx>=7) unlock('mx7'); if(mx>=8) unlock('mx8'); if(mx>=9) unlock('mx9'); if(mx>=10) unlock('mx10');
+
+    // PISTAS MUSICALES
+    if((playerStats.trackSwitches||0)>=1) unlock('trk1');
+    if(playerStats.triedAllTracks) unlock('trk2');
+    if((playerStats.sameTrackGames||0)>=10) unlock('trk3');
+
+    // CONFIG Y UI
+    if(playerStats.musicSetTo0) unlock('cfg1');
+    if(playerStats.musicAt100) unlock('cfg2');
+    if(playerStats.musicSetTo0 && playerStats.sfxSetTo0) unlock('cfg3');
+    if((playerStats.fpsChanges||0)>=5) unlock('cfg4');
+    if(playerStats.maxFps===240) unlock('cfg5');
+    if(playerStats.maxFps===15) unlock('cfg6');
+    if(playerStats.particles0) unlock('cfg7');
+    if(playerStats.musicAt100 && playerStats.particles100) unlock('cfg8');
+    if(playerStats.usedLightMode) unlock('cfg9');
+    if(playerStats.switchedLightToDark) unlock('cfg10');
+    if(playerStats.allSectionsVisited) unlock('ui1');
+    if(playerStats.nameChanges>=1 && playerStats.gamesPlayed>=1) unlock('ui7');
+
+    const pvv = playerStats.profileViews||0; for(let i=0;i<5;i++) if(pvv>=profileVisTiers[i]) unlock(`pv${i+1}`);
+    const retv = playerStats.totalDaysPlayed||0; for(let i=0;i<5;i++) if(retv>=returnDayTiers[i]) unlock(`ret${i+1}`);
+    const bsv = playerStats.bestScore||0; for(let i=0;i<8;i++) if(bsv>=bestScoreTiers[i]) unlock(`bs${i+1}`);
+    const fts = playerStats.maxFrenzyStreak||0; for(let i=0;i<5;i++) if(fts>=frenzyTimeTiers[i]) unlock(`ft${i+1}`);
+
+    // ÚNICOS EXTRA
+    if(playerStats.gamesPlayed>=1) unlock('x3');
+    if(playerStats.gamesPlayed>=1 || playerStats.maxLoginStreak>=1) unlock('x1');
+    if(playerStats.gamesPlayed>=100) unlock('x17');
+    if(playerStats.nameChanges===0 && playerStats.maxLoginStreak>=30) unlock('x18');
+    if((rank==='Leyenda'||rank==='Mítico') && normalAchs>=200) unlock('fin5');
+    if(days>=7 && (rank==='Junior'||rank==='Pro'||rank==='Maestro'||rank==='Leyenda'||rank==='Mítico')) unlock('fin4');
+    if((playerStats.maxMult||1)>=4) unlock('u16');
+    if((playerStats.extremisCount||0)>=1) unlock('u24');
+    if((playerStats.profileViewedAfterGames||0)>=5) unlock('ui5');
+    if(playerStats.viewedProfileAfterRecord) unlock('ui9');
+    if(playerStats.quickSettingsExit) unlock('ui2');
+    if(playerStats.visitedRankingWithFewPlayers) unlock('ui6');
+    if(playerStats.circuitCompleted) unlock('ui10');
+    if(playerStats.idledOnMainMenu) unlock('x2');
+    if((playerStats.consecutiveRankUpDays||0)>=3) unlock('nm5');
+    if(playerStats.surpassedHighPLPlayer) unlock('nm6');
+    if(playerStats.rankRemontada) unlock('nm7');
+    if((playerStats.successfulLeaderboardLoads||0)>=10) unlock('ui8');
+
+    if((playerStats.maxFrenziesInGame||0)>=2) unlock('extra1');
+    if(playerStats.hadPerfectAccuracyGame) unlock('extra2');
+    if((playerStats.maxQuestionReached||0)>=80) unlock('extra3');
+    if((playerStats.gamesAtMusicZero||0)>=5) unlock('extra4');
+    if((playerStats.dailyAchUnlocks||0)>=10) unlock('extra5');
+
+    if(playerStats.playedNocturno) unlock('fin1');
+    if(playerStats.playedMadrugador) unlock('fin2');
+
+    if(playerStats.doubleVictory) unlock('x4');
+    if(playerStats.consistent5Games) unlock('x6');
+    if(playerStats.fastStart3k) unlock('x7');
+    if(playerStats.firstGameOfDay50k) unlock('x12');
+    if((playerStats.bestScore||0)>=99500 && (playerStats.bestScore||0)<=100500) unlock('x15');
+    if(playerStats.hitExactly100k) unlock('x15');
+    if(playerStats.revengeGame) unlock('x5');
+    if(playerStats.xSinPrisa) unlock('x8');
+    if((playerStats.todayGames||0)>=10) unlock('x13');
+    if((playerStats.todayGames||0)>=20) unlock('x20');
+    if((playerStats.maxQuestionReached||0)>=30 && (playerStats.invictoEarned||false)) unlock('x14');
+    if((playerStats.x10Earned||false)) unlock('x10');
+    if((playerStats.maxQuestionReached||0)>=100) unlock('u15');
+    if((playerStats.maxQuestionReached||0)>=60) unlock('np3');
+    if((playerStats.flashAnswersTotal||0)>=1) unlock('u13');
+    if(playerStats.flashInOneGame) unlock('x19');
+    if((playerStats.lastSecondAnswersTotal||0)>=50) unlock('u17');
+
+    const _bTotalAns = (playerStats.totalCorrect||0)+(playerStats.totalWrong||0)+(playerStats.totalTimeouts||0);
+    const _bAcc = _bTotalAns >= 500 ? (playerStats.totalCorrect||0) / _bTotalAns : 0;
+    if (_bAcc >= 0.90) unlock('u_bisturi');
+
+    const pinTot = playerStats.totalPins||0;
+    const pinTiers2=[1,5,10,20,50]; for(let i=0;i<5;i++) if(pinTot>=pinTiers2[i]) unlock(`pin${i+1}`);
+
+    const dau = playerStats.dailyAchUnlocks||0;
+    const daTiers2=[1,3,5,8,12]; for(let i=0;i<5;i++) if(dau>=daTiers2[i]) unlock(`da${i+1}`);
+
+    const td2Tiers=[5,10,20,30,60]; for(let i=0;i<5;i++) if((playerStats.totalDaysPlayed||0)>=td2Tiers[i]) unlock(`td2${i+1}`);
+
+    if((playerStats.returnTriumph||0)>=1) unlock('x16');
+    if(playerStats.fenixEarned) unlock('u11');
+    if(playerStats.u19PersistEarned) unlock('u19');
+
+    let redGoldCount = 0;
+    playerStats.pinnedAchievements.forEach(id => {
+        const ach = ACHIEVEMENTS_MAP.get(id);
+        if (ach && (ach.color === colors.red || ach.color === colors.yellow || ach.color === colors.orange)) redGoldCount++;
+    });
+    if (redGoldCount >= 3) unlock('np2');
+
+    if (newlyUnlocked.length > 0) {
+        playerStats.dailyAchUnlocks = (playerStats.dailyAchUnlocks||0) + newlyUnlocked.length;
+        saveStatsDebounced();
+        if (typeof _vsInitialized !== 'undefined' && _vsInitialized) {
+            _vsAchSet = new Set(playerStats.achievements);
+            _vsDisplayPin = getAutoProfileAchs();
+            _vsRefreshRows(newlyUnlocked.map(a => a.id));
+            const progEl = document.getElementById('achievements-progress-text');
+            if (progEl) progEl.innerText = `Desbloqueados: ${_vsAchSet.size - (_vsAchSet.has('tramposo') ? 1 : 0)} / ${ACHIEVEMENTS_DATA.length}`;
+        } else {
+            if (typeof renderAchievements === 'function') renderAchievements();
+        }
+        newlyUnlocked.forEach((ach, index) => {
+            setTimeout(() => {
+                if (typeof SFX !== 'undefined') SFX.achievement();
+                if (typeof showToast === 'function') showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon);
+            }, index * 1300);
+        });
+    }
+}
