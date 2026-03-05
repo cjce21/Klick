@@ -1890,6 +1890,18 @@ body.quality-max .rank-card.is-me {
 body.quality-max input[type=range]::-webkit-slider-thumb:hover {
     box-shadow: 0 0 22px rgba(var(--rank-rgb),0.95), 0 0 8px rgba(255,255,255,0.5) !important;
 }
+body.quality-max .logo-dot {
+    text-shadow: 0 0 18px rgba(var(--rank-rgb),0.85), 0 0 40px rgba(var(--rank-rgb),0.4) !important;
+}
+body.quality-max #streak-display {
+    text-shadow: 0 0 14px rgba(var(--rank-rgb),0.75) !important;
+}
+body.quality-max #timer-display {
+    text-shadow: 0 0 10px rgba(var(--rank-rgb),0.5) !important;
+}
+body.quality-max .profile-rank-display {
+    text-shadow: 0 0 20px rgba(var(--rank-rgb),0.5) !important;
+}
 /* Modo claro + máximo */
 body.quality-max.light-mode .glass-panel {
     background: rgba(255,255,255,0.64) !important;
@@ -1950,17 +1962,29 @@ body.quality-perf .kp-status-dot,
 body.quality-perf .kp-node.final-node.unlocked,
 body.quality-perf .kp-total-bar-fill::after,
 body.quality-perf .rank-item.mitico-item,
-body.quality-perf .mult-x2,.quality-perf .mult-x3,.quality-perf .mult-x4,
-body.quality-perf .mult-x5,.quality-perf .mult-x6,.quality-perf .mult-x7,
-body.quality-perf .mult-x8,.quality-perf .mult-x9,.quality-perf .mult-x10 { animation:none!important; }
+body.quality-perf .mult-x2,body.quality-perf .mult-x3,body.quality-perf .mult-x4,
+body.quality-perf .mult-x5,body.quality-perf .mult-x6,body.quality-perf .mult-x7,
+body.quality-perf .mult-x8,body.quality-perf .mult-x9,body.quality-perf .mult-x10 { animation:none!important; }
 body.quality-perf #app.streak-active { animation:none!important; background:var(--bg-base)!important; }
 body.quality-perf .feedback-title,
-body.quality-perf .end-message,.quality-perf .end-score-value,
-body.quality-perf .pcard-big-name,.quality-perf #countdown-number,
-body.quality-perf .mult-x2,.quality-perf .mult-x3,.quality-perf .mult-x4,
-body.quality-perf .mult-x5,.quality-perf .mult-x6,.quality-perf .mult-x7,
-body.quality-perf .mult-x8,.quality-perf .mult-x9,.quality-perf .mult-x10 { text-shadow:none!important; }
+body.quality-perf .end-message,
+body.quality-perf .end-score-value,
+body.quality-perf .pcard-big-name,
+body.quality-perf #countdown-number,
+body.quality-perf .mult-x2,
+body.quality-perf .mult-x3,
+body.quality-perf .mult-x4,
+body.quality-perf .mult-x5,
+body.quality-perf .mult-x6,
+body.quality-perf .mult-x7,
+body.quality-perf .mult-x8,
+body.quality-perf .mult-x9,
+body.quality-perf .mult-x10 { text-shadow:none!important; }
 body.quality-perf .feedback-points { text-shadow:none!important; }
+body.quality-perf .logo-dot { text-shadow:none!important; }
+body.quality-perf #streak-display { text-shadow:none!important; }
+body.quality-perf #timer-display  { text-shadow:none!important; }
+body.quality-perf .profile-rank-display { text-shadow:none!important; }
 body.quality-perf #feedback-icon-container svg { filter:none!important; }
 body.quality-perf .rank-card.is-me,
 body.quality-perf .ach-card.pinned,
@@ -1968,13 +1992,20 @@ body.quality-perf .kp-node.unlocked,
 body.quality-perf .kp-node.final-node.unlocked,
 body.quality-perf input[type=range]::-webkit-slider-thumb:hover,
 body.quality-perf .score-badge::before { box-shadow:none!important; }
-body.quality-perf .setting-card,.quality-perf .rank-card,
-body.quality-perf .ach-card,.quality-perf .btn-solid,
-body.quality-perf .btn-outline,.quality-perf .top-btn,
-body.quality-perf .kp-node,.quality-perf .kp-card,
-body.quality-perf .rl-card,.quality-perf .pcard-close,
+body.quality-perf .setting-card,
+body.quality-perf .rank-card,
+body.quality-perf .ach-card,
+body.quality-perf .btn-solid,
+body.quality-perf .btn-outline,
+body.quality-perf .top-btn,
+body.quality-perf .kp-node,
+body.quality-perf .kp-card,
+body.quality-perf .rl-card,
+body.quality-perf .pcard-close,
 body.quality-perf .quality-btn { transition-duration:0.05s!important; }
 body.quality-perf.light-mode .glass-panel   { background:rgba(242,244,247,0.99)!important; }
 body.quality-perf.light-mode .top-nav       { background:rgba(235,237,242,0.99)!important; }
 body.quality-perf.light-mode .answer-btn    { background-color:rgba(244,245,248,0.99)!important; }
 body.quality-perf.light-mode .question-text { background:rgba(230,233,240,0.99)!important; }
+body.quality-perf .kp-header { background:rgba(5,5,5,0.99)!important; }
+body.quality-perf.light-mode .kp-header { background:rgba(242,244,247,0.99)!important; }
