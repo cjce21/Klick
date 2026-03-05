@@ -274,6 +274,46 @@ if(!playerStats.uuid) playerStats.uuid = generateUUID();
 })();
 
 // ── MIGRACIÓN tracks: remapea IDs de pistas viejas ──
+// ── MIGRACIÓN kpRewards: acredita recompensas del Klick Pass que nunca se sumaron a totalScore ──
+// Se ejecuta UNA vez. Los claims anteriores al fix no sumaban su recompensa a playerStats.totalScore.
+(function migrateKpRewards() {
+    if (playerStats.migratedKpRewards) return;
+    try {
+        const raw = localStorage.getItem('klickpass_v2');
+        if (raw) {
+            const kpSt = JSON.parse(raw);
+            const claimed = Array.isArray(kpSt.claimed) ? kpSt.claimed : [];
+            if (claimed.length > 0) {
+                // _KP_REWARDS está definido más adelante en el archivo — usamos los valores hardcoded
+                // para calcular el total correcto sin depender del orden de declaración
+                const _KP_REWARDS_MIG = [
+                  100,104,108,111,116,120,124,129,134,139,
+                  144,149,154,160,166,172,178,185,192,199,
+                  206,214,222,230,238,247,256,266,276,286,
+                  296,307,319,330,342,355,368,382,396,410,
+                  426,441,457,474,492,510,529,548,568,589,
+                  611,634,657,681,706,732,759,787,816,847,
+                  878,910,944,978,1015,1052,1091,1131,1173,1216,
+                  1261,1307,1355,1405,1457,1511,1567,1624,1684,1746,
+                  1811,1877,1947,2018,2093,2170,2250,2333,2419,2508,
+                  2601,2697,2796,2899,3006,3117,3232,3351,3476,5000
+                ];
+                let totalToCredit = 0;
+                claimed.forEach(lvNum => {
+                    if (lvNum >= 1 && lvNum <= 100) {
+                        totalToCredit += _KP_REWARDS_MIG[lvNum - 1] || 0;
+                    }
+                });
+                if (totalToCredit > 0) {
+                    playerStats.totalScore = (playerStats.totalScore || 0) + totalToCredit;
+                }
+            }
+        }
+    } catch(e) {}
+    playerStats.migratedKpRewards = true;
+    saveStatsLocally();
+})();
+
 (function migrateTrackIds() {
     const remap = { 'track_electro': 'track_pulse', 'track_frenzy': 'track_bass' };
     if (remap[playerStats.selectedTrack]) {
@@ -900,12 +940,40 @@ async function fetchLeaderboard() {
         topPlayers.forEach((p, index) => {
             const pos = index + 1;
             const isMe = p.uuid === playerStats.uuid;
-            if(isMe) { playerStats.rankingPosition = pos; saveStatsLocally(); checkAchievements(); }
+            if(isMe) {
+                const prevPos = playerStats.rankingPosition || 999;
+                const prevPL  = playerStats.powerLevel || 0;
+                playerStats.rankingPosition = pos;
+                // nm7: Remontada
+                if (prevPos >= 15 && pos <= 5) playerStats.rankRemontada = true;
+                // nm5: Vigilia — PL sube 3 días consecutivos
+                const todayForNm5 = new Date().toISOString().split('T')[0];
+                if (p.powerLevel > prevPL && prevPL > 0) {
+                    const lastRankUpDay = playerStats._lastRankUpDay || '';
+                    const yest5 = new Date(); yest5.setDate(yest5.getDate() - 1);
+                    const yesterdayStr5 = yest5.toISOString().split('T')[0];
+                    if (lastRankUpDay === yesterdayStr5 || lastRankUpDay === '') {
+                        playerStats.consecutiveRankUpDays = (playerStats.consecutiveRankUpDays || 0) + 1;
+                    } else if (lastRankUpDay !== todayForNm5) {
+                        playerStats.consecutiveRankUpDays = 1;
+                    }
+                    playerStats._lastRankUpDay = todayForNm5;
+                }
+                saveStatsLocally(); checkAchievements();
+            }
+            // nm6: Impostado — estamos por encima de alguien con >1000 PL más
+            if (!playerStats.surpassedHighPLPlayer && playerStats.uuid) {
+                const myEntry = topPlayers.find(x => x.uuid === playerStats.uuid);
+                const myIdx   = myEntry ? topPlayers.indexOf(myEntry) : -1;
+                if (myEntry && !isMe && myIdx < index && p.powerLevel > (myEntry.powerLevel || 0) + 1000) {
+                    playerStats.surpassedHighPLPlayer = true;
+                }
+            }
 
             // Podio titles — requiere Leyenda o superior
             let rankTitle = p.rankTitle;
             const podiumTitles = { 1: 'Rey Klick', 2: 'Señor Klick', 3: 'Caballero Klick' };
-            if (pos <= 3 && (p.rankTitle === 'Leyenda' || p.rankTitle === 'Mítico')) rankTitle = podiumTitles[pos];
+            if (pos <= 3 && (p.rankTitle === 'Leyenda' || p.rankTitle === 'M\u00edtico')) rankTitle = podiumTitles[pos];
 
             const meClass = isMe ? 'is-me' : '';
 
@@ -921,6 +989,12 @@ async function fetchLeaderboard() {
         document.getElementById('ranking-list').innerHTML = html;
         // Track successful loads for 'Bien Conectado' ui8
         playerStats.successfulLeaderboardLoads = (playerStats.successfulLeaderboardLoads||0) + 1;
+        // ui6: Fan de Clasificación — visita el ranking cuando hay menos de 5 jugadores
+        if (topPlayers.length < 5 && !playerStats.achievements.includes('ui6')) {
+            playerStats.achievements.push('ui6');
+            const _ui6 = ACHIEVEMENTS_MAP.get('ui6');
+            if (_ui6) { try { SFX.achievement(); } catch(e){} showToast('Logro Desbloqueado', _ui6.title, _ui6.color, _ui6.icon); }
+        }
         saveStatsLocally();
     } catch(e) {
         if(document.getElementById('ranking-list').innerHTML.includes('ranking-loading')) {
@@ -1618,7 +1692,8 @@ function _checkAchievementsImpl() {
     const pl = playerStats.powerLevel||0; 
     if(pl>=10000) unlock('nm8'); if(pl>=100000) unlock('nm9'); if(pl>=1000000) unlock('nm10');
     const rp = playerStats.rankingPosition||999;
-    if(rp<=20) unlock('nm1'); if(rp<=10) unlock('nm2'); if(rp<=3) unlock('nm3'); if(rp===1) unlock('nm4');
+    if(rp < 999) unlock('nm1'); // apareció en el ranking (cualquier posición)
+    if(rp<=10) unlock('nm2'); if(rp<=3) unlock('nm3'); if(rp===1) unlock('nm4');
 
     // PODIO LEYENDA (solo top 1-3 Y rango Leyenda o superior)
     // rank ya calculado arriba — no necesita segunda llamada
@@ -1751,8 +1826,12 @@ function _checkAchievementsImpl() {
     if (redGoldCount >= 3) unlock('np2');
 
     if (newlyUnlocked.length > 0) { 
-        // Track daily achievement unlocks for 'Productivo' da1-da5
-        playerStats.dailyAchUnlocks = (playerStats.dailyAchUnlocks||0) + newlyUnlocked.length;
+        // Track daily achievement unlocks para da1-da5 y extra5 "Día Épico"
+        // Solo contar si estamos en el mismo día de login (evitar acumulación entre sesiones)
+        const _todayStr = new Date().toISOString().split('T')[0];
+        if (playerStats.lastLoginDate === _todayStr) {
+            playerStats.dailyAchUnlocks = (playerStats.dailyAchUnlocks||0) + newlyUnlocked.length;
+        }
         saveStatsDebounced(); // no bloquear el hilo durante la partida
         // Refresh parcial: solo las filas afectadas para evitar full flush durante partida
         if (_vsInitialized) {
@@ -2082,9 +2161,9 @@ if (playerStats.theme === 'light') {
 // Definición de cada modo: valores que se aplican a los sliders visibles
 // y flags internos que ajustan el motor de partículas.
 const QUALITY_PRESETS = {
-    max:    { fps: 240, particles: 1.0, musicVol: 1.0, sfxVol: 1.0, bodyClass: 'quality-max',  label: 'Maximo',       desc: 'Efecto Cristalix · Glows maximos · 240 FPS · Todo al maximo' },
-    normal: { fps: 60,  particles: 1.0, musicVol: 1.0, sfxVol: 1.0, bodyClass: '',              label: 'Normal',       desc: '60 FPS · Blur estandar · Configuracion de equilibrio' },
-    perf:   { fps: 30,  particles: 0.4, musicVol: 1.0, sfxVol: 1.0, bodyClass: 'quality-perf', label: 'Rendimiento',  desc: 'Sin blur · Sin glows · Sin conexiones · 30 FPS · Maximo ahorro' },
+    max:    { fps: 240, particles: 1.0, musicVol: 1.0, sfxVol: 1.0, bodyClass: 'quality-max',  label: 'Máximo',       desc: 'Cristalix · Glows máximos · 240 FPS · Todo al máximo' },
+    normal: { fps: 60,  particles: 1.0, musicVol: 1.0, sfxVol: 1.0, bodyClass: '',              label: 'Normal',       desc: '60 FPS · Blur estándar · Configuración de equilibrio' },
+    perf:   { fps: 30,  particles: 0.25, musicVol: 1.0, sfxVol: 1.0, bodyClass: 'quality-perf', label: 'Rendimiento',  desc: 'Sin blur · Sin glows · Sin conexiones · 30 FPS · Máximo ahorro' },
     custom: { fps: null, particles: null, musicVol: null, sfxVol: null, bodyClass: '',           label: 'Personalizado',desc: 'Valores ajustados manualmente' }
 };
 
@@ -2923,6 +3002,7 @@ function updateLogoDots() {
 let currentSessionQuestions = [], currentQuestionIndex = 0, score = 0, streak = 0, currentMaxStreak = 0, timerInterval, timeLeft = 15;
 let _gameSessionId = 0; // increments each game/abandon to invalidate stale callbacks
 let _currentQuestion = null; // Pregunta activa (almacenada por motor, leída por selectAnswer/applyHintVisual) 
+let _gameStartHour = -1; // hora al inicio de partida — se valida al terminar
 const TIMER_LIMIT = 15;
 let currentFastAnswers = 0, currentWrongAnswers = 0, currentTimeoutAnswers = 0, isAnsweringAllowed = false, currentGameLog = [];
 let isGamePaused = false;
@@ -2954,12 +3034,19 @@ function startGame() {
     playerStats.lastGameTrack = curTrack;
     
     const hora = new Date().getHours();
-    if(hora>=23||hora<1) playerStats.playedNocturno=true;
-    if(hora<6) playerStats.playedMadrugador=true;
+    // Guardamos la hora de inicio para validarla al terminar la partida (evitar falsos positivos)
+    _gameStartHour = hora;
     
     const todayStr2 = new Date().toISOString().split('T')[0];
     if(!playerStats.totalDaysPlayed) playerStats.totalDaysPlayed = 0;
     if(!playerStats.lastPlayedDay || playerStats.lastPlayedDay !== todayStr2) {
+        // Day changed — reset daily counters before assigning new date
+        // This covers page-left-open-overnight: processDailyLogin ran yesterday,
+        // but this is the first game of a new day.
+        if (playerStats.lastPlayedDay && playerStats.lastPlayedDay !== todayStr2) {
+            playerStats.todayGames = 0;
+            playerStats.dailyAchUnlocks = 0;
+        }
         playerStats.lastPlayedDay = todayStr2;
         playerStats.totalDaysPlayed++;
     }
@@ -3431,7 +3518,10 @@ function showFeedback(isCorrect, isTimeout = false) {
                 playerStats.achievements.push(id); SFX.achievement();
                 showToast('Logro Desbloqueado', title, col, ico);
                 // Track daily unlocks so da1-da5 "Productivo" count in-game achievements too
-                playerStats.dailyAchUnlocks = (playerStats.dailyAchUnlocks||0) + 1;
+                const _igTodayStr = new Date().toISOString().split('T')[0];
+                if (playerStats.lastLoginDate === _igTodayStr) {
+                    playerStats.dailyAchUnlocks = (playerStats.dailyAchUnlocks||0) + 1;
+                }
                 saveStatsDebounced(); renderAchievements();
             }
         };
@@ -3467,6 +3557,8 @@ function showFeedback(isCorrect, isTimeout = false) {
         if(currentQuestionIndex >= 59) inGameUnlock('np3','Sin Límites', colors.purple, SVG_BOLT);
         // u15: Superviviente — 100 preguntas
         if(currentQuestionIndex >= 99) inGameUnlock('u15','Superviviente', colors.green, SVG_SHIELD);
+        // u20: Centinela — llega a pregunta 50 sin ningún timeout en la partida
+        if(currentQuestionIndex >= 49 && currentTimeoutAnswers === 0) inGameUnlock('u20','Centinela', colors.dark, SVG_CLOCK);
         // u21: Metralleta — 10 seguidas <3 seg
         if(ultraFastStreak >= 10) inGameUnlock('u21','Metralleta', colors.red, SVG_BOLT);
         // x7: Un Golpe Certero — más de 3,000 puntos en las primeras 3 preguntas
@@ -3522,7 +3614,10 @@ function showFeedback(isCorrect, isTimeout = false) {
                     _achSetFB.add(id);
                     playerStats.achievements.push(id); SFX.achievement();
                     showToast('Logro Desbloqueado', title, col, ico);
-                    playerStats.dailyAchUnlocks = (playerStats.dailyAchUnlocks||0) + 1;
+                    const _fuTodayStr = new Date().toISOString().split('T')[0];
+                    if (playerStats.lastLoginDate === _fuTodayStr) {
+                        playerStats.dailyAchUnlocks = (playerStats.dailyAchUnlocks||0) + 1;
+                    }
                     saveStatsDebounced(); renderAchievements();
                 }
             };
@@ -3605,6 +3700,12 @@ function saveGameStats() {
     playerStats.lastGameCorrect = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
     // x4: Doble Victoria — supera 75k dos partidas seguidas (check before overwriting previousGameScore)
     if(score >= 75000 && (playerStats.previousGameScore||0) >= 75000) playerStats.doubleVictory = true;
+    // fin1/fin2: Nocturno y Madrugador — solo si la partida se completó en ese horario
+    // Se validan aquí (fin de partida) en lugar de en startGame para evitar que salir a mitad cuente
+    if (_gameStartHour >= 0) {
+        if (_gameStartHour >= 23 || _gameStartHour < 1) playerStats.playedNocturno = true;
+        if (_gameStartHour < 6) playerStats.playedMadrugador = true;
+    }
     // x6: Consistente — 5 partidas seguidas con ≥25k
     if(score >= 25000) {
         playerStats.consecutiveGames25k = (playerStats.consecutiveGames25k||0) + 1;
@@ -3659,18 +3760,19 @@ const _EMA_K = 0.12;           // factor de suavizado (menor = más suave)
 function initParticles() { 
     canvas.width = window.innerWidth; canvas.height = window.innerHeight; particlesArray = []; 
     const isMobile = window.innerWidth < 768;
-    // Fewer particles = smoother, still visually rich
     const area = canvas.width * canvas.height;
     const _qmode = playerStats && playerStats.qualityMode;
     let num = Math.round(Math.min(area / 15000, isMobile ? 20 : 50));
-    if (_qmode === 'perf')   num = Math.max(4, Math.round(num * 0.4));
-    else if (_qmode === 'max') num = Math.min(90, Math.round(num * 1.7));
+    if (_qmode === 'perf')   num = Math.max(3, Math.round(num * 0.3));
+    else if (_qmode === 'max') num = Math.min(100, Math.round(num * 2.0));
+    // Velocidad base según modo
+    const speedBase = _qmode === 'max' ? 1.1 : (_qmode === 'perf' ? 0.4 : 0.7);
     for (let i = 0; i < num; i++) {
         particlesArray.push({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
-            dx: (Math.random() - 0.5) * 0.7,
-            dy: (Math.random() - 0.5) * 0.7,
+            dx: (Math.random() - 0.5) * speedBase * 2,
+            dy: (Math.random() - 0.5) * speedBase * 2,
             s: Math.random() * 1.4 + 0.4
         });
     }
@@ -3710,13 +3812,16 @@ function darkenRgb(rgb, factor) {
 }
 
 function connectParticles(pulse) { 
-    if (particlesArray.length < 2) return; // nothing to connect
-    if (!playerStats || playerStats.particleOpacity <= 0) return; // partículas invisibles, evitar O(n²) innecesario
+    if (particlesArray.length < 2) return;
+    if (!playerStats || playerStats.particleOpacity <= 0) return;
     const isStreak = streak >= 5;
     const baseOpacity = isStreak ? (_pIsLight ? 0.7 : 0.35) : (_pIsLight ? 0.4 : 0.18);
     const distMult = 1 + pulse * 0.3;
     const screenFactor = Math.min(1, (canvas.width * canvas.height) / (1920 * 1080));
-    const maxDistSq = (canvas.width / 9) * (canvas.height / 9) * distMult * screenFactor;
+    // Max mode: conexiones más largas para el efecto Cristalix
+    const _isMax = playerStats.qualityMode === 'max';
+    const distScale = _isMax ? 1.5 : 1.0;
+    const maxDistSq = (canvas.width / 9) * (canvas.height / 9) * distMult * screenFactor * distScale * distScale;
     const pOp = playerStats.particleOpacity;
     const n = particlesArray.length;
     
@@ -3779,7 +3884,20 @@ function animateParticles(now) {
     // No leer el analyser si el audio está suspendido (pestaña oculta)
     const pulse = (audioAnalyser && audioCtx && audioCtx.state === 'running') ? getAudioPulse() : 0;
     updateAndDrawParticles(timeScale, pulse);
-    if (playerStats.qualityMode !== 'perf' && (streak >= 5 || pulse > 0.05 || (_cpFrame & 1) === 0)) connectParticles(pulse);
+
+    const _qm = playerStats.qualityMode;
+    if (_qm === 'perf') {
+        // Perf: sin conexiones nunca, reducir frecuencia de actualización
+        _cpFrame++;
+        return;
+    }
+    if (_qm === 'max') {
+        // Max: conexiones siempre activas para efecto Cristalix completo
+        connectParticles(pulse);
+    } else {
+        // Normal/custom: conexiones cuando hay racha o audio activo, o en frames pares
+        if (streak >= 5 || pulse > 0.05 || (_cpFrame & 1) === 0) connectParticles(pulse);
+    }
     _cpFrame++;
 }
 
@@ -3820,11 +3938,15 @@ let rlColor = '255,184,0'; // default gold
 
 function initRlParticles(color) {
     if (!rlCanvas || !rlCtx) return;
+    if (playerStats && playerStats.qualityMode === 'perf') { rlParticles = []; return; } // perf mode: sin partículas
     rlCanvas.width = window.innerWidth;
     rlCanvas.height = window.innerHeight;
     rlColor = color || '255,184,0';
     rlParticles = [];
-    const num = Math.min(40, Math.floor(rlCanvas.width * rlCanvas.height / 20000));
+    const _isMax = playerStats && playerStats.qualityMode === 'max';
+    const num = _isMax
+        ? Math.min(60, Math.floor(rlCanvas.width * rlCanvas.height / 12000))
+        : Math.min(40, Math.floor(rlCanvas.width * rlCanvas.height / 20000));
     for (let i = 0; i < num; i++) {
         rlParticles.push({
             x: Math.random() * rlCanvas.width,
@@ -3945,11 +4067,8 @@ const _KP_REWARDS = [
 ];
 
 // ── Condiciones de misión (usan playerStats en tiempo real) ───────────
-// Nota: perfectGames se incrementa cuando currentQuestionIndex >= 50 Y sin errores ni timeouts.
-// En saveGameStats: if(currentQuestionIndex >= 50 && 0 errores && 0 timeouts) perfectGames++
-// Eso es "partida larga sin importar errores". Aquí usamos hadPerfectAccuracyGame
-// que es la verdadera "partida sin errores" (≥5 preguntas, 0 wrong, 0 timeout).
-// Para niveles "Sin Fallos" usamos un contador propio en kpState.perfectNoError.
+// Nota: perfectGames: partidas con >= 10 preguntas, 0 errores, 0 timeouts (ver saveGameStats).
+// perfectNoError (kpState): igual pero umbral >= 5 preguntas, actualizado via patch al final del archivo.
 
 const _KP_MISSIONS = [
 // TRAMO 1 — INICIACIÓN (1-10) ——————————————————————————————————————————
@@ -4076,10 +4195,14 @@ function getKpState() {
             const s = JSON.parse(raw);
             if (!Array.isArray(s.claimed)) s.claimed = [];
             if (typeof s.perfectNoError !== 'number') s.perfectNoError = 0;
-            // Sync perfectNoError from playerStats if kpState is behind
-            // (handles cases where the saveGameStats patch didn't run or data migrated)
-            const psPerf = playerStats ? (playerStats.perfectGames||0) : 0;
-            if (psPerf > s.perfectNoError) s.perfectNoError = psPerf;
+            // Sync perfectNoError desde perfectGames SOLO si kpState está en 0
+            // (primera vez o datos migrados sin kpState). No sobreescribir si ya hay un
+            // valor guardado — perfectGames usa umbral ≥10 preguntas y podría ser menor
+            // que el valor real de perfectNoError que usa umbral ≥5 preguntas.
+            if (s.perfectNoError === 0) {
+                const psPerf = playerStats ? (playerStats.perfectGames||0) : 0;
+                if (psPerf > 0) s.perfectNoError = psPerf;
+            }
             return s;
         }
     } catch(e) {}
@@ -4116,12 +4239,21 @@ function kpClaim(lvNum) {
     state.claimed.push(lvNum);
     saveKpState(state);
 
+    // ── Acreditar recompensa al totalScore del jugador ────────────────
+    const lvl_reward = KP_LEVELS[lvNum - 1];
+    if (lvl_reward && lvl_reward.reward) {
+        playerStats.totalScore = (playerStats.totalScore || 0) + lvl_reward.reward;
+        currentRankInfo = getRankInfo(playerStats);
+        updateLogoDots();
+    }
+
     // Track claim day for kpa7/kpa8 achievements
     const today = new Date().toISOString().split('T')[0];
     if (!Array.isArray(playerStats.kpClaimDays)) playerStats.kpClaimDays = [];
     if (!playerStats.kpClaimDays.includes(today)) playerStats.kpClaimDays.push(today);
     playerStats.kpSessionClaims = (playerStats.kpSessionClaims||0) + 1;
     saveStatsLocally();
+    checkAchievements(); // actualizar logros KP (kpa1-kpa10) en tiempo real
 
     const lvl   = KP_LEVELS[lvNum - 1];
     const icon  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><polyline points="20 6 9 17 4 12"/></svg>`;
@@ -4331,17 +4463,19 @@ function renderKpPath() {
     container.innerHTML = '';
     container.appendChild(frag);
 
-    // Animación escalonada solo en las primeras 20 filas
+    // Animación escalonada solo en las primeras 20 filas (cancelar timers previos para evitar leaks)
+    if (renderKpPath._animTimers) renderKpPath._animTimers.forEach(t => clearTimeout(t));
+    renderKpPath._animTimers = [];
     const rows = container.querySelectorAll('.kp-level-row');
     for (let i = 0; i < Math.min(rows.length, 20); i++) {
         const r = rows[i];
         r.style.opacity = '0';
         r.style.transform = 'translateY(5px)';
-        setTimeout(((row) => () => {
+        renderKpPath._animTimers.push(setTimeout(((row) => () => {
             row.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
             row.style.opacity = '1';
             row.style.transform = 'translateY(0)';
-        })(r), i * 12);
+        })(r), i * 12));
     }
 
     _kpUpdateHeader();
@@ -4394,6 +4528,8 @@ function goToKlickPass() {
 
 // ── Init ─────────────────────────────────────────────────────────────
 // Defer until playerStats is fully loaded (it's synchronous above, but safe to run now)
+// Reset kpSessionClaims: es un contador de sesión, no debe persistir entre recargas
+playerStats.kpSessionClaims = 0;
 _kpUpdateMenuBadge();
 // ════════════════════════════════════ END KLICK PASS ═════════════════
 
