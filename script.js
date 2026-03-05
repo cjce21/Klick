@@ -168,7 +168,7 @@ const defaultStats = {
     selectedTrack: 'track_chill', trackSwitches: 0, tracksTriedSet: [], triedAllTracks: false,
     sameTrackGames: 0, lastGameTrack: '',
     kpViews: 0, kpClaimDays: [], kpSessionClaims: 0,
-    perfMode: false
+    qualityMode: 'normal'
 };
 
 const STORAGE_KEY = 'klick_player_data_permanent';
@@ -783,34 +783,8 @@ function openSettings() {
             _lightBtn.style.borderColor = 'rgba(255,255,255,0.1)'; _lightBtn.style.background = 'transparent'; _lightBtn.firstElementChild.style.color = 'var(--text-secondary)';
         }
     }
-    // Sync perf mode UI
-    const _perfEnabled = !!(playerStats.perfMode);
-    const _isLightTheme = (playerStats.theme || 'dark') === 'light';
-    const _perfOffBtn = document.getElementById('perf-off-btn');
-    const _perfOnBtn  = document.getElementById('perf-on-btn');
-    const _valPerf    = document.getElementById('val-perf');
-    const _descPerf   = document.getElementById('perf-desc');
-    if (_perfOffBtn && _perfOnBtn) {
-        if (_perfEnabled) {
-            _perfOnBtn.style.borderColor  = _isLightTheme ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)';
-            _perfOnBtn.style.background   = _isLightTheme ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.07)';
-            _perfOnBtn.firstElementChild.style.color = 'var(--text-primary)';
-            _perfOffBtn.style.borderColor = _isLightTheme ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-            _perfOffBtn.style.background  = 'transparent';
-            _perfOffBtn.firstElementChild.style.color = 'var(--text-secondary)';
-        } else {
-            _perfOffBtn.style.borderColor = _isLightTheme ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)';
-            _perfOffBtn.style.background  = _isLightTheme ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.07)';
-            _perfOffBtn.firstElementChild.style.color = 'var(--text-primary)';
-            _perfOnBtn.style.borderColor  = _isLightTheme ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-            _perfOnBtn.style.background   = 'transparent';
-            _perfOnBtn.firstElementChild.style.color = 'var(--text-secondary)';
-        }
-    }
-    if (_valPerf)  _valPerf.innerText  = _perfEnabled ? 'On' : 'Off';
-    if (_descPerf) _descPerf.innerText = _perfEnabled
-        ? 'Blur, glows y animaciones decorativas desactivados'
-        : 'Reduce efectos visuales para eliminar el lag';
+    // Sync quality mode UI
+    _syncQualityButtons(playerStats.qualityMode || 'normal', (playerStats.theme || 'dark') === 'light');
 
     renderTrackSelector();
     switchScreen('settings-screen');
@@ -839,6 +813,7 @@ document.getElementById('op-particles').addEventListener('input', (e) => {
     if(playerStats.particleOpacity===0) playerStats.particles0=true;
     if(playerStats.particleOpacity>=1.0) { playerStats.particles100=true; }
     if(playerStats.musicVol>=1.0 && playerStats.particleOpacity>=1.0) { playerStats.musicAt100=true; playerStats.particles100=true; } _deferredCheckAch();
+    _onManualSliderChange();
     saveStatsLocally(); 
 });
 // unlock_cfg8 ya integrado en checkAchievements vía flags musicAt100 + particles100
@@ -847,6 +822,7 @@ document.getElementById('op-fps').addEventListener('input', (e) => {
     fpsInterval = 1000/playerStats.maxFps; _smoothDelta = fpsInterval; 
     document.getElementById('val-fps').innerText = playerStats.maxFps+' FPS'; 
     playerStats.fpsChanges = (playerStats.fpsChanges||0)+1;
+    _onManualSliderChange();
     checkAchievements();
     saveStatsLocally(); 
 });
@@ -2099,58 +2075,99 @@ if (playerStats.theme === 'light') {
     document.body.classList.add('light-mode');
 }
 
-// MODO RENDIMIENTO
-// Desactiva efectos costosos para GPU/CPU: backdrop-filter, glows, animaciones
-// decorativas, y reduce particulas a la mitad con lineas de conexion desactivadas.
-function setPerfMode(enabled) {
-    playerStats.perfMode = !!enabled;
-    saveStatsLocally();
+// ─────────────────────────────────────────────────────────────────────────────
+// SISTEMA DE CALIDAD VISUAL — 4 modos: max / normal / perf / custom
+// ─────────────────────────────────────────────────────────────────────────────
 
-    if (enabled) {
-        document.body.classList.add('perf-mode');
-    } else {
-        document.body.classList.remove('perf-mode');
-    }
+// Definición de cada modo: valores que se aplican a los sliders visibles
+// y flags internos que ajustan el motor de partículas.
+const QUALITY_PRESETS = {
+    max:    { fps: 120, particles: 1.0, bodyClass: 'quality-max',  label: 'Maximo',       desc: 'Liquid glass · Glows intensificados · 120 FPS' },
+    normal: { fps: 60,  particles: 1.0, bodyClass: '',              label: 'Normal',       desc: 'Equilibrio ideal entre calidad y rendimiento' },
+    perf:   { fps: 30,  particles: 0.5, bodyClass: 'quality-perf', label: 'Rendimiento',  desc: 'Sin blur · Sin glows · Particulas reducidas · 30 FPS' },
+    custom: { fps: null, particles: null, bodyClass: '',            label: 'Personalizado',desc: 'Configuracion ajustada manualmente' }
+};
 
-    // Reiniciar particulas para aplicar el nuevo limite de cantidad
-    initParticles();
+function _applyQualityBodyClasses(mode) {
+    document.body.classList.remove('quality-max', 'quality-perf');
+    const cls = QUALITY_PRESETS[mode] && QUALITY_PRESETS[mode].bodyClass;
+    if (cls) document.body.classList.add(cls);
+}
 
-    // Actualizar UI del boton
-    const offBtn = document.getElementById('perf-off-btn');
-    const onBtn  = document.getElementById('perf-on-btn');
+function _syncQualityButtons(mode, isLight) {
+    const ids = { max: 'q-max', normal: 'q-normal', perf: 'q-perf', custom: 'q-custom' };
+    // Show custom btn only when mode is custom
+    const customBtn = document.getElementById('q-custom');
+    if (customBtn) customBtn.style.display = (mode === 'custom') ? '' : 'none';
+
+    Object.keys(ids).forEach(k => {
+        const btn = document.getElementById(ids[k]);
+        if (!btn) return;
+        const active = (k === mode);
+        btn.classList.toggle('active', active);
+    });
+
+    const preset = QUALITY_PRESETS[mode] || QUALITY_PRESETS.normal;
     const valEl  = document.getElementById('val-perf');
     const descEl = document.getElementById('perf-desc');
-    const isLight = (playerStats.theme || 'dark') === 'light';
+    if (valEl)  valEl.innerText  = preset.label;
+    if (descEl) descEl.innerText = preset.desc;
+}
 
-    if (offBtn && onBtn) {
-        if (enabled) {
-            onBtn.style.borderColor  = isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)';
-            onBtn.style.background   = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.07)';
-            onBtn.firstElementChild.style.color = 'var(--text-primary)';
-            offBtn.style.borderColor = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-            offBtn.style.background  = 'transparent';
-            offBtn.firstElementChild.style.color = 'var(--text-secondary)';
-        } else {
-            offBtn.style.borderColor = isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)';
-            offBtn.style.background  = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.07)';
-            offBtn.firstElementChild.style.color = 'var(--text-primary)';
-            onBtn.style.borderColor  = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-            onBtn.style.background   = 'transparent';
-            onBtn.firstElementChild.style.color = 'var(--text-secondary)';
-        }
+function setQualityMode(mode, silent) {
+    if (!QUALITY_PRESETS[mode]) mode = 'normal';
+
+    // Custom mode only stores the label — does not change any values
+    if (mode !== 'custom') {
+        const preset = QUALITY_PRESETS[mode];
+
+        // Apply FPS
+        playerStats.maxFps = preset.fps;
+        fpsInterval = 1000 / playerStats.maxFps;
+        _smoothDelta = fpsInterval;
+        const fpsSlider = document.getElementById('op-fps');
+        const fpsLabel  = document.getElementById('val-fps');
+        if (fpsSlider) fpsSlider.value = FPS_VALUES.indexOf(preset.fps) >= 0 ? FPS_VALUES.indexOf(preset.fps) : 2;
+        if (fpsLabel)  fpsLabel.innerText = preset.fps + ' FPS';
+
+        // Apply particles opacity
+        playerStats.particleOpacity = preset.particles;
+        const pSlider = document.getElementById('op-particles');
+        const pLabel  = document.getElementById('val-particles');
+        if (pSlider) pSlider.value = preset.particles;
+        if (pLabel)  pLabel.innerText = Math.round(preset.particles * 100) + '%';
+
+        // Reinit particles to apply new count ceiling
+        initParticles();
+
+        // Apply body classes for visual effects
+        _applyQualityBodyClasses(mode);
     }
-    if (valEl)  valEl.innerText  = enabled ? 'On' : 'Off';
-    if (descEl) descEl.innerText = enabled
-        ? 'Blur, glows y animaciones decorativas desactivados'
-        : 'Reduce efectos visuales para eliminar el lag';
 
-    SFX.click();
+    playerStats.qualityMode = mode;
+    saveStatsLocally();
+    _syncQualityButtons(mode, (playerStats.theme || 'dark') === 'light');
+    if (!silent) SFX.click();
 }
 
-// Apply saved perf mode on load
-if (playerStats.perfMode) {
-    document.body.classList.add('perf-mode');
+// When the user manually moves any slider, switch to custom mode
+function _onManualSliderChange() {
+    if (playerStats.qualityMode && playerStats.qualityMode !== 'custom') {
+        playerStats.qualityMode = 'custom';
+        _syncQualityButtons('custom', (playerStats.theme || 'dark') === 'light');
+        saveStatsLocally();
+    }
 }
+
+// Apply saved quality mode on load
+(function _applyQualityOnLoad() {
+    const saved = playerStats.qualityMode || 'normal';
+    // Re-apply body classes without touching sliders (values already loaded from playerStats)
+    _applyQualityBodyClasses(saved === 'custom' ? 'normal' : saved);
+    // Custom mode: keep saved slider values, just apply label
+    playerStats.qualityMode = saved;
+})();
+
 
 // ══════════════════════════════════════════════════════════
 //  RULETA DE RECOMPENSAS — cada 10 aciertos (no consecutivos)
@@ -3629,9 +3646,10 @@ function initParticles() {
     const isMobile = window.innerWidth < 768;
     // Fewer particles = smoother, still visually rich
     const area = canvas.width * canvas.height;
-    const _perf = !!(playerStats && playerStats.perfMode);
+    const _qmode = playerStats && playerStats.qualityMode;
     let num = Math.round(Math.min(area / 15000, isMobile ? 30 : 60));
-    if (_perf) num = Math.max(5, Math.round(num / 2));
+    if (_qmode === 'perf') num = Math.max(5, Math.round(num / 2));
+    else if (_qmode === 'max') num = Math.min(80, Math.round(num * 1.4));
     for (let i = 0; i < num; i++) {
         particlesArray.push({
             x: Math.random() * canvas.width,
@@ -3746,7 +3764,7 @@ function animateParticles(now) {
     // No leer el analyser si el audio está suspendido (pestaña oculta)
     const pulse = (audioAnalyser && audioCtx && audioCtx.state === 'running') ? getAudioPulse() : 0;
     updateAndDrawParticles(timeScale, pulse);
-    if (!playerStats.perfMode && (streak >= 5 || pulse > 0.05 || (_cpFrame & 1) === 0)) connectParticles(pulse);
+    if (playerStats.qualityMode !== 'perf' && (streak >= 5 || pulse > 0.05 || (_cpFrame & 1) === 0)) connectParticles(pulse);
     _cpFrame++;
 }
 
