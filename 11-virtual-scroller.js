@@ -124,9 +124,13 @@ function _vsRefreshRows(changedIds) {
 }
 
 function _vsRefreshAll() {
+    if (!_vsScrollEl || !_vsSpacerEl) return;
     if (_vsScrollRAF) { cancelAnimationFrame(_vsScrollRAF); _vsScrollRAF = null; }
     for (const [, el] of _vsRendered) el.remove();
     _vsRendered.clear();
+    // Recalculate spacer height in case data or col count changed
+    const totalH = Math.ceil(ACHIEVEMENTS_DATA.length / _vsColCount) * _vsRowHeight;
+    _vsSpacerEl.style.height = totalH + 'px';
     _vsUpdate();
 }
 
@@ -140,9 +144,7 @@ function _vsSetup() {
         const newCols = _vsGetCols();
         if (newCols !== _vsColCount) {
             _vsColCount = newCols;
-            const totalH = Math.ceil(ACHIEVEMENTS_DATA.length / _vsColCount) * _vsRowHeight;
-            _vsSpacerEl.style.height = totalH + 'px';
-            _vsRefreshAll();
+            _vsRefreshAll(); // _vsRefreshAll now handles spacer height internally
         }
     });
     _vsInitialized = true;
