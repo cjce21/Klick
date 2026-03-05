@@ -905,7 +905,9 @@ function calculatePowerLevel(stats) {
 
 let _submitDebounceTimer = null;
 async function submitLeaderboard() {
+    // ADMINTEST: cuenta de prueba — funciona normalmente pero nunca envía datos al ranking
     if (!playerStats.playerName || playerStats.playerName === "JUGADOR" || GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") return;
+    if (playerStats.playerName.toUpperCase() === "ADMINTEST") return;
     // Debounce: avoid multiple rapid submits (e.g. saveGameStats + setInterval overlap)
     clearTimeout(_submitDebounceTimer);
     _submitDebounceTimer = setTimeout(async () => {
