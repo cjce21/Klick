@@ -465,14 +465,12 @@ function endGame() {
 function abandonGame() {
     if(lives <= 0) return;
     SFX.click();
-    isGamePaused = true;
-    clearInterval(timerInterval);
+    // El timer sigue corriendo mientras el modal de confirmación está abierto
     document.getElementById('abandon-modal').classList.add('active');
 }
 
 function cancelAbandon() {
     SFX.click();
-    isGamePaused = false;
     document.getElementById('abandon-modal').classList.remove('active');
 }
 
