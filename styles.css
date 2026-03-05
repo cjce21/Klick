@@ -363,6 +363,10 @@ body.light-mode #feedback-screen.correct #feedback-icon-container svg { stroke: 
 body.light-mode #feedback-screen.incorrect #feedback-icon-container svg { stroke: var(--accent-red); filter: none; }
 body.light-mode #feedback-screen.timeout #feedback-icon-container svg { stroke: var(--text-secondary); filter: none; }
 body.light-mode #feedback-screen.correct .feedback-points { color: var(--accent-green); border-color: rgba(10,122,62,0.25); background: rgba(255,255,255,0.7); }
+body.light-mode #feedback-screen.incorrect .feedback-points { color: var(--accent-red); border-color: rgba(255,42,95,0.25); background: rgba(255,255,255,0.7); }
+body.light-mode #feedback-screen.shield .feedback-title { color: #0088aa; }
+body.light-mode #feedback-screen.shield #feedback-icon-container svg { stroke: #0088aa; filter: none; }
+body.light-mode #feedback-screen.shield .feedback-points { color: #0088aa; border-color: rgba(0,136,170,0.3); background: rgba(255,255,255,0.7); }
 
 body.light-mode #countdown-screen { background: transparent; }
 body.light-mode #countdown-number { color: var(--text-primary) !important; text-shadow: none !important; }
@@ -1099,7 +1103,7 @@ body.light-mode .pcard-me-pill   { background: rgba(0,0,0,0.04); border-color: r
     text-shadow: none;
 }
 
-/* INCORRECTO — icono y título mismo rojo neón */
+/* INCORRECTO — icono, título y puntos mismo rojo neón */
 #feedback-screen.incorrect .feedback-title {
     color: var(--accent-red);
     text-shadow: 0 0 20px rgba(255,42,95,0.7), 0 0 40px rgba(255,42,95,0.35);
@@ -1107,6 +1111,10 @@ body.light-mode .pcard-me-pill   { background: rgba(0,0,0,0.04); border-color: r
 #feedback-screen.incorrect #feedback-icon-container svg {
     stroke: var(--accent-red);
     filter: drop-shadow(0 0 10px rgba(255,42,95,0.7)) drop-shadow(0 0 20px rgba(255,42,95,0.4));
+}
+#feedback-screen.incorrect .feedback-points {
+    color: var(--accent-red);
+    border-color: rgba(255,42,95,0.35);
 }
 
 /* TIMEOUT — icono y título mismo gris apagado */
@@ -1119,7 +1127,7 @@ body.light-mode .pcard-me-pill   { background: rgba(0,0,0,0.04); border-color: r
     filter: none;
 }
 
-/* ESCUDO — icono y título mismo azul cian neón */
+/* ESCUDO — icono, título y puntos mismo azul cian neón */
 #feedback-screen.shield .feedback-title {
     color: #00d4ff;
     text-shadow: 0 0 20px rgba(0,212,255,0.7), 0 0 40px rgba(0,212,255,0.35);
@@ -1127,6 +1135,10 @@ body.light-mode .pcard-me-pill   { background: rgba(0,0,0,0.04); border-color: r
 #feedback-screen.shield #feedback-icon-container svg {
     stroke: #00d4ff;
     filter: drop-shadow(0 0 10px rgba(0,212,255,0.7)) drop-shadow(0 0 20px rgba(0,212,255,0.4));
+}
+#feedback-screen.shield .feedback-points {
+    color: #00d4ff;
+    border-color: rgba(0,212,255,0.35);
 }
 .feedback-content { display: flex; flex-direction: column; align-items: center; transform: scale(0.9); -webkit-transform: scale(0.9); opacity: 0; transition: transform 0.5s var(--ease-spring), opacity 0.5s ease; -webkit-transition: -webkit-transform 0.5s var(--ease-spring), opacity 0.5s ease; }
 .screen.active .feedback-content { transform: scale(1); -webkit-transform: scale(1); opacity: 1; }
@@ -1820,32 +1832,57 @@ body.quality-max #app.streak-active {
 body.quality-max .score-badge::before {
     box-shadow: 0 0 14px var(--accent-yellow), 0 0 26px rgba(255,184,0,0.5) !important;
 }
-/* Glows de texto — máximos */
-body.quality-max .feedback-title {
+/* ── QUALITY-MAX: glows de feedback por estado ───────────────────────────── */
+/* CORRECT — glow rank-color intensificado */
+body.quality-max #feedback-screen.correct .feedback-title {
     text-shadow:
         0 0 18px rgba(var(--rank-rgb),1),
         0 0 42px rgba(var(--rank-rgb),0.65),
         0 0 78px rgba(var(--rank-rgb),0.3) !important;
 }
+body.quality-max #feedback-screen.correct #feedback-icon-container svg {
+    filter:
+        drop-shadow(0 0 14px rgba(var(--rank-rgb),1))
+        drop-shadow(0 0 32px rgba(var(--rank-rgb),0.55)) !important;
+}
+body.quality-max #feedback-screen.correct .feedback-points {
+    text-shadow: 0 0 14px rgba(var(--rank-rgb),0.7) !important;
+}
+/* INCORRECT — glow rojo intensificado */
 body.quality-max #feedback-screen.incorrect .feedback-title {
     text-shadow:
         0 0 18px rgba(255,42,95,1),
         0 0 42px rgba(255,42,95,0.65),
         0 0 78px rgba(255,42,95,0.3) !important;
 }
-body.quality-max #feedback-screen.shield .feedback-title,
+body.quality-max #feedback-screen.incorrect #feedback-icon-container svg {
+    filter:
+        drop-shadow(0 0 14px rgba(255,42,95,1))
+        drop-shadow(0 0 32px rgba(255,42,95,0.55)) !important;
+}
+body.quality-max #feedback-screen.incorrect .feedback-points {
+    text-shadow: 0 0 10px rgba(255,42,95,0.6) !important;
+}
+/* TIMEOUT — sin glow, color neutro */
 body.quality-max #feedback-screen.timeout .feedback-title {
+    text-shadow: none !important;
+}
+body.quality-max #feedback-screen.timeout #feedback-icon-container svg {
+    filter: none !important;
+}
+/* SHIELD — glow cyan intensificado */
+body.quality-max #feedback-screen.shield .feedback-title {
     text-shadow:
         0 0 18px rgba(0,212,255,1),
         0 0 42px rgba(0,212,255,0.6) !important;
 }
-body.quality-max #feedback-icon-container svg {
+body.quality-max #feedback-screen.shield #feedback-icon-container svg {
     filter:
-        drop-shadow(0 0 14px rgba(var(--rank-rgb),1))
-        drop-shadow(0 0 32px rgba(var(--rank-rgb),0.55)) !important;
+        drop-shadow(0 0 14px rgba(0,212,255,1))
+        drop-shadow(0 0 32px rgba(0,212,255,0.55)) !important;
 }
-body.quality-max .feedback-points {
-    text-shadow: 0 0 14px rgba(var(--rank-rgb),0.7) !important;
+body.quality-max #feedback-screen.shield .feedback-points {
+    text-shadow: 0 0 10px rgba(0,212,255,0.6) !important;
 }
 body.quality-max .end-score-value {
     text-shadow:
@@ -1986,6 +2023,17 @@ body.quality-perf #streak-display { text-shadow:none!important; }
 body.quality-perf #timer-display  { text-shadow:none!important; }
 body.quality-perf .profile-rank-display { text-shadow:none!important; }
 body.quality-perf #feedback-icon-container svg { filter:none!important; }
+/* PERF: mantener colores de estado pero sin glows */
+body.quality-perf #feedback-screen.correct .feedback-title   { color: var(--rank-color) !important; }
+body.quality-perf #feedback-screen.correct #feedback-icon-container svg  { stroke: var(--rank-color) !important; }
+body.quality-perf #feedback-screen.incorrect .feedback-title { color: var(--accent-red) !important; }
+body.quality-perf #feedback-screen.incorrect #feedback-icon-container svg { stroke: var(--accent-red) !important; }
+body.quality-perf #feedback-screen.incorrect .feedback-points { color: var(--accent-red) !important; border-color: rgba(255,42,95,0.35) !important; }
+body.quality-perf #feedback-screen.timeout .feedback-title   { color: rgba(255,255,255,0.55) !important; }
+body.quality-perf #feedback-screen.timeout #feedback-icon-container svg  { stroke: rgba(255,255,255,0.55) !important; }
+body.quality-perf #feedback-screen.shield .feedback-title    { color: #00d4ff !important; }
+body.quality-perf #feedback-screen.shield #feedback-icon-container svg   { stroke: #00d4ff !important; }
+body.quality-perf #feedback-screen.shield .feedback-points   { color: #00d4ff !important; border-color: rgba(0,212,255,0.35) !important; }
 body.quality-perf .rank-card.is-me,
 body.quality-perf .ach-card.pinned,
 body.quality-perf .kp-node.unlocked,
