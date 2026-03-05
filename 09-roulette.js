@@ -83,9 +83,13 @@ const _origShowRoulette = typeof showRoulette !== 'undefined' ? showRoulette : n
 if (_origShowRoulette) {
     showRoulette = function() {
         _origShowRoulette.apply(this, arguments);
-        if (rlCanvas) { rlCanvas.width = window.innerWidth; rlCanvas.height = window.innerHeight; }
+        // Stop any existing loop before restarting
+        if (rlAnimFrame) { cancelAnimationFrame(rlAnimFrame); rlAnimFrame = null; }
+        if (!rlCanvas) rlCanvas = document.getElementById('roulette-particles-canvas');
+        if (rlCanvas) { rlCanvas.width = window.innerWidth || 320; rlCanvas.height = window.innerHeight || 568; }
         initRlParticles(currentRankInfo ? currentRankInfo.rgb : '255,184,0');
-        if (!rlAnimFrame) { rlThen = performance.now(); rlAnimFrame = requestAnimationFrame(animateRlParticles); }
+        rlThen = performance.now();
+        rlAnimFrame = requestAnimationFrame(animateRlParticles);
     };
 }
 
@@ -115,6 +119,8 @@ function closeRoulette() {
     const overlay = document.getElementById('roulette-overlay');
     overlay.classList.remove('active');
     rouletteActive = false; currentPrize = null; deckAnimating = false; isGamePaused = false;
+    // Stop particle animation loop
+    if (rlAnimFrame) { cancelAnimationFrame(rlAnimFrame); rlAnimFrame = null; }
     const _hint = hintActive;
     if (_hint) hintActive = false;
     switchScreen('question-screen');
