@@ -759,6 +759,7 @@ function openSettings() {
     initAudio(); SFX.click();
     playerStats.configViews = (playerStats.configViews||0) + 1;
     trackSectionVisit('settings');
+    playerStats._settingsOpenTime = Date.now(); // track for ui2
     saveStatsLocally(); checkAchievements();
     document.getElementById('op-music').value = playerStats.musicVol; document.getElementById('op-sfx').value = playerStats.sfxVol; 
     document.getElementById('op-particles').value = playerStats.particleOpacity; 
@@ -1564,25 +1565,10 @@ function _checkAchievementsImpl() {
     if (playerStats.totalTimeouts > 0) unlock('u3'); if (playerStats.totalTimeouts >= 50) unlock('u4'); 
     if (playerStats.todayGames >= 50) unlock('u22'); if ((playerStats.maxStreak||0) >= 25) unlock('u23');
     const rank = getRankInfo(playerStats).title; 
-    // También proyectar con el score actual de la partida en curso (si aplica)
-    // Esto evita que el logro se posponga hasta el siguiente checkAchievements post-partida
-    let projectedRank = rank;
-    if (typeof score !== 'undefined' && score > 0 && typeof currentQuestionIndex !== 'undefined') {
-        const proj = Object.assign({}, playerStats, {
-            totalScore: (playerStats.totalScore || 0) + score,
-            bestScore: Math.max(playerStats.bestScore || 0, score),
-            gamesPlayed: (playerStats.gamesPlayed || 0) + 1,
-            totalCorrect: (playerStats.totalCorrect || 0) + (currentQuestionIndex - (currentWrongAnswers||0) - (currentTimeoutAnswers||0)),
-            maxStreak: Math.max(playerStats.maxStreak || 0, currentMaxStreak || 0),
-            maxMult: Math.max(playerStats.maxMult || 1, multiplier || 1)
-        });
-        projectedRank = getRankInfo(proj).title;
-    }
-    const effectiveRank = [rank, projectedRank].includes('Mítico') ? 'Mítico'
-        : [rank, projectedRank].includes('Leyenda') ? 'Leyenda'
-        : [rank, projectedRank].includes('Maestro') ? 'Maestro'
-        : [rank, projectedRank].includes('Pro') ? 'Pro'
-        : [rank, projectedRank].includes('Junior') ? 'Junior' : 'Novato';
+    // Logros de rango: solo usar el rango REAL de playerStats (stats guardadas).
+    // NO proyectar con el score en curso para evitar otorgar logros de rango
+    // que se revocarían si el jugador abandona o pierde antes de terminar la partida.
+    const effectiveRank = rank;
     // Rank achievements: cada rango desbloquea todos los anteriores (escalera)
     if (effectiveRank==="Junior"||effectiveRank==="Pro"||effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico") unlock('u_junior');
     if (effectiveRank==="Pro"||effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico") unlock('u6'); 
@@ -1720,7 +1706,7 @@ function _checkAchievementsImpl() {
     // x10: Economía (20 preguntas sin perder vida) — in-game via inGameUnlock
     if((playerStats.x10Earned||false)) unlock('x10');
     if((playerStats.maxQuestionReached||0)>=100) unlock('u15');
-    if((playerStats.maxQuestionReached||0)>=60) unlock('np3');
+    if((playerStats.maxQuestionReached||0)>=59) unlock('np3');  // 60 preguntas = índice 59
 
     // VELOCIDAD Y REFLEJOS (por partida — tracked via persisted stats)
     if((playerStats.flashAnswersTotal||0)>=1) unlock('u13');
@@ -2449,7 +2435,7 @@ function updateRewardIndicator() {
     if (activeBoostNextQ === 'boost') { label = 'Puntos x2 activo'; icon = 'x2'; color = '#ffb800'; }
     else if (activeBoostNextQ === 'triple') { label = 'Turbo x3 activo'; icon = 'x3'; color = '#ccff00'; }
     else if (activeBoostNextQ === 'jackpot') { label = 'Jackpot x4 activo'; icon = 'x4'; color = '#ff0090'; }
-    else if (shieldActive) { label = 'Escudo activo'; icon = '🛡'; color = '#00d4ff'; }
+    else if (shieldActive) { label = 'Escudo activo'; icon = SVG_SHIELD; color = '#00d4ff'; }
     else if (hintActive) { label = 'Pista lista'; icon = '?'; color = '#f77f00'; }
     else if (extraTimeActive > 0) { label = `+${extraTimeActive}s de tiempo`; icon = '+t'; color = extraTimeActive >= 8 ? '#00ffcc' : '#00ff66'; }
     else if (streakShieldActive) { label = 'Racha protegida'; icon = 'R+'; color = '#aaaaff'; }
@@ -2487,7 +2473,20 @@ function closeRoulette() {
     }, 300);
 }
 
-function goToMainMenu() { SFX.click(); switchScreen('start-screen'); }
+function goToMainMenu() { 
+    SFX.click(); 
+    // ui2: Vuelvo en Un Segundo — sale de Configuración en <3 segundos
+    if (playerStats._settingsOpenTime && (Date.now() - playerStats._settingsOpenTime) < 3000) {
+        if (!playerStats.achievements.includes('ui2')) {
+            playerStats.achievements.push('ui2');
+            const ach = ACHIEVEMENTS_MAP.get('ui2');
+            if (ach) { setTimeout(() => { SFX.achievement(); showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon); }, 200); }
+            saveStatsDebounced();
+        }
+    }
+    playerStats._settingsOpenTime = 0;
+    switchScreen('start-screen'); 
+}
 
 function onLogoClick() {
     initAudio();
@@ -2511,6 +2510,26 @@ function trackSectionVisit(section) {
     if (!playerStats.allSectionsVisited && ALL_SECTIONS.every(s => playerStats.sectionsVisitedThisSession.includes(s))) {
         playerStats.allSectionsVisited = true;
     }
+    // ui10: El Circuito — navegar las 4 secciones en orden secuencial: profile→achievements→ranking→settings
+    const CIRCUIT_ORDER = ['profile', 'achievements', 'ranking', 'settings'];
+    if (!playerStats.achievements.includes('ui10')) {
+        if (!playerStats._circuitIdx) playerStats._circuitIdx = 0;
+        const expected = CIRCUIT_ORDER[playerStats._circuitIdx];
+        if (section === expected) {
+            playerStats._circuitIdx++;
+            if (playerStats._circuitIdx >= CIRCUIT_ORDER.length) {
+                playerStats._circuitIdx = 0;
+                playerStats.achievements.push('ui10');
+                const ach = ACHIEVEMENTS_MAP.get('ui10');
+                if (ach) { SFX.achievement(); showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon); }
+                saveStatsDebounced();
+            }
+        } else if (section === CIRCUIT_ORDER[0]) {
+            playerStats._circuitIdx = 1; // restart if going back to first
+        } else {
+            playerStats._circuitIdx = 0; // reset if out of order
+        }
+    }
 }
 
 function goToAchievements() { initAudio(); SFX.click(); playerStats.achViews++; trackSectionVisit('achievements'); saveStatsLocally(); checkAchievements(); renderAchievements(); switchScreen('achievements-screen'); const sc = document.getElementById('vscroll-container'); if(sc) sc.scrollTop = 0; }
@@ -2529,6 +2548,20 @@ function goToProfile(needsName = false) {
     SFX.click();
     playerStats.profileViews = (playerStats.profileViews||0) + 1;
     trackSectionVisit('profile');
+    // ui9: Revisa tu perfil inmediatamente después de un nuevo récord
+    if (playerStats._justSetRecord) {
+        playerStats._justSetRecord = false;
+        if (!playerStats.achievements.includes('ui9')) {
+            playerStats.achievements.push('ui9');
+            const ach = ACHIEVEMENTS_MAP.get('ui9');
+            if (ach) { SFX.achievement(); showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon); }
+        }
+    }
+    // ui5: El Perfil Importa — track visits after each of first 5 games
+    if ((playerStats.gamesPlayed||0) <= 5 && (playerStats.gamesPlayed||0) > 0) {
+        const key = `_profileAfterGame${playerStats.gamesPlayed}`;
+        if (!playerStats[key]) { playerStats[key] = true; playerStats.profileViewedAfterGames = (playerStats.profileViewedAfterGames||0) + 1; }
+    }
     document.getElementById('stat-games').innerText = playerStats.gamesPlayed; document.getElementById('stat-score').innerText = playerStats.bestScore.toLocaleString(); document.getElementById('stat-streak').innerText = playerStats.maxStreak; document.getElementById('stat-days').innerText = playerStats.maxLoginStreak;
     document.getElementById('profile-name-input').value = (playerStats.playerName === "JUGADOR") ? "" : playerStats.playerName;
     document.getElementById('profile-warning').style.opacity = needsName ? '1' : '0';
@@ -2672,21 +2705,44 @@ async function startGameCheck() {
         showToast('No se puede iniciar', 'Desactiva el modo Picture-in-Picture.', 'var(--accent-red)', SVG_SKULL);
         return;
     }
-    // 3. Pantalla dividida o ventana muy reducida (ancho < 30% del screenWidth indica split-screen)
-    const winRatio = window.innerWidth / window.screen.width;
-    if (winRatio < 0.45 && window.screen.width > 600) {
-        showToast('No se puede iniciar', 'Detectada pantalla dividida o ventana parcial. Abre el juego en pantalla completa.', 'var(--accent-red)', SVG_SKULL);
-        return;
-    }
-    // 4. DocumentPictureInPicture (Chrome API)
+    // 3. DocumentPictureInPicture (Chrome API)
     if (typeof documentPictureInPicture !== 'undefined' && documentPictureInPicture.window) {
         showToast('No se puede iniciar', 'Desactiva el modo Picture-in-Picture.', 'var(--accent-red)', SVG_SKULL);
         return;
     }
-    // 5. La ventana no tiene el foco (podría estar cubierta por otra ventana)
+    // 4. La ventana no tiene el foco (podría estar cubierta por otra ventana)
     if (!document.hasFocus()) {
         showToast('No se puede iniciar', 'El juego no tiene el foco. Haz clic en la ventana del juego.', 'var(--accent-red)', SVG_SKULL);
         return;
+    }
+    // 5. Pantalla dividida o ventana muy reducida
+    //    En desktop: innerWidth debe cubrir >= 55% de la pantalla
+    //    En mobile se omite (screen.width puede ser distorsionado por devicePixelRatio)
+    if (window.screen.width > 600) {
+        const wRatio = window.innerWidth / window.screen.width;
+        const hRatio = window.innerHeight / window.screen.height;
+        if (wRatio < 0.55) {
+            showToast('No se puede iniciar', 'Detectada pantalla dividida o ventana parcial. Maximiza el juego.', 'var(--accent-red)', SVG_SKULL);
+            return;
+        }
+        // Altura muy reducida también indica split horizontal o snap
+        if (hRatio < 0.45) {
+            showToast('No se puede iniciar', 'Detectada ventana demasiado pequeña. Maximiza el juego.', 'var(--accent-red)', SVG_SKULL);
+            return;
+        }
+    }
+    // 6. Detectar elementos superpuestos sobre el área de juego (overlays externos)
+    //    Comprobamos si el centro del botón de respuestas está tapado por otro elemento
+    const appEl = document.getElementById('app');
+    if (appEl) {
+        const rect = appEl.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const topEl = document.elementFromPoint(cx, cy);
+        if (topEl && !appEl.contains(topEl)) {
+            showToast('No se puede iniciar', 'Se detectó un elemento superpuesto sobre el juego.', 'var(--accent-red)', SVG_SKULL);
+            return;
+        }
     }
     // ── Fin detección ──────────────────────────────────────────────────────
 
@@ -3083,9 +3139,11 @@ function loadQuestion() {
     
     // Apply extra time from roulette
     let questionTime = TIMER_LIMIT;
-    // Preguntas largas (> 120 caracteres) reciben el doble de tiempo para facilitar la lectura
+    // Preguntas largas (> 120 chars) → 30s; medianas (80-120) → 20s
     if (currentQ.question && currentQ.question.length > 120) {
-        questionTime = TIMER_LIMIT * 2;
+        questionTime = 30;
+    } else if (currentQ.question && currentQ.question.length > 80) {
+        questionTime = 20;
     }
     // Guardar el tiempo límite de esta pregunta para normalizar el score
     currentQ._timeLimit = questionTime;
@@ -3097,21 +3155,12 @@ function loadQuestion() {
     const timerTotal = questionTime;
     const _timerStart = performance.now();
     let _timerLastTick = timeLeft;  // para detectar cuando hay que actualizar
-    let _timerPausedAt = 0;         // timestamp de cuando se pausó
-    let _timerPausedTotal = 0;      // ms totales de pausa acumulados
-    clearInterval(timerInterval); 
-    timerInterval = setInterval(() => { 
-        // Trackear tiempo de pausa (ruleta, modal, etc.)
-        if (isGamePaused) {
-            if (_timerPausedAt === 0) _timerPausedAt = performance.now();
-            return;
-        }
-        if (_timerPausedAt > 0) {
-            _timerPausedTotal += performance.now() - _timerPausedAt;
-            _timerPausedAt = 0;
-        }
-        // Tiempo real transcurrido descontando pausas (evita drift en mobile/tabs throttleados)
-        const elapsed = (performance.now() - _timerStart - _timerPausedTotal) / 1000;
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        // Timer 100% autónomo: no depende de isGamePaused.
+        // La ruleta pausa llamando clearInterval; al cerrar, loadQuestion recrea el timer.
+        // El modal de salir no toca el timer en absoluto.
+        const elapsed = (performance.now() - _timerStart) / 1000;
         const remaining = Math.max(0, timerTotal - Math.floor(elapsed));
         if (remaining === _timerLastTick) return; // sin cambio — evitar renders y ticks innecesarios
         _timerLastTick = remaining;
@@ -3178,16 +3227,16 @@ function handleTimeout() {
 }
 
 function abandonGame() {
-    if(lives <= 0) return; // partida ya terminada
+    if(lives <= 0) return;
     SFX.click();
-    isGamePaused = true;
-    clearInterval(timerInterval);
+    // El modal se muestra pero el timer y el juego siguen corriendo sin ninguna interrupción.
+    // isGamePaused permanece false — el interval no se detiene ni se limpia.
     document.getElementById('abandon-modal').classList.add('active');
 }
 
 function cancelAbandon() {
     SFX.click();
-    isGamePaused = false;
+    // Solo cerrar el modal. El juego nunca se detuvo.
     document.getElementById('abandon-modal').classList.remove('active');
 }
 
@@ -3275,13 +3324,19 @@ function showFeedback(isCorrect, isTimeout = false) {
         if (streak >= 10 && livesLostThisGame === 0) {
             inGameUnlock('np1', 'Examen de Oro', colors.yellow, SVG_SHIELD);
         }
-        if (streak > 0 && streak % 5 === 0) { playerStats.frenziesTriggered++; playerStats.currentFrenzyStreak = (playerStats.currentFrenzyStreak||0) + 1; frenziesThisGame++; if(frenziesThisGame > (playerStats.maxFrenziesInGame||0)) playerStats.maxFrenziesInGame = frenziesThisGame; }
+        if (streak > 0 && streak % 5 === 0) { 
+            playerStats.frenziesTriggered = (playerStats.frenziesTriggered||0) + 1;
+            playerStats.currentFrenzyStreak = (playerStats.currentFrenzyStreak||0) + 1; 
+            frenziesThisGame++; 
+            if(frenziesThisGame > (playerStats.maxFrenziesInGame||0)) playerStats.maxFrenziesInGame = frenziesThisGame; 
+        }
         if ((playerStats.currentFrenzyStreak||0) > (playerStats.maxFrenzyStreak||0)) playerStats.maxFrenzyStreak = playerStats.currentFrenzyStreak;
         // u5: Por los Pelos — acierta con exactamente 1 segundo
         if(timeLeft === 1) inGameUnlock('u5','Por los Pelos', colors.red, SVG_CLOCK);
         // u14: Calculador — acierta con 2-3 segundos
         if(timeLeft === 2 || timeLeft === 3) inGameUnlock('u14','Calculador', colors.blue, SVG_CLOCK);
-        // u9: Inmortal — 50 preguntas sin perder vida (uses currentQuestionIndex)
+        // u9: Inmortal — 50 preguntas sin perder vida
+        // currentQuestionIndex es 0-based, apunta a la pregunta ACTUAL que se acaba de responder
         if(currentQuestionIndex >= 49 && livesLostThisGame === 0) inGameUnlock('u9','Inmortal', colors.purple, SVG_SHIELD);
         // x10: Economía — 20 preguntas sin perder vida
         if(currentQuestionIndex >= 19 && livesLostThisGame === 0) { inGameUnlock('x10','Economía', colors.green, SVG_HEART); playerStats.x10Earned = true; }
@@ -3294,7 +3349,7 @@ function showFeedback(isCorrect, isTimeout = false) {
         // x19: Espectacular — 5 respuestas Flash <1 seg en partida
         if(lastSecondAnswers >= 5) { playerStats.flashInOneGame = true; inGameUnlock('x19','Espectacular', colors.yellow, SVG_BOLT); }
         // np3: Sin Límites — partida >60 preguntas
-        if(currentQuestionIndex >= 60) inGameUnlock('np3','Sin Límites', colors.purple, SVG_BOLT);
+        if(currentQuestionIndex >= 59) inGameUnlock('np3','Sin Límites', colors.purple, SVG_BOLT);
         // u15: Superviviente — 100 preguntas
         if(currentQuestionIndex >= 99) inGameUnlock('u15','Superviviente', colors.green, SVG_SHIELD);
         // u21: Metralleta — 10 seguidas <3 seg
@@ -3357,8 +3412,8 @@ function showFeedback(isCorrect, isTimeout = false) {
                 }
             };
             // u10: Desastre — pierde 3 vidas en las primeras 3 preguntas (index 0,1,2)
-            if(lives === 0 && currentQuestionIndex < 3) failUnlock('u10','Desastre', colors.dark, SVG_SKULL);
-            // u18: Suicida — pierde 3 vidas en <30 seg (primeras 2 preguntas máx = ≤30s)
+            if(lives === 0 && currentQuestionIndex <= 2) failUnlock('u10','Desastre', colors.dark, SVG_SKULL);
+            // u18: Suicida — pierde 3 vidas en muy pocas preguntas (índice 0 o 1)
             if(lives === 0 && currentQuestionIndex <= 1) failUnlock('u18','Suicida', colors.dark, SVG_SKULL);
             // u12: Tragedia — pierde última vida durante racha de 20+
             if(lives === 0 && currentMaxStreak >= 20) failUnlock('u12','Tragedia', colors.dark, SVG_INCORRECT);
@@ -3372,7 +3427,9 @@ function showFeedback(isCorrect, isTimeout = false) {
     updateStreakVisuals(); 
     switchScreen('feedback-screen'); 
     setTimeout(() => animateScore(score), 300); 
-    checkAchievements();
+    // Diferir checkAchievements durante partida para no bloquear el hilo principal
+    // (se ejecutará durante la pausa de feedback de 2000ms)
+    _deferredCheckAch();
     
     // Check roulette trigger: every 10 corrects (total this game)
     const shouldShowRoulette = isCorrect && totalCorrectThisGame >= nextRouletteTrigger;
@@ -3401,13 +3458,14 @@ function showFeedback(isCorrect, isTimeout = false) {
 function saveGameStats() {
     playerStats.gamesPlayed++; playerStats.todayGames++; playerStats.totalScore += score; 
     const prevBest = playerStats.bestScore || 0;
-    if(score > playerStats.bestScore) playerStats.bestScore = score; 
+    if(score > playerStats.bestScore) { playerStats.bestScore = score; playerStats._justSetRecord = true; } 
     if(currentMaxStreak > playerStats.maxStreak) playerStats.maxStreak = currentMaxStreak;
     if(score >= 100000) playerStats.maxScoreCount++;
     // x15: Punto de Quiebre — score exactamente 100k ±500 (tracked per-game, bestScore check alone fails once exceeded)
     if(score >= 99500 && score <= 100500) playerStats.hitExactly100k = true;
     if(!playerStats.maxQuestionReached || currentQuestionIndex > playerStats.maxQuestionReached) playerStats.maxQuestionReached = currentQuestionIndex;
-    if(currentQuestionIndex >= 50 && currentWrongAnswers === 0 && currentTimeoutAnswers === 0) playerStats.perfectGames = (playerStats.perfectGames||0) + 1;
+    // perfectGames: partida sin errores ni timeouts (≥10 preguntas respondidas — alcanzable)
+    if(currentQuestionIndex >= 10 && currentWrongAnswers === 0 && currentTimeoutAnswers === 0) playerStats.perfectGames = (playerStats.perfectGames||0) + 1;
     // x16: Regreso Triunfal — tras no jugar un día, supera su último récord
     if((playerStats.missedADay||false) && score > prevBest && prevBest > 0) playerStats.returnTriumph = (playerStats.returnTriumph||0) + 1;
     playerStats.missedADay = false; // reset once they play
@@ -3900,10 +3958,15 @@ function getKpState() {
             const s = JSON.parse(raw);
             if (!Array.isArray(s.claimed)) s.claimed = [];
             if (typeof s.perfectNoError !== 'number') s.perfectNoError = 0;
+            // Sync perfectNoError from playerStats if kpState is behind
+            // (handles cases where the saveGameStats patch didn't run or data migrated)
+            const psPerf = playerStats ? (playerStats.perfectGames||0) : 0;
+            if (psPerf > s.perfectNoError) s.perfectNoError = psPerf;
             return s;
         }
     } catch(e) {}
-    return { claimed: [], perfectNoError: 0 };
+    const psPerf = playerStats ? (playerStats.perfectGames||0) : 0;
+    return { claimed: [], perfectNoError: psPerf };
 }
 
 function saveKpState(state) {
@@ -4218,6 +4281,39 @@ _kpUpdateMenuBadge();
 
 
 setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); }, 500);
+
+// x2 Paciente: espera 10 segundos en la pantalla principal sin hacer nada
+(function() {
+    let _pacienteTimer = null;
+    function _startPacienteTimer() {
+        clearTimeout(_pacienteTimer);
+        const startScr = document.getElementById('start-screen');
+        if (!startScr || !startScr.classList.contains('active')) return;
+        _pacienteTimer = setTimeout(() => {
+            if (document.getElementById('start-screen').classList.contains('active')) {
+                if (!playerStats.achievements.includes('x2')) {
+                    playerStats.achievements.push('x2');
+                    saveStatsDebounced();
+                    const ach = ACHIEVEMENTS_MAP.get('x2');
+                    if (ach) { SFX.achievement(); showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon); }
+                    renderAchievements();
+                }
+            }
+        }, 10000);
+    }
+    // Observar cambios de pantalla: reiniciar timer al volver al menú
+    const _origSwitch = switchScreen;
+    switchScreen = function(id) {
+        _origSwitch.apply(this, arguments);
+        if (id === 'start-screen') {
+            setTimeout(_startPacienteTimer, 100);
+        } else {
+            clearTimeout(_pacienteTimer);
+        }
+    };
+    // Arrancar en la carga inicial si ya estamos en el menú
+    setTimeout(_startPacienteTimer, 600);
+})();
 
 // ══════════════════════════════════════════════════════════════════
 //  SERVICE WORKER — Auto-actualización con notificación visible
