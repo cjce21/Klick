@@ -57,7 +57,6 @@ if (!playerStats.uuid) playerStats.uuid = generateUUID();
     const newPtsTiers = [10000,50000,200000,500000,1000000,2500000,5000000,10000000];
     const newPfTiers  = [10,20,30,50,75,100,150,200];
     const newSkTiers  = [5,10,15,20,25,30,40,50];
-    const newHsCountTiers = [1,3,5,10,20,35,50,100];
 
     const toRevoke = [];
 
@@ -119,12 +118,7 @@ let _saveLastForced = 0;
 function saveStatsDebounced(force = false) {
     clearTimeout(_saveTimeout);
     const now = Date.now();
-    if (force) {
-        _saveLastForced = now;
-        saveStatsLocally();
-        return;
-    }
-    if ((now - _saveLastForced) > 10000) {
+    if (force || (now - _saveLastForced) > 10000) {
         _saveLastForced = now;
         saveStatsLocally();
         return;
@@ -137,7 +131,7 @@ window.addEventListener('beforeunload', () => {
     saveStatsLocally();
 });
 
-// --- Revocación de logros inválidos (bugs/errores de lógica) ---
+// --- Revocación de logros inválidos ---
 function revokeInvalidAchievements() {
     const before = playerStats.achievements.length;
     const toRevoke = new Set();
@@ -167,8 +161,10 @@ function revokeInvalidAchievements() {
         saveStatsLocally();
         const revokedCount = before - playerStats.achievements.length;
         if (revokedCount > 0) {
-            showToast('Logros Corregidos', `Se retiraron ${revokedCount} logro(s) concedido(s) por error.`, 'var(--accent-orange)', SVG_SHIELD);
-            renderAchievements();
+            if (typeof showToast === 'function' && typeof SVG_SHIELD !== 'undefined') {
+                showToast('Logros Corregidos', `Se retiraron ${revokedCount} logro(s) concedido(s) por error.`, 'var(--accent-orange)', SVG_SHIELD);
+            }
+            if (typeof renderAchievements === 'function') renderAchievements();
         }
     }
     return toRevoke.size;
@@ -192,6 +188,7 @@ function processDailyLogin() {
         playerStats.todayGames = 0;
         playerStats.dailyAchUnlocks = 0;
         playerStats.totalDaysPlayed = (playerStats.totalDaysPlayed || 0) + 1;
-        saveStatsLocally(); checkAchievements();
+        saveStatsLocally();
+        if (typeof checkAchievements === 'function') checkAchievements();
     }
 }
