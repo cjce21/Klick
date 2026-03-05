@@ -147,7 +147,14 @@ function goToRanking() {
     switchScreen('ranking-screen');
 }
 
-function goToMainMenu() { SFX.click(); switchScreen('start-screen'); }
+function goToMainMenu() {
+    SFX.click();
+    if (playerStats._settingsOpenedAt && (Date.now() - playerStats._settingsOpenedAt) < 3000) {
+        playerStats.quickSettingsExit = true;
+    }
+    playerStats._settingsOpenedAt = null;
+    switchScreen('start-screen');
+}
 
 function onLogoClick() {
     initAudio(); SFX.pcClick();
@@ -183,3 +190,116 @@ document.getElementById('profile-name-input').addEventListener('blur', function(
     playerStats.playerName = n || "JUGADOR";
     saveStatsLocally(); checkAchievements(); submitLeaderboard();
 });
+
+let _logoDotsCached = null;
+function updateLogoDots() {
+    document.documentElement.style.setProperty('--rank-rgb', currentRankInfo.rgb);
+    document.documentElement.style.setProperty('--rank-color', currentRankInfo.color);
+    const isLight = document.body.classList.contains('light-mode');
+    if (!_logoDotsCached || !_logoDotsCached.length) _logoDotsCached = document.querySelectorAll('.logo-dot');
+    const shadow = isLight ? 'none' : `0 0 15px rgba(${currentRankInfo.rgb}, 0.5)`;
+    for (let i = 0; i < _logoDotsCached.length; i++) {
+        _logoDotsCached[i].style.color = currentRankInfo.color;
+        _logoDotsCached[i].style.textShadow = shadow;
+    }
+    const favicon = document.getElementById('dynamic-favicon');
+    if (favicon) {
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgb(${currentRankInfo.rgb})' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'></polygon></svg>`;
+        favicon.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+    }
+}
+
+// goToKlickPass is defined in 10-klickpass.js
+
+function goToProfile(needsName = false) {
+    try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
+    SFX.click();
+    playerStats.profileViews = (playerStats.profileViews||0) + 1;
+    const gp = playerStats.gamesPlayed || 0;
+    if (gp > 0 && gp <= 5 && (playerStats._lastProfileViewAfterGame||0) < gp) {
+        playerStats._lastProfileViewAfterGame = gp;
+        playerStats.profileViewedAfterGames = (playerStats.profileViewedAfterGames||0) + 1;
+    }
+    if (playerStats._newBestScoreTime && (Date.now() - playerStats._newBestScoreTime) < 30000) {
+        playerStats.viewedProfileAfterRecord = true;
+        playerStats._newBestScoreTime = null;
+    }
+    trackSectionVisit('profile');
+    document.getElementById('stat-games').innerText = playerStats.gamesPlayed;
+    document.getElementById('stat-score').innerText = playerStats.bestScore.toLocaleString();
+    document.getElementById('stat-streak').innerText = playerStats.maxStreak;
+    document.getElementById('stat-days').innerText = playerStats.maxLoginStreak;
+    document.getElementById('profile-name-input').value = (playerStats.playerName === "JUGADOR") ? "" : playerStats.playerName;
+    document.getElementById('profile-warning').style.opacity = needsName ? '1' : '0';
+    currentRankInfo = getRankInfo(playerStats);
+    updateLogoDots();
+    document.getElementById('profile-rank-display').innerText = `Rango: ${currentRankInfo.title}`;
+    {
+        const isLight = document.body.classList.contains('light-mode');
+        document.getElementById('profile-rank-display').style.color = isLight ? darkenHex(currentRankInfo.color, 0.4) : currentRankInfo.color;
+    }
+    // Render PL panel
+    (function renderPLPanel(){
+        const s = playerStats;
+        const plBase   = Math.floor((s.totalScore||0)*0.05);
+        const plBest   = Math.floor((s.bestScore||0)*1.5);
+        const plStreak = (s.maxStreak||0)*200;
+        const plPerf   = (s.perfectGames||0)*1000;
+        const plAchs   = (s.achievements||[]).length*300;
+        const plAcc    = s.gamesPlayed>0 ? Math.floor(((s.totalCorrect||0)/(s.gamesPlayed*20))*5000) : 0;
+        const plTotal  = plBase+plBest+plStreak+plPerf+plAchs+plAcc;
+        const fmt = n => n.toLocaleString();
+        const totalAnswers = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
+        const accuracy = totalAnswers>0 ? Math.min(100,Math.round((s.totalCorrect||0)/totalAnswers*100)) : 0;
+        const plTotalEl = document.getElementById('pl-total');
+        if(plTotalEl){ plTotalEl.innerText=fmt(plTotal); plTotalEl.style.color=currentRankInfo.color; }
+        const plHeroEl = document.getElementById('pl-hero-total');
+        if(plHeroEl){ plHeroEl.innerText=fmt(plTotal); plHeroEl.style.color=currentRankInfo.color; }
+        const panel = document.getElementById('pl-panel');
+        if(panel) panel.style.borderColor=`rgba(${currentRankInfo.rgb},0.28)`;
+        const posEl=document.getElementById('pl-ranking-pos');
+        if(posEl) posEl.innerText=s.rankingPosition&&s.rankingPosition<999?`#${s.rankingPosition}`:'#—';
+        const rowsEl=document.getElementById('pl-rows');
+        if(!rowsEl) return;
+        const clrs=['var(--accent-blue)','var(--accent-yellow)','var(--accent-orange)','var(--accent-green)','var(--accent-purple)','var(--accent-red)'];
+        const rows=[
+            { label:'Puntaje acum.',      raw:fmt(s.totalScore||0),              factor:'× 0.05',   result:plBase,   color:clrs[0] },
+            { label:'Récord',             raw:fmt(s.bestScore||0),               factor:'× 1.5',    result:plBest,   color:clrs[1] },
+            { label:'Racha máxima',       raw:`${s.maxStreak||0} aciertos`,      factor:'× 200',    result:plStreak, color:clrs[2] },
+            { label:'Partidas perfectas', raw:`${s.perfectGames||0} partidas`,   factor:'× 1,000',  result:plPerf,   color:clrs[3] },
+            { label:'Logros',             raw:`${(s.achievements||[]).length} logros`, factor:'× 300', result:plAchs, color:clrs[4] },
+            { label:'Precisión',          raw:`${accuracy}%`,                    factor:'× 5,000',  result:plAcc,    color:clrs[5] },
+        ];
+        rowsEl.innerHTML = rows.map((r,i)=>`
+            <div class="pl-calc-row">
+                <span class="pl-calc-label" style="color:${r.color};">${r.label}</span>
+                <span class="pl-calc-val">${r.raw}</span>
+                <span class="pl-calc-factor">${r.factor}</span>
+                <span class="pl-calc-result" style="color:${r.color};">+${fmt(r.result)}</span>
+            </div>
+            ${i===rows.length-1?`<div class="pl-calc-divider"></div><div class="pl-calc-row" style="padding:6px 4px;">
+                <span style="font-size:0.7rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;grid-column:1/3;">Total PL</span>
+                <span></span>
+                <span style="font-size:clamp(0.8rem,1.5vw,0.95rem);font-weight:900;font-family:monospace;color:${currentRankInfo.color};text-align:right;">${fmt(plTotal)}</span>
+            </div>`:''}
+        `).join('');
+        const milestones=[10000,100000,1000000,5000000,10000000];
+        let nextMs=milestones.find(m=>m>plTotal)||10000000;
+        let prevMs=milestones[milestones.indexOf(nextMs)-1]||0;
+        const prog=Math.min(1,(plTotal-prevMs)/Math.max(1,nextMs-prevMs));
+        const pctRound=Math.round(prog*100);
+        setTimeout(()=>{
+            const bar=document.getElementById('pl-bar-total');
+            if(bar){ bar.style.width=pctRound+'%'; bar.style.background=currentRankInfo.color; }
+        },120);
+        const accEl=document.getElementById('pl-accuracy-pct');
+        if(accEl) accEl.innerText=`Precisión: ${accuracy}%`;
+    })();
+    renderAchievements();
+    switchScreen('profile-screen');
+    if (needsName) setTimeout(() => {
+        const inp = document.getElementById('profile-name-input');
+        inp.focus(); inp.classList.add('shake');
+        setTimeout(() => inp.classList.remove('shake'), 400);
+    }, 400);
+}
