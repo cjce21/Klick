@@ -32,7 +32,9 @@
     function _scheduleAutoReload() {
         const check = () => {
             const qs     = document.getElementById('question-screen');
-            const inGame = qs && qs.classList.contains('active') && typeof lives !== 'undefined' && lives > 0;
+            const livesVal = (typeof lives !== 'undefined') ? lives : 0;
+            const inGame = qs && qs.classList.contains('active') && livesVal > 0 &&
+                           (typeof isAnsweringAllowed !== 'undefined') && isAnsweringAllowed;
             if (!inGame) { window.location.reload(); }
             else         { setTimeout(check, 5000); }
         };
