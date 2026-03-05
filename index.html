@@ -292,8 +292,7 @@
             </div>
             <div>
                 <div id="player-name-display">JUGADOR</div>
-                <div id="lives-container">
-                    </div>
+                <div id="lives-container"></div>
             </div>
             <div>
                 <div id="multiplier-badge" class="multiplier-badge">x1</div>
@@ -348,6 +347,7 @@
             </div>
         </div>
     </div>
+
     <!-- ══════════════════════════════════════════════════════ KLICK PASS ══ -->
     <div id="klickpass-screen" class="screen nav-screen">
         <div class="top-nav">
@@ -472,7 +472,34 @@
         </div>
     </div>
 
-    <!-- Lógica principal: al final del body para acceder al DOM completo -->
-    <script src="script.js"></script>
+    <!-- ══════════════════════════════════════════════════════════════════
+         MÓDULOS JAVASCRIPT — cargados en orden estricto de dependencias
+         ══════════════════════════════════════════════════════════════════
+         01  seguridad / anti-trampas / UUID          (sin dependencias)
+         02  SVGs / constantes visuales               (sin dependencias)
+         03  estadísticas del jugador / localStorage  (depende: 01)
+         04  motor de audio / música / SFX            (depende: 03)
+         05  leaderboard / player card                (depende: 03, 04)
+         06  logros / checkAchievements               (depende: 03, 04, 05)
+         07  UI / pantallas / perfil / ajustes        (depende: 03, 04, 05, 06)
+         08  bucle de juego / preguntas               (depende: 03, 04, 05, 06, 07)
+         09  ruleta de recompensas                    (depende: 03, 04, 07, 08)
+         10  Klick Pass                               (depende: 03, 06, 07, 08)
+         11  virtual scroller de logros               (depende: 06)
+         12  service worker                           (sin dependencias de juego)
+         ══════════════════════════════════════════════════════════════════ -->
+    <script src="01-security.js"></script>
+    <script src="02-svgs.js"></script>
+    <script src="03-player-stats.js"></script>
+    <script src="04-audio.js"></script>
+    <script src="05-leaderboard.js"></script>
+    <script src="06-achievements.js"></script>
+    <script src="07-ui.js"></script>
+    <script src="08-game-loop.js"></script>
+    <script src="09-roulette.js"></script>
+    <script src="10-klickpass.js"></script>
+    <script src="11-virtual-scroller.js"></script>
+    <script src="12-service-worker.js"></script>
+
 </body>
 </html>
