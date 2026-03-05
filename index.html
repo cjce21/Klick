@@ -104,6 +104,29 @@
                         <input type="range" id="op-fps" min="0" max="4" step="1" value="2">
                     </div>
 
+                    <!-- Modo Rendimiento — ocupa las 2 columnas del grid -->
+                    <div class="setting-card glass-panel" id="perf-card" style="grid-column: 1/-1;">
+                        <div class="setting-header">
+                            <div class="setting-title-box">
+                                <div class="setting-icon" style="color: var(--text-primary);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                                </div>
+                                <div class="setting-label">Modo Rendimiento<div class="setting-desc" id="perf-desc">Reduce efectos visuales para eliminar el lag</div></div>
+                            </div>
+                            <span id="val-perf" class="setting-value">Off</span>
+                        </div>
+                        <div style="display:flex;gap:10px;">
+                            <div onclick="setPerfMode(false)" id="perf-off-btn" style="flex:1;padding:12px 15px;border-radius:var(--radius-md);border:1.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.07);cursor:pointer;text-align:center;transition:all 0.25s;">
+                                <div style="font-size:0.85rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;">Normal</div>
+                                <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:3px;">Todos los efectos activos</div>
+                            </div>
+                            <div onclick="setPerfMode(true)" id="perf-on-btn" style="flex:1;padding:12px 15px;border-radius:var(--radius-md);border:1.5px solid rgba(255,255,255,0.1);background:transparent;cursor:pointer;text-align:center;transition:all 0.25s;">
+                                <div style="font-size:0.85rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;">⚡ Rendimiento</div>
+                                <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:3px;">Sin blur · Sin glow · Sin lag</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Selector de Pistas — ocupa las 2 columnas del grid -->
                     <div class="setting-card glass-panel" style="grid-column: 1/-1;">
                         <div class="setting-header">
