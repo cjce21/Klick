@@ -1881,12 +1881,8 @@ body.quality-max .mult-x10 { animation: fq-x6 0.38s ease-in-out infinite !import
 @keyframes fq-x5  { 0%,100%{text-shadow:0 0 22px rgba(255,184,0,0.9);filter:hue-rotate(0deg);} 50%{text-shadow:0 0 44px rgba(255,184,0,1),0 0 72px rgba(255,42,95,0.7);filter:hue-rotate(22deg);} }
 @keyframes fq-x6  { 0%,100%{text-shadow:0 0 24px #fff,0 0 50px var(--rank-color);letter-spacing:0px;} 50%{text-shadow:0 0 38px #fff,0 0 76px var(--rank-color),0 0 110px rgba(var(--rank-rgb),0.4);letter-spacing:2px;} }
 /* Box-shadow glows */
-body.quality-max .ach-card.pinned {
-    box-shadow: 0 0 26px rgba(255,184,0,0.75), 0 0 50px rgba(255,184,0,0.28) !important;
-}
-body.quality-max .rank-card.is-me {
-    box-shadow: 0 0 20px rgba(var(--rank-rgb),0.28), 0 0 40px rgba(var(--rank-rgb),0.1) !important;
-}
+/* ach-card.pinned quality-max → see homogeneity block below */
+/* rank-card.is-me quality-max → see homogeneity block below */
 body.quality-max input[type=range]::-webkit-slider-thumb:hover {
     box-shadow: 0 0 22px rgba(var(--rank-rgb),0.95), 0 0 8px rgba(255,255,255,0.5) !important;
 }
@@ -1946,7 +1942,11 @@ body.quality-perf .toast-item,
 body.quality-perf .modal-overlay,
 body.quality-perf .pcard-panel,
 body.quality-perf .kp-header,
-body.quality-perf #roulette-overlay {
+body.quality-perf #roulette-overlay,
+body.quality-perf .rank-card,
+body.quality-perf .ach-card,
+body.quality-perf .stat-card,
+body.quality-perf .kp-card {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
 }
@@ -2193,17 +2193,14 @@ body.quality-max.light-mode .kp-header {
     border-bottom-color: rgba(0,0,0,0.08) !important;
 }
 
-/* ── MODO RENDIMIENTO — eliminar blur también en rank-card, ach-card ─────── */
+/* ── MODO RENDIMIENTO — backgrounds sólidos para rank-card, ach-card, stat-card ── */
+/* (backdrop-filter: none ya aplicado en la lista canónica de arriba)              */
 body.quality-perf .rank-card,
 body.quality-perf .stat-card {
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
     background: rgba(14,14,14,0.99) !important;
     box-shadow: none !important;
 }
 body.quality-perf .ach-card.unlocked {
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
     background: #181818 !important;
 }
 body.quality-perf.light-mode .rank-card { background: rgba(245,246,250,0.99) !important; }
