@@ -847,7 +847,8 @@ document.getElementById('op-sfx').addEventListener('input', (e) => {
     if(playerStats.sfxVol===0) playerStats.sfxSetTo0=true;
     saveStatsLocally(); _deferredCheckAch(); 
 });
-document.getElementById('op-particles').addEventListener('input', (e) => { 
+document.getElementById('op-particles').addEventListener('input', (e) => {
+    if (window._kPreset) return;
     playerStats.particleOpacity = parseFloat(e.target.value); 
     document.getElementById('val-particles').innerText = Math.round(playerStats.particleOpacity*100)+'%'; 
     if(playerStats.particleOpacity===0) playerStats.particles0=true;
@@ -857,7 +858,8 @@ document.getElementById('op-particles').addEventListener('input', (e) => {
     saveStatsLocally(); 
 });
 // unlock_cfg8 ya integrado en checkAchievements vía flags musicAt100 + particles100
-document.getElementById('op-fps').addEventListener('input', (e) => { 
+document.getElementById('op-fps').addEventListener('input', (e) => {
+    if (window._kPreset) return;
     playerStats.maxFps = FPS_VALUES[parseInt(e.target.value)]; 
     fpsInterval = 1000/playerStats.maxFps; _smoothDelta = fpsInterval; 
     document.getElementById('val-fps').innerText = playerStats.maxFps+' FPS'; 
@@ -866,10 +868,15 @@ document.getElementById('op-fps').addEventListener('input', (e) => {
     checkAchievements();
     saveStatsLocally(); 
 });
-// iOS Safari fallback: duplicate 'change' events for range sliders (fire when touch lifts)
+// iOS Safari fallback: 'change'→'input' para sliders táctiles.
+// window._kPreset previene que cambios programáticos de setQualityMode
+// disparen _onManualSliderChange y reviertan el modo recién aplicado a 'custom'.
 ['op-music','op-sfx','op-particles','op-fps'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('change', (e) => el.dispatchEvent(new Event('input', {bubbles:true})));
+    if (el) el.addEventListener('change', () => {
+        if (window._kPreset) return;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
 });
 
 function showToast(title, message, color, icon) {
@@ -2197,6 +2204,10 @@ function setQualityMode(mode, silent) {
     if (mode !== 'custom') {
         const preset = QUALITY_PRESETS[mode];
 
+        // Guard: previene que los listeners de sliders detecten estos cambios
+        // programáticos como interacción manual y reviertan el modo a 'custom'.
+        window._kPreset = true;
+
         // Apply FPS
         playerStats.maxFps = preset.fps;
         fpsInterval = 1000 / playerStats.maxFps;
@@ -2231,10 +2242,15 @@ function setQualityMode(mode, silent) {
             updateVolumes();
         }
 
+        // Levantar guard en el siguiente tick: los eventos 'change' de iOS se despachan
+        // de forma asíncrona tras el cambio de .value, así que un setTimeout(0) garantiza
+        // que ya se hayan procesado antes de permitir cambios manuales de nuevo.
+        setTimeout(() => { window._kPreset = false; }, 0);
+
         // Reinit particles to apply new count ceiling
         initParticles();
 
-        // Apply body classes for visual effects
+        // Aplicar body classes — inmediato, sin retardo
         _applyQualityBodyClasses(mode);
     }
 
