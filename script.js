@@ -3468,12 +3468,21 @@ function confirmAbandon() {
     isAnsweringAllowed = false;
     isGamePaused = false;
     clearInterval(timerInterval);
-    lives = 0; // marcar partida terminada para evitar estado corrupto
     _currentQuestion = null;
-    initAudio(); SFX.incorrect(); 
-    const penalty = 300; 
+
+    // Registrar la partida ANTES de penalizar el score y resetear el estado.
+    // Esto garantiza que perfectNoError, rachas, etc. se contabilicen correctamente
+    // incluso cuando el jugador abandona una partida perfecta.
+    if (currentQuestionIndex > 0) {
+        saveGameStats();
+    }
+
+    // Aplicar penalización de abandono al score acumulado (ya sumado en saveGameStats)
+    const penalty = 300;
     playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
-    saveStatsLocally(); submitLeaderboard(); 
+    lives = 0;
+    initAudio(); SFX.incorrect();
+    saveStatsLocally(); submitLeaderboard();
     showToast('Partida Abandonada', `Penalización de -300 pts.`, 'var(--text-secondary)', SVG_INCORRECT);
     document.getElementById('app').classList.remove('streak-active');
     streak = 0;
@@ -4551,19 +4560,22 @@ function goToKlickPass() {
 (function() {
     const _orig = saveGameStats;
     saveGameStats = function() {
-        // Capture values BEFORE calling original (original doesn't reset them)
-        const correct   = currentQuestionIndex - (currentWrongAnswers||0) - (currentTimeoutAnswers||0);
-        const isPerfect = (currentWrongAnswers||0) === 0 &&
-                          (currentTimeoutAnswers||0) === 0 &&
-                          correct >= 5;
+        // Capture values BEFORE calling original (original doesn't reset them).
+        // correctAnswered = preguntas respondidas correctamente en esta partida.
+        // currentQuestionIndex cuenta preguntas COMPLETADAS (incrementa tras cada feedback).
+        // wrongs y timeouts ya están registrados en sus contadores.
+        const wrongAns    = currentWrongAnswers  || 0;
+        const timeoutAns  = currentTimeoutAnswers || 0;
+        const correctAns  = currentQuestionIndex - wrongAns - timeoutAns;
+        const isPerfect   = wrongAns === 0 && timeoutAns === 0 && correctAns >= 5;
         _orig.apply(this, arguments);
-        // Now update kpState
+        // Actualizar kpState.perfectNoError si la partida fue perfecta
         if (isPerfect) {
             const kpSt = getKpState();
             kpSt.perfectNoError = (kpSt.perfectNoError || 0) + 1;
             saveKpState(kpSt);
         }
-        // Refresh badge after stats are saved
+        // Refrescar badge tras guardar
         setTimeout(_kpUpdateMenuBadge, 200);
     };
 })();
