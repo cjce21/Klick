@@ -2422,16 +2422,18 @@ body.quality-perf .rrank-bar-fill { transition: none; }
 
 /* ══════════════════════════════════════════════════════════════
    RANGOS — efectos de etiqueta en clasificación (solo rc-title)
+   + estilos de tarjeta CHRISTOPHER (pcard + leaderboard)
    ══════════════════════════════════════════════════════════════ */
 
 :root { --divinity-color-static: #c864ff; }
 
+/* Animación compartida: gradiente iridiscente */
 @keyframes divinity-text-slide {
     0%   { background-position: 0%   50%; }
     100% { background-position: 300% 50%; }
 }
 
-/* Divinidad */
+/* ── rc-title en leaderboard ─────────────────────────────────── */
 .rank-card.divinidad-card .rc-title {
     background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff);
     background-size: 300% 100%;
@@ -2441,17 +2443,15 @@ body.quality-perf .rrank-bar-fill { transition: none; }
     animation: divinity-text-slide 4s linear infinite;
     font-weight: 900;
 }
-/* Mítico */
 .rank-card.mitico-card .rc-title {
     color: #ffffff !important;
     font-weight: 900;
 }
-/* Leyenda */
 .rank-card.leyenda-card .rc-title {
     color: var(--accent-yellow) !important;
     font-weight: 900;
 }
-/* CHRISTOPHER */
+/* CHRISTOPHER — rc-title iridiscente */
 .rank-card.christopher-card .rc-title {
     background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff);
     background-size: 300% 100%;
@@ -2462,21 +2462,46 @@ body.quality-perf .rrank-bar-fill { transition: none; }
     font-weight: 900;
     letter-spacing: 2px;
 }
+
+/* ── pcard: nombre y etiqueta de CHRISTOPHER ─────────────────── */
+.pcard-big-name.christopher-name-gradient {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: divinity-text-slide 4s linear infinite;
+    text-shadow: none !important;
+}
+#pcard-chip-title.christopher-chip-gradient {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: divinity-text-slide 4s linear infinite;
+}
+
 /* quality-perf: sin animaciones */
 body.quality-perf .rank-card.divinidad-card .rc-title,
-body.quality-perf .rank-card.christopher-card .rc-title {
+body.quality-perf .rank-card.christopher-card .rc-title,
+body.quality-perf .pcard-big-name.christopher-name-gradient,
+body.quality-perf #pcard-chip-title.christopher-chip-gradient {
     animation: none !important;
     -webkit-text-fill-color: unset;
     background: none;
     color: var(--divinity-color-static) !important;
 }
+
 /* light mode */
 body.light-mode .rank-card.divinidad-card .rc-title,
-body.light-mode .rank-card.christopher-card .rc-title {
+body.light-mode .rank-card.christopher-card .rc-title,
+body.light-mode .pcard-big-name.christopher-name-gradient,
+body.light-mode #pcard-chip-title.christopher-chip-gradient {
     animation: none !important;
     -webkit-text-fill-color: unset;
     background: none;
     color: #6b0fa8 !important;
 }
-body.light-mode .rank-card.mitico-card .rc-title { color: #1a1a1a !important; }
+body.light-mode .rank-card.mitico-card .rc-title  { color: #1a1a1a !important; }
 body.light-mode .rank-card.leyenda-card .rc-title { color: #8a6200 !important; }
