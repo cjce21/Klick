@@ -1017,6 +1017,9 @@ body.light-mode .pcard-me-pill   { background: rgba(0,0,0,0.04); border-color: r
 .answer-btn.q-enter { animation: q-slide-in var(--q-dur, 0.38s) var(--ease-spring) var(--q-delay, 0s) both; }
 .answer-btn.q-exit  { animation: q-slide-out 0.18s ease-in var(--q-delay, 0s) both; }
 
+/* Pista de ruleta: clase que usa !important para sobrevivir al fill-mode de la animación */
+.answer-btn.hint-hidden { opacity: 0.18 !important; pointer-events: none !important; filter: grayscale(1) !important; }
+
 /* --- Pantalla de Pregunta --- */
 #question-screen { justify-content: space-between; }
 
