@@ -342,9 +342,9 @@ if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOP
     saveStatsLocally();
 })();
 
-// ── MIGRACIÓN v3: revoca logros otorgados con umbral incorrecto de 200 logros ──
-// Afecta: fin5, kpa10, master3, u_mitico — todos dependían de un total de 200 logros
-// cuando el total real del juego siempre fue 300. Se ejecuta UNA vez (flag migratedV3).
+// ── MIGRACIÓN v3: revoca logros otorgados con umbrales incorrectos (200 logros y escala de colección) ──
+// Afecta: fin5, kpa10, master3, u_mitico, y logros de escala de colección m9/m10/master1/master4/master5
+// cuyos umbrales se reajustaron para ser coherentes con el total real de 300 logros.
 // CHRISTOPHER nunca pierde logros.
 (function migrateAchievementsV3() {
     if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') return;
@@ -379,6 +379,31 @@ if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOP
         );
         if (!cumpleMitico) toRevoke.push('u_mitico');
     }
+
+    // ── Escala de colección reajustada ──────────────────────────────────────
+    // m9 subió de 50 → 25; m10 de 100 → 50; master1 de 50 → 75;
+    // master4 de 130 → 150; master5 de 155 → 200.
+    // Revocar solo si el jugador no alcanza el NUEVO umbral.
+    if (playerStats.achievements.includes('m9')      && normalAchs < 25)  toRevoke.push('m9');
+    if (playerStats.achievements.includes('m10')     && normalAchs < 50)  toRevoke.push('m10');
+    if (playerStats.achievements.includes('master1') && normalAchs < 75)  toRevoke.push('master1');
+    if (playerStats.achievements.includes('master4') && normalAchs < 150) toRevoke.push('master4');
+    if (playerStats.achievements.includes('master5') && normalAchs < 200) toRevoke.push('master5');
+
+    // ── pf9 subió de 200 a 300 ────────────────────────────────────────────
+    if (playerStats.achievements.includes('pf9') && (playerStats.maxQuestionReached||0) < 300) toRevoke.push('pf9');
+
+    // ── td2 (Asiduo): tiers subieron de [5,10,20,30,60] a [7,12,18,25,45] ─
+    const _v3TotalDays = playerStats.totalDaysPlayed||0;
+    const _v3Td2New=[7,12,18,25,45];
+    for(let i=0;i<5;i++) if(playerStats.achievements.includes(`td2${i+1}`) && _v3TotalDays<_v3Td2New[i]) toRevoke.push(`td2${i+1}`);
+
+    // ── ret (Fiel): tiers cambiaron de [3,7,15,30,60] a [3,8,20,40,75] ───
+    const _v3RetNew=[3,8,20,40,75];
+    for(let i=0;i<5;i++) if(playerStats.achievements.includes(`ret${i+1}`) && _v3TotalDays<_v3RetNew[i]) toRevoke.push(`ret${i+1}`);
+
+    // ── extra5 subió de 10 a 15 logros en un día ──────────────────────────
+    if (playerStats.achievements.includes('extra5') && (playerStats.dailyAchUnlocks||0) < 15) toRevoke.push('extra5');
 
     if (toRevoke.length > 0) {
         playerStats.achievements     = playerStats.achievements.filter(id => !toRevoke.includes(id));
@@ -511,6 +536,12 @@ function revokeInvalidAchievements() {
             (playerStats.maxMult||1)>=8 && _riaAcc>=85 && (playerStats.maxLoginStreak||0)>=30;
         if (!_riaMitico) toRevoke.add('u_mitico');
     }
+    // ── Escala de colección — umbrales reajustados ──────────────────────────
+    if (playerStats.achievements.includes('m9')      && _riaAchs < 25)  toRevoke.add('m9');
+    if (playerStats.achievements.includes('m10')     && _riaAchs < 50)  toRevoke.add('m10');
+    if (playerStats.achievements.includes('master1') && _riaAchs < 75)  toRevoke.add('master1');
+    if (playerStats.achievements.includes('master4') && _riaAchs < 150) toRevoke.add('master4');
+    if (playerStats.achievements.includes('master5') && _riaAchs < 200) toRevoke.add('master5');
 
     if (toRevoke.size > 0) {
         playerStats.achievements = playerStats.achievements.filter(id => !toRevoke.has(id));
@@ -1781,9 +1812,9 @@ const daysTiers  = [1,2,3,5,7,15,21,30,60,90];
 const daysTitles = ['Hola Mundo','Doble','Triple','Cinco','Semana Activa','Quincena','Tres Semanas','Un Mes','Bimestre','Trimestre Fuego'];
 for(let i=0;i<5;i++) addAchs([{ id:`d${i+1}`, title:daysTitles[i], desc:`Inicia sesión durante ${daysTiers[i]} días consecutivos.`, color:colors.green, icon:SVG_CLOCK }]);
 for(let i=5;i<10;i++) addAchs([{ id:`d${i+1}`, title:daysTitles[i], desc:`Juega en ${daysTiers[i]} días distintos en total.`, color:colors.green, icon:SVG_CLOCK }]);
-const totalDaysTiers=[5,10,20,30,60];
+const totalDaysTiers=[7,12,18,25,45];
 for(let i=0;i<5;i++) addAchs([{ id:`td2${i+1}`, title:`Asiduo ${i+1}`, desc:`Juega en ${totalDaysTiers[i]} días distintos en total.`, color:colors.green, icon:SVG_CLOCK }]);
-const returnDayTiers=[3,7,15,30,60];
+const returnDayTiers=[3,8,20,40,75];
 for(let i=0;i<5;i++) addAchs([{ id:`ret${i+1}`, title:`Fiel ${i+1}`, desc:`Regresa a jugar ${returnDayTiers[i]} días diferentes en total.`, color:colors.green, icon:SVG_HEART }]);
 addAchs([
     { id: 'x16', title: 'Regreso Triunfal', desc: 'Después de no jugar por un día, supera tu último récord.',           color: colors.yellow, icon: SVG_TROPHY },
@@ -1827,8 +1858,8 @@ for(let i=0;i<8;i++) addAchs([{ id:`sk${i+1}`, title:`Encadenado ${i+1}`, desc:`
 addAchs([
     { id: 'u23', title: 'Imparable', desc: 'Encadena una racha de 25 aciertos o más en una partida.', color: colors.yellow, icon: SVG_TARGET },
 ]);
-const multTiers=[2,3,4,5,6];
-for(let i=0;i<5;i++) addAchs([{ id:`mx${i+1}`, title:`Multiplicador x${multTiers[i]}`, desc:`Alcanza el multiplicador x${multTiers[i]} en una partida.`, color:colors.red, icon:SVG_FIRE }]);
+const multTiers=[2,3,4,5];
+for(let i=0;i<4;i++) addAchs([{ id:`mx${i+1}`, title:`Multiplicador x${multTiers[i]}`, desc:`Alcanza el multiplicador x${multTiers[i]} en una partida.`, color:colors.red, icon:SVG_FIRE }]);
 addAchs([
     { id: 'mx6',  title: 'Multiplicador x6',           desc: 'Alcanza el multiplicador x6 en una partida.',             color: colors.purple, icon: SVG_FIRE },
     { id: 'mx7',  title: 'Multiplicador x7',           desc: 'Alcanza el multiplicador x7 en una partida.',             color: colors.red,    icon: SVG_FIRE },
@@ -1974,8 +2005,8 @@ addAchs([
 // ─── 17. LOGROS META Y COLECCIÓN (m8–m10 + pins + productivo + day) ──────
 addAchs([
     { id: 'm8',  title: 'Coleccionista',  desc: 'Desbloquea 10 logros en total.',                                     color: colors.green,  icon: SVG_STAR },
-    { id: 'm9',  title: 'Completista',    desc: 'Alcanza el hito de 50 logros desbloqueados.',                        color: colors.orange, icon: SVG_STAR },
-    { id: 'm10', title: 'Centenario',     desc: 'Consigue 100 logros desbloqueados.',                                 color: colors.red,    icon: SVG_STAR },
+    { id: 'm9',  title: 'Completista',    desc: 'Alcanza el hito de 25 logros desbloqueados.',                        color: colors.orange, icon: SVG_STAR },
+    { id: 'm10', title: 'Dedicado',       desc: 'Consigue 50 logros desbloqueados.',                                  color: colors.red,    icon: SVG_STAR },
     { id: 'm7',  title: 'Diseñador',      desc: 'Fija tu primer logro en el perfil.',                                 color: colors.yellow, icon: SVG_STAR },
     { id: 'np2', title: 'Presumido',      desc: 'Fija 3 logros de color Rojo, Naranja o Dorado en tu perfil.',        color: colors.red,    icon: SVG_STAR },
 ]);
@@ -1984,7 +2015,7 @@ for(let i=0;i<5;i++) addAchs([{ id:`pin${i+1}`, title:`Curador ${i+1}`, desc:`Fi
 const dailyAchTiers=[1,3,5,8,12];
 for(let i=0;i<5;i++) addAchs([{ id:`da${i+1}`, title:`Productivo ${i+1}`, desc:`Desbloquea ${dailyAchTiers[i]} logros nuevos en un mismo día.`, color:colors.purple, icon:SVG_STAR }]);
 addAchs([
-    { id: 'extra5', title: 'Día Épico',  desc: 'Desbloquea 10 logros en un mismo día.',                               color: colors.purple, icon: SVG_STAR },
+    { id: 'extra5', title: 'Día Épico',  desc: 'Desbloquea 15 logros en un mismo día.',                               color: colors.purple, icon: SVG_STAR },
 ]);
 
 // ─── 18. CLASIFICACIÓN GLOBAL Y PODER (ranking + PL) ─────────────────────
@@ -2033,7 +2064,7 @@ addAchs([
 
 // ─── 24. EXPANSIÓN PREGUNTAS ALCANZADAS ──────────────────────────────────
 addAchs([
-    { id: 'pf9',  title: 'Sin Fin I',    desc: 'Llega a la pregunta 200 en una partida.',                               color: colors.green,  icon: SVG_BOLT },
+    { id: 'pf9',  title: 'Sin Fin I',    desc: 'Llega a la pregunta 300 en una partida.',                               color: colors.green,  icon: SVG_BOLT },
     { id: 'pf10', title: 'Sin Fin II',   desc: 'Llega a la pregunta 400 en una partida.',                               color: colors.orange, icon: SVG_BOLT },
     { id: 'pf11', title: 'Sin Fin III',  desc: 'Llega a la pregunta 800 en una partida.',                               color: colors.red,    icon: SVG_BOLT },
 ]);
@@ -2067,11 +2098,11 @@ addAchs([
 
 // ─── 21. MAESTROS DE COLECCIÓN (logros extremos de platino) ─────────────
 addAchs([
-    { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 50 logros en total.',                                  color: colors.yellow, icon: SVG_STAR },
-    { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 100 logros en total.',                                  color: colors.orange, icon: SVG_STAR },
-    { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 130 logros en total.',                                  color: colors.purple, icon: SVG_STAR },
-    { id: 'master5', title: 'A las Puertas', desc: 'Desbloquea 155 logros en total. El límite está a la vista.',      color: colors.yellow, icon: SVG_STAR },
-    { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea los 300 logros del juego. Eres absoluto.',            color: colors.red,    icon: SVG_STAR },
+    { id: 'master1', title: 'Ambicioso',    desc: 'Desbloquea 75 logros en total.',                                  color: colors.yellow, icon: SVG_STAR },
+    { id: 'master2', title: 'Centenario',   desc: 'Desbloquea 100 logros en total.',                                 color: colors.orange, icon: SVG_STAR },
+    { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 150 logros en total.',                                 color: colors.purple, icon: SVG_STAR },
+    { id: 'master5', title: 'A las Puertas',desc: 'Desbloquea 200 logros en total. El techo está a la vista.',      color: colors.yellow, icon: SVG_STAR },
+    { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea los 300 logros del juego. Eres absoluto.',           color: colors.red,    icon: SVG_STAR },
 ]);
 
 // ── Índice O(1) para lookup por ID ──────────────────────────────────────────
@@ -2157,12 +2188,12 @@ function _checkAchievementsImpl() {
     if (playerStats.nameChanges >= 1) unlock('m1'); if (playerStats.nameChanges >= 5) unlock('m2'); if (playerStats.nameChanges >= 20) unlock('m3');
     if (playerStats.achViews >= 1) unlock('m4'); if (playerStats.achViews >= 10) unlock('m5'); if (playerStats.achViews >= 50) unlock('m6');
     if (playerStats.pinnedAchievements.filter(id => id !== 'tramposo').length > 0) unlock('m7'); 
-    if (normalAchs >= 10) unlock('m8'); if (normalAchs >= 50) unlock('m9'); if (normalAchs >= 100) unlock('m10');
-    // Colección maestra — escalera coherente con el total real de 165 logros
-    if (normalAchs >= 50)  unlock('master1'); // Casi Dios
-    if (normalAchs >= 100) unlock('master2'); // Semidivino
-    if (normalAchs >= 130) unlock('master4'); // Leyenda Total
-    if (normalAchs >= 155) unlock('master5'); // A las Puertas
+    if (normalAchs >= 10) unlock('m8'); if (normalAchs >= 25) unlock('m9'); if (normalAchs >= 50) unlock('m10');
+    // Colección maestra — escalera coherente con el total real de 300 logros
+    if (normalAchs >= 75)  unlock('master1'); // Ambicioso
+    if (normalAchs >= 100) unlock('master2'); // Centenario
+    if (normalAchs >= 150) unlock('master4'); // Leyenda Total
+    if (normalAchs >= 200) unlock('master5'); // A las Puertas
     if (normalAchs >= 300) unlock('master3'); // Dios Klick — todos
     // ── Pantalla de Rangos ──────────────────────────────────────────
     const rv2 = playerStats.ranksViews||0;
@@ -2185,12 +2216,12 @@ function _checkAchievementsImpl() {
     const hsc = playerStats.maxScoreCount; for(let i=0;i<8;i++) if(hsc>=hsCountTiers[i]) unlock(`hs${i+1}`);
     const fr = playerStats.frenziesTriggered; for(let i=0;i<8;i++) if(fr>=frTiers[i]) unlock(`r${i+1}`);
     const pf = playerStats.maxQuestionReached||0; for(let i=0;i<8;i++) if(pf>=pfTiers[i]) unlock(`pf${i+1}`);
-    if(pf>=200) unlock('pf9'); if(pf>=400) unlock('pf10'); if(pf>=800) unlock('pf11');
+    if(pf>=300) unlock('pf9'); if(pf>=400) unlock('pf10'); if(pf>=800) unlock('pf11');
     const sp = playerStats.fastAnswersTotal; for(let i=0;i<8;i++) if(sp>=spdTiers[i]) unlock(`sp${i+1}`);
     if(sp>=2000) unlock('sp9'); if(sp>=5000) unlock('sp10'); if(sp>=10000) unlock('sp11');
     const ac = playerStats.totalCorrect; for(let i=0;i<8;i++) if(ac>=acTiers[i]) unlock(`ac${i+1}`);
     const sk = playerStats.maxStreak; for(let i=0;i<8;i++) if(sk>=strkTiers[i]) unlock(`sk${i+1}`);
-    const mx = playerStats.maxMult||1; for(let i=0;i<5;i++) if(mx>=multTiers[i]) unlock(`mx${i+1}`);
+    const mx = playerStats.maxMult||1; for(let i=0;i<4;i++) if(mx>=multTiers[i]) unlock(`mx${i+1}`);
     const rv = playerStats.rankingViews||0; for(let i=0;i<5;i++) if(rv>=rankVisTiers[i]) unlock(`rv${i+1}`);
     const cv = playerStats.configViews||0; for(let i=0;i<4;i++) if(cv>=cfgVisTiers[i]) unlock(`cv${i+1}`);
 
@@ -2280,7 +2311,7 @@ function _checkAchievementsImpl() {
     if(playerStats.nameChanges>=1 && playerStats.gamesPlayed>=1) unlock('ui7');
 
     const pvv = playerStats.profileViews||0; for(let i=0;i<5;i++) if(pvv>=profileVisTiers[i]) unlock(`pv${i+1}`);
-    const retv = playerStats.totalDaysPlayed||0; for(let i=0;i<5;i++) if(retv>=returnDayTiers[i]) unlock(`ret${i+1}`);
+    const retv = playerStats.totalDaysPlayed||0; const retTiers2=[3,8,20,40,75]; for(let i=0;i<5;i++) if(retv>=retTiers2[i]) unlock(`ret${i+1}`);
 
     const bsv = playerStats.bestScore||0; for(let i=0;i<8;i++) if(bsv>=bestScoreTiers[i]) unlock(`bs${i+1}`);
     const fts = playerStats.maxFrenzyStreak||0; for(let i=0;i<5;i++) if(fts>=frenzyTimeTiers[i]) unlock(`ft${i+1}`);
@@ -2315,8 +2346,8 @@ function _checkAchievementsImpl() {
     if((playerStats.maxQuestionReached||0)>=80) unlock('extra3');
     // extra4 Silencioso: 5 partidas con música en 0
     if((playerStats.gamesAtMusicZero||0)>=5) unlock('extra4');
-    // extra5 Coleccionista: 10 logros en un día
-    if((playerStats.dailyAchUnlocks||0)>=10) unlock('extra5');
+    // extra5 Día Épico: 15 logros en un día
+    if((playerStats.dailyAchUnlocks||0)>=15) unlock('extra5');
 
     if(playerStats.playedNocturno) unlock('fin1');
     if(playerStats.playedMadrugador) unlock('fin2');
@@ -2365,7 +2396,7 @@ function _checkAchievementsImpl() {
     const daTiers2=[1,3,5,8,12]; for(let i=0;i<5;i++) if(dau>=daTiers2[i]) unlock(`da${i+1}`);
 
     // ASIDUO (td2): same as totalDaysPlayed, was duplicate — now use separate threshold
-    const td2Tiers=[5,10,20,30,60]; for(let i=0;i<5;i++) if((playerStats.totalDaysPlayed||0)>=td2Tiers[i]) unlock(`td2${i+1}`);
+    const td2Tiers=[7,12,18,25,45]; for(let i=0;i<5;i++) if((playerStats.totalDaysPlayed||0)>=td2Tiers[i]) unlock(`td2${i+1}`);
 
     // REGRESO TRIUNFAL
     if((playerStats.returnTriumph||0)>=1) unlock('x16');
