@@ -2495,20 +2495,55 @@ body.light-mode #pcard-pl.christopher-pl-gradient {
     100% { transform: translateY(0px)  rotate(0deg); }
 }
 
-/* ── quality-normal y quality-max: fondo completo ──────────────── */
+/* ── quality-normal y quality-max: fondo nebulosa completo ────── */
+/* Negro sólido en la parte baja, sube degradándose a púrpura oscuro,
+   con manchas de nebulosa morada/azul en el centro y parte alta.     */
 #pcard-overlay.christopher-overlay::before {
     background:
-        radial-gradient(ellipse 100% 65% at 50% 0%,   #1e0048 0%, #0a0018 35%, transparent 68%),
-        radial-gradient(ellipse 55%  45% at 5%  100%,  #00142a 0%, transparent 60%),
-        radial-gradient(ellipse 45%  38% at 95% 90%,   #180038 0%, transparent 55%),
-        #02000a !important;
+        /* Base: negro abajo → púrpura oscuro arriba */
+        linear-gradient(to top,
+            #000000 0%,
+            #050010 20%,
+            #0d0025 45%,
+            #160038 70%,
+            #1a0040 100%) !important;
     animation: none !important;
 }
 #pcard-overlay.christopher-overlay::after {
     background:
-        radial-gradient(ellipse 80% 50% at 50% 5%,  rgba(160,80,255,0.20) 0%, transparent 55%),
-        radial-gradient(ellipse 45% 35% at 10% 88%, rgba(0,140,255,0.09)  0%, transparent 50%),
-        radial-gradient(ellipse 38% 30% at 90% 80%, rgba(180,50,255,0.08) 0%, transparent 50%) !important;
+        /* Nube principal — centro-izquierda arriba */
+        radial-gradient(ellipse 75% 55% at 35% 25%,
+            rgba(130,50,255,0.38) 0%,
+            rgba(90,20,200,0.18)  40%,
+            transparent 70%),
+        /* Nube secundaria — derecha arriba */
+        radial-gradient(ellipse 55% 40% at 80% 15%,
+            rgba(80,20,180,0.22)  0%,
+            rgba(40,0,120,0.10)   45%,
+            transparent 70%),
+        /* Acento cian muy sutil — esquina inferior izquierda */
+        radial-gradient(ellipse 40% 30% at 8% 85%,
+            rgba(0,100,200,0.10)  0%,
+            transparent 60%),
+        /* Velo general que refuerza la transición de color */
+        linear-gradient(to top,
+            transparent           0%,
+            rgba(80,0,180,0.08)  50%,
+            rgba(120,40,255,0.12) 100%) !important;
+    animation: none !important;
+}
+
+/* ── quality-perf: versión simplificada sin radial-gradients múltiples ── */
+body.quality-perf #pcard-overlay.christopher-overlay::before {
+    background: linear-gradient(to top,
+        #000000 0%,
+        #080018 40%,
+        #120030 100%) !important;
+    animation: none !important;
+}
+body.quality-perf #pcard-overlay.christopher-overlay::after {
+    background: radial-gradient(ellipse 70% 50% at 40% 20%,
+        rgba(120,40,255,0.25) 0%, transparent 65%) !important;
     animation: none !important;
 }
 
