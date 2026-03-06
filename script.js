@@ -629,27 +629,33 @@ function getActiveTrack() {
     return TRACK_CONFIGS[playerStats.selectedTrack || 'track_chill'] || TRACK_CONFIGS.track_chill;
 }
 
-// ── ARCHITECT TRACK — Música épica, melódica e intimidante ────────
-// Construida sobre el mismo engine de los otros tracks (scheduler,
-// pad, bajo, melodía). Tonalidad: La menor natural (Am).
-// BPM 58 — lento y solemne. Instrumentos: sine suave para la melodía
-// (flautín etéreo), pad de cuerdas sintéticas (sawtooth filtrado),
-// bajo profundo con envelope largo, y pulso grave cada 4 pasos.
+// ── ARCHITECT TRACK — Música épica, oscura y madura ───────────────
+// Estilo: ambient orquestal oscuro. Referencia de timbre: Hans Zimmer
+// (Interstellar, Inception). Sin melodía de flauta aguda. Sin percusión.
+// Todo en registro bajo y medio. Capas:
+//   1. Dron de órgano grave: triangle filtrado, notas muy largas
+//   2. Pad orquestal: 4 voces sawtooth muy filtradas y lentas
+//   3. Melodía de cuerda grave: triangle, notas largas, legato
+//   4. Contrapunto armónico: sine filtrado, responde a la melodía
+// Progresión: Dm → Bb → Gm → A (menor frigio con dominante — oscuro)
+// BPM 48 — paso de medio compás, todo muy pausado y solemne.
 // GainNode propio — no interfiere con masterMusicGain.
 
-// Progresión Am → G → F → Em  (4 acordes, épica clásica)
-// Cada nota es MIDI: Am=A3-C4-E4, G=G3-B3-D4, F=F3-A3-C4, Em=E3-G3-B3
+const _ARCH_BPM  = 48;
+const _ARCH_STEP = 60.0 / _ARCH_BPM / 2; // medio compás por step (muy lento)
+
+// Acordes en registro bajo. Solo notas en octavas 2–4.
+// Dm: D2-F2-A2-D3  Bb: Bb1-D2-F2-Bb2  Gm: G1-Bb1-D2-G2  A: A1-E2-A2-C#3
 const _ARCH_CHORDS = [
-    [57, 60, 64, 69],  // Am : A3 C4 E4 A4
-    [55, 59, 62, 67],  // G  : G3 B3 D4 G4
-    [53, 57, 60, 65],  // F  : F3 A3 C4 F4
-    [52, 55, 59, 64],  // Em : E3 G3 B3 E4
+    [38, 41, 45, 50],  // Dm : D2 F2 A2 D3
+    [34, 38, 41, 46],  // Bb : Bb1 D2 F2 Bb2
+    [31, 34, 38, 43],  // Gm : G1 Bb1 D2 G2
+    [33, 40, 45, 49],  // A  : A1 E2 A2 C#3
 ];
-// Melodía: notas MIDI (índice dentro del acorde + octava)
-// Diseñada como frase de 16 pasos que sube y baja con gracia
-const _ARCH_MELODY = [2,2,1,2, 3,2,1,0, 2,3,2,1, 0,1,2,1]; // índices en chord[]
-const _ARCH_BPM    = 58;
-const _ARCH_STEP   = 60.0 / _ARCH_BPM / 4;
+
+// Melodía de cuerda grave — 8 pasos, notas largas, una por step
+// Índice dentro del acorde, registro +12 (una octava arriba de las raíces)
+const _ARCH_MEL = [0, 2, 1, 3, 2, 0, 3, 1];
 
 let _architectMusicActive = false;
 let _architectMusicTimer  = null;
@@ -674,10 +680,10 @@ function startArchitectMusic() {
     const ag = _getArchitectGain();
     if (!ag) return;
     const t   = audioCtx.currentTime;
-    const vol = Math.max(playerStats.musicVol, 0.01) * 0.72;
+    const vol = Math.max(playerStats.musicVol, 0.01) * 0.68;
     ag.gain.cancelScheduledValues(t);
     ag.gain.setValueAtTime(0.0001, t);
-    ag.gain.linearRampToValueAtTime(vol, t + 1.2);
+    ag.gain.linearRampToValueAtTime(vol, t + 2.0); // fade-in largo, majestuoso
     _architectMusicActive = true;
     _architectMusicStep   = 0;
     _architectChordIdx    = 0;
@@ -693,7 +699,7 @@ function stopArchitectMusic() {
         const t = audioCtx.currentTime;
         _architectGain.gain.cancelScheduledValues(t);
         _architectGain.gain.setValueAtTime(_architectGain.gain.value, t);
-        _architectGain.gain.linearRampToValueAtTime(0.0001, t + 0.8);
+        _architectGain.gain.linearRampToValueAtTime(0.0001, t + 1.2);
     }
 }
 
@@ -702,11 +708,11 @@ function _architectTick() {
     if (audioCtx.state === 'suspended') {
         _architectMusicTimer = setTimeout(_architectTick, 80); return;
     }
-    while (_architectNextNote < audioCtx.currentTime + 0.22) {
+    while (_architectNextNote < audioCtx.currentTime + 0.25) {
         _architectPlayStep(_architectNextNote);
         _architectNextNote += _ARCH_STEP;
         _architectMusicStep++;
-        if (_architectMusicStep >= 16) {
+        if (_architectMusicStep >= 8) {
             _architectMusicStep = 0;
             _architectChordIdx  = (_architectChordIdx + 1) % _ARCH_CHORDS.length;
         }
@@ -719,93 +725,107 @@ function _architectPlayStep(t) {
     if (!ag) return;
     const step  = _architectMusicStep;
     const chord = _ARCH_CHORDS[_architectChordIdx];
-    const stepDur = _ARCH_STEP;
+    const dur   = _ARCH_STEP; // duración de un step
 
-    // ── Pulso grave (cada 4 pasos) — sine con pitch-drop suave ──
-    if (step % 4 === 0) {
-        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-        o.type = 'sine';
-        const baseFreq = midiToHz(chord[0] - 12);
-        o.frequency.setValueAtTime(baseFreq * 1.1, t);
-        o.frequency.exponentialRampToValueAtTime(baseFreq * 0.9, t + 0.5);
-        g.gain.setValueAtTime(0.42, t);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + stepDur * 3.8);
-        o.connect(g); g.connect(ag); o.start(t); o.stop(t + stepDur * 4);
-    }
-
-    // ── Bajo melódico (cada 2 pasos) — sine cálido ───────────────
-    if (step % 2 === 0) {
-        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-        const lp = audioCtx.createBiquadFilter();
-        o.type = 'sine';
-        o.frequency.setValueAtTime(midiToHz(chord[0] - 12), t);
-        lp.type = 'lowpass'; lp.frequency.value = 320;
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.linearRampToValueAtTime(0.28, t + 0.04);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + stepDur * 1.8);
-        o.connect(lp); lp.connect(g); g.connect(ag);
-        o.start(t); o.stop(t + stepDur * 2);
-    }
-
-    // ── Pad de cuerdas (cada 16 pasos = nuevo acorde) ────────────
+    // ── 1. DRON DE ÓRGANO GRAVE ──────────────────────────────────
+    // Solo en step 0 de cada acorde — nota muy larga, ocupa todo el compás
     if (step === 0) {
-        chord.forEach((note, i) => {
-            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        const totalDur = dur * 8; // dura los 8 pasos = un ciclo completo de acorde
+        // Tres armónicos del fundamental: fundamental, quinta, octava
+        const freqs = [
+            midiToHz(chord[0] - 12),       // fundamental -1 octava
+            midiToHz(chord[0] - 12) * 1.5, // quinta natural
+            midiToHz(chord[0]),             // fundamental
+        ];
+        const vols = [0.18, 0.09, 0.07];
+        freqs.forEach((freq, i) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
             const lp = audioCtx.createBiquadFilter();
-            o.type = 'sawtooth';
-            o.frequency.setValueAtTime(midiToHz(note), t);
-            // Ligero detune por voz → efecto ensemble
-            o.detune.setValueAtTime([-6, 4, -3, 7][i], t);
-            lp.type = 'lowpass'; lp.frequency.value = 900;
-            const padDur = stepDur * 16;
-            const vol    = [0.055, 0.040, 0.035, 0.028][i];
+            o.type = 'triangle'; // triangle: más cálido que sine, más oscuro que sawtooth
+            o.frequency.setValueAtTime(freq, t);
+            // Detune muy leve para crear batimiento (efecto de órgano vivo)
+            o.detune.setValueAtTime(i === 1 ? 3 : i === 2 ? -2 : 0, t);
+            lp.type = 'lowpass';
+            lp.frequency.value = 280 + i * 60; // filtro cada vez más abierto
+            lp.Q.value = 0.8;
             g.gain.setValueAtTime(0.0001, t);
-            g.gain.linearRampToValueAtTime(vol, t + 0.7);
-            g.gain.setValueAtTime(vol, t + padDur - 0.7);
-            g.gain.linearRampToValueAtTime(0.0001, t + padDur);
+            g.gain.linearRampToValueAtTime(vols[i], t + 1.8);
+            g.gain.setValueAtTime(vols[i], t + totalDur - 1.8);
+            g.gain.linearRampToValueAtTime(0.0001, t + totalDur);
             o.connect(lp); lp.connect(g); g.connect(ag);
-            o.start(t); o.stop(t + padDur + 0.05);
+            o.start(t); o.stop(t + totalDur + 0.1);
         });
     }
 
-    // ── Melodía (sine suave — flauta etérea) ─────────────────────
-    // Solo en pasos seleccionados para que respire; no en cada paso
-    const melodyActive = [0,2,4,6,8,10,12,14].includes(step);
-    if (melodyActive) {
-        const noteIdx  = _ARCH_MELODY[step];
-        const noteMidi = chord[noteIdx % chord.length] + 12; // octava alta
-        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    // ── 2. PAD ORQUESTAL ─────────────────────────────────────────
+    // También solo en step 0. Cuatro voces sawtooth muy filtradas.
+    // El filtro a 400Hz lo convierte en algo parecido a cuerdas.
+    if (step === 0) {
+        const padDur = dur * 8;
+        chord.forEach((note, i) => {
+            const o  = audioCtx.createOscillator();
+            const g  = audioCtx.createGain();
+            const lp = audioCtx.createBiquadFilter();
+            o.type = 'sawtooth';
+            o.frequency.setValueAtTime(midiToHz(note), t);
+            o.detune.setValueAtTime([-5, 3, -2, 6][i], t); // chorus sutil
+            lp.type = 'lowpass';
+            lp.frequency.setValueAtTime(380, t);
+            lp.frequency.linearRampToValueAtTime(520, t + 2.0); // abre lentamente
+            lp.Q.value = 1.2;
+            const vol = [0.048, 0.036, 0.030, 0.022][i];
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.linearRampToValueAtTime(vol, t + 2.5); // ataque muy lento = legato
+            g.gain.setValueAtTime(vol, t + padDur - 2.0);
+            g.gain.linearRampToValueAtTime(0.0001, t + padDur);
+            o.connect(lp); lp.connect(g); g.connect(ag);
+            o.start(t); o.stop(t + padDur + 0.1);
+        });
+    }
+
+    // ── 3. MELODÍA DE CUERDA GRAVE ───────────────────────────────
+    // Una nota por step, triangle filtrado. Registro medio-bajo.
+    // Legato: cada nota dura casi 2 steps para que se solapen.
+    {
+        const melIdx  = _ARCH_MEL[step];
+        const noteMidi = chord[melIdx % chord.length] + 12; // una octava sobre el pad
+        const melDur  = dur * 1.85; // ligeramente más larga que el step → legato
+        const o  = audioCtx.createOscillator();
+        const g  = audioCtx.createGain();
         const lp = audioCtx.createBiquadFilter();
-        o.type = 'sine';
+        o.type = 'triangle';
         o.frequency.setValueAtTime(midiToHz(noteMidi), t);
-        // Vibrato suave post-ataque
-        const vib = audioCtx.createOscillator(), vibG = audioCtx.createGain();
-        vib.frequency.value = 4.5;
-        vibG.gain.setValueAtTime(0, t);
-        vibG.gain.linearRampToValueAtTime(4, t + 0.15);
-        vib.connect(vibG); vibG.connect(o.frequency);
-        vib.start(t); vib.stop(t + stepDur * 2);
-        lp.type = 'lowpass'; lp.frequency.value = 3200;
-        const melDur = stepDur * 1.7;
+        // Portamento leve desde nota anterior (pequeño glide)
+        o.frequency.setValueAtTime(midiToHz(noteMidi) * 0.985, t);
+        o.frequency.linearRampToValueAtTime(midiToHz(noteMidi), t + 0.12);
+        lp.type = 'lowpass'; lp.frequency.value = 1100; lp.Q.value = 0.5;
         g.gain.setValueAtTime(0.0001, t);
-        g.gain.linearRampToValueAtTime(0.14, t + 0.06);
-        g.gain.setValueAtTime(0.14, t + melDur * 0.55);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + melDur);
+        g.gain.linearRampToValueAtTime(0.10, t + 0.08);
+        g.gain.setValueAtTime(0.10, t + melDur * 0.7);
+        g.gain.linearRampToValueAtTime(0.0001, t + melDur);
         o.connect(lp); lp.connect(g); g.connect(ag);
         o.start(t); o.stop(t + melDur + 0.05);
     }
 
-    // ── Campana suave en puntos clave (step 0 y 8) ───────────────
-    if (step === 0 || step === 8) {
-        const bellNote = chord[2] + 12;
-        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    // ── 4. CONTRAPUNTO ARMÓNICO ───────────────────────────────────
+    // Responde a la melodía en pasos alternos. Sine, una octava más abajo.
+    // Crea tensión/resolución sin ser percusivo.
+    if (step % 2 === 1) {
+        const cpIdx   = _ARCH_MEL[(step + 1) % 8]; // nota siguiente de la melodía
+        const cpMidi  = chord[cpIdx % chord.length]; // misma nota, sin +12
+        const cpDur   = dur * 1.5;
+        const o  = audioCtx.createOscillator();
+        const g  = audioCtx.createGain();
+        const lp = audioCtx.createBiquadFilter();
         o.type = 'sine';
-        o.frequency.setValueAtTime(midiToHz(bellNote), t);
+        o.frequency.setValueAtTime(midiToHz(cpMidi), t);
+        lp.type = 'lowpass'; lp.frequency.value = 600;
         g.gain.setValueAtTime(0.0001, t);
-        g.gain.linearRampToValueAtTime(0.09, t + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + stepDur * 5);
-        o.connect(g); g.connect(ag);
-        o.start(t); o.stop(t + stepDur * 5 + 0.05);
+        g.gain.linearRampToValueAtTime(0.055, t + 0.10);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + cpDur);
+        o.connect(lp); lp.connect(g); g.connect(ag);
+        o.start(t); o.stop(t + cpDur + 0.05);
     }
 }
 
