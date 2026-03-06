@@ -420,6 +420,11 @@ function revokeInvalidAchievements() {
     const before = playerStats.achievements.length;
     const toRevoke = new Set();
 
+    // Limpiar IDs huérfanos: logros que ya no existen en ACHIEVEMENTS_DATA
+    playerStats.achievements.forEach(id => {
+        if (id !== 'tramposo' && !ACHIEVEMENTS_MAP.has(id)) toRevoke.add(id);
+    });
+
     // fin1 (Nocturno): solo válido si se jugó en ese horario (flag real)
     if (!playerStats.playedNocturno && playerStats.achievements.includes('fin1')) toRevoke.add('fin1');
     // fin2 (Madrugador): solo válido si se jugó antes de las 6am (flag real)
@@ -2081,7 +2086,7 @@ function _checkAchievementsImpl() {
         }
     }
 
-    const normalAchs = playerStats.achievements.filter(id => id !== 'tramposo').length;
+    const normalAchs = playerStats.achievements.filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP.has(id)).length;
 
     // META
     if (playerStats.nameChanges >= 1) unlock('m1'); if (playerStats.nameChanges >= 5) unlock('m2'); if (playerStats.nameChanges >= 20) unlock('m3');
@@ -2333,7 +2338,7 @@ function _checkAchievementsImpl() {
             _vsDisplayPin = getAutoProfileAchs();
             _vsRefreshRows(newlyUnlocked.map(a => a.id));
             const progEl = document.getElementById('achievements-progress-text');
-            if (progEl) progEl.innerText = `Desbloqueados: ${_vsAchSet.size - (_vsAchSet.has('tramposo') ? 1 : 0)} / ${ACHIEVEMENTS_DATA.length}`;
+            if (progEl) progEl.innerText = `Desbloqueados: ${[...(_vsAchSet)].filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP.has(id)).length} / ${ACHIEVEMENTS_DATA.length}`;
         } else {
             renderAchievements();
         }
@@ -2592,7 +2597,7 @@ function renderAchievements() {
     }
 
     const el = document.getElementById('achievements-progress-text');
-    if (el) el.innerText = `Desbloqueados: ${_vsAchSet.size - (_vsAchSet.has('tramposo') ? 1 : 0)} / ${ACHIEVEMENTS_DATA.length}`;
+    if (el) el.innerText = `Desbloqueados: ${[...(_vsAchSet)].filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP.has(id)).length} / ${ACHIEVEMENTS_DATA.length}`;
 }
 
 // initializeAchievementsDOM y achCardElements ya no son necesarios con el virtual scroller
@@ -5294,12 +5299,20 @@ function renderRanks() {
         const iconColor  = isLocked ? 'rgba(255,255,255,0.22)' : `rgba(${rank.color},${isCurrent ? '1' : '0.75'})`;
         const iconSize   = isCurrent ? '22' : '18';
         const iconSvgRaw = RANK_ICONS[rank.title] || SVG_STAR;
-        // Inyectar color y tamaño en el SVG base
-        const badgeSvg   = iconSvgRaw
-            .replace('stroke="currentColor"', `stroke="${iconColor}"`)
-            .replace(/width="\d+"/, `width="${iconSize}"`)
-            .replace(/height="\d+"/, `height="${iconSize}"`)
-            || iconSvgRaw;
+        // Inyectar color y tamaño en el SVG base.
+        // Los SVGs de RANK_ICONS solo tienen viewBox (sin width/height),
+        // por eso se insertan los atributos directamente en la etiqueta <svg.
+        let badgeSvg = iconSvgRaw.replace('stroke="currentColor"', `stroke="${iconColor}"`);
+        if (/width="/.test(badgeSvg)) {
+            badgeSvg = badgeSvg.replace(/width="\d+"/, `width="${iconSize}"`);
+        } else {
+            badgeSvg = badgeSvg.replace('<svg ', `<svg width="${iconSize}" `);
+        }
+        if (/height="/.test(badgeSvg)) {
+            badgeSvg = badgeSvg.replace(/height="\d+"/, `height="${iconSize}"`);
+        } else {
+            badgeSvg = badgeSvg.replace('<svg ', `<svg height="${iconSize}" `);
+        }
 
         html += `
         <div class="rank-row ${statusClass}" data-rank="${rank.title}">
