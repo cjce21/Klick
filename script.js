@@ -1232,19 +1232,14 @@ async function fetchLeaderboard() {
             const miticoClass      = p.rankTitle === 'Mítico'    ? 'mitico-card'      : '';
             const christopherClass = isChristopher               ? 'christopher-card' : '';
             const titleColor = rankTitleColor(p.rankTitle);
-            // Para divinidad y christopher: el texto va dentro de un <span> con clase
-            // propia para que background-clip:text funcione aunque rank-card tenga contain.
-            const isGradientTitle = isChristopher || p.rankTitle === 'Divinidad';
-            const titleInner = isGradientTitle
-                ? `<span class="rc-title-grad">${rankTitle}</span>`
-                : rankTitle;
-            const titleStyle = isGradientTitle ? '' : `color:${titleColor}`;
+            // Christopher y Divinidad: el CSS maneja el color — no aplicar inline style
+            const titleStyle = (isChristopher || p.rankTitle === 'Divinidad') ? '' : `color:${titleColor}`;
 
             html += `<div class="rank-card ${meClass} ${divinidadClass} ${leyendaClass} ${miticoClass} ${christopherClass}" onclick="openPlayerCard(${index})" title="Ver perfil">
                 <div class="rc-pos">${displayPos}</div>
                 <div class="rc-info">
                     <div class="rc-name">${p.name}</div>
-                    <div class="rc-title" style="${titleStyle}">${titleInner}</div>
+                    <div class="rc-title" style="${titleStyle}">${rankTitle}</div>
                 </div>
                 <div class="rc-score">${p.powerLevel.toLocaleString()} <span>PL</span></div>
             </div>`;
@@ -1407,7 +1402,7 @@ function openPlayerCard(index) {
     overlay.style.setProperty('--pcard-color', color);
     overlay.style.setProperty('--pcard-rgb', rgb);
 
-    // Hero — nombre con gradiente animado para CHRISTOPHER
+    // Hero — nombre
     const nameEl = document.getElementById('pcard-big-name');
     nameEl.textContent = p.name;
     const len = p.name.length;
@@ -1416,10 +1411,11 @@ function openPlayerCard(index) {
               : len <= 12 ? 'clamp(1.5rem,6.5vw,3rem)'
               :              'clamp(1.1rem,5.5vw,2.4rem)';
     nameEl.style.fontSize = fs;
+    // christopher-name-gradient aplica color sólido #c864ff vía CSS (sin animación)
     if (isChristopherCard) {
+        nameEl.classList.add('christopher-name-gradient');
         nameEl.style.color = '';
         nameEl.style.textShadow = '';
-        nameEl.classList.add('christopher-name-gradient');
     } else {
         nameEl.classList.remove('christopher-name-gradient');
         nameEl.style.color = color;
