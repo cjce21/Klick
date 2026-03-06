@@ -629,33 +629,27 @@ function getActiveTrack() {
     return TRACK_CONFIGS[playerStats.selectedTrack || 'track_chill'] || TRACK_CONFIGS.track_chill;
 }
 
-// ── ARCHITECT TRACK — Motor de música exclusivo ───────────────────
-// Diseñado para sonar ÉPICO, INTIMIDANTE y DISTINTO a los otros tracks.
-// Instrumentos: percusión de ruido industrial, cuernos de guerra con
-// waveshaper (distorsión armónica), resonadores de tubo (square con Q alto),
-// pulsos sub-bajos con LFO de amplitud, y campanas de metal procesadas.
-// BPM lento y pesado (44). Tonalidad: Re menor frigio.
-// GainNode propio (_architectGain) — nunca toca masterMusicGain.
+// ── ARCHITECT TRACK — Música épica, melódica e intimidante ────────
+// Construida sobre el mismo engine de los otros tracks (scheduler,
+// pad, bajo, melodía). Tonalidad: La menor natural (Am).
+// BPM 58 — lento y solemne. Instrumentos: sine suave para la melodía
+// (flautín etéreo), pad de cuerdas sintéticas (sawtooth filtrado),
+// bajo profundo con envelope largo, y pulso grave cada 4 pasos.
+// GainNode propio — no interfiere con masterMusicGain.
 
-const _ARCH_BPM  = 44;                     // latido épico lento
-const _ARCH_STEP = 60.0 / _ARCH_BPM / 4;  // duración de un paso (corchea)
-// Progresión: Dm frigio — muy oscuro e intimidante
+// Progresión Am → G → F → Em  (4 acordes, épica clásica)
+// Cada nota es MIDI: Am=A3-C4-E4, G=G3-B3-D4, F=F3-A3-C4, Em=E3-G3-B3
 const _ARCH_CHORDS = [
-    [38, 45, 50, 53],   // Dm7: D2-A2-D3-F3
-    [36, 43, 48, 55],   // Cm7: C2-G2-C3-G3
-    [40, 47, 52, 57],   // Em7b5: E2-B2-E3-A3
-    [33, 40, 45, 52],   // Bb: Bb1-F2-Bb2-Eb3
+    [57, 60, 64, 69],  // Am : A3 C4 E4 A4
+    [55, 59, 62, 67],  // G  : G3 B3 D4 G4
+    [53, 57, 60, 65],  // F  : F3 A3 C4 F4
+    [52, 55, 59, 64],  // Em : E3 G3 B3 E4
 ];
-// Tabla de pasos: define qué eventos ocurren en cada step (0–31, 2 compases)
-const _ARCH_PAT = {
-    //             0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15  16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-    warHorn:      [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0,  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-    industrialHit:[1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0,  1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0],
-    subBoom:      [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-    metalBell:    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,  0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    tubePulse:    [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,  0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
-    droneChord:   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-};
+// Melodía: notas MIDI (índice dentro del acorde + octava)
+// Diseñada como frase de 16 pasos que sube y baja con gracia
+const _ARCH_MELODY = [2,2,1,2, 3,2,1,0, 2,3,2,1, 0,1,2,1]; // índices en chord[]
+const _ARCH_BPM    = 58;
+const _ARCH_STEP   = 60.0 / _ARCH_BPM / 4;
 
 let _architectMusicActive = false;
 let _architectMusicTimer  = null;
@@ -674,205 +668,16 @@ function _getArchitectGain() {
     return _architectGain;
 }
 
-// Waveshaper para distorsión armónica (cuernos de guerra)
-function _makeDistCurve(amount) {
-    const n = 256, curve = new Float32Array(n);
-    for (let i = 0; i < n; i++) {
-        const x = (i * 2) / n - 1;
-        curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x));
-    }
-    return curve;
-}
-
-// Percusión industrial: burst de ruido filtrado con envelope agresivo
-function _archIndustrialHit(t, ag) {
-    const sr  = audioCtx.sampleRate;
-    const dur = 0.18;
-    const buf = audioCtx.createBuffer(1, Math.ceil(sr * dur), sr);
-    const d   = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1);
-    const src = audioCtx.createBufferSource();
-    src.buffer = buf;
-
-    // Filtro bandpass para darle cuerpo metálico
-    const bp = audioCtx.createBiquadFilter();
-    bp.type = 'bandpass'; bp.frequency.value = 280; bp.Q.value = 3;
-
-    // Filtro highpass para el crujido de arriba
-    const hp = audioCtx.createBiquadFilter();
-    hp.type = 'highpass'; hp.frequency.value = 1800; hp.Q.value = 1;
-
-    const g1 = audioCtx.createGain();
-    g1.gain.setValueAtTime(0.9, t);
-    g1.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-
-    const g2 = audioCtx.createGain();
-    g2.gain.setValueAtTime(0.35, t);
-    g2.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.6);
-
-    src.connect(bp); bp.connect(g1); g1.connect(ag);
-    src.connect(hp); hp.connect(g2); g2.connect(ag);
-    src.start(t);
-}
-
-// Sub-boom: explosión sub-bass con pitch ramp muy dramático
-function _archSubBoom(t, midiNote, ag) {
-    const freq = midiToHz(midiNote);
-    const dur  = 1.8;
-
-    // Capa 1: oscilador principal con envelope de volumen dramático
-    const o1 = audioCtx.createOscillator();
-    const g1 = audioCtx.createGain();
-    o1.type = 'sine';
-    o1.frequency.setValueAtTime(freq * 1.5, t);
-    o1.frequency.exponentialRampToValueAtTime(freq * 0.5, t + 0.12);
-    o1.frequency.exponentialRampToValueAtTime(freq * 0.3, t + dur);
-    g1.gain.setValueAtTime(0.0001, t);
-    g1.gain.linearRampToValueAtTime(0.8, t + 0.015);
-    g1.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o1.connect(g1); g1.connect(ag); o1.start(t); o1.stop(t + dur + 0.05);
-
-    // Capa 2: armónico de refuerzo
-    const o2 = audioCtx.createOscillator();
-    const g2 = audioCtx.createGain();
-    o2.type = 'sine';
-    o2.frequency.setValueAtTime(freq * 2.5, t);
-    o2.frequency.exponentialRampToValueAtTime(freq, t + 0.08);
-    g2.gain.setValueAtTime(0.0001, t);
-    g2.gain.linearRampToValueAtTime(0.25, t + 0.01);
-    g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
-    o2.connect(g2); g2.connect(ag); o2.start(t); o2.stop(t + 0.45);
-
-    // Capa 3: ruido grave de impacto
-    const impBuf = audioCtx.createBuffer(1, Math.ceil(audioCtx.sampleRate * 0.06), audioCtx.sampleRate);
-    const impD   = impBuf.getChannelData(0);
-    for (let i = 0; i < impD.length; i++) impD[i] = (Math.random() * 2 - 1);
-    const impSrc = audioCtx.createBufferSource();
-    impSrc.buffer = impBuf;
-    const impF = audioCtx.createBiquadFilter();
-    impF.type = 'lowpass'; impF.frequency.value = 180;
-    const impG = audioCtx.createGain();
-    impG.gain.setValueAtTime(0.5, t);
-    impG.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
-    impSrc.connect(impF); impF.connect(impG); impG.connect(ag);
-    impSrc.start(t);
-}
-
-// Cuerno de guerra con waveshaper (distorsión armónica intensa)
-function _archWarHorn(t, midiNote, ag) {
-    const freq = midiToHz(midiNote);
-    const dur  = 2.4;
-
-    const osc = audioCtx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(freq * 0.98, t);
-    osc.frequency.linearRampToValueAtTime(freq, t + 0.15);
-
-    // Vibrato lento post-ataque
-    const vib = audioCtx.createOscillator();
-    const vibG = audioCtx.createGain();
-    vib.frequency.setValueAtTime(3.5, t);
-    vibG.gain.setValueAtTime(0, t);
-    vibG.gain.linearRampToValueAtTime(8, t + 0.4);
-    vib.connect(vibG); vibG.connect(osc.frequency);
-    vib.start(t); vib.stop(t + dur + 0.05);
-
-    // Filtro lowpass que se abre = sensación de ataque de cuerno
-    const filt = audioCtx.createBiquadFilter();
-    filt.type = 'lowpass';
-    filt.frequency.setValueAtTime(200, t);
-    filt.frequency.exponentialRampToValueAtTime(2200, t + 0.2);
-    filt.frequency.exponentialRampToValueAtTime(800, t + dur);
-    filt.Q.value = 2;
-
-    // Waveshaper — distorsión para riqueza armónica de cuerno de bronce
-    const ws = audioCtx.createWaveShaper();
-    ws.curve = _makeDistCurve(60);
-    ws.oversample = '4x';
-
-    const g = audioCtx.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.22, t + 0.12);
-    g.gain.setValueAtTime(0.22, t + dur - 0.4);
-    g.gain.linearRampToValueAtTime(0.0001, t + dur);
-
-    osc.connect(filt); filt.connect(ws); ws.connect(g); g.connect(ag);
-    osc.start(t); osc.stop(t + dur + 0.05);
-}
-
-// Campana de metal: oscilador square con resonador de alta Q (timbre metálico)
-function _archMetalBell(t, midiNote, ag) {
-    const dur = 3.5;
-    // Dos parciales con ratio inarmónico (sonido de metal real)
-    [[1.0, 0.14], [2.76, 0.07], [5.4, 0.035]].forEach(([ratio, vol]) => {
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        const f = audioCtx.createBiquadFilter();
-        o.type = 'square';
-        o.frequency.setValueAtTime(midiToHz(midiNote) * ratio, t);
-        f.type = 'bandpass';
-        f.frequency.setValueAtTime(midiToHz(midiNote) * ratio, t);
-        f.Q.value = 18;
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.linearRampToValueAtTime(vol, t + 0.005);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + dur * (1 - ratio * 0.08));
-        o.connect(f); f.connect(g); g.connect(ag);
-        o.start(t); o.stop(t + dur + 0.05);
-    });
-}
-
-// Pulso de tubo resonante: square estrecho, sensación de tubería orgánica
-function _archTubePulse(t, midiNote, ag) {
-    const dur  = _ARCH_STEP * 0.9;
-    const freq = midiToHz(midiNote - 12);
-    const o = audioCtx.createOscillator();
-    const f = audioCtx.createBiquadFilter();
-    const g = audioCtx.createGain();
-    o.type = 'square';
-    o.frequency.setValueAtTime(freq, t);
-    f.type = 'bandpass'; f.frequency.setValueAtTime(freq * 2, t); f.Q.value = 8;
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.06, t + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(f); f.connect(g); g.connect(ag);
-    o.start(t); o.stop(t + dur + 0.02);
-}
-
-// Acorde dron de cuerdas procesadas: sawtooth x4 ligeramente desafinados
-function _archDroneChord(t, chord, ag) {
-    const dur = _ARCH_STEP * 32; // dura dos compases
-    chord.forEach((note, i) => {
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        const f = audioCtx.createBiquadFilter();
-        const ws = audioCtx.createWaveShaper();
-        o.type = 'sawtooth';
-        o.frequency.setValueAtTime(midiToHz(note), t);
-        // Cada voz ligeramente desafinada → efecto ensemble/chorus
-        o.detune.setValueAtTime([-8, 5, -3, 10][i], t);
-        // Waveshaper suave para agregar calor
-        ws.curve = _makeDistCurve(20);
-        f.type = 'lowpass'; f.frequency.setValueAtTime(600, t);
-        const vol = [0.10, 0.07, 0.06, 0.05][i];
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.linearRampToValueAtTime(vol, t + 1.5);
-        g.gain.setValueAtTime(vol, t + dur - 1.5);
-        g.gain.linearRampToValueAtTime(0.0001, t + dur);
-        o.connect(ws); ws.connect(f); f.connect(g); g.connect(ag);
-        o.start(t); o.stop(t + dur + 0.1);
-    });
-}
-
 function startArchitectMusic() {
     if (!audioCtx) { try { initAudio(); } catch(e) { return; } }
     if (!audioCtx) return;
     const ag = _getArchitectGain();
     if (!ag) return;
-    const t = audioCtx.currentTime;
-    const vol = Math.max(playerStats.musicVol, 0.01) * 0.7;
+    const t   = audioCtx.currentTime;
+    const vol = Math.max(playerStats.musicVol, 0.01) * 0.72;
     ag.gain.cancelScheduledValues(t);
     ag.gain.setValueAtTime(0.0001, t);
-    ag.gain.linearRampToValueAtTime(vol, t + 1.0);
+    ag.gain.linearRampToValueAtTime(vol, t + 1.2);
     _architectMusicActive = true;
     _architectMusicStep   = 0;
     _architectChordIdx    = 0;
@@ -888,7 +693,7 @@ function stopArchitectMusic() {
         const t = audioCtx.currentTime;
         _architectGain.gain.cancelScheduledValues(t);
         _architectGain.gain.setValueAtTime(_architectGain.gain.value, t);
-        _architectGain.gain.linearRampToValueAtTime(0.0001, t + 0.6);
+        _architectGain.gain.linearRampToValueAtTime(0.0001, t + 0.8);
     }
 }
 
@@ -897,12 +702,11 @@ function _architectTick() {
     if (audioCtx.state === 'suspended') {
         _architectMusicTimer = setTimeout(_architectTick, 80); return;
     }
-    const AHEAD = 0.22;
-    while (_architectNextNote < audioCtx.currentTime + AHEAD) {
-        _architectDoStep(_architectNextNote);
+    while (_architectNextNote < audioCtx.currentTime + 0.22) {
+        _architectPlayStep(_architectNextNote);
         _architectNextNote += _ARCH_STEP;
         _architectMusicStep++;
-        if (_architectMusicStep >= 32) {
+        if (_architectMusicStep >= 16) {
             _architectMusicStep = 0;
             _architectChordIdx  = (_architectChordIdx + 1) % _ARCH_CHORDS.length;
         }
@@ -910,18 +714,99 @@ function _architectTick() {
     _architectMusicTimer = setTimeout(_architectTick, 20);
 }
 
-function _architectDoStep(t) {
+function _architectPlayStep(t) {
     const ag    = _getArchitectGain();
     if (!ag) return;
     const step  = _architectMusicStep;
     const chord = _ARCH_CHORDS[_architectChordIdx];
+    const stepDur = _ARCH_STEP;
 
-    if (_ARCH_PAT.warHorn[step])       _archWarHorn(t, chord[0] + 12, ag);
-    if (_ARCH_PAT.industrialHit[step]) _archIndustrialHit(t, ag);
-    if (_ARCH_PAT.subBoom[step])       _archSubBoom(t, chord[0], ag);
-    if (_ARCH_PAT.metalBell[step])     _archMetalBell(t, chord[2] + 24, ag);
-    if (_ARCH_PAT.tubePulse[step])     _archTubePulse(t, chord[1], ag);
-    if (_ARCH_PAT.droneChord[step])    _archDroneChord(t, chord, ag);
+    // ── Pulso grave (cada 4 pasos) — sine con pitch-drop suave ──
+    if (step % 4 === 0) {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine';
+        const baseFreq = midiToHz(chord[0] - 12);
+        o.frequency.setValueAtTime(baseFreq * 1.1, t);
+        o.frequency.exponentialRampToValueAtTime(baseFreq * 0.9, t + 0.5);
+        g.gain.setValueAtTime(0.42, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + stepDur * 3.8);
+        o.connect(g); g.connect(ag); o.start(t); o.stop(t + stepDur * 4);
+    }
+
+    // ── Bajo melódico (cada 2 pasos) — sine cálido ───────────────
+    if (step % 2 === 0) {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        const lp = audioCtx.createBiquadFilter();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(midiToHz(chord[0] - 12), t);
+        lp.type = 'lowpass'; lp.frequency.value = 320;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(0.28, t + 0.04);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + stepDur * 1.8);
+        o.connect(lp); lp.connect(g); g.connect(ag);
+        o.start(t); o.stop(t + stepDur * 2);
+    }
+
+    // ── Pad de cuerdas (cada 16 pasos = nuevo acorde) ────────────
+    if (step === 0) {
+        chord.forEach((note, i) => {
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            const lp = audioCtx.createBiquadFilter();
+            o.type = 'sawtooth';
+            o.frequency.setValueAtTime(midiToHz(note), t);
+            // Ligero detune por voz → efecto ensemble
+            o.detune.setValueAtTime([-6, 4, -3, 7][i], t);
+            lp.type = 'lowpass'; lp.frequency.value = 900;
+            const padDur = stepDur * 16;
+            const vol    = [0.055, 0.040, 0.035, 0.028][i];
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.linearRampToValueAtTime(vol, t + 0.7);
+            g.gain.setValueAtTime(vol, t + padDur - 0.7);
+            g.gain.linearRampToValueAtTime(0.0001, t + padDur);
+            o.connect(lp); lp.connect(g); g.connect(ag);
+            o.start(t); o.stop(t + padDur + 0.05);
+        });
+    }
+
+    // ── Melodía (sine suave — flauta etérea) ─────────────────────
+    // Solo en pasos seleccionados para que respire; no en cada paso
+    const melodyActive = [0,2,4,6,8,10,12,14].includes(step);
+    if (melodyActive) {
+        const noteIdx  = _ARCH_MELODY[step];
+        const noteMidi = chord[noteIdx % chord.length] + 12; // octava alta
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        const lp = audioCtx.createBiquadFilter();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(midiToHz(noteMidi), t);
+        // Vibrato suave post-ataque
+        const vib = audioCtx.createOscillator(), vibG = audioCtx.createGain();
+        vib.frequency.value = 4.5;
+        vibG.gain.setValueAtTime(0, t);
+        vibG.gain.linearRampToValueAtTime(4, t + 0.15);
+        vib.connect(vibG); vibG.connect(o.frequency);
+        vib.start(t); vib.stop(t + stepDur * 2);
+        lp.type = 'lowpass'; lp.frequency.value = 3200;
+        const melDur = stepDur * 1.7;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(0.14, t + 0.06);
+        g.gain.setValueAtTime(0.14, t + melDur * 0.55);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + melDur);
+        o.connect(lp); lp.connect(g); g.connect(ag);
+        o.start(t); o.stop(t + melDur + 0.05);
+    }
+
+    // ── Campana suave en puntos clave (step 0 y 8) ───────────────
+    if (step === 0 || step === 8) {
+        const bellNote = chord[2] + 12;
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(midiToHz(bellNote), t);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(0.09, t + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + stepDur * 5);
+        o.connect(g); g.connect(ag);
+        o.start(t); o.stop(t + stepDur * 5 + 0.05);
+    }
 }
 
 function startMusicEngine() {
@@ -1326,15 +1211,20 @@ async function fetchLeaderboard() {
             const leyendaClass     = p.rankTitle === 'Leyenda'   ? 'leyenda-card'     : '';
             const miticoClass      = p.rankTitle === 'Mítico'    ? 'mitico-card'      : '';
             const christopherClass = isChristopher               ? 'christopher-card' : '';
-            const titleColor       = rankTitleColor(p.rankTitle);
-            // Para divinidad y christopher NO aplicar inline color — el CSS maneja el gradiente
-            const titleStyle = (isChristopher || p.rankTitle === 'Divinidad') ? '' : `color:${titleColor}`;
+            const titleColor = rankTitleColor(p.rankTitle);
+            // Para divinidad y christopher: el texto va dentro de un <span> con clase
+            // propia para que background-clip:text funcione aunque rank-card tenga contain.
+            const isGradientTitle = isChristopher || p.rankTitle === 'Divinidad';
+            const titleInner = isGradientTitle
+                ? `<span class="rc-title-grad">${rankTitle}</span>`
+                : rankTitle;
+            const titleStyle = isGradientTitle ? '' : `color:${titleColor}`;
 
             html += `<div class="rank-card ${meClass} ${divinidadClass} ${leyendaClass} ${miticoClass} ${christopherClass}" onclick="openPlayerCard(${index})" title="Ver perfil">
                 <div class="rc-pos">${displayPos}</div>
                 <div class="rc-info">
                     <div class="rc-name">${p.name}</div>
-                    <div class="rc-title" style="${titleStyle}">${rankTitle}</div>
+                    <div class="rc-title" style="${titleStyle}">${titleInner}</div>
                 </div>
                 <div class="rc-score">${p.powerLevel.toLocaleString()} <span>PL</span></div>
             </div>`;
@@ -1632,57 +1522,32 @@ const _ARCHITECT_RUNES = ['⬡','◈','⟁','⬢','◉','⌬','⎔','◇','⟐',
 
 function _spawnArchitectRunes(overlay) {
     _clearArchitectRunes(overlay);
-
-    // ── Coronas giratorias ────────────────────────────────────────
-    const c1 = document.createElement('div');
-    c1.className = 'arch-corona-1';
-    overlay.appendChild(c1);
-
-    const c2 = document.createElement('div');
-    c2.className = 'arch-corona-2';
-    overlay.appendChild(c2);
-
-    // ── Línea de escaneo ─────────────────────────────────────────
-    const scan = document.createElement('div');
-    scan.className = 'arch-scan';
-    overlay.appendChild(scan);
-
-    // ── Runas flotantes ───────────────────────────────────────────
-    const count = 16;
+    const count = 12;
     for (let i = 0; i < count; i++) {
         const el = document.createElement('div');
         el.className = 'architect-rune';
         el.textContent = _ARCHITECT_RUNES[i % _ARCHITECT_RUNES.length];
-
-        // Posición: evitar zona central (donde está la tarjeta)
-        const side = Math.random() < 0.5 ? 'left' : 'right';
-        el.style.left = side === 'left'
-            ? (Math.random() * 18 + 1) + '%'
-            : (Math.random() * 18 + 81) + '%';
-        el.style.top  = (Math.random() * 88 + 4) + '%';
-
-        // Tres tiers de tamaño
-        const tier = Math.random();
-        const size = tier > 0.72 ? (2.4 + Math.random() * 1.6).toFixed(1)
-                   : tier > 0.35 ? (1.3 + Math.random() * 0.9).toFixed(1)
-                   :               (0.7 + Math.random() * 0.5).toFixed(1);
+        // Solo en los laterales — no invaden la tarjeta central
+        const onLeft = i % 2 === 0;
+        el.style.left = onLeft
+            ? (Math.random() * 14 + 1) + '%'
+            : (Math.random() * 14 + 85) + '%';
+        el.style.top = (6 + Math.random() * 86) + '%';
+        // Tamaños moderados: 0.9 – 2.2rem
+        const size = (0.9 + Math.random() * 1.3).toFixed(1);
         el.style.fontSize = size + 'rem';
-
-        // CSS variables para variación individual de animación
-        const driftDur = (5 + Math.random() * 6).toFixed(1);
-        const glowDur  = (2.5 + Math.random() * 2.5).toFixed(1);
-        el.style.setProperty('--rd', driftDur + 's');
-        el.style.setProperty('--rg', glowDur  + 's');
-        el.style.animationDelay = (-Math.random() * 8).toFixed(1) + 's'; // inicio aleatorio
-        el.style.opacity = (0.38 + Math.random() * 0.38).toFixed(2);
-
+        // Variables de animación individuales
+        el.style.setProperty('--rd', (6 + Math.random() * 5).toFixed(1) + 's');
+        el.style.setProperty('--rg', (3 + Math.random() * 3).toFixed(1) + 's');
+        el.style.setProperty('--ro', (0.28 + Math.random() * 0.32).toFixed(2));
+        // Desfase aleatorio para que no parpadeen todas juntas
+        el.style.animationDelay = (-Math.random() * 7).toFixed(1) + 's';
         overlay.appendChild(el);
     }
 }
 
 function _clearArchitectRunes(overlay) {
-    overlay.querySelectorAll('.architect-rune, .arch-corona-1, .arch-corona-2, .arch-scan')
-        .forEach(el => el.remove());
+    overlay.querySelectorAll('.architect-rune').forEach(el => el.remove());
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayerCard(); });
