@@ -36,6 +36,7 @@
         <div class="menu-box" id="menu-box">
             <button class="btn-solid" onclick="startGameCheck()">¡Jugar!</button>
             <button class="btn-outline" onclick="goToProfile()" style="margin-top: 10px;">Mi Perfil</button>
+            <button class="btn-outline" onclick="goToRanks()">Rangos</button>
             <button class="btn-outline" onclick="goToAchievements()">Banco de Logros</button>
             <button class="btn-kpass" onclick="goToKlickPass()">
                 Klick Pass
@@ -202,6 +203,16 @@
             </div>
         </div>
     </div>
+    <div id="ranks-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
+            <div class="nav-title">RANGOS</div><div class="nav-spacer"></div>
+        </div>
+        <div class="content-scroll no-scrollbar">
+            <div id="ranks-container" class="ranks-wrapper"></div>
+        </div>
+    </div>
+
 
     <div id="profile-screen" class="screen nav-screen">
         <div class="top-nav">
