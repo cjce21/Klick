@@ -504,72 +504,267 @@ function revokeInvalidAchievements() {
     // CHRISTOPHER: nunca revocar logros de la cuenta de prueba
     if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') return 0;
     const before = playerStats.achievements.length;
+    const s = playerStats;
     const toRevoke = new Set();
 
-    // Limpiar IDs huérfanos: logros que ya no existen en ACHIEVEMENTS_DATA
-    playerStats.achievements.forEach(id => {
+    // ── 0. HUÉRFANOS — IDs que ya no existen en el banco de logros ───────────
+    s.achievements.forEach(id => {
         if (id !== 'tramposo' && !ACHIEVEMENTS_MAP.has(id)) toRevoke.add(id);
     });
 
-    // fin1 (Nocturno): solo válido si se jugó en ese horario (flag real)
-    if (!playerStats.playedNocturno && playerStats.achievements.includes('fin1')) toRevoke.add('fin1');
-    // fin2 (Madrugador): solo válido si se jugó antes de las 6am (flag real)
-    if (!playerStats.playedMadrugador && playerStats.achievements.includes('fin2')) toRevoke.add('fin2');
-    // ret1–ret5 (Fiel): solo válidos si totalDaysPlayed >= umbral (bug: split devolvía array)
-    const retTiers = [3,7,15,30,60];
-    retTiers.forEach((t,i) => { 
-        if ((playerStats.totalDaysPlayed||0) < t && playerStats.achievements.includes(`ret${i+1}`)) toRevoke.add(`ret${i+1}`); 
-    });
-    // bs1–bs8: requieren bestScore real
-    const bsTiers2 = [5000,25000,75000,150000,300000,600000,1000000,2000000];
-    bsTiers2.forEach((t,i) => { 
-        if ((playerStats.bestScore||0) < t && playerStats.achievements.includes(`bs${i+1}`)) toRevoke.add(`bs${i+1}`);
-    });
-    // hs1–hs8: requieren haber superado 100k, no 20k
-    if ((playerStats.bestScore||0) < 100000) {
-        for(let i=0;i<8;i++) { if(playerStats.achievements.includes(`hs${i+1}`)) toRevoke.add(`hs${i+1}`); }
+    // Helpers
+    const has   = id => s.achievements.includes(id);
+    const mark  = id => toRevoke.add(id);
+    const check = (id, cond) => { if (has(id) && !cond) mark(id); };
+    const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
+    const accuracy = totalAns > 0 ? Math.round((s.totalCorrect||0)/totalAns*100) : 0;
+    const normalAchs = s.achievements.filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP.has(id)).length;
+    const kpClaimed  = (getKpState().claimed||[]).length;
+
+    // ── 1. ESCALAS NUMÉRICAS — verifica cada tier contra el stat real ────────
+
+    // Partidas jugadas (p1–p8): [1,5,10,25,50,100,200,500]
+    const _ptT=[1,5,10,25,50,100,200,500];
+    for(let i=0;i<8;i++) check(`p${i+1}`, (s.gamesPlayed||0) >= _ptT[i]);
+
+    // Partidas por día, escala (td1–td5): [3,5,8,10,15]
+    const _tdT=[3,5,8,10,15];
+    for(let i=0;i<5;i++) check(`td${i+1}`, (s.todayGames||0) >= _tdT[i]);
+
+    // Días consecutivos (d1–d5): [1,2,3,5,7]
+    const _dcT=[1,2,3,5,7];
+    for(let i=0;i<5;i++) check(`d${i+1}`, (s.maxLoginStreak||0) >= _dcT[i]);
+
+    // Días distintos total (d6–d10): [15,21,30,60,90]
+    const _ddT=[15,21,30,60,90];
+    for(let i=0;i<5;i++) check(`d${i+6}`, (s.totalDaysPlayed||0) >= _ddT[i]);
+
+    // Asiduo (td21–td25): [7,12,18,25,45]
+    const _td2T=[7,12,18,25,45];
+    for(let i=0;i<5;i++) check(`td2${i+1}`, (s.totalDaysPlayed||0) >= _td2T[i]);
+
+    // Fiel - retorno (ret1–ret5): [3,8,20,40,75]
+    const _retT=[3,8,20,40,75];
+    for(let i=0;i<5;i++) check(`ret${i+1}`, (s.totalDaysPlayed||0) >= _retT[i]);
+
+    // Récord en partida (bs1–bs8): [5000,25000,75000,150000,300000,600000,1000000,2000000]
+    const _bsT=[5000,25000,75000,150000,300000,600000,1000000,2000000];
+    for(let i=0;i<8;i++) check(`bs${i+1}`, (s.bestScore||0) >= _bsT[i]);
+
+    // Puntos totales (pt1–pt8): [10000,50000,200000,500000,1000000,2500000,5000000,10000000]
+    const _ptsTiers=[10000,50000,200000,500000,1000000,2500000,5000000,10000000];
+    for(let i=0;i<8;i++) check(`pt${i+1}`, (s.totalScore||0) >= _ptsTiers[i]);
+
+    // Partidas superando 100k (hs1–hs8): [1,3,5,10,20,35,50,100]
+    const _hsT=[1,3,5,10,20,35,50,100];
+    if ((s.bestScore||0) < 100000) {
+        for(let i=0;i<8;i++) mark(`hs${i+1}`);
+    } else {
+        for(let i=0;i<8;i++) check(`hs${i+1}`, (s.maxScoreCount||0) >= _hsT[i]);
     }
-    // x1 (Primer Día): siempre válido si hay datos (no revocar)
-    // x18 (El Clásico): solo válido si nameChanges===0 y maxLoginStreak>=30
-    if (!( playerStats.nameChanges===0 && (playerStats.maxLoginStreak||0)>=30 ) && playerStats.achievements.includes('x18')) toRevoke.add('x18');
 
-    // ── Logros basados en el total de 300 logros (antes mal configurados en 200) ──
-    const _riaAchs = playerStats.achievements.filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP.has(id)).length;
-    // fin5 "Monarca": rango Leyenda + 300 logros
-    if (playerStats.achievements.includes('fin5') && _riaAchs < 300) toRevoke.add('fin5');
-    // kpa10 "Coleccionista Total": kpClaimed>=100 + 300 logros
-    if (playerStats.achievements.includes('kpa10') && _riaAchs < 300) toRevoke.add('kpa10');
-    // master3 "Dios Klick": los 300 logros del juego
-    if (playerStats.achievements.includes('master3') && _riaAchs < 300) toRevoke.add('master3');
-    // u_mitico "Mítico": rango Mítico exige 300 logros entre sus requisitos
-    if (playerStats.achievements.includes('u_mitico')) {
-        const _riaTotalAns = (playerStats.totalCorrect||0)+(playerStats.totalWrong||0)+(playerStats.totalTimeouts||0);
-        const _riaAcc = _riaTotalAns > 0 ? Math.round((playerStats.totalCorrect||0)/_riaTotalAns*100) : 0;
-        const _riaMitico = (playerStats.totalScore||0)>=1200000 && (playerStats.totalCorrect||0)>=5000 &&
-            (playerStats.perfectGames||0)>=50 && _riaAchs>=300 && (playerStats.maxStreak||0)>=40 &&
-            (playerStats.maxMult||1)>=8 && _riaAcc>=85 && (playerStats.maxLoginStreak||0)>=30;
-        if (!_riaMitico) toRevoke.add('u_mitico');
-    }
-    // ── Escala de colección — umbrales reajustados ──────────────────────────
-    if (playerStats.achievements.includes('m9')      && _riaAchs < 25)  toRevoke.add('m9');
-    if (playerStats.achievements.includes('m10')     && _riaAchs < 50)  toRevoke.add('m10');
-    if (playerStats.achievements.includes('master1') && _riaAchs < 75)  toRevoke.add('master1');
-    if (playerStats.achievements.includes('master4') && _riaAchs < 150) toRevoke.add('master4');
-    if (playerStats.achievements.includes('master5') && _riaAchs < 200) toRevoke.add('master5');
+    // Preguntas alcanzadas (pf1–pf8): [10,20,30,50,75,100,150,200]
+    const _pfT=[10,20,30,50,75,100,150,200];
+    for(let i=0;i<8;i++) check(`pf${i+1}`, (s.maxQuestionReached||0) >= _pfT[i]);
+    check('pf9',  (s.maxQuestionReached||0) >= 300);
+    check('pf10', (s.maxQuestionReached||0) >= 400);
+    check('pf11', (s.maxQuestionReached||0) >= 800);
 
-    // ── Logros únicos diferenciados de sus escalas ──────────────────────────
-    if (playerStats.achievements.includes('u2')  && (playerStats.totalWrong||0)          < 75)  toRevoke.add('u2');
-    if (playerStats.achievements.includes('u4')  && (playerStats.totalTimeouts||0)        < 35)  toRevoke.add('u4');
-    if (playerStats.achievements.includes('u23') && (playerStats.maxStreak||0)            < 35)  toRevoke.add('u23');
-    if (playerStats.achievements.includes('u16') && (playerStats.frenziesTriggered||0)    < 15)  toRevoke.add('u16');
-    if (playerStats.achievements.includes('x17') && (playerStats.gamesPlayed||0)          < 150) toRevoke.add('x17');
-    if (playerStats.achievements.includes('u15') && (playerStats.maxQuestionReached||0)   < 120) toRevoke.add('u15');
+    // Racha máxima (sk1–sk8): [5,10,15,20,25,30,40,50]
+    const _skT=[5,10,15,20,25,30,40,50];
+    for(let i=0;i<8;i++) check(`sk${i+1}`, (s.maxStreak||0) >= _skT[i]);
 
+    // Multiplicadores (mx1–mx4 loop + mx6–mx10 individuales)
+    const _mxT=[2,3,4,5];
+    for(let i=0;i<4;i++) check(`mx${i+1}`, (s.maxMult||1) >= _mxT[i]);
+    check('mx6',  (s.maxMult||1) >= 6);
+    check('mx7',  (s.maxMult||1) >= 7);
+    check('mx8',  (s.maxMult||1) >= 8);
+    check('mx9',  (s.maxMult||1) >= 9);
+    check('mx10', (s.maxMult||1) >= 10);
+
+    // Respuestas rápidas (sp1–sp8): [5,15,30,60,100,200,350,500] + sp9-sp11
+    const _spT=[5,15,30,60,100,200,350,500];
+    for(let i=0;i<8;i++) check(`sp${i+1}`, (s.fastAnswersTotal||0) >= _spT[i]);
+    check('sp9',  (s.fastAnswersTotal||0) >= 2000);
+    check('sp10', (s.fastAnswersTotal||0) >= 5000);
+    check('sp11', (s.fastAnswersTotal||0) >= 10000);
+
+    // Sin timeout consecutivo (nt1–nt5): [5,10,20,35,50]
+    const _ntT=[5,10,20,35,50];
+    for(let i=0;i<5;i++) check(`nt${i+1}`, (s.maxNoTimeoutStreak||0) >= _ntT[i]);
+
+    // Frenesís activados (r1–r8): [1,5,10,25,50,100,200,500]
+    const _frT=[1,5,10,25,50,100,200,500];
+    for(let i=0;i<8;i++) check(`r${i+1}`, (s.frenziesTriggered||0) >= _frT[i]);
+
+    // Frenesí eterno (ft1–ft5): [3,5,8,12,20]
+    const _ftT=[3,5,8,12,20];
+    for(let i=0;i<5;i++) check(`ft${i+1}`, (s.maxFrenzyStreak||0) >= _ftT[i]);
+
+    // Aciertos totales (ac1–ac8): [10,50,100,250,500,1000,2500,5000]
+    const _acT=[10,50,100,250,500,1000,2500,5000];
+    for(let i=0;i<8;i++) check(`ac${i+1}`, (s.totalCorrect||0) >= _acT[i]);
+
+    // Respuestas incorrectas (wr1–wr5): [10,50,100,250,500]
+    const _wrT=[10,50,100,250,500];
+    for(let i=0;i<5;i++) check(`wr${i+1}`, (s.totalWrong||0) >= _wrT[i]);
+
+    // Timeouts (to1–to5): [5,20,50,100,250]
+    const _toT=[5,20,50,100,250];
+    for(let i=0;i<5;i++) check(`to${i+1}`, (s.totalTimeouts||0) >= _toT[i]);
+
+    // Visitas al perfil (pv1–pv5): [1,5,15,30,60]
+    const _pvT=[1,5,15,30,60];
+    for(let i=0;i<5;i++) check(`pv${i+1}`, (s.profileViews||0) >= _pvT[i]);
+
+    // Visitas al ranking (rv1–rv5): [1,5,15,30,60]
+    const _rvT=[1,5,15,30,60];
+    for(let i=0;i<5;i++) check(`rv${i+1}`, (s.rankingViews||0) >= _rvT[i]);
+
+    // Visitas a configuración (cv1–cv4): [1,5,15,30]
+    const _cvT=[1,5,15,30];
+    for(let i=0;i<4;i++) check(`cv${i+1}`, (s.configViews||0) >= _cvT[i]);
+
+    // Visitas a pantalla de rangos (rk1–rk5): [1,5,15,30,50]
+    const _rkT=[1,5,15,30,50];
+    for(let i=0;i<5;i++) check(`rk${i+1}`, (s.ranksViews||0) >= _rkT[i]);
+
+    // Visitas al banco de logros (m4–m6): [1,10,50]
+    check('m4', (s.achViews||0) >= 1);
+    check('m5', (s.achViews||0) >= 10);
+    check('m6', (s.achViews||0) >= 50);
+
+    // Fijaciones de logro (pin1–pin5): [1,5,10,20,50]
+    const _pinT=[1,5,10,20,50];
+    for(let i=0;i<5;i++) check(`pin${i+1}`, (s.totalPins||0) >= _pinT[i]);
+
+    // Logros desbloqueados en un día (da1–da5): [1,3,5,8,12]
+    const _daT=[1,3,5,8,12];
+    for(let i=0;i<5;i++) check(`da${i+1}`, (s.dailyAchUnlocks||0) >= _daT[i]);
+
+    // Colección de logros (m8, m9, m10): [10,25,50]
+    check('m8',  normalAchs >= 10);
+    check('m9',  normalAchs >= 25);
+    check('m10', normalAchs >= 50);
+
+    // Maestros de colección (master1–master5): [75,100,150,200,300]
+    check('master1', normalAchs >= 75);
+    check('master2', normalAchs >= 100);
+    check('master4', normalAchs >= 150);
+    check('master5', normalAchs >= 200);
+    check('master3', normalAchs >= 300);
+
+    // Klick Pass niveles (kpa1–kpa5): [1,25,50,75,100]
+    check('kpa1', kpClaimed >= 1);
+    check('kpa2', kpClaimed >= 25);
+    check('kpa3', kpClaimed >= 50);
+    check('kpa4', kpClaimed >= 75);
+    check('kpa5', kpClaimed >= 100);
+    check('kpa10', kpClaimed >= 100 && normalAchs >= 300);
+
+    // Power Level (nm8, nm9, nm10): [10000, 100000, 1000000]
+    check('nm8',  (s.powerLevel||0) >= 10000);
+    check('nm9',  (s.powerLevel||0) >= 100000);
+    check('nm10', (s.powerLevel||0) >= 1000000);
+
+    // Clasificación (nm2, nm3, nm4): posición real
+    const rp = s.rankingPosition||999;
+    check('nm2', rp <= 10);
+    check('nm3', rp <= 3);
+    check('nm4', rp === 1);
+
+    // Egocéntrico visitas al banco de logros extra
+    check('m2', (s.nameChanges||0) >= 5);
+    check('m3', (s.nameChanges||0) >= 20);
+
+    // ── 2. LOGROS POR FLAGS — requieren un flag booleano guardado ────────────
+    check('fin1', !!s.playedNocturno);
+    check('fin2', !!s.playedMadrugador);
+    check('x18',  s.nameChanges === 0 && (s.maxLoginStreak||0) >= 30);
+    check('u13',  (s.flashAnswersTotal||0) >= 1);
+    check('u11',  !!s.fenixEarned);
+    check('u19',  !!s.u19PersistEarned);
+    check('x4',   !!s.doubleVictory);
+    check('x6',   !!s.consistent5Games);
+    check('x7',   !!s.fastStart3k);
+    check('x12',  !!s.firstGameOfDay50k);
+    check('x15',  !!s.hitExactly100k);
+    check('x5',   !!s.revengeGame);
+    check('x8',   !!s.xSinPrisa);
+    check('x16',  (s.returnTriumph||0) >= 1);
+    check('x19',  !!s.flashInOneGame);
+    check('x14',  !!s.invictoEarned);
+    check('x10',  !!s.x10Earned);
+    check('extra1', (s.maxFrenziesInGame||0) >= 2);
+    check('extra2', !!s.hadPerfectAccuracyGame);
+    check('extra4', (s.gamesAtMusicZero||0) >= 5);
+    check('u24',  (s.extremisCount||0) >= 1);
+    check('ui5',  (s.profileViewedAfterGames||0) >= 5);
+    check('nm5',  (s.consecutiveRankUpDays||0) >= 3);
+    check('nm6',  !!s.surpassedHighPLPlayer);
+    check('nm7',  !!s.rankRemontada);
+    check('rl9',  !!s.rouletteShieldUsed);
+    check('rl10', !!s.rouletteComboSpecial);
+
+    // ── 3. ESCALAS DE RULETA ─────────────────────────────────────────────────
+    check('rl6', (s.rouletteSpins||0) >= 10);
+    check('rl7', (s.rouletteSpins||0) >= 50);
+    check('rl8', (s.rouletteLifeWins||0) >= 3);
+
+    // ── 4. LOGROS DE RANGO — derivados del stat real, no de flags ────────────
+    const _rankTitle = getRankInfo(s).title;
+    const _rankOrder = ['Novato','Junior','Pro','Maestro','Leyenda','Mítico','Divinidad'];
+    const _ri = _rankOrder.indexOf(_rankTitle);
+    check('u_junior', _ri >= 1);   // Junior o superior
+    check('u6',       _ri >= 2);   // Pro o superior
+    check('u7',       _ri >= 3);   // Maestro o superior
+    check('u8',       _ri >= 4);   // Leyenda o superior
+    check('u_mitico', _ri >= 5 &&  // Mítico: además verificar todos sus requisitos
+        (s.totalScore||0)>=1200000 && (s.totalCorrect||0)>=5000 &&
+        (s.perfectGames||0)>=50 && normalAchs>=300 && (s.maxStreak||0)>=40 &&
+        (s.maxMult||1)>=8 && accuracy>=85 && (s.maxLoginStreak||0)>=30);
+
+    // Podio (pod1–pod3): requieren rango Leyenda+ Y posición top
+    const _isLeyendaPlus = _ri >= 4;
+    check('pod1', rp === 1 && _isLeyendaPlus);
+    check('pod2', rp === 2 && _isLeyendaPlus);
+    check('pod3', rp === 3 && _isLeyendaPlus);
+
+    // ── 5. LOGROS COMBINADOS ─────────────────────────────────────────────────
+    check('fin4', (s.maxLoginStreak||0) >= 7 && _ri >= 1);
+    check('fin5', _ri >= 4 && normalAchs >= 300);
+    check('x17',  (s.gamesPlayed||0) >= 150);
+    check('u15',  (s.maxQuestionReached||0) >= 120);
+    check('u23',  (s.maxStreak||0) >= 35);
+    check('u16',  (s.frenziesTriggered||0) >= 15);
+    check('u2',   (s.totalWrong||0) >= 75);
+    check('u4',   (s.totalTimeouts||0) >= 35);
+    check('extra5', (s.dailyAchUnlocks||0) >= 15);
+    check('extra3', (s.maxQuestionReached||0) >= 80);
+    check('np3',  (s.maxQuestionReached||0) >= 60);
+    check('u17',  (s.lastSecondAnswersTotal||0) >= 50);
+    check('u22',  (s.todayGames||0) >= 50);
+    check('u_bisturi', totalAns >= 500 && accuracy >= 90);
+    check('prec1', totalAns >= 500 && accuracy >= 95);
+    check('x13',  (s.todayGames||0) >= 10);
+    check('x20',  (s.todayGames||0) >= 20);
+    check('div1', (s.totalScore||0) >= 2000000);
+    check('div2', (s.totalCorrect||0) >= 8000);
+    check('div3', (s.perfectGames||0) >= 75);
+
+    // El Arquitecto (cx1–cx4)
+    check('cx1', !!s.seenChristopher);
+    check('cx2', (s.christopherCardViews||0) >= 1);
+    check('cx3', (s.christopherCardViews||0) >= 5);
+    check('cx4', (s.christopherSeenCount||0) >= 10);
+
+    // ── 6. NOTIFICACIÓN Y GUARDADO ───────────────────────────────────────────
     if (toRevoke.size > 0) {
-        playerStats.achievements = playerStats.achievements.filter(id => !toRevoke.has(id));
-        playerStats.pinnedAchievements = playerStats.pinnedAchievements.filter(id => !toRevoke.has(id));
+        s.achievements       = s.achievements.filter(id => !toRevoke.has(id));
+        s.pinnedAchievements = s.pinnedAchievements.filter(id => !toRevoke.has(id));
         saveStatsLocally();
-        const revokedCount = before - playerStats.achievements.length;
+        const revokedCount = before - s.achievements.length;
         if (revokedCount > 0) {
             showToast('Logros Corregidos', `Se retiraron ${revokedCount} logro(s) concedido(s) por error.`, 'var(--accent-orange)', SVG_SHIELD);
             renderAchievements();
@@ -2107,6 +2302,7 @@ addAchs([
 addAchs([
     { id: 'cx1', title: 'Avistamiento',       desc: 'Ve al Arquitecto del Sistema en la Clasificación por primera vez.',    color: 'var(--divinity-color-static)', icon: SVG_TROPHY },
     { id: 'cx2', title: 'Cara a Cara',        desc: 'Abre la tarjeta del Arquitecto del Sistema en la Clasificación.',       color: 'var(--divinity-color-static)', icon: SVG_USER },
+    { id: 'cx3', title: 'Observador',         desc: 'Abre la tarjeta del Arquitecto del Sistema 5 veces.',                   color: 'var(--divinity-color-static)', icon: SVG_USER },
     { id: 'cx4', title: 'Testigo del Origen', desc: 'Visita la Clasificación 10 veces mientras el Arquitecto del Sistema está presente.', color: 'var(--divinity-color-static)', icon: SVG_STAR },
 ]);
 
@@ -2440,6 +2636,7 @@ function _checkAchievementsImpl() {
     // ─── El Arquitecto (CHRISTOPHER) ────────────────────────────────────
     if (playerStats.seenChristopher) unlock('cx1');
     if ((playerStats.christopherCardViews||0) >= 1) unlock('cx2');
+    if ((playerStats.christopherCardViews||0) >= 5) unlock('cx3');
     if ((playerStats.christopherSeenCount||0) >= 10) unlock('cx4');
 
     if (newlyUnlocked.length > 0) { 
