@@ -1976,7 +1976,7 @@ body.quality-perf #app.streak-active { animation:none!important; background:var(
 body.quality-perf .feedback-title,
 body.quality-perf .end-message,
 body.quality-perf .end-score-value,
-body.quality-perf .pcard-big-name,
+body.quality-perf .pcard-big-name:not(.christopher-name-gradient),
 body.quality-perf #countdown-number,
 body.quality-perf .mult-x2,
 body.quality-perf .mult-x3,
@@ -2568,36 +2568,108 @@ body.quality-perf .rrank-bar-fill { transition: none; }
 /* Runas flotantes en el fondo del overlay (usando elementos generados vía JS) */
 .architect-rune {
     position: absolute;
-    font-size: 1.4rem;
-    color: rgba(200,100,255,0.20);
+    font-size: 1.8rem;
+    color: rgba(200,100,255,0.45);
     pointer-events: none;
     user-select: none;
     animation: architect-rune-float 6s ease-in-out infinite;
     z-index: 1;
+    filter: drop-shadow(0 0 6px rgba(200,100,255,0.35));
 }
 
-/* quality-perf: sin animaciones */
+/* ═══════════════════════════════════════════════════════════════
+   ANIMACIÓN IRIDISCENTE — SIEMPRE ACTIVA SIN EXCEPCIÓN
+   Divinidad y Arquitecto del Sistema conservan la animación en
+   TODOS los modos de calidad (normal, max, perf) y en light-mode.
+   Las reglas usan especificidad máxima para nunca ser sobreescritas.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* rc-title en leaderboard — todos los modos */
+body .rank-card.divinidad-card .rc-title,
 body.quality-perf .rank-card.divinidad-card .rc-title,
-body.quality-perf .rank-card.christopher-card .rc-title,
-body.quality-perf .pcard-big-name.christopher-name-gradient,
-body.quality-perf #pcard-chip-title.christopher-chip-gradient,
-body.quality-perf #pcard-pl.christopher-pl-gradient {
-    animation: none !important;
-    -webkit-text-fill-color: unset !important;
-    background: none !important;
-    color: var(--divinity-color-static) !important;
+body.quality-max .rank-card.divinidad-card .rc-title,
+body.light-mode .rank-card.divinidad-card .rc-title {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff) !important;
+    background-size: 300% 100% !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+    animation: divinity-text-slide 4s linear infinite !important;
+    will-change: background-position;
+    display: inline-block;
+    text-shadow: none !important;
+    font-weight: 900 !important;
 }
 
-/* light mode */
-body.light-mode .rank-card.divinidad-card .rc-title,
-body.light-mode .rank-card.christopher-card .rc-title,
-body.light-mode .pcard-big-name.christopher-name-gradient,
-body.light-mode #pcard-chip-title.christopher-chip-gradient,
-body.light-mode #pcard-pl.christopher-pl-gradient {
-    animation: none !important;
-    -webkit-text-fill-color: unset !important;
-    background: none !important;
-    color: #6b0fa8 !important;
+body .rank-card.christopher-card .rc-title,
+body.quality-perf .rank-card.christopher-card .rc-title,
+body.quality-max .rank-card.christopher-card .rc-title,
+body.light-mode .rank-card.christopher-card .rc-title {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff) !important;
+    background-size: 300% 100% !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+    animation: divinity-text-slide 3s linear infinite !important;
+    will-change: background-position;
+    display: inline-block;
+    text-shadow: none !important;
+    font-weight: 900 !important;
+    letter-spacing: 2px;
 }
+
+/* pcard: nombre — todos los modos */
+body .pcard-big-name.christopher-name-gradient,
+body.quality-perf .pcard-big-name.christopher-name-gradient,
+body.quality-max .pcard-big-name.christopher-name-gradient,
+body.light-mode .pcard-big-name.christopher-name-gradient {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff) !important;
+    background-size: 300% 100% !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+    animation: divinity-text-slide 4s linear infinite !important;
+    will-change: background-position;
+    display: inline-block;
+    text-shadow: none !important;
+}
+
+/* pcard: chip de título — todos los modos */
+body #pcard-chip-title.christopher-chip-gradient,
+body.quality-perf #pcard-chip-title.christopher-chip-gradient,
+body.quality-max #pcard-chip-title.christopher-chip-gradient,
+body.light-mode #pcard-chip-title.christopher-chip-gradient {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff) !important;
+    background-size: 300% 100% !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+    animation: divinity-text-slide 4s linear infinite !important;
+    will-change: background-position;
+    display: inline-block;
+    text-shadow: none !important;
+}
+
+/* pcard: Nivel de Poder — todos los modos */
+body #pcard-pl.christopher-pl-gradient,
+body.quality-perf #pcard-pl.christopher-pl-gradient,
+body.quality-max #pcard-pl.christopher-pl-gradient,
+body.light-mode #pcard-pl.christopher-pl-gradient {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff) !important;
+    background-size: 300% 100% !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+    animation: divinity-text-slide 3s linear infinite !important;
+    will-change: background-position;
+    display: inline-block;
+    text-shadow: none !important;
+}
+
 body.light-mode .rank-card.mitico-card .rc-title  { color: #1a1a1a !important; }
 body.light-mode .rank-card.leyenda-card .rc-title { color: #8a6200 !important; }
