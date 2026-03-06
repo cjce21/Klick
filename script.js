@@ -926,7 +926,7 @@ async function submitLeaderboard() {
         const _isAdmin = playerStats.playerName.toUpperCase() === 'ADMINTEST';
         const payload = {
             uuid:       _isAdmin ? '00000000-spec-tral-0000-klickphantom0' : playerStats.uuid,
-            name:       _isAdmin ? 'KlickVoid' : playerStats.playerName,
+            name:       _isAdmin ? 'CHRISTOPHER' : playerStats.playerName,
             rankTitle:  getRankInfo(playerStats).title,
             powerLevel: _isAdmin ? 21000000 : pl,
             totalScore: playerStats.totalScore,
