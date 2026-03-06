@@ -1,36 +1,40 @@
-// --- SISTEMAS DE PROTECCIÓN ANTI-TRAMPAS ---
+// ═══════════════════════════════════════════════════════════════════════════
+//  SISTEMA ANTI-TRAMPAS — v3
+//  Vectores cubiertos:
+//   1. Clic derecho / inspección / view-source
+//   2. Atajos de teclado para DevTools
+//   3. Cambio de pestaña (visibilitychange)
+//   4. Pérdida de foco (blur) — ventana tapada, diálogo del sistema, snap lateral
+//   5. Reducción de ventana durante partida (resize → split-screen activado mid-game)
+//   6. Pantalla dividida al iniciar (startGameCheck)
+//   7. Picture-in-Picture
+//   8. Polling periódico de foco + visibilidad durante partida activa
+//   9. pagehide (iOS Safari)
+// ═══════════════════════════════════════════════════════════════════════════
+
 document.addEventListener('contextmenu', e => e.preventDefault());
 
 document.addEventListener('keydown', e => {
-    if (e.keyCode === 123 || 
-        (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || 
-        (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 67 || e.keyCode === 83 || e.keyCode === 80))) { 
+    if (e.keyCode === 123 ||
+        (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) ||
+        (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 67 || e.keyCode === 83 || e.keyCode === 80))) {
         e.preventDefault();
         return false;
     }
 });
 
-// ── Gestión de foco / visibilidad ───────────────────────────────────────
-// Cuando el usuario sale del juego (otra pestaña, minimizar, superposición,
-// etc.) la música se silencia de inmediato. Al volver, se reactiva.
-// El anti-trampas sigue funcionando igual dentro de este bloque.
-
-let _cheaterCooldown = false;
-
-// Estado de silencio por pérdida de foco (independiente del vol del usuario)
+// ── Estado de silencio por pérdida de foco ───────────────────────────────
 let _audioPausedByFocus = false;
 
 function _muteByFocus() {
     if (_audioPausedByFocus) return;
     _audioPausedByFocus = true;
     if (audioCtx && masterMusicGain) {
-        // Fade rápido a 0 (20 ms) y luego suspender el contexto
         const t = audioCtx.currentTime;
         masterMusicGain.gain.cancelScheduledValues(t);
         masterMusicGain.gain.setValueAtTime(masterMusicGain.gain.value, t);
         masterMusicGain.gain.linearRampToValueAtTime(0.0001, t + 0.08);
         setTimeout(() => {
-            // Suspender solo si aún sigue en segundo plano
             if (_audioPausedByFocus && audioCtx && audioCtx.state === 'running') {
                 audioCtx.suspend();
             }
@@ -42,23 +46,19 @@ function _unmuteByFocus() {
     if (!_audioPausedByFocus) return;
     _audioPausedByFocus = false;
     if (audioCtx) {
-        // Reanudar contexto suspendido y restaurar volumen con fade suave
         const doFade = () => {
             const t = audioCtx.currentTime;
-            // Solo restaurar masterMusicGain si la música del Arquitecto NO está activa
             if (masterMusicGain && !_architectMusicActive) {
                 const targetVol = playerStats.musicVol * 0.8;
                 masterMusicGain.gain.cancelScheduledValues(t);
                 masterMusicGain.gain.setValueAtTime(0.0001, t);
                 masterMusicGain.gain.linearRampToValueAtTime(targetVol, t + 0.35);
             }
-            // Si el Arquitecto está activo, restaurar su gain propio
             if (_architectMusicActive && _architectGain) {
                 const targetVol = playerStats.musicVol * 0.75;
                 _architectGain.gain.cancelScheduledValues(t);
                 _architectGain.gain.setValueAtTime(0.0001, t);
                 _architectGain.gain.linearRampToValueAtTime(targetVol, t + 0.35);
-                // Reiniciar el tick si se había detenido
                 if (!_architectMusicTimer) _architectTick();
             }
         };
@@ -70,68 +70,117 @@ function _unmuteByFocus() {
     }
 }
 
-// visibilitychange: cubre cambio de pestaña, minimizar ventana, bloqueo de pantalla
-document.addEventListener("visibilitychange", () => {
+// ── Cooldown global: evita sanciones dobles por eventos simultáneos ──────
+let _cheaterCooldown = false;
+function _triggerCheatIfActive(source) {
+    if (!isAnsweringAllowed || isGamePaused) return;
+    if (_cheaterCooldown) return;
+    _cheaterCooldown = true;
+    setTimeout(() => { _cheaterCooldown = false; }, 4000);
+    punishCheater();
+}
+
+// ── 1. visibilitychange — cambio de pestaña, minimizar, bloqueo de pantalla
+document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
         _muteByFocus();
-        // Anti-trampas: solo actúa si hay partida activa
-        if (isAnsweringAllowed && !isGamePaused) {
-            if (_cheaterCooldown) return; _cheaterCooldown = true;
-            setTimeout(() => { _cheaterCooldown = false; }, 3000);
-            punishCheater();
-        }
+        _triggerCheatIfActive('visibility');
     } else {
-        // Visible de nuevo → restaurar audio
         _unmuteByFocus();
     }
 });
 
-// blur: cubre superposición de otra ventana, diálogos del sistema, cambio de app
-// (no dispara en móvil al bajar el teclado virtual — eso lo cubre visibilitychange)
-window.addEventListener("blur", () => {
+// ── 2. blur — ventana tapada, dialogo del sistema, snap lateral, alt-tab
+window.addEventListener('blur', () => {
     _muteByFocus();
-    if (isAnsweringAllowed && !isGamePaused) {
-        if (_cheaterCooldown) return; _cheaterCooldown = true;
-        setTimeout(() => { _cheaterCooldown = false; }, 3000);
-        punishCheater();
-    }
+    _triggerCheatIfActive('blur');
 });
 
-// focus: la ventana recupera el foco → restaurar audio
-window.addEventListener("focus", () => {
-    // Solo si la pestaña también es visible (evita restaurar con pestaña oculta)
+// ── 3. focus — restaurar audio al volver
+window.addEventListener('focus', () => {
     if (document.visibilityState === 'visible') {
         _unmuteByFocus();
     }
 });
 
-// pagehide: navegación fuera de la página (iOS Safari no emite blur fiablemente)
-window.addEventListener("pagehide", () => {
+// ── 4. pagehide — iOS Safari no emite blur al navegar fuera
+window.addEventListener('pagehide', () => {
     _muteByFocus();
 });
+
+// ── 5. resize — detecta activación de pantalla dividida DURANTE la partida
+//    Umbral: si la ventana cae por debajo del 52% del ancho de pantalla
+//    mientras hay partida activa → trampa. Solo en desktop (screen.width > 600).
+//    Debounced 600ms para ignorar reajustes normales de layout.
+let _resizeCheatTimer = null;
+let _gameWindowW = window.innerWidth;   // se actualiza al iniciar partida
+let _gameWindowH = window.innerHeight;
+window.addEventListener('resize', () => {
+    if (!isAnsweringAllowed || isGamePaused) return;
+    if (window.screen.width <= 600) return; // ignorar en móvil
+    clearTimeout(_resizeCheatTimer);
+    _resizeCheatTimer = setTimeout(() => {
+        if (!isAnsweringAllowed || isGamePaused) return;
+        const wRatio = window.innerWidth  / window.screen.width;
+        const hRatio = window.innerHeight / window.screen.height;
+        // Reducción significativa respecto al inicio de partida O respecto a pantalla
+        const shrunkW = window.innerWidth  < _gameWindowW * 0.75;
+        const shrunkH = window.innerHeight < _gameWindowH * 0.70;
+        const splitW  = wRatio < 0.52;
+        const splitH  = hRatio < 0.42;
+        if (shrunkW || shrunkH || splitW || splitH) {
+            _triggerCheatIfActive('resize');
+        }
+    }, 600);
+});
+
+// ── 6. Polling periódico durante partida activa ───────────────────────────
+//    Cada 3 segundos verifica foco + visibilidad. Captura casos donde blur/
+//    visibilitychange no dispararon (algunos navegadores móviles en split-view,
+//    extensiones que bloquean eventos, etc.).
+let _antiCheatPollTimer = null;
+function _startAntiCheatPoll() {
+    _stopAntiCheatPoll();
+    _antiCheatPollTimer = setInterval(() => {
+        if (!isAnsweringAllowed || isGamePaused) return;
+        const hidden = document.visibilityState === 'hidden' || document.hidden;
+        const noFocus = !document.hasFocus();
+        if (hidden || noFocus) {
+            _muteByFocus();
+            _triggerCheatIfActive('poll');
+        }
+    }, 3000);
+}
+function _stopAntiCheatPoll() {
+    if (_antiCheatPollTimer) { clearInterval(_antiCheatPollTimer); _antiCheatPollTimer = null; }
+}
 
 function punishCheater() {
     if(!isAnsweringAllowed || isGamePaused) return;
     isAnsweringAllowed = false;
     isGamePaused = false;
     clearInterval(timerInterval);
-    lives = 0; // terminar partida de forma limpia
+    _stopAntiCheatPoll(); // detener polling
+    lives = 0;
     _currentQuestion = null;
-    
-    const penalty = 2000; 
+
+    // Penalización escalada: reincidentes pagan más
+    const isRepeat = playerStats.achievements.includes('tramposo');
+    const penalty = isRepeat ? 5000 : 2000;
     playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
-    
-    // --- LOGRO OCULTO TRAMPOSO ---
+    playerStats.cheatCount = (playerStats.cheatCount || 0) + 1;
+
+    // Logro permanente de tramposo
     if (!playerStats.achievements.includes('tramposo')) {
         playerStats.achievements.push('tramposo');
     }
 
     saveStatsLocally();
-    submitLeaderboard(); 
-    
+    submitLeaderboard();
+
     initAudio(); SFX.incorrect();
     showToast('¡Trampa detectada!', `Has recibido la marca permanente de Tramposo.`, 'var(--accent-red)', SVG_SKULL);
-    
+
     document.getElementById('app').classList.remove('streak-active');
     streak = 0;
     switchScreen('start-screen');
@@ -1932,9 +1981,9 @@ addAchs([
 
 // ─── 27. EL ARQUITECTO — logros relacionados con CHRISTOPHER ─────────────
 addAchs([
-    { id: 'cx1', title: 'Avistamiento',       desc: 'Ve al Arquitecto del Sistema en la Clasificación por primera vez.',   color: 'var(--divinity-color-static)', icon: SVG_TROPHY },
-    { id: 'cx2', title: 'Cara a Cara',        desc: 'Abre la tarjeta de CHRISTOPHER en la Clasificación.',                 color: 'var(--divinity-color-static)', icon: SVG_USER },
-    { id: 'cx4', title: 'Testigo del Origen', desc: 'Visita la Clasificación 10 veces mientras CHRISTOPHER está presente.', color: 'var(--divinity-color-static)', icon: SVG_STAR },
+    { id: 'cx1', title: 'Avistamiento',       desc: 'Ve al Arquitecto del Sistema en la Clasificación por primera vez.',    color: 'var(--divinity-color-static)', icon: SVG_TROPHY },
+    { id: 'cx2', title: 'Cara a Cara',        desc: 'Abre la tarjeta del Arquitecto del Sistema en la Clasificación.',       color: 'var(--divinity-color-static)', icon: SVG_USER },
+    { id: 'cx4', title: 'Testigo del Origen', desc: 'Visita la Clasificación 10 veces mientras el Arquitecto del Sistema está presente.', color: 'var(--divinity-color-static)', icon: SVG_STAR },
 ]);
 
 
@@ -2877,6 +2926,7 @@ function showRoulette() {
     rouletteActive = true;
     isGamePaused = true;
     clearInterval(timerInterval);
+    _stopAntiCheatPoll(); // pausa legítima — suspender polling hasta que cierre
 
     const btn = document.getElementById('roulette-spin-btn');
     const zone = document.getElementById('rl-result-zone');
@@ -3124,6 +3174,7 @@ function closeRoulette() {
     setTimeout(() => {
         // loadQuestion carga la pregunta con extraTimeActive ya seteado (se aplica dentro)
         loadQuestion();
+        _startAntiCheatPoll(); // reanudar polling al volver a preguntas
         if (_hint) {
             // applyHintVisual necesita que la pregunta ya esté en el DOM
             // 150ms es suficiente para que los botones estén pintados
@@ -3375,17 +3426,16 @@ async function startGameCheck() {
         return;
     }
     // 5. Pantalla dividida o ventana muy reducida
-    //    En desktop: innerWidth debe cubrir >= 55% de la pantalla
+    //    En desktop: innerWidth debe cubrir >= 52% de la pantalla
     //    En mobile se omite (screen.width puede ser distorsionado por devicePixelRatio)
     if (window.screen.width > 600) {
         const wRatio = window.innerWidth / window.screen.width;
         const hRatio = window.innerHeight / window.screen.height;
-        if (wRatio < 0.55) {
+        if (wRatio < 0.52) {
             showToast('No se puede iniciar', 'Detectada pantalla dividida o ventana parcial. Maximiza el juego.', 'var(--accent-red)', SVG_SKULL);
             return;
         }
-        // Altura muy reducida también indica split horizontal o snap
-        if (hRatio < 0.45) {
+        if (hRatio < 0.42) {
             showToast('No se puede iniciar', 'Detectada ventana demasiado pequeña. Maximiza el juego.', 'var(--accent-red)', SVG_SKULL);
             return;
         }
@@ -3449,17 +3499,19 @@ document.getElementById('profile-name-input').addEventListener('blur', function(
     document.getElementById('profile-warning').style.opacity = n ? '0' : '1';
 });
 
-let _logoDotsCached = null;
+
 function updateLogoDots() {
+    // Siempre recalcular desde playerStats para evitar desfases entre llamadas
+    currentRankInfo = getRankInfo(playerStats);
     document.documentElement.style.setProperty('--rank-rgb', currentRankInfo.rgb);
     document.documentElement.style.setProperty('--rank-color', currentRankInfo.color);
-    // Clases de rango en body — controlan ambientes y animaciones
     const isLight = document.body.classList.contains('light-mode');
-    if (!_logoDotsCached || !_logoDotsCached.length) _logoDotsCached = document.querySelectorAll('.logo-dot');
+    // Nunca cachear — el logo-dot es estático pero sin caché no hay riesgo de color obsoleto
+    const dots = document.querySelectorAll('.logo-dot');
     const shadow = isLight ? 'none' : `0 0 15px rgba(${currentRankInfo.rgb}, 0.5)`;
-    for (let i = 0; i < _logoDotsCached.length; i++) {
-        _logoDotsCached[i].style.color = currentRankInfo.color;
-        _logoDotsCached[i].style.textShadow = shadow;
+    for (let i = 0; i < dots.length; i++) {
+        dots[i].style.color = currentRankInfo.color;
+        dots[i].style.textShadow = shadow;
     }
     const favicon = document.getElementById('dynamic-favicon');
     if (favicon) {
@@ -3541,6 +3593,11 @@ function startGame() {
     lastSecondAnswers = 0; ultraFastStreak = 0; currentNoTimeoutStreak = 0; livesLostThisGame = 0; consecutiveLivesLost = 0; frenziesThisGame = 0;
     // Reset roulette state for new game
     totalCorrectThisGame = 0; nextRouletteTrigger = 10;
+    // Capturar tamaño de ventana al inicio (para detectar resize a pantalla dividida mid-game)
+    _gameWindowW = window.innerWidth;
+    _gameWindowH = window.innerHeight;
+    // Arrancar polling anti-trampa
+    _startAntiCheatPoll();
     activeBoostNextQ = null; shieldActive = false; hintActive = false; extraTimeActive = 0; streakShieldActive = false;
     const arb = document.getElementById('active-reward-bar'); if(arb) arb.style.display = 'none';
     
@@ -3917,6 +3974,7 @@ function confirmAbandon() {
     isGamePaused = false;
     clearInterval(timerInterval);
     _currentQuestion = null;
+    _stopAntiCheatPoll(); // detener polling anti-trampa
 
     // Registrar la partida ANTES de penalizar el score y resetear el estado.
     // Esto garantiza que perfectNoError, rachas, etc. se contabilicen correctamente
@@ -4232,6 +4290,7 @@ function saveGameStats() {
 function endGame() {
     isAnsweringAllowed = false; // prevenir race con handleTimeout tras el último feedback
     clearInterval(timerInterval);
+    _stopAntiCheatPoll(); // detener polling anti-trampa
     if (_animScoreTimer) { cancelAnimationFrame(_animScoreTimer); _animScoreTimer = null; } // cancelar animación de score en curso
     if (_saveTimeout) { clearTimeout(_saveTimeout); _saveTimeout = null; } // limpiar debounce pendiente
     _currentQuestion = null;
