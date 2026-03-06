@@ -2578,7 +2578,7 @@ body.light-mode   #pcard-overlay.christopher-overlay::before {
         radial-gradient(ellipse 55%  45% at 5%  100%,  #00142a 0%, transparent 60%),
         radial-gradient(ellipse 45%  38% at 95% 90%,   #180038 0%, transparent 55%),
         #02000a !important;
-    animation: arch-bg-breathe 8s ease-in-out infinite !important;
+    animation: none !important;
 }
 #pcard-overlay.christopher-overlay::after,
 body.quality-perf #pcard-overlay.christopher-overlay::after,
@@ -2587,7 +2587,7 @@ body.light-mode   #pcard-overlay.christopher-overlay::after {
         radial-gradient(ellipse 80% 50% at 50% 5%,  rgba(160,80,255,0.22) 0%, transparent 55%),
         radial-gradient(ellipse 45% 35% at 10% 88%, rgba(0,160,255,0.10)  0%, transparent 50%),
         radial-gradient(ellipse 38% 30% at 90% 80%, rgba(200,60,255,0.09) 0%, transparent 50%) !important;
-    animation: arch-bg-breathe 11s ease-in-out infinite reverse !important;
+    animation: none !important;
 }
 
 /* Panel */
@@ -2600,7 +2600,8 @@ body.light-mode   #pcard-overlay.christopher-overlay .pcard-panel {
     border: 1px solid rgba(160,80,255,0.25) !important;
     -webkit-backdrop-filter: blur(18px) !important;
     backdrop-filter: blur(18px) !important;
-    animation: arch-panel-glow 5s ease-in-out infinite !important;
+    animation: none !important;
+    box-shadow: 0 0 50px rgba(140,70,255,0.13), 0 2px 40px rgba(0,0,0,0.7), inset 0 0 35px rgba(140,70,255,0.06) !important;
 }
 
 /* Grid interior del panel — sutil */
@@ -2613,7 +2614,8 @@ body.light-mode   #pcard-overlay.christopher-overlay .pcard-panel::before {
         linear-gradient(rgba(160,80,255,0.07) 1px, transparent 1px),
         linear-gradient(90deg, rgba(160,80,255,0.07) 1px, transparent 1px);
     background-size: 28px 28px;
-    animation: arch-grid-breathe 4s ease-in-out infinite !important;
+    animation: none !important;
+    opacity: 0.09;
 }
 #pcard-overlay.christopher-overlay .pcard-panel > *,
 body.quality-perf #pcard-overlay.christopher-overlay .pcard-panel > * {
@@ -2630,6 +2632,5 @@ body.quality-perf #pcard-overlay.christopher-overlay .pcard-panel > * {
     will-change: transform, filter;
     transform-origin: center center;
     animation:
-        arch-rune-float var(--rd, 7s) ease-in-out infinite,
-        arch-rune-glow  var(--rg, 4s) ease-in-out infinite;
+        arch-rune-float var(--rd, 7s) ease-in-out infinite;
 }
