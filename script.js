@@ -188,6 +188,8 @@ if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'ADMINTES
 // Compara stats reales contra los nuevos umbrales del modo infinito y
 // elimina del array achievements cualquier id que ya no se cumpla.
 (function migrateAchievementsV2() {
+    // ADMINTEST: nunca revocar logros
+    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'ADMINTEST') return;
     if (playerStats.migratedV2) {
         // ── Migración v2b: revoca fin1/fin2 si se ganaron sin el flag real ──
         if (!playerStats.migratedV2b) {
@@ -351,6 +353,8 @@ function saveStatsDebounced(force = false) {
 // ── Revoca logros obtenidos por bugs/errores de lógica ──────────────────────
 // Función pública: puede llamarse en cualquier momento para limpiar logros inválidos.
 function revokeInvalidAchievements() {
+    // ADMINTEST: nunca revocar logros de la cuenta de prueba
+    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'ADMINTEST') return 0;
     const before = playerStats.achievements.length;
     const toRevoke = new Set();
 
@@ -921,10 +925,12 @@ async function submitLeaderboard() {
         // ADMINTEST: nombre enmascarado + UUID canónico en el payload
         const _isAdmin = playerStats.playerName.toUpperCase() === 'ADMINTEST';
         const payload = {
-            uuid:      _isAdmin ? '00000000-spec-tral-0000-klickphantom0' : playerStats.uuid,
-            name:      _isAdmin ? 'CHRISTOPHER' : playerStats.playerName,
-            rankTitle: getRankInfo(playerStats).title,
-            powerLevel: pl, totalScore: playerStats.totalScore, maxStreak: playerStats.maxStreak
+            uuid:       _isAdmin ? '00000000-spec-tral-0000-klickphantom0' : playerStats.uuid,
+            name:       _isAdmin ? 'KlickVoid' : playerStats.playerName,
+            rankTitle:  getRankInfo(playerStats).title,
+            powerLevel: _isAdmin ? 21000000 : pl,
+            totalScore: playerStats.totalScore,
+            maxStreak:  playerStats.maxStreak
         };
         try { await fetch(GAS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) });
         } catch(e) {}
@@ -988,19 +994,28 @@ async function fetchLeaderboard() {
                 }
             }
 
+            // KlickVoid (ADMINTEST): posición 0 — entidad fuera de la clasificación
+            const isKlickVoid = p.uuid === '00000000-spec-tral-0000-klickphantom0';
+            const displayPos  = isKlickVoid ? '∅' : pos;
+
             // Podio titles — requiere Leyenda o superior
             let rankTitle = p.rankTitle;
             const podiumTitles = { 1: 'Rey Klick', 2: 'Señor Klick', 3: 'Caballero Klick' };
-            if (pos <= 3 && (p.rankTitle === 'Leyenda' || p.rankTitle === 'M\u00edtico')) rankTitle = podiumTitles[pos];
+            if (!isKlickVoid && pos <= 3 && (p.rankTitle === 'Leyenda' || p.rankTitle === 'Mítico' || p.rankTitle === 'Divinidad')) rankTitle = podiumTitles[pos];
+            if (isKlickVoid) rankTitle = 'Entidad del Sistema';
 
-            const meClass = isMe ? 'is-me' : '';
+            const meClass         = isMe ? 'is-me' : '';
+            const divinidadClass  = p.rankTitle === 'Divinidad' ? 'divinidad-card' : '';
+            const leyendaClass    = p.rankTitle === 'Leyenda'   ? 'leyenda-card'   : '';
+            const miticoClass     = p.rankTitle === 'Mítico'    ? 'mitico-card'    : '';
+            const klickvoidClass  = isKlickVoid                 ? 'klickvoid-card' : '';
+            const titleColor      = rankTitleColor(p.rankTitle);
 
-            const divinidadClass = p.rankTitle === 'Divinidad' ? 'divinidad-card' : '';
-            html += `<div class="rank-card ${meClass} ${divinidadClass}" onclick="openPlayerCard(${index})" title="Ver perfil">
-                <div class="rc-pos">${pos}</div>
+            html += `<div class="rank-card ${meClass} ${divinidadClass} ${leyendaClass} ${miticoClass} ${klickvoidClass}" onclick="openPlayerCard(${index})" title="Ver perfil">
+                <div class="rc-pos${isKlickVoid ? ' rc-pos-void' : ''}">${displayPos}</div>
                 <div class="rc-info">
                     <div class="rc-name">${p.name}</div>
-                    <div class="rc-title">${rankTitle}</div>
+                    <div class="rc-title" style="color:${titleColor}">${rankTitle}</div>
                 </div>
                 <div class="rc-score">${p.powerLevel.toLocaleString()} <span>PL</span></div>
             </div>`;
@@ -1579,7 +1594,7 @@ addAchs([
 
 // ─── 27. COLECCIÓN MAESTRA — NUEVO MÁXIMO ────────────────────────────────
 addAchs([
-    { id: 'master6', title: 'Absoluto',           desc: 'Desbloquea los 169 logros del juego. Nada queda por hacer.',    color: 'var(--divinity-color-static)', icon: SVG_STAR },
+    { id: 'master6', title: 'Absoluto',           desc: 'Desbloquea los 169 logros del juego y alcanza Divinidad. La cúspide absoluta.',    color: 'var(--divinity-color-static)', icon: SVG_STAR },
 ]);
 
 // ─── NUEVAS INTEGRACIONES — Precisión y Rango Divinidad ─────────────────
@@ -1598,9 +1613,9 @@ addAchs([
 
 // ─── 21. MAESTROS DE COLECCIÓN (logros extremos de platino) ─────────────
 addAchs([
-    { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 150 logros en total.',                                  color: colors.yellow, icon: SVG_STAR },
-    { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 200 logros en total.',                                  color: colors.orange, icon: SVG_STAR },
-    { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 250 logros en total.',                                  color: colors.purple, icon: SVG_STAR },
+    { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 50 logros en total.',                                  color: colors.yellow, icon: SVG_STAR },
+    { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 100 logros en total.',                                  color: colors.orange, icon: SVG_STAR },
+    { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 130 logros en total.',                                  color: colors.purple, icon: SVG_STAR },
     { id: 'master5', title: 'A las Puertas', desc: 'Desbloquea 155 logros en total. El límite está a la vista.',      color: colors.yellow, icon: SVG_STAR },
     { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea todos los logros del juego. Eres absoluto.',            color: colors.red,    icon: SVG_STAR },
 ]);
@@ -1634,7 +1649,7 @@ function getRankInfo(stats) {
     const kpClaimed = (getKpState().claimed || []).length;
     // ── Divinidad — rango trascendente, más allá de Mítico ──────────
     if (stats.totalScore >= 3000000 && stats.totalCorrect >= 10000 && stats.perfectGames >= 100 &&
-        (stats.achievements||[]).length >= 250 && stats.maxStreak >= 60 && (stats.maxMult||1) >= 10 &&
+        (stats.achievements||[]).length >= 169 && stats.maxStreak >= 60 && (stats.maxMult||1) >= 10 &&
         accuracy >= 92 && stats.maxLoginStreak >= 60 && (stats.gamesPlayed||0) >= 200 &&
         kpClaimed >= 100)
         return { title: "Divinidad", color: "var(--divinity-color)", rgb: "180,100,255", divinidad: true };
@@ -1692,8 +1707,13 @@ function _checkAchievementsImpl() {
     if (playerStats.achViews >= 1) unlock('m4'); if (playerStats.achViews >= 10) unlock('m5'); if (playerStats.achViews >= 50) unlock('m6');
     if (playerStats.pinnedAchievements.filter(id => id !== 'tramposo').length > 0) unlock('m7'); 
     if (normalAchs >= 10) unlock('m8'); if (normalAchs >= 50) unlock('m9'); if (normalAchs >= 100) unlock('m10');
-    if (normalAchs >= 150) unlock('master1'); if (normalAchs >= 200) unlock('master2'); if (normalAchs >= 250) unlock('master4'); if (normalAchs >= 160) unlock('master5'); if (normalAchs >= 169) unlock('master3');
-    if (normalAchs >= 169) unlock('master6');
+    // Colección maestra — escalera coherente con el total real de 169 logros
+    if (normalAchs >= 50)  unlock('master1'); // Casi Dios
+    if (normalAchs >= 100) unlock('master2'); // Semidivino
+    if (normalAchs >= 130) unlock('master4'); // Leyenda Total
+    if (normalAchs >= 155) unlock('master5'); // A las Puertas
+    if (normalAchs >= 169) unlock('master3'); // Dios Klick — todos
+    if (normalAchs >= 169 && effectiveRank === 'Divinidad') unlock('master6'); // Absoluto — todos + Divinidad
     // ── Pantalla de Rangos ──────────────────────────────────────────
     const rv2 = playerStats.ranksViews||0;
     if(rv2>=1) unlock('rk1'); if(rv2>=5) unlock('rk2'); if(rv2>=15) unlock('rk3'); if(rv2>=30) unlock('rk4'); if(rv2>=50) unlock('rk5');
@@ -2016,6 +2036,7 @@ function _vsCardHTML(ach, isUnlocked, isManualPin, isInProfile) {
     if (ach.id === 'u_mitico')    cls += ' ach-mitico';
     if (ach.id === 'u_divinidad') cls += ' ach-divinidad';
     // Logros especiales: animación propia cuando están desbloqueados
+    if (isUnlocked && ach.id === 'u8')          cls += ' ach-leyenda';
     if (isUnlocked && ach.id === 'u_mitico')    cls += ' ach-mitico';
     if (isUnlocked && ach.id === 'u_divinidad') cls += ' ach-divinidad';
 
@@ -2977,7 +2998,7 @@ function goToProfile(needsName = false) {
                     `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/1,200,000</span> &nbsp;`+
                     `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/5,000</span> &nbsp;`+
                     `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/50</span> &nbsp;`+
-                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/200</span> &nbsp;`+
+                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/169</span> &nbsp;`+
                     `<span style="${c5?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/40</span> &nbsp;`+
                     `<span style="${c6?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. ${s.maxMult||1}/x8</span> &nbsp;`+
                     `<span style="${c7?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/85%</span> &nbsp;`+
@@ -3098,12 +3119,11 @@ let _logoDotsCached = null;
 function updateLogoDots() {
     document.documentElement.style.setProperty('--rank-rgb', currentRankInfo.rgb);
     document.documentElement.style.setProperty('--rank-color', currentRankInfo.color);
-    // Divinidad: activa body class para animación CSS de --divinity-color
-    if (currentRankInfo.divinidad) {
-        document.body.classList.add('rank-divinidad');
-    } else {
-        document.body.classList.remove('rank-divinidad');
-    }
+    // Clases de rango en body — controlan ambientes y animaciones
+    document.body.classList.remove('rank-divinidad', 'rank-mitico', 'rank-leyenda');
+    if      (currentRankInfo.divinidad)               document.body.classList.add('rank-divinidad');
+    else if (currentRankInfo.title === 'Mítico')      document.body.classList.add('rank-mitico');
+    else if (currentRankInfo.title === 'Leyenda')     document.body.classList.add('rank-leyenda');
     const isLight = document.body.classList.contains('light-mode');
     if (!_logoDotsCached || !_logoDotsCached.length) _logoDotsCached = document.querySelectorAll('.logo-dot');
     const shadow = isLight ? 'none' : `0 0 15px rgba(${currentRankInfo.rgb}, 0.5)`;
@@ -4819,7 +4839,7 @@ function renderRanks() {
                 { label: 'Puntos acumulados',    need: 3000000, get: ()=>s.totalScore||0,              fmt: v=>`${fmt(v)} / 3M` },
                 { label: 'Aciertos totales',     need: 10000,   get: ()=>s.totalCorrect||0,            fmt: v=>`${v} / 10,000` },
                 { label: 'Partidas perfectas',   need: 100,     get: ()=>s.perfectGames||0,            fmt: v=>`${v} / 100` },
-                { label: 'Logros desbloqueados', need: 250,     get: ()=>(s.achievements||[]).length,  fmt: v=>`${v} / 250` },
+                { label: 'Logros desbloqueados', need: 169,     get: ()=>(s.achievements||[]).length,  fmt: v=>`${v} / 169` },
                 { label: 'Racha máxima',         need: 60,      get: ()=>s.maxStreak||0,               fmt: v=>`${v} / 60` },
                 { label: 'Multiplicador máx.',   need: 10,      get: ()=>s.maxMult||1,                 fmt: v=>`x${v} / x10` },
                 { label: 'Precisión global',     need: 92,      get: ()=>accuracy,                     fmt: v=>`${v}% / 92%` },
@@ -4842,7 +4862,11 @@ function renderRanks() {
         const isLocked   = !isUnlocked && !isNext;
 
         const allMet = rank.reqs.length === 0 || rank.reqs.every(r => r.get() >= r.need);
-        const statusClass = isCurrent ? ('rank-row--current' + (rank.title==='Divinidad' ? ' rank-row--divinidad' : '')) : isUnlocked ? 'rank-row--done' : isNext ? 'rank-row--next' : 'rank-row--locked';
+        let _currentExtra = '';
+        if (rank.title === 'Divinidad') _currentExtra = ' rank-row--divinidad';
+        else if (rank.title === 'Mítico')  _currentExtra = ' rank-row--mitico';
+        else if (rank.title === 'Leyenda') _currentExtra = ' rank-row--leyenda';
+        const statusClass = isCurrent ? ('rank-row--current' + _currentExtra) : isUnlocked ? 'rank-row--done' : isNext ? 'rank-row--next' : 'rank-row--locked';
 
         // Build req pills
         let pillsHtml = '';
@@ -4904,59 +4928,6 @@ function renderRanks() {
 }
 // ════════════════════════════ END RANGOS ══════════════════════════════
 setTimeout(() => {
-    // ── ADMINTEST: inyectar todas las estadísticas y logros de Divinidad ──
-    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'ADMINTEST') {
-        // Estadísticas mínimas para cumplir TODOS los requisitos de Divinidad
-        playerStats.totalScore         = Math.max(playerStats.totalScore,       3000000);
-        playerStats.totalCorrect       = Math.max(playerStats.totalCorrect,     10000);
-        playerStats.perfectGames       = Math.max(playerStats.perfectGames,     100);
-        playerStats.maxStreak          = Math.max(playerStats.maxStreak,        60);
-        playerStats.maxMult            = Math.max(playerStats.maxMult,          10);
-        playerStats.maxLoginStreak     = Math.max(playerStats.maxLoginStreak,   60);
-        playerStats.gamesPlayed        = Math.max(playerStats.gamesPlayed,      200);
-        playerStats.bestScore          = Math.max(playerStats.bestScore,        15000);
-        playerStats.totalDaysPlayed    = Math.max(playerStats.totalDaysPlayed||0, 60);
-        playerStats.maxNoTimeoutStreak = Math.max(playerStats.maxNoTimeoutStreak||0, 30);
-        playerStats.fastAnswersTotal   = Math.max(playerStats.fastAnswersTotal||0, 10000);
-        playerStats.frenziesTriggered  = Math.max(playerStats.frenziesTriggered||0, 50);
-        playerStats.maxQuestionReached = Math.max(playerStats.maxQuestionReached||0, 800);
-        playerStats.rankingViews       = Math.max(playerStats.rankingViews||0,  50);
-        playerStats.achViews           = Math.max(playerStats.achViews||0,      50);
-        playerStats.ranksViews         = Math.max(playerStats.ranksViews||0,    50);
-        playerStats.nameChanges        = Math.max(playerStats.nameChanges||0,   1);
-        playerStats.rouletteSpins      = Math.max(playerStats.rouletteSpins||0, 50);
-        playerStats.rouletteLifeWins   = Math.max(playerStats.rouletteLifeWins||0,  3);
-        playerStats.rouletteShieldWins = Math.max(playerStats.rouletteShieldWins||0, 1);
-        playerStats.rouletteBoostWins  = Math.max(playerStats.rouletteBoostWins||0,  1);
-        playerStats.rouletteFrenzyWins = Math.max(playerStats.rouletteFrenzyWins||0, 1);
-        playerStats.rouletteShieldUsed = true;
-        playerStats.hadPerfectAccuracyGame = true;
-        playerStats.playedNocturno     = true;
-        playerStats.playedMadrugador   = true;
-        playerStats.clickedLogo        = true;
-        playerStats.totalWrong         = Math.max(playerStats.totalWrong||0, 1);
-        playerStats.totalTimeouts      = Math.max(playerStats.totalTimeouts||0, 50);
-        playerStats.todayGames         = Math.max(playerStats.todayGames||0, 50);
-        // Precisión ≥92%: ajustar totalWrong/Timeouts si es necesario
-        const _tot = playerStats.totalCorrect + (playerStats.totalWrong||0) + (playerStats.totalTimeouts||0);
-        const _acc = _tot > 0 ? (playerStats.totalCorrect / _tot) * 100 : 0;
-        if (_acc < 92) {
-            playerStats.totalWrong    = Math.floor(playerStats.totalCorrect * 0.04);
-            playerStats.totalTimeouts = Math.floor(playerStats.totalCorrect * 0.03);
-        }
-        // KP: todos los 100 niveles reclamados
-        const _kpAdmin = getKpState();
-        _kpAdmin.claimed       = Array.from({length: 100}, (_, i) => i + 1);
-        _kpAdmin.perfectNoError = Math.max(_kpAdmin.perfectNoError || 0, 100);
-        saveKpState(_kpAdmin);
-        // Logros: desbloquear TODOS los del ACHIEVEMENTS_MAP (reales, sin ficticios)
-        const _allRealIds = [...ACHIEVEMENTS_MAP.keys()];
-        const _achSet = new Set(playerStats.achievements || []);
-        _allRealIds.forEach(id => _achSet.add(id));
-        playerStats.achievements = [..._achSet];
-        saveStatsLocally();
-    }
-    // ─────────────────────────────────────────────────────────────────
     processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions();
 }, 500);
 
@@ -5126,8 +5097,8 @@ setTimeout(() => {
         // Stats numéricas — mínimos de Divinidad
         playerStats.totalScore          = Math.max(playerStats.totalScore||0,          3000000);
         playerStats.totalCorrect        = Math.max(playerStats.totalCorrect||0,        10000);
-        playerStats.totalWrong          = 0;
-        playerStats.totalTimeouts       = 0;
+        playerStats.totalWrong          = Math.max(playerStats.totalWrong||0, 100); // u1+u2 require totalWrong>0
+        playerStats.totalTimeouts       = Math.max(playerStats.totalTimeouts||0, 50);  // u3+u4 require totalTimeouts>0
         playerStats.perfectGames        = Math.max(playerStats.perfectGames||0,        100);
         playerStats.maxStreak           = Math.max(playerStats.maxStreak||0,           60);
         playerStats.maxMult             = Math.max(playerStats.maxMult||1,             10);
@@ -5172,14 +5143,16 @@ setTimeout(() => {
         playerStats.fastAnswersTotal    = Math.max(playerStats.fastAnswersTotal||0,    10000);
         playerStats.lastGameCorrect     = Math.max(playerStats.lastGameCorrect||0,     10);
         playerStats.missedADay          = false;
+        // PL local = 21M para consistencia visual en perfil
+        playerStats.powerLevel = 21000000;
         // KP: 100 niveles reclamados
         const _kpAdmin = getKpState();
         _kpAdmin.claimed = Array.from({length: 100}, (_, i) => i + 1);
         _kpAdmin.perfectNoError = Math.max(_kpAdmin.perfectNoError||0, 100);
         saveKpState(_kpAdmin);
         // Logros: todos los IDs reales del juego
-        const _allRealIds = ['track_chill', 'track_pulse', 'track_bass', 'x1', 'm1', 'ui7', 'x3', 'x2', 'u1', 'u3', 'secret_logo', 'x13', 'x20', 'u22', 'x16', 'x18', 'x7', 'x12', 'x4', 'x6', 'x15', 'extra2', 'x10', 'x14', 'np1', 'u9', 'np3', 'extra3', 'u15', 'x11', 'u23', 'mx6', 'mx7', 'mx8', 'mx9', 'mx10', 'u16', 'u13', 'u5', 'u14', 'u17', 'u24', 'x19', 'u21', 'x9', 'x8', 'u20', 'extra1', 'fin3', 'u_bisturi', 'u2', 'u4', 'u10', 'u18', 'u12', 'np4', 'x5', 'u11', 'u19', 'rl1', 'rl6', 'rl7', 'rl2', 'rl8', 'rl3', 'rl9', 'rl4', 'rl5', 'rl10', 'kpa1', 'kpa6', 'kpa2', 'kpa7', 'kpa3', 'kpa8', 'kpa4', 'kpa9', 'kpa5', 'kpa10', 'trk1', 'trk2', 'trk3', 'extra4', 'm4', 'm5', 'm6', 'ui1', 'ui10', 'ui2', 'ui5', 'ui6', 'ui8', 'ui9', 'cfg1', 'cfg2', 'cfg3', 'cfg7', 'cfg8', 'cfg4', 'cfg6', 'cfg5', 'cfg9', 'cfg10', 'm2', 'm3', 'm8', 'm9', 'm10', 'm7', 'np2', 'extra5', 'nm1', 'nm8', 'nm2', 'nm9', 'nm5', 'nm6', 'nm7', 'nm3', 'nm4', 'nm10', 'pod1', 'pod2', 'pod3', 'u_junior', 'u6', 'u7', 'u8', 'u_mitico', 'u_divinidad', 'fin4', 'x17', 'rk1', 'rk2', 'rk3', 'rk4', 'rk5', 'div1', 'div2', 'div3', 'pf9', 'pf10', 'pf11', 'sp9', 'sp10', 'sp11', 'kpa11', 'master6', 'prec1', 'div4', 'fin1', 'fin2', 'fin5', 'master1', 'master2', 'master4', 'master5', 'master3', 'life', 'frenzy', 'jackpot', 'shield', 'boost', 'triple', 'time8', 'hint', 'time5', 'streak'];
-        const _achSet = new Set([...(playerStats.achievements||[]), ..._allRealIds]);
+        // Logros: todos los IDs reales — siempre actualizado aunque se añadan nuevos
+        const _achSet = new Set([...(playerStats.achievements||[]), ...ACHIEVEMENTS_MAP.keys()]);
         playerStats.achievements = [..._achSet];
         saveStatsLocally();
     }
