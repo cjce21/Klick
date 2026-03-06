@@ -2789,16 +2789,16 @@ function _onManualSliderChange() {
 // ── RULETA: 10 elementos únicos, sin repeticiones, lógica simple ──────────
 // Pesos: cuanto mayor, más probable. Recompensas aplicadas en collectRoulettePrize().
 const ROULETTE_PRIZES = [
-    { id: 'life',    label: 'VIDA EXTRA',   short: '+VIDA',   color: '#ff2a5f', rarity: 'Legendario', weight: 5,  desc: 'Recuperas una vida perdida.' },
-    { id: 'frenzy',  label: 'FRENESÍ',      short: 'FRENESÍ', color: '#b5179e', rarity: 'Épico',      weight: 8,  desc: 'Activa el Modo Frenesí inmediatamente.' },
-    { id: 'jackpot', label: 'JACKPOT x4',   short: 'x4 PTS',  color: '#ff0090', rarity: 'Épico',      weight: 8,  desc: 'La próxima pregunta vale x4 puntos.' },
-    { id: 'shield',  label: 'ESCUDO',       short: 'ESCUDO',  color: '#00d4ff', rarity: 'Raro',       weight: 12, desc: 'Si fallas la próxima pregunta no pierdes vida.' },
+    { id: 'life',    label: 'VIDA EXTRA',   short: '+VIDA',   color: '#ff2a5f', rarity: 'Legendario', weight: 8,  desc: 'Recuperas una vida perdida.' },
+    { id: 'frenzy',  label: 'FRENESÍ',      short: 'FRENESÍ', color: '#b5179e', rarity: 'Épico',      weight: 10, desc: 'Activa el Modo Frenesí inmediatamente.' },
+    { id: 'jackpot', label: 'JACKPOT x4',   short: 'x4 PTS',  color: '#ff0090', rarity: 'Épico',      weight: 10, desc: 'La próxima pregunta vale x4 puntos.' },
+    { id: 'shield',  label: 'ESCUDO',       short: 'ESCUDO',  color: '#00d4ff', rarity: 'Raro',       weight: 13, desc: 'Si fallas la próxima pregunta no pierdes vida.' },
     { id: 'boost',   label: 'PUNTOS x2',    short: 'x2 PTS',  color: '#ffb800', rarity: 'Raro',       weight: 14, desc: 'La próxima pregunta vale el doble de puntos.' },
-    { id: 'triple',  label: 'TURBO x3',     short: 'x3 PTS',  color: '#ccff00', rarity: 'Raro',       weight: 11, desc: 'La próxima pregunta vale x3 puntos.' },
-    { id: 'time8',   label: 'TIEMPO +8',    short: '+8 SEG',  color: '#00ffcc', rarity: 'Normal',     weight: 15, desc: 'La próxima pregunta tendrá 8 segundos extra.' },
-    { id: 'hint',    label: 'PISTA',        short: 'PISTA',   color: '#f77f00', rarity: 'Normal',     weight: 18, desc: 'Elimina una respuesta incorrecta de la siguiente pregunta.' },
-    { id: 'time5',   label: 'TIEMPO +5',    short: '+5 SEG',  color: '#00ff66', rarity: 'Normal',     weight: 20, desc: 'La próxima pregunta tendrá 5 segundos extra.' },
-    { id: 'streak',  label: 'RACHA SALVADA',short: 'RACHA',   color: '#aaaaff', rarity: 'Básico',     weight: 22, desc: 'Si fallas la siguiente, tu racha no se resetea.' },
+    { id: 'triple',  label: 'TURBO x3',     short: 'x3 PTS',  color: '#ccff00', rarity: 'Raro',       weight: 12, desc: 'La próxima pregunta vale x3 puntos.' },
+    { id: 'time8',   label: 'TIEMPO +8',    short: '+8 SEG',  color: '#00ffcc', rarity: 'Normal',     weight: 14, desc: 'La próxima pregunta tendrá 8 segundos extra.' },
+    { id: 'hint',    label: 'PISTA',        short: 'PISTA',   color: '#f77f00', rarity: 'Normal',     weight: 15, desc: 'Elimina una respuesta incorrecta de la siguiente pregunta.' },
+    { id: 'time5',   label: 'TIEMPO +5',    short: '+5 SEG',  color: '#00ff66', rarity: 'Normal',     weight: 16, desc: 'La próxima pregunta tendrá 5 segundos extra.' },
+    { id: 'streak',  label: 'RACHA SALVADA',short: 'RACHA',   color: '#aaaaff', rarity: 'Básico',     weight: 18, desc: 'Si fallas la siguiente, tu racha no se resetea.' },
 ];
 
 let rouletteActive = false;
@@ -3176,9 +3176,8 @@ function closeRoulette() {
         loadQuestion();
         _startAntiCheatPoll(); // reanudar polling al volver a preguntas
         if (_hint) {
-            // applyHintVisual necesita que la pregunta ya esté en el DOM
-            // 150ms es suficiente para que los botones estén pintados
-            setTimeout(applyHintVisual, 180);
+            // Aplicar pista DESPUÉS de que todas las animaciones de entrada terminen (~630ms)
+            setTimeout(applyHintVisual, 680);
         }
     }, 300);
 }
@@ -3852,7 +3851,7 @@ function loadQuestion() {
 
     (_gAnswersGrid||document.getElementById('answers-grid')).classList.remove('answered'); 
     answerBtns.forEach(btn => { 
-        btn.classList.remove('selected'); 
+        btn.classList.remove('selected', 'hint-hidden'); 
         btn.style.opacity = ''; btn.style.pointerEvents = ''; btn.style.filter = '';
     });
 
@@ -3927,19 +3926,25 @@ function selectAnswer(selectedIndex) {
 }
 
 function applyHintVisual() {
-    // Disable one WRONG answer button on the currently loaded question
     const q = _currentQuestion;
-    const correctIdx = q ? q.currentCorrectIndex : -1;
-    const btns = document.querySelectorAll('.answer-btn');
-    let hidden = false;
-    btns.forEach((btn, i) => {
-        if (!hidden && i !== correctIdx) {
-            btn.style.opacity = '0.2';
-            btn.style.pointerEvents = 'none';
-            btn.style.filter = 'grayscale(1)';
-            hidden = true;
-        }
-    });
+    if (!q) return;
+    const correctIdx = q.currentCorrectIndex;
+    const btns = _gAnswerBtns || document.querySelectorAll('.answer-btn');
+
+    // Primero limpiar cualquier hint previo
+    btns.forEach(btn => btn.classList.remove('hint-hidden'));
+
+    // Construir lista de índices incorrectos y elegir uno al azar
+    const wrongIndices = [];
+    for (let i = 0; i < btns.length; i++) {
+        if (i !== correctIdx) wrongIndices.push(i);
+    }
+    if (!wrongIndices.length) return;
+    const pick = wrongIndices[Math.floor(Math.random() * wrongIndices.length)];
+
+    // Usar clase CSS (con !important) en lugar de style inline
+    // para que sobreviva al fill-mode:forwards de la animación q-enter
+    btns[pick].classList.add('hint-hidden');
 }
 
 function handleTimeout() {
@@ -4216,9 +4221,15 @@ function showFeedback(isCorrect, isTimeout = false) {
             } else {
                 const _applyHint = hintActive;
                 if (_applyHint) hintActive = false;
-                loadQuestion();
+                // Cambiar pantalla PRIMERO para que las CSS transitions del timer
+                // corran en un elemento visible (evita que el navegador las suspenda)
                 switchScreen('question-screen');
-                if (_applyHint) setTimeout(applyHintVisual, 180);
+                setTimeout(() => {
+                    loadQuestion();
+                    // Aplicar pista DESPUÉS de que todas las animaciones de entrada terminen
+                    // El botón más tardío anima: 0.4s + delay(0.06+3*0.055)s = ~0.63s total
+                    if (_applyHint) setTimeout(applyHintVisual, 680);
+                }, 80);
             }
         } else {
             endGame();
