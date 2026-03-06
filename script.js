@@ -5073,6 +5073,22 @@ function renderRanks() {
     const accuracy = totalAns > 0 ? Math.round((s.totalCorrect||0)/totalAns*100) : 0;
     const fmt = n => n >= 1000000 ? (n/1000000).toFixed(1)+'M' : n >= 1000 ? (n/1000).toFixed(0)+'K' : String(n);
 
+    // Iconos únicos por rango — representan la identidad de cada nivel
+    const RANK_ICONS = {
+        // Novato: semilla / brote — comienzo
+        'Novato':  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M12 12C12 8 8 4 3 4c0 5 3.5 8 9 8z"/><path d="M12 12c0-4 4-8 9-8-1 5-4.5 8-9 8z"/></svg>`,
+        // Junior: relámpago — energía en ascenso
+        'Junior':  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+        // Pro: diana — precisión y enfoque
+        'Pro':     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+        // Maestro: escudo — dominio y autoridad
+        'Maestro': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+        // Leyenda: trofeo — reconocimiento permanente
+        'Leyenda': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>`,
+        // Mítico: corona — el pináculo
+        'Mítico':  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M5 20V10l7-7 7 7v10"/><path d="M2 10l4.5 4L12 3l5.5 11L22 10"/></svg>`,
+    };
+
     const RANKS = [
         {
             title: 'Novato',
@@ -5080,7 +5096,6 @@ function renderRanks() {
             hex: '#00ff66',
             label: 'El punto de partida.',
             reqs: [],
-            next: null
         },
         {
             title: 'Junior',
@@ -5088,9 +5103,9 @@ function renderRanks() {
             hex: '#00d4ff',
             label: 'Tus primeros pasos se consolidan.',
             reqs: [
-                { label: 'Récord en partida', need: 15000, get: ()=>s.bestScore||0, fmt: v=>`${fmt(v)} / 15K` },
-                { label: 'Partidas jugadas',  need: 5,     get: ()=>s.gamesPlayed||0, fmt: v=>`${v} / 5` },
-            ]
+                { label: 'Récord en partida', need: 15000, get: ()=>s.bestScore||0,    fmt: v=>`${fmt(v)} / 15K` },
+                { label: 'Partidas jugadas',  need: 5,     get: ()=>s.gamesPlayed||0,  fmt: v=>`${v} / 5` },
+            ],
         },
         {
             title: 'Pro',
@@ -5098,10 +5113,10 @@ function renderRanks() {
             hex: '#ff2a5f',
             label: 'Consistencia y precisión probadas.',
             reqs: [
-                { label: 'Puntos acumulados', need: 60000,  get: ()=>s.totalScore||0,   fmt: v=>`${fmt(v)} / 60K` },
-                { label: 'Aciertos totales',  need: 200,    get: ()=>s.totalCorrect||0,  fmt: v=>`${v} / 200` },
-                { label: 'Racha máxima',      need: 12,     get: ()=>s.maxStreak||0,     fmt: v=>`${v} / 12` },
-            ]
+                { label: 'Puntos acumulados', need: 60000,  get: ()=>s.totalScore||0,  fmt: v=>`${fmt(v)} / 60K` },
+                { label: 'Aciertos totales',  need: 200,    get: ()=>s.totalCorrect||0, fmt: v=>`${v} / 200` },
+                { label: 'Racha máxima',      need: 12,     get: ()=>s.maxStreak||0,    fmt: v=>`${v} / 12` },
+            ],
         },
         {
             title: 'Maestro',
@@ -5109,10 +5124,10 @@ function renderRanks() {
             hex: '#b5179e',
             label: 'Dominio del sistema de multiplicadores.',
             reqs: [
-                { label: 'Puntos acumulados', need: 150000, get: ()=>s.totalScore||0,   fmt: v=>`${fmt(v)} / 150K` },
-                { label: 'Partidas jugadas',  need: 50,     get: ()=>s.gamesPlayed||0,  fmt: v=>`${v} / 50` },
-                { label: 'Multiplicador x4',  need: 4,      get: ()=>s.maxMult||1,      fmt: v=>`x${v} / x4` },
-            ]
+                { label: 'Puntos acumulados', need: 150000, get: ()=>s.totalScore||0,  fmt: v=>`${fmt(v)} / 150K` },
+                { label: 'Partidas jugadas',  need: 50,     get: ()=>s.gamesPlayed||0, fmt: v=>`${v} / 50` },
+                { label: 'Multiplicador x4',  need: 4,      get: ()=>s.maxMult||1,     fmt: v=>`x${v} / x4` },
+            ],
         },
         {
             title: 'Leyenda',
@@ -5120,10 +5135,10 @@ function renderRanks() {
             hex: '#ffb800',
             label: 'Solo los mejores llegan aquí.',
             reqs: [
-                { label: 'Puntos acumulados',    need: 400000, get: ()=>s.totalScore||0,    fmt: v=>`${fmt(v)} / 400K` },
-                { label: 'Aciertos totales',     need: 1500,   get: ()=>s.totalCorrect||0,  fmt: v=>`${v} / 1,500` },
-                { label: 'Partidas perfectas',   need: 10,     get: ()=>s.perfectGames||0,  fmt: v=>`${v} / 10` },
-            ]
+                { label: 'Puntos acumulados',  need: 400000, get: ()=>s.totalScore||0,   fmt: v=>`${fmt(v)} / 400K` },
+                { label: 'Aciertos totales',   need: 1500,   get: ()=>s.totalCorrect||0, fmt: v=>`${v} / 1,500` },
+                { label: 'Partidas perfectas', need: 10,     get: ()=>s.perfectGames||0, fmt: v=>`${v} / 10` },
+            ],
         },
         {
             title: 'Mítico',
@@ -5131,62 +5146,42 @@ function renderRanks() {
             hex: '#ffffff',
             label: 'El rango supremo. Alcanzado por muy pocos.',
             reqs: [
-                { label: 'Puntos acumulados',    need: 1200000, get: ()=>s.totalScore||0,              fmt: v=>`${fmt(v)} / 1.2M` },
-                { label: 'Aciertos totales',     need: 5000,    get: ()=>s.totalCorrect||0,            fmt: v=>`${v} / 5,000` },
-                { label: 'Partidas perfectas',   need: 50,      get: ()=>s.perfectGames||0,            fmt: v=>`${v} / 50` },
-                { label: 'Logros desbloqueados', need: 200,     get: ()=>(s.achievements||[]).length,  fmt: v=>`${v} / 200` },
-                { label: 'Racha máxima',         need: 40,      get: ()=>s.maxStreak||0,               fmt: v=>`${v} / 40` },
-                { label: 'Multiplicador máx.',   need: 8,       get: ()=>s.maxMult||1,                 fmt: v=>`x${v} / x8` },
-                { label: 'Precisión global',     need: 85,      get: ()=>accuracy,                     fmt: v=>`${v}% / 85%` },
-                { label: 'Racha de login',       need: 30,      get: ()=>s.maxLoginStreak||0,          fmt: v=>`${v} / 30 días` },
-            ]
+                { label: 'Puntos acumulados',    need: 1200000, get: ()=>s.totalScore||0,             fmt: v=>`${fmt(v)} / 1.2M` },
+                { label: 'Aciertos totales',     need: 5000,    get: ()=>s.totalCorrect||0,           fmt: v=>`${v} / 5,000` },
+                { label: 'Partidas perfectas',   need: 50,      get: ()=>s.perfectGames||0,           fmt: v=>`${v} / 50` },
+                { label: 'Logros desbloqueados', need: 200,     get: ()=>(s.achievements||[]).length, fmt: v=>`${v} / 200` },
+                { label: 'Racha máxima',         need: 40,      get: ()=>s.maxStreak||0,              fmt: v=>`${v} / 40` },
+                { label: 'Multiplicador máx.',   need: 8,       get: ()=>s.maxMult||1,                fmt: v=>`x${v} / x8` },
+                { label: 'Precisión global',     need: 85,      get: ()=>accuracy,                    fmt: v=>`${v}% / 85%` },
+                { label: 'Racha de login',       need: 30,      get: ()=>s.maxLoginStreak||0,         fmt: v=>`${v} / 30 días` },
+            ],
         },
-        {
-            title: 'Divinidad',
-            color: '180,100,255',
-            hex: 'var(--divinity-color-static)',
-            label: 'Más allá de todo. Un rango que trasciende lo conocido.',
-            reqs: [
-                { label: 'Puntos acumulados',    need: 3000000, get: ()=>s.totalScore||0,              fmt: v=>`${fmt(v)} / 3M` },
-                { label: 'Aciertos totales',     need: 10000,   get: ()=>s.totalCorrect||0,            fmt: v=>`${v} / 10,000` },
-                { label: 'Partidas perfectas',   need: 100,     get: ()=>s.perfectGames||0,            fmt: v=>`${v} / 100` },
-                { label: 'Logros desbloqueados', need: 165, get: ()=>(s.achievements||[]).length,  fmt: v=>`${v} / 165` },
-                { label: 'Racha máxima',         need: 60,      get: ()=>s.maxStreak||0,               fmt: v=>`${v} / 60` },
-                { label: 'Multiplicador máx.',   need: 10,      get: ()=>s.maxMult||1,                 fmt: v=>`x${v} / x10` },
-                { label: 'Precisión global',     need: 92,      get: ()=>accuracy,                     fmt: v=>`${v}% / 92%` },
-                { label: 'Racha de login',       need: 60,      get: ()=>s.maxLoginStreak||0,          fmt: v=>`${v} / 60 días` },
-                { label: 'Partidas jugadas',     need: 200,     get: ()=>s.gamesPlayed||0,             fmt: v=>`${v} / 200` },
-                { label: 'Klick Pass completo',  need: 100,     get: ()=>kpClaimed,                    fmt: v=>`${v} / 100 niveles` },
-            ]
-        }
     ];
 
-    // Determine which ranks are unlocked
-    const _isChristopherRanks = (s.playerName||''). toUpperCase() === 'CHRISTOPHER' && s.uuid === '00000000-spec-tral-0000-klickphantom0';
+    // El rango Divinidad existe en el sistema (para CHRISTOPHER) pero no se
+    // muestra en la zona de rangos — es exclusivo del perfil del administrador.
     const ORDER = ['Novato','Junior','Pro','Maestro','Leyenda','Mítico','Divinidad'];
-    const rankIdx = ORDER.indexOf(current);
+    // Si el jugador actual es Divinidad, mostrarlo como Mítico en esta pantalla
+    const displayCurrent = current === 'Divinidad' ? 'Mítico' : current;
+    const rankIdx = ORDER.indexOf(displayCurrent);
 
     let html = '';
     RANKS.forEach((rank, i) => {
-        // Divinidad — solo visible para CHRISTOPHER
-        if (rank.title === 'Divinidad' && !_isChristopherRanks) return;
-
         const isUnlocked = i <= rankIdx;
-        const isCurrent  = rank.title === current;
+        const isCurrent  = rank.title === displayCurrent;
         const isNext     = i === rankIdx + 1;
         const isLocked   = !isUnlocked && !isNext;
 
-        const allMet = rank.reqs.length === 0 || rank.reqs.every(r => r.get() >= r.need);
         const statusClass = isCurrent ? 'rank-row--current' : isUnlocked ? 'rank-row--done' : isNext ? 'rank-row--next' : 'rank-row--locked';
 
         // Build req pills
         let pillsHtml = '';
         if (rank.reqs.length > 0) {
             rank.reqs.forEach(r => {
-                const val  = r.get();
-                const met  = val >= r.need;
-                const pct  = Math.min(100, Math.round((val / r.need) * 100));
-                const dim  = isLocked ? 'opacity:0.4;' : '';
+                const val = r.get();
+                const met = val >= r.need;
+                const pct = Math.min(100, Math.round((val / r.need) * 100));
+                const dim = isLocked ? 'opacity:0.4;' : '';
                 pillsHtml += `
                 <div class="rrank-req ${met ? 'rrank-req--met' : ''}" style="${dim}">
                     <div class="rrank-req-top">
@@ -5200,12 +5195,16 @@ function renderRanks() {
             });
         }
 
-        // Crown/badge icon
-        const badgeSvg = isCurrent
-            ? `<svg viewBox="0 0 24 24" fill="none" stroke="rgba(${rank.color},1)" stroke-width="2.5" width="20" height="20"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
-            : isUnlocked
-            ? `<svg viewBox="0 0 24 24" fill="rgba(${rank.color},0.7)" stroke="none" width="16" height="16"><path d="M20 6L9 17l-5-5"/></svg>`
-            : `<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
+        // Icono del rango — único por nivel, coloreado según estado
+        const iconColor  = isLocked ? 'rgba(255,255,255,0.22)' : `rgba(${rank.color},${isCurrent ? '1' : '0.75'})`;
+        const iconSize   = isCurrent ? '22' : '18';
+        const iconSvgRaw = RANK_ICONS[rank.title] || SVG_STAR;
+        // Inyectar color y tamaño en el SVG base
+        const badgeSvg   = iconSvgRaw
+            .replace('stroke="currentColor"', `stroke="${iconColor}"`)
+            .replace(/width="\d+"/, `width="${iconSize}"`)
+            .replace(/height="\d+"/, `height="${iconSize}"`)
+            || iconSvgRaw;
 
         html += `
         <div class="rank-row ${statusClass}" data-rank="${rank.title}">
