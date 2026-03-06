@@ -618,6 +618,129 @@ function getActiveTrack() {
     return TRACK_CONFIGS[playerStats.selectedTrack || 'track_chill'] || TRACK_CONFIGS.track_chill;
 }
 
+// ── ARCHITECT TRACK: música exclusiva para la tarjeta de CHRISTOPHER ──────
+// Épico, oscuro y etéreo — cuerdas de catedral, bajo profundo y arpegios de cristal.
+// Solo se activa mientras la tarjeta del Arquitecto está abierta.
+const ARCHITECT_TRACK = {
+    CHORD_PROG: [[36,43,48,55],[33,40,45,52],[38,45,50,57],[35,42,47,54]],
+    ARP_PAT: [0,3,1,2,3,0,2,1,0,3,2,0,1,3,0,2],
+    arpType: 'sine', bassType: 'sawtooth', kickFreq: 38,
+    kickVol: 0.55, bassVol: 0.45, arpVol: 0.09,
+    bpmBase: 52
+};
+
+let _architectMusicActive = false;
+let _architectMusicTimer = null;
+let _architectMusicStep = 0;
+let _architectChordIndex = 0;
+let _architectNextNote = 0;
+
+function startArchitectMusic() {
+    if (!audioCtx) { try { initAudio(); } catch(e) { return; } }
+    if (!audioCtx) return;
+    _architectMusicActive = true;
+    _architectMusicStep = 0;
+    _architectChordIndex = 0;
+    _architectNextNote = audioCtx.currentTime + 0.05;
+    _architectTick();
+}
+
+function stopArchitectMusic() {
+    _architectMusicActive = false;
+    clearTimeout(_architectMusicTimer);
+}
+
+function _architectTick() {
+    if (!_architectMusicActive || !audioCtx) return;
+    while (_architectNextNote < audioCtx.currentTime + 0.18) {
+        _architectStep(_architectNextNote);
+        _architectNextNote += 60.0 / ARCHITECT_TRACK.bpmBase / 4;
+        _architectMusicStep++;
+        if (_architectMusicStep >= 16) {
+            _architectMusicStep = 0;
+            _architectChordIndex = (_architectChordIndex + 1) % 4;
+        }
+    }
+    _architectMusicTimer = setTimeout(_architectTick, 25);
+}
+
+function _architectStep(t) {
+    const tc = ARCHITECT_TRACK;
+    const chord = tc.CHORD_PROG[_architectChordIndex];
+    const step  = _architectMusicStep;
+
+    // Kick épico grave (cada 4 pasos)
+    if (step % 4 === 0) {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(tc.kickFreq, t);
+        o.frequency.exponentialRampToValueAtTime(0.01, t + 0.6);
+        g.gain.setValueAtTime(tc.kickVol, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.65);
+        o.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 0.7);
+    }
+
+    // Bajo de dron profundo (cada 2 pasos)
+    if (step % 2 === 0) {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain(), f = audioCtx.createBiquadFilter();
+        o.type = tc.bassType;
+        o.frequency.setValueAtTime(midiToHz(chord[0] - 12), t);
+        f.type = 'lowpass'; f.frequency.setValueAtTime(220, t);
+        f.frequency.exponentialRampToValueAtTime(60, t + 0.25);
+        g.gain.setValueAtTime(tc.bassVol, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+        o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 0.35);
+    }
+
+    // Dron continuo de catedral (cada 8 pasos)
+    if (step % 8 === 0) {
+        const droneDur = 3.2;
+        [chord[0] - 24, chord[0] - 12, chord[0]].forEach((m, idx) => {
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = idx < 2 ? 'sine' : 'triangle';
+            o.frequency.setValueAtTime(midiToHz(m), t);
+            if (idx === 1) o.detune.setValueAtTime(6, t);
+            if (idx === 2) o.detune.setValueAtTime(-4, t);
+            const dv = idx === 0 ? 0.22 : idx === 1 ? 0.14 : 0.06;
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.linearRampToValueAtTime(dv, t + 0.8);
+            g.gain.setValueAtTime(dv, t + droneDur - 0.8);
+            g.gain.linearRampToValueAtTime(0.0001, t + droneDur);
+            o.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + droneDur + 0.05);
+        });
+    }
+
+    // Pad de cuerdas de catedral (cada 16 pasos)
+    if (step === 0) {
+        chord.forEach((note, i) => {
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain(), f = audioCtx.createBiquadFilter();
+            o.type = 'sawtooth';
+            o.frequency.setValueAtTime(midiToHz(note + (i > 1 ? 12 : 0)), t);
+            o.detune.setValueAtTime((i % 2 === 0 ? 5 : -5), t);
+            f.type = 'lowpass'; f.frequency.setValueAtTime(700, t);
+            const padV = 0.032;
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.linearRampToValueAtTime(padV, t + 1.2);
+            g.gain.setValueAtTime(padV, t + 2.2);
+            g.gain.linearRampToValueAtTime(0.0001, t + 3.2);
+            o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 3.3);
+        });
+    }
+
+    // Arpegios de cristal (dispersos, muy suaves)
+    if (step === 0 || step === 6 || step === 10 || step === 14) {
+        const noteMidi = chord[tc.ARP_PAT[step]] + 24;
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain(), f = audioCtx.createBiquadFilter();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(midiToHz(noteMidi), t);
+        f.type = 'highpass'; f.frequency.setValueAtTime(2000, t);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(tc.arpVol, t + 0.04);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+        o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 0.65);
+    }
+}
+
 function startMusicEngine() {
     isMusicPlaying = true;
     musicSeqStep = 0;
@@ -1223,7 +1346,13 @@ function openPlayerCard(index) {
     // Nivel de Poder
     const plEl = document.getElementById('pcard-pl');
     plEl.textContent = (p.powerLevel || 0).toLocaleString();
-    plEl.style.color = color;
+    if (isChristopherCard) {
+        plEl.classList.add('christopher-pl-gradient');
+        plEl.style.color = '';
+    } else {
+        plEl.classList.remove('christopher-pl-gradient');
+        plEl.style.color = color;
+    }
 
     // Posición — ∞ para CHRISTOPHER, número para el resto
     const posEl = document.getElementById('pcard-pos');
@@ -1262,6 +1391,24 @@ function openPlayerCard(index) {
     // Arrancar partículas con el color del jugador
     _pcStart(rgb);
 
+    // Overlay y música especiales para el Arquitecto
+    if (isChristopherCard) {
+        overlay.classList.add('christopher-overlay');
+        // Runas flotantes del Arquitecto
+        _spawnArchitectRunes(overlay);
+        // Silenciar música normal y arrancar la del Arquitecto
+        if (isMusicPlaying && masterMusicGain && audioCtx) {
+            const t = audioCtx.currentTime;
+            masterMusicGain.gain.cancelScheduledValues(t);
+            masterMusicGain.gain.setValueAtTime(masterMusicGain.gain.value, t);
+            masterMusicGain.gain.linearRampToValueAtTime(0.0001, t + 0.6);
+        }
+        setTimeout(() => { if (_architectMusicActive === false) startArchitectMusic(); }, 620);
+    } else {
+        overlay.classList.remove('christopher-overlay');
+        _clearArchitectRunes(overlay);
+    }
+
     // Mostrar overlay
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -1269,13 +1416,51 @@ function openPlayerCard(index) {
 
 // ── Cerrar tarjeta ────────────────────────────────────────────────
 function closePlayerCard() {
-    document.getElementById('pcard-overlay').classList.remove('active');
+    const overlay = document.getElementById('pcard-overlay');
+    overlay.classList.remove('active');
     document.body.style.overflow = '';
     _pcStop();
+
+    // Si estaba la tarjeta del Arquitecto, detener su música y restaurar la normal
+    if (_architectMusicActive) {
+        stopArchitectMusic();
+        overlay.classList.remove('christopher-overlay');
+        _clearArchitectRunes(overlay);
+        // Restaurar volumen de la música del juego
+        if (isMusicPlaying && masterMusicGain && audioCtx) {
+            const t = audioCtx.currentTime;
+            const targetVol = playerStats.musicVol * 0.8;
+            masterMusicGain.gain.cancelScheduledValues(t);
+            masterMusicGain.gain.setValueAtTime(0.0001, t);
+            masterMusicGain.gain.linearRampToValueAtTime(targetVol, t + 0.5);
+        }
+    }
 }
 
 function pcardOverlayClick(e) {
     if (e.target === document.getElementById('pcard-overlay')) closePlayerCard();
+}
+
+// ── Runas flotantes del Arquitecto ───────────────────────────────
+const _ARCHITECT_RUNES = ['⬡','◈','⟁','⬢','◉','⌬','⎔','◇','⟐','⊛','⌖','◈'];
+function _spawnArchitectRunes(overlay) {
+    _clearArchitectRunes(overlay);
+    const count = 10;
+    for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.className = 'architect-rune';
+        el.textContent = _ARCHITECT_RUNES[i % _ARCHITECT_RUNES.length];
+        el.style.left   = (Math.random() * 92 + 2) + '%';
+        el.style.top    = (Math.random() * 88 + 4) + '%';
+        el.style.fontSize = (0.8 + Math.random() * 1.2) + 'rem';
+        el.style.animationDelay = (Math.random() * 5) + 's';
+        el.style.animationDuration = (5 + Math.random() * 4) + 's';
+        el.style.opacity = (0.10 + Math.random() * 0.18).toFixed(2);
+        overlay.appendChild(el);
+    }
+}
+function _clearArchitectRunes(overlay) {
+    overlay.querySelectorAll('.architect-rune').forEach(el => el.remove());
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayerCard(); });
