@@ -2798,3 +2798,249 @@ body.light-mode .ach-card.ach-divinidad.unlocked .ach-title {
     color: #6b0fa8 !important;
     animation: none;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RANGOS ESPECIALES — Leyenda / Mítico / Divinidad
+   Escala de efectos: Leyenda < Mítico < Divinidad
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── LEYENDA — brillo dorado suave ──────────────────────────────────────── */
+@keyframes leyenda-pulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(255,184,0,0.2), inset 0 0 0 rgba(255,184,0,0); }
+    50%       { box-shadow: 0 0 22px rgba(255,184,0,0.5), inset 0 0 12px rgba(255,184,0,0.04); }
+}
+@keyframes leyenda-text {
+    0%, 100% { text-shadow: 0 0 8px rgba(255,184,0,0.4); }
+    50%       { text-shadow: 0 0 18px rgba(255,184,0,0.85), 0 0 35px rgba(255,184,0,0.3); }
+}
+
+/* Leaderboard card */
+.rank-card.leyenda-card {
+    border-color: rgba(255,184,0,0.4) !important;
+    background: rgba(255,184,0,0.04) !important;
+    animation: leyenda-pulse 3.5s ease-in-out infinite;
+}
+.rank-card.leyenda-card .rc-title {
+    animation: leyenda-text 3.5s ease-in-out infinite;
+}
+
+/* Avatar ring (jugador con rango Leyenda) */
+body.rank-leyenda #profile-avatar-ring {
+    box-shadow: 0 0 0 2px rgba(255,184,0,0.4),
+                0 0 14px rgba(255,184,0,0.3),
+                0 0 28px rgba(255,184,0,0.1) !important;
+    animation: leyenda-pulse 3.5s ease-in-out infinite;
+}
+
+/* Logo dot */
+body.rank-leyenda .logo-dot {
+    animation: leyenda-text 3.5s ease-in-out infinite;
+}
+
+/* Fondo app — halo dorado muy sutil */
+body.rank-leyenda #app {
+    background: radial-gradient(
+        circle at 50% 50%,
+        rgba(255,184,0,0.05) 0%,
+        var(--bg-base) 70%
+    ) !important;
+}
+
+/* Logro u8 (Leyenda) desbloqueado */
+.ach-card.ach-leyenda {
+    animation: leyenda-pulse 3.5s ease-in-out infinite;
+    border-color: rgba(255,184,0,0.55) !important;
+    background: rgba(255,184,0,0.04) !important;
+}
+.ach-card.ach-leyenda .ach-title {
+    color: var(--accent-yellow) !important;
+    animation: leyenda-text 3.5s ease-in-out infinite;
+}
+.ach-card.ach-leyenda .ach-icon { filter: drop-shadow(0 0 6px rgba(255,184,0,0.7)); }
+
+/* Pantalla de rangos — fila Leyenda si es rango actual */
+.rank-row--current.rank-row--leyenda {
+    border-color: rgba(255,184,0,0.4) !important;
+    box-shadow: 0 0 20px rgba(255,184,0,0.1),
+                inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    animation: leyenda-pulse 3.5s ease-in-out infinite;
+}
+
+/* quality-max: intensificar */
+body.quality-max.rank-leyenda #profile-avatar-ring {
+    box-shadow: 0 0 0 2px rgba(255,184,0,0.6),
+                0 0 24px rgba(255,184,0,0.5),
+                0 0 50px rgba(255,184,0,0.2) !important;
+}
+body.quality-max .rank-card.leyenda-card {
+    box-shadow: 0 0 16px rgba(255,184,0,0.35),
+                inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+
+/* light mode */
+body.light-mode .rank-card.leyenda-card {
+    border-color: rgba(180,130,0,0.4) !important;
+    background: rgba(180,130,0,0.04) !important;
+}
+body.light-mode.rank-leyenda #profile-avatar-ring {
+    box-shadow: 0 0 14px rgba(180,130,0,0.25) !important;
+    animation: none;
+}
+
+/* quality-perf: sin animaciones */
+body.quality-perf.rank-leyenda #profile-avatar-ring,
+body.quality-perf.rank-leyenda .logo-dot,
+body.quality-perf.rank-leyenda #app,
+body.quality-perf .rank-card.leyenda-card,
+body.quality-perf .ach-card.ach-leyenda { animation: none !important; }
+
+/* ── MÍTICO — destello blanco frío, más intenso que Leyenda ─────────────── */
+@keyframes mitico-aura {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(255,255,255,0.15),
+                    0 0 24px rgba(255,255,255,0.06),
+                    inset 0 0 0 rgba(255,255,255,0);
+    }
+    50% {
+        box-shadow: 0 0 28px rgba(255,255,255,0.45),
+                    0 0 55px rgba(255,255,255,0.12),
+                    inset 0 0 16px rgba(255,255,255,0.04);
+    }
+}
+@keyframes mitico-text-glow {
+    0%, 100% { text-shadow: 0 0 8px rgba(255,255,255,0.5), 0 0 2px rgba(255,255,255,0.9); }
+    50%       { text-shadow: 0 0 22px rgba(255,255,255,0.95), 0 0 45px rgba(255,255,255,0.35); }
+}
+@keyframes mitico-scan {
+    0%   { background-position: 0% 0%; }
+    100% { background-position: 0% 200%; }
+}
+
+/* Leaderboard card */
+.rank-card.mitico-card {
+    border-color: rgba(255,255,255,0.35) !important;
+    background: rgba(255,255,255,0.04) !important;
+    animation: mitico-aura 3s ease-in-out infinite;
+}
+.rank-card.mitico-card .rc-title { animation: mitico-text-glow 3s ease-in-out infinite; }
+.rank-card.mitico-card .rc-name  {
+    background: linear-gradient(180deg, #ffffff 60%, rgba(255,255,255,0.55) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+/* Avatar ring */
+body.rank-mitico #profile-avatar-ring {
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.5),
+                0 0 20px rgba(255,255,255,0.35),
+                0 0 42px rgba(255,255,255,0.1) !important;
+    animation: mitico-aura 3s ease-in-out infinite;
+}
+body.rank-mitico .logo-dot { animation: mitico-text-glow 3s ease-in-out infinite; }
+
+/* Fondo app — halo frío plateado */
+body.rank-mitico #app {
+    background: radial-gradient(
+        circle at 50% 50%,
+        rgba(255,255,255,0.04) 0%,
+        var(--bg-base) 65%
+    ) !important;
+}
+
+/* Scan vertical muy sutil sobre el fondo */
+body.rank-mitico #app::after {
+    content: '';
+    position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 3px,
+        rgba(255,255,255,0.012) 3px,
+        rgba(255,255,255,0.012) 4px
+    );
+    background-size: 100% 4px;
+    animation: mitico-scan 8s linear infinite;
+    opacity: 0.6;
+}
+
+/* Logro u_mitico desbloqueado — ya tiene ach-mitico desde código anterior */
+
+/* Pantalla rangos — fila Mítico si es rango actual */
+.rank-row--current.rank-row--mitico {
+    border-color: rgba(255,255,255,0.45) !important;
+    box-shadow: 0 0 28px rgba(255,255,255,0.1),
+                inset 0 1px 0 rgba(255,255,255,0.15) !important;
+    animation: mitico-aura 3s ease-in-out infinite;
+}
+
+/* quality-max */
+body.quality-max.rank-mitico #profile-avatar-ring {
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.7),
+                0 0 32px rgba(255,255,255,0.55),
+                0 0 70px rgba(255,255,255,0.2) !important;
+}
+body.quality-max .rank-card.mitico-card {
+    box-shadow: 0 0 22px rgba(255,255,255,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.15) !important;
+}
+
+/* light mode */
+body.light-mode .rank-card.mitico-card {
+    border-color: rgba(0,0,0,0.45) !important;
+    background: rgba(0,0,0,0.04) !important;
+}
+body.light-mode.rank-mitico #profile-avatar-ring {
+    box-shadow: 0 0 14px rgba(0,0,0,0.18) !important;
+    animation: none;
+}
+
+/* quality-perf: sin animaciones */
+body.quality-perf.rank-mitico #profile-avatar-ring,
+body.quality-perf.rank-mitico .logo-dot,
+body.quality-perf.rank-mitico #app,
+body.quality-perf.rank-mitico #app::after,
+body.quality-perf .rank-card.mitico-card { animation: none !important; }
+body.quality-perf.rank-mitico #app::after { display: none; }
+
+/* ── DIVINIDAD — color iridiscente en rc-name del leaderboard ────────────── */
+.rank-card.divinidad-card .rc-name {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff);
+    background-size: 300% 100%;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    animation: divinity-text-slide 4s linear infinite;
+    font-weight: 900;
+}
+
+/* ── KLICKVOID (ADMINTEST en leaderboard) ────────────────────────────────── */
+@keyframes klickvoid-flicker {
+    0%, 92%, 100% { opacity: 1; }
+    94%            { opacity: 0.4; }
+    96%            { opacity: 0.9; }
+    98%            { opacity: 0.3; }
+}
+.rank-card.klickvoid-card {
+    border-color: rgba(200,100,255,0.6) !important;
+    background: rgba(200,100,255,0.04) !important;
+    animation: divinity-shimmer 4s ease-in-out infinite, klickvoid-flicker 7s step-end infinite;
+}
+.rank-card.klickvoid-card .rc-name {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff);
+    background-size: 300% 100%;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    animation: divinity-text-slide 4s linear infinite;
+}
+.rank-card.klickvoid-card .rc-title { color: rgba(200,100,255,0.8) !important; letter-spacing: 2px; }
+.rc-pos-void {
+    background: linear-gradient(180deg, #c864ff, #7b2fff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    font-weight: 900; font-size: 1.3rem;
+}
+
+/* ── Logro u8 (Leyenda) — clase asignada desde JS ───────────────────────── */
+/* (already defined in ach-leyenda block above) */
+
+/* ── Pantalla de Rangos: clases para fila actual de cada rango ───────────── */
+/* Leyenda y Mítico necesitan la clase en el rank-row--current para activarse */
+/* Las clases rank-row--leyenda y rank-row--mitico se añaden desde renderRanks */
+
+/* ── quality-perf: todo estático ─────────────────────────────────────────── */
+body.quality-perf .rank-card.klickvoid-card { animation: none !important; }
