@@ -2419,160 +2419,84 @@ body.light-mode .rank-row-chip {
 /* ── Modo rendimiento ───────────────────────────────────────────────── */
 body.quality-perf .rank-row--current { box-shadow: none; transform: none; }
 body.quality-perf .rrank-bar-fill { transition: none; }
-
 /* ══════════════════════════════════════════════════════════════════
-   RANGOS — efectos de etiqueta en clasificación + CHRISTOPHER
+   RANGOS — colores de etiqueta en clasificación + CHRISTOPHER
+   Sin animaciones de texto. Color sólido según rango y modo.
    ══════════════════════════════════════════════════════════════════ */
 
 :root { --divinity-color-static: #c864ff; }
 
-@keyframes divinity-text-slide {
-    0%   { background-position: 0% 50%; }
-    100% { background-position: 300% 50%; }
+/* ── Títulos de rango en el leaderboard ─────────────────────────── */
+.rank-card.divinidad-card   .rc-title,
+.rank-card.christopher-card .rc-title {
+    color: var(--divinity-color-static) !important;
+    font-weight: 700;
 }
+.rank-card.mitico-card  .rc-title { color: #ffffff !important;             font-weight: 700; }
+.rank-card.leyenda-card .rc-title { color: var(--accent-yellow) !important; font-weight: 700; }
 
-/* ─────────────────────────────────────────────────────────────────
-   rc-title-grad: span interno que escapa al contain:layout style
-   de rank-card. Background-clip:text funciona aquí en todos los
-   navegadores porque el span no hereda el stacking context roto.
-   ───────────────────────────────────────────────────────────────── */
+body.light-mode .rank-card.divinidad-card   .rc-title,
+body.light-mode .rank-card.christopher-card .rc-title { color: #6b0fa8 !important; }
+body.light-mode .rank-card.mitico-card  .rc-title     { color: #1a1a1a !important; }
+body.light-mode .rank-card.leyenda-card .rc-title     { color: #8a6200 !important; }
+
+/* rc-title-grad: ya no se usa para gradiente animado —
+   mantener la clase por si existe en DOM pero mostrar color sólido */
 .rc-title-grad {
-    background: linear-gradient(90deg,
-        #c864ff 0%, #8ab4ff 22%, #e0aaff 44%,
-        #c864ff 66%, #8ab4ff 88%, #e0aaff 100%);
-    background-size: 300% 100%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-    text-shadow: none;
-    display: inline;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    will-change: background-position;
-    animation: divinity-text-slide 3.5s linear infinite;
-    font-weight: 900;
+    color: inherit;
+    font-weight: inherit;
 }
 
-/* Forzar en todos los modos — especificidad máxima sin !important en el padre */
-body .rc-title-grad,
-body.quality-perf .rc-title-grad,
-body.quality-max  .rc-title-grad,
-body.light-mode   .rc-title-grad {
-    background: linear-gradient(90deg,
-        #c864ff 0%, #8ab4ff 22%, #e0aaff 44%,
-        #c864ff 66%, #8ab4ff 88%, #e0aaff 100%) !important;
-    background-size: 300% 100% !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    color: transparent !important;
+/* ── pcard CHRISTOPHER — nombre, chip, PL en color sólido ──────── */
+.pcard-big-name.christopher-name-gradient {
+    color: var(--divinity-color-static) !important;
+    -webkit-text-fill-color: var(--divinity-color-static) !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    text-shadow: 0 0 40px rgba(200, 100, 255, 0.35) !important;
+    animation: none !important;
+    will-change: auto !important;
+}
+#pcard-chip-title.christopher-chip-gradient {
+    color: var(--divinity-color-static) !important;
+    -webkit-text-fill-color: var(--divinity-color-static) !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    animation: none !important;
+}
+#pcard-pl.christopher-pl-gradient {
+    color: var(--divinity-color-static) !important;
+    -webkit-text-fill-color: var(--divinity-color-static) !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    animation: none !important;
+}
+
+body.light-mode .pcard-big-name.christopher-name-gradient,
+body.light-mode #pcard-chip-title.christopher-chip-gradient,
+body.light-mode #pcard-pl.christopher-pl-gradient {
+    color: #6b0fa8 !important;
+    -webkit-text-fill-color: #6b0fa8 !important;
     text-shadow: none !important;
-    display: inline !important;
-    animation: divinity-text-slide 3.5s linear infinite !important;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    will-change: background-position;
 }
-
-/* pcard: nombre, chip, PL — misma técnica con span display:inline */
-.pcard-big-name.christopher-name-gradient,
-body.quality-perf .pcard-big-name.christopher-name-gradient,
-body.quality-max  .pcard-big-name.christopher-name-gradient,
-body.light-mode   .pcard-big-name.christopher-name-gradient {
-    background: linear-gradient(90deg,
-        #c864ff 0%, #8ab4ff 22%, #e0aaff 44%,
-        #c864ff 66%, #8ab4ff 88%, #e0aaff 100%) !important;
-    background-size: 300% 100% !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    color: transparent !important;
-    text-shadow: none !important;
-    display: inline-block !important;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    will-change: background-position;
-    animation: divinity-text-slide 4s linear infinite !important;
-}
-
-#pcard-chip-title.christopher-chip-gradient,
-body.quality-perf #pcard-chip-title.christopher-chip-gradient,
-body.quality-max  #pcard-chip-title.christopher-chip-gradient,
-body.light-mode   #pcard-chip-title.christopher-chip-gradient {
-    background: linear-gradient(90deg,
-        #c864ff 0%, #8ab4ff 22%, #e0aaff 44%,
-        #c864ff 66%, #8ab4ff 88%, #e0aaff 100%) !important;
-    background-size: 300% 100% !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    color: transparent !important;
-    text-shadow: none !important;
-    display: inline-block !important;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    will-change: background-position;
-    animation: divinity-text-slide 3.5s linear infinite !important;
-}
-
-#pcard-pl.christopher-pl-gradient,
-body.quality-perf #pcard-pl.christopher-pl-gradient,
-body.quality-max  #pcard-pl.christopher-pl-gradient,
-body.light-mode   #pcard-pl.christopher-pl-gradient {
-    background: linear-gradient(90deg,
-        #c864ff 0%, #8ab4ff 22%, #e0aaff 44%,
-        #c864ff 66%, #8ab4ff 88%, #e0aaff 100%) !important;
-    background-size: 300% 100% !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    color: transparent !important;
-    text-shadow: none !important;
-    display: inline-block !important;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    will-change: background-position;
-    animation: divinity-text-slide 3s linear infinite !important;
-}
-
-.rank-card.mitico-card  .rc-title { color: #ffffff !important; font-weight: 900; }
-.rank-card.leyenda-card .rc-title { color: var(--accent-yellow) !important; font-weight: 900; }
-body.light-mode .rank-card.mitico-card  .rc-title { color: #1a1a1a !important; }
-body.light-mode .rank-card.leyenda-card .rc-title { color: #8a6200 !important; }
 
 /* ══════════════════════════════════════════════════════════════════
-   OVERLAY DEL ARQUITECTO — fondo elegante, sin exageraciones
+   OVERLAY DEL ARQUITECTO — fondo estático por modo de rendimiento
    ══════════════════════════════════════════════════════════════════ */
 
-/* Keyframes */
-@keyframes arch-bg-breathe {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.82; }
-}
-@keyframes arch-panel-glow {
-    0%, 100% { box-shadow: 0 0 40px rgba(140,70,255,0.10), 0 2px 40px rgba(0,0,0,0.7), inset 0 0 30px rgba(140,70,255,0.04); }
-    50%       { box-shadow: 0 0 70px rgba(140,70,255,0.18), 0 2px 40px rgba(0,0,0,0.7), inset 0 0 50px rgba(140,70,255,0.08); }
-}
-@keyframes arch-grid-breathe {
-    0%, 100% { opacity: 0.07; }
-    50%       { opacity: 0.13; }
-}
+/* Runas — única animación que se mantiene (solo transform, sin filter pesado) */
 @keyframes arch-rune-float {
-    0%   { transform: translateY(0px)   rotate(0deg); }
-    33%  { transform: translateY(-10px) rotate(4deg); }
-    66%  { transform: translateY(-4px)  rotate(-3deg); }
-    100% { transform: translateY(0px)   rotate(0deg); }
-}
-@keyframes arch-rune-glow {
-    0%, 100% { opacity: var(--ro, 0.35); filter: drop-shadow(0 0 3px rgba(160,90,255,0.4)); }
-    50%       { opacity: calc(var(--ro, 0.35) * 1.7); filter: drop-shadow(0 0 8px rgba(160,90,255,0.75)); }
+    0%   { transform: translateY(0px)  rotate(0deg); }
+    40%  { transform: translateY(-9px) rotate(3deg); }
+    70%  { transform: translateY(-3px) rotate(-2deg); }
+    100% { transform: translateY(0px)  rotate(0deg); }
 }
 
-/* Fondo del overlay */
-#pcard-overlay.christopher-overlay::before,
-body.quality-perf #pcard-overlay.christopher-overlay::before,
-body.light-mode   #pcard-overlay.christopher-overlay::before {
+/* ── quality-normal y quality-max: fondo completo ──────────────── */
+#pcard-overlay.christopher-overlay::before {
     background:
         radial-gradient(ellipse 100% 65% at 50% 0%,   #1e0048 0%, #0a0018 35%, transparent 68%),
         radial-gradient(ellipse 55%  45% at 5%  100%,  #00142a 0%, transparent 60%),
@@ -2580,57 +2504,94 @@ body.light-mode   #pcard-overlay.christopher-overlay::before {
         #02000a !important;
     animation: none !important;
 }
-#pcard-overlay.christopher-overlay::after,
-body.quality-perf #pcard-overlay.christopher-overlay::after,
-body.light-mode   #pcard-overlay.christopher-overlay::after {
+#pcard-overlay.christopher-overlay::after {
     background:
-        radial-gradient(ellipse 80% 50% at 50% 5%,  rgba(160,80,255,0.22) 0%, transparent 55%),
-        radial-gradient(ellipse 45% 35% at 10% 88%, rgba(0,160,255,0.10)  0%, transparent 50%),
-        radial-gradient(ellipse 38% 30% at 90% 80%, rgba(200,60,255,0.09) 0%, transparent 50%) !important;
+        radial-gradient(ellipse 80% 50% at 50% 5%,  rgba(160,80,255,0.20) 0%, transparent 55%),
+        radial-gradient(ellipse 45% 35% at 10% 88%, rgba(0,140,255,0.09)  0%, transparent 50%),
+        radial-gradient(ellipse 38% 30% at 90% 80%, rgba(180,50,255,0.08) 0%, transparent 50%) !important;
     animation: none !important;
 }
 
-/* Panel */
-#pcard-overlay.christopher-overlay .pcard-panel,
-body.quality-perf #pcard-overlay.christopher-overlay .pcard-panel,
-body.light-mode   #pcard-overlay.christopher-overlay .pcard-panel {
+#pcard-overlay.christopher-overlay .pcard-panel {
     position: relative;
     overflow: hidden;
     background: rgba(8, 0, 20, 0.88) !important;
-    border: 1px solid rgba(160,80,255,0.25) !important;
-    -webkit-backdrop-filter: blur(18px) !important;
-    backdrop-filter: blur(18px) !important;
+    border: 1px solid rgba(160,80,255,0.22) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    backdrop-filter: blur(16px) !important;
+    box-shadow:
+        0 0 0 1px rgba(160,80,255,0.10),
+        0 0 48px rgba(140,60,255,0.12),
+        0 4px 40px rgba(0,0,0,0.75),
+        inset 0 0 32px rgba(140,60,255,0.05) !important;
     animation: none !important;
-    box-shadow: 0 0 50px rgba(140,70,255,0.13), 0 2px 40px rgba(0,0,0,0.7), inset 0 0 35px rgba(140,70,255,0.06) !important;
 }
-
-/* Grid interior del panel — sutil */
-#pcard-overlay.christopher-overlay .pcard-panel::before,
-body.quality-perf #pcard-overlay.christopher-overlay .pcard-panel::before,
-body.light-mode   #pcard-overlay.christopher-overlay .pcard-panel::before {
+#pcard-overlay.christopher-overlay .pcard-panel::before {
     content: '';
     position: absolute; inset: 0; z-index: 0; pointer-events: none;
     background-image:
-        linear-gradient(rgba(160,80,255,0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(160,80,255,0.07) 1px, transparent 1px);
+        linear-gradient(rgba(160,80,255,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(160,80,255,0.06) 1px, transparent 1px);
     background-size: 28px 28px;
+    opacity: 0.08;
     animation: none !important;
-    opacity: 0.09;
 }
-#pcard-overlay.christopher-overlay .pcard-panel > *,
-body.quality-perf #pcard-overlay.christopher-overlay .pcard-panel > * {
-    position: relative; z-index: 1;
+#pcard-overlay.christopher-overlay .pcard-panel > * { position: relative; z-index: 1; }
+
+/* ── quality-perf: sin backdrop-filter, sin gradientes pesados ─── */
+body.quality-perf #pcard-overlay.christopher-overlay::before {
+    background: #08001a !important;
+    animation: none !important;
+}
+body.quality-perf #pcard-overlay.christopher-overlay::after {
+    background: none !important;
+    animation: none !important;
+}
+body.quality-perf #pcard-overlay.christopher-overlay .pcard-panel {
+    background: rgba(8, 0, 20, 0.96) !important;
+    border: 1px solid rgba(160,80,255,0.20) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: 0 0 30px rgba(140,60,255,0.10), 0 4px 24px rgba(0,0,0,0.8) !important;
+    animation: none !important;
+}
+body.quality-perf #pcard-overlay.christopher-overlay .pcard-panel::before {
+    display: none !important;
 }
 
-/* Runas flotantes — discretas, elegantes */
+/* ── light-mode: fondo más claro, bordes visibles ─────────────── */
+body.light-mode #pcard-overlay.christopher-overlay::before {
+    background:
+        radial-gradient(ellipse 100% 65% at 50% 0%, #e8d4ff 0%, #f0eaff 40%, transparent 70%),
+        #f5f0ff !important;
+    animation: none !important;
+}
+body.light-mode #pcard-overlay.christopher-overlay::after {
+    background:
+        radial-gradient(ellipse 70% 45% at 50% 5%, rgba(140,60,200,0.12) 0%, transparent 55%) !important;
+    animation: none !important;
+}
+body.light-mode #pcard-overlay.christopher-overlay .pcard-panel {
+    background: rgba(255,255,255,0.92) !important;
+    border: 1px solid rgba(140,60,200,0.25) !important;
+    box-shadow: 0 0 30px rgba(140,60,200,0.10), 0 4px 30px rgba(0,0,0,0.12) !important;
+}
+body.light-mode #pcard-overlay.christopher-overlay .pcard-panel::before {
+    background-image:
+        linear-gradient(rgba(140,60,200,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(140,60,200,0.05) 1px, transparent 1px) !important;
+}
+
+/* ── Runas flotantes — solo transform, sin filter en quality-perf ── */
 .architect-rune {
     position: absolute;
     pointer-events: none;
     user-select: none;
     z-index: 1;
-    color: rgba(160,90,255,1);
-    will-change: transform, filter;
+    color: rgba(180,100,255,0.42);
+    will-change: transform;
     transform-origin: center center;
-    animation:
-        arch-rune-float var(--rd, 7s) ease-in-out infinite;
+    animation: arch-rune-float var(--rd, 7s) ease-in-out infinite;
 }
+body.quality-perf .architect-rune { animation: none !important; opacity: var(--ro, 0.30); }
+body.light-mode   .architect-rune { color: rgba(140,60,200,0.30); }
