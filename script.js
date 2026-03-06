@@ -342,6 +342,53 @@ if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOP
     saveStatsLocally();
 })();
 
+// ── MIGRACIÓN v3: revoca logros otorgados con umbral incorrecto de 200 logros ──
+// Afecta: fin5, kpa10, master3, u_mitico — todos dependían de un total de 200 logros
+// cuando el total real del juego siempre fue 300. Se ejecuta UNA vez (flag migratedV3).
+// CHRISTOPHER nunca pierde logros.
+(function migrateAchievementsV3() {
+    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') return;
+    if (playerStats.migratedV3) return;
+
+    const normalAchs = (playerStats.achievements || []).filter(id => id !== 'tramposo').length;
+    const toRevoke = [];
+
+    // fin5 "Monarca": requiere rango Leyenda + 300 logros (antes chequeaba 200)
+    if (playerStats.achievements.includes('fin5') && normalAchs < 300) toRevoke.push('fin5');
+
+    // kpa10 "Coleccionista Total": requiere kpClaimed>=100 + 300 logros (antes chequeaba 200)
+    if (playerStats.achievements.includes('kpa10') && normalAchs < 300) toRevoke.push('kpa10');
+
+    // master3 "Dios Klick": requiere los 300 logros del juego (antes chequeaba 165)
+    if (playerStats.achievements.includes('master3') && normalAchs < 300) toRevoke.push('master3');
+
+    // u_mitico "Mítico": se otorga al alcanzar el rango Mítico, que exigía 200 logros (ahora 300).
+    // Revocar si el jugador no cumple todos los requisitos actuales del rango Mítico.
+    if (playerStats.achievements.includes('u_mitico')) {
+        const totalAnswers = (playerStats.totalCorrect||0)+(playerStats.totalWrong||0)+(playerStats.totalTimeouts||0);
+        const accuracy = totalAnswers > 0 ? Math.round((playerStats.totalCorrect||0)/totalAnswers*100) : 0;
+        const cumpleMitico = (
+            (playerStats.totalScore||0)     >= 1200000 &&
+            (playerStats.totalCorrect||0)   >= 5000    &&
+            (playerStats.perfectGames||0)   >= 50      &&
+            normalAchs                      >= 300      &&
+            (playerStats.maxStreak||0)      >= 40       &&
+            (playerStats.maxMult||1)        >= 8        &&
+            accuracy                        >= 85       &&
+            (playerStats.maxLoginStreak||0) >= 30
+        );
+        if (!cumpleMitico) toRevoke.push('u_mitico');
+    }
+
+    if (toRevoke.length > 0) {
+        playerStats.achievements     = playerStats.achievements.filter(id => !toRevoke.includes(id));
+        playerStats.pinnedAchievements = playerStats.pinnedAchievements.filter(id => !toRevoke.includes(id));
+    }
+
+    playerStats.migratedV3 = true;
+    saveStatsLocally();
+})();
+
 // ── MIGRACIÓN tracks: remapea IDs de pistas viejas ──
 // ── MIGRACIÓN kpRewards: acredita recompensas del Klick Pass que nunca se sumaron a totalScore ──
 // Se ejecuta UNA vez. Los claims anteriores al fix no sumaban su recompensa a playerStats.totalScore.
@@ -446,6 +493,24 @@ function revokeInvalidAchievements() {
     // x1 (Primer Día): siempre válido si hay datos (no revocar)
     // x18 (El Clásico): solo válido si nameChanges===0 y maxLoginStreak>=30
     if (!( playerStats.nameChanges===0 && (playerStats.maxLoginStreak||0)>=30 ) && playerStats.achievements.includes('x18')) toRevoke.add('x18');
+
+    // ── Logros basados en el total de 300 logros (antes mal configurados en 200) ──
+    const _riaAchs = playerStats.achievements.filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP.has(id)).length;
+    // fin5 "Monarca": rango Leyenda + 300 logros
+    if (playerStats.achievements.includes('fin5') && _riaAchs < 300) toRevoke.add('fin5');
+    // kpa10 "Coleccionista Total": kpClaimed>=100 + 300 logros
+    if (playerStats.achievements.includes('kpa10') && _riaAchs < 300) toRevoke.add('kpa10');
+    // master3 "Dios Klick": los 300 logros del juego
+    if (playerStats.achievements.includes('master3') && _riaAchs < 300) toRevoke.add('master3');
+    // u_mitico "Mítico": rango Mítico exige 300 logros entre sus requisitos
+    if (playerStats.achievements.includes('u_mitico')) {
+        const _riaTotalAns = (playerStats.totalCorrect||0)+(playerStats.totalWrong||0)+(playerStats.totalTimeouts||0);
+        const _riaAcc = _riaTotalAns > 0 ? Math.round((playerStats.totalCorrect||0)/_riaTotalAns*100) : 0;
+        const _riaMitico = (playerStats.totalScore||0)>=1200000 && (playerStats.totalCorrect||0)>=5000 &&
+            (playerStats.perfectGames||0)>=50 && _riaAchs>=300 && (playerStats.maxStreak||0)>=40 &&
+            (playerStats.maxMult||1)>=8 && _riaAcc>=85 && (playerStats.maxLoginStreak||0)>=30;
+        if (!_riaMitico) toRevoke.add('u_mitico');
+    }
 
     if (toRevoke.size > 0) {
         playerStats.achievements = playerStats.achievements.filter(id => !toRevoke.has(id));
