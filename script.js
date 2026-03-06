@@ -1319,7 +1319,7 @@ addAchs([
     { id: 'x4',  title: 'Doble Victoria',    desc: 'Supera 75,000 puntos dos partidas seguidas.',                       color: colors.yellow, icon: SVG_TROPHY },
     { id: 'x6',  title: 'Consistente',       desc: 'Termina 5 partidas seguidas con al menos 25,000 puntos.',           color: colors.blue,   icon: SVG_SHIELD },
     { id: 'x15', title: 'Punto de Quiebre',  desc: 'Alcanza exactamente 100,000 puntos (±500).',                        color: colors.purple, icon: SVG_TARGET },
-    { id: 'extra2', title: 'Precisionista',  desc: 'Termina una partida con 100% de precisión (mín. 5 respuestas).',   color: colors.yellow, icon: SVG_TARGET },
+    { id: 'extra2', title: 'Precisionista',  desc: 'Termina una partida con 100% de precisión (mín. 10 respuestas).',  color: colors.yellow, icon: SVG_TARGET },
 ]);
 
 // ─── 5. SUPERVIVENCIA (8 preguntas alcanzadas + logros sin perder vidas) ─
@@ -3551,10 +3551,11 @@ function showFeedback(isCorrect, isTimeout = false) {
             // pero totalCorrectThisGame ya sí — usamos eso como fuente de verdad
             if (totalCorrectThisGame >= 10) {
                 _perfectThisGame = true;
+                playerStats.perfectGames = (playerStats.perfectGames || 0) + 1;
                 const _kpStPf = getKpState();
                 _kpStPf.perfectNoError = (_kpStPf.perfectNoError || 0) + 1;
-                // También sync perfectGames (umbral ≥10 se mantiene para ese contador)
                 saveKpState(_kpStPf);
+                saveStatsDebounced();
                 setTimeout(_kpUpdateMenuBadge, 200);
             }
         }
@@ -3727,8 +3728,9 @@ function saveGameStats() {
     // x15: Punto de Quiebre — score exactamente 100k ±500 (tracked per-game, bestScore check alone fails once exceeded)
     if(score >= 99500 && score <= 100500) playerStats.hitExactly100k = true;
     if(!playerStats.maxQuestionReached || currentQuestionIndex > playerStats.maxQuestionReached) playerStats.maxQuestionReached = currentQuestionIndex;
-    // perfectGames: partida sin errores ni timeouts (≥10 preguntas respondidas — alcanzable)
-    if(currentQuestionIndex >= 10 && currentWrongAnswers === 0 && currentTimeoutAnswers === 0) playerStats.perfectGames = (playerStats.perfectGames||0) + 1;
+    // perfectGames: ya se incrementa en tiempo real (showFeedback) cuando se alcanzan 10 correctas.
+    // Aquí solo lo hacemos como fallback si _perfectThisGame no se activó (ej. partida muy corta terminada al morir).
+    if (!_perfectThisGame && currentQuestionIndex >= 10 && currentWrongAnswers === 0 && currentTimeoutAnswers === 0) playerStats.perfectGames = (playerStats.perfectGames||0) + 1;
     // x16: Regreso Triunfal — tras no jugar un día, supera su último récord
     if((playerStats.missedADay||false) && score > prevBest && prevBest > 0) playerStats.returnTriumph = (playerStats.returnTriumph||0) + 1;
     playerStats.missedADay = false; // reset once they play
@@ -3739,9 +3741,9 @@ function saveGameStats() {
     else playerStats.revengeGame = false;
     // x8: Sin Prisa — termina partida con <5 respuestas rápidas
     playerStats.xSinPrisa = (currentFastAnswers < 5 && currentQuestionIndex >= 5);
-    // extra2 Precisionista: partida con 100% de precisión (min 5 respuestas)
+    // extra2 Precisionista: partida con 100% de precisión (min 10 respuestas)
     const gameCorrect = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
-    if (currentWrongAnswers === 0 && currentTimeoutAnswers === 0 && gameCorrect >= 5) playerStats.hadPerfectAccuracyGame = true;
+    if (currentWrongAnswers === 0 && currentTimeoutAnswers === 0 && gameCorrect >= 10) playerStats.hadPerfectAccuracyGame = true;
     // x12: Principiante Letal — 50k en la primera partida del día
     if(playerStats.todayGames === 1 && score >= 50000) playerStats.firstGameOfDay50k = true;
     // extra4 Silencioso: juega con música al 0%
@@ -4168,7 +4170,7 @@ const _KP_MISSIONS = [
 {lv:18, title:'Acumulado 50k',        mission:'Acumula 50,000 puntos en total.',                                      chk:(ps)=>(ps.totalScore||0)>=50000},
 {lv:19, title:'Racha x10',            mission:'Logra una racha de 10 aciertos consecutivos.',                         chk:(ps)=>(ps.maxStreak||0)>=10},
 {lv:20, title:'Veinte Partidas',      mission:'Completa 20 partidas.',                                                chk:(ps)=>(ps.gamesPlayed||0)>=20},
-{lv:21, title:'Sin Fallos I',         mission:'Termina una partida sin ningún error (mín. 5 preguntas).',             chk:(ps,ks)=>(ks.perfectNoError||0)>=1},
+{lv:21, title:'Sin Fallos I',         mission:'Termina una partida sin ningún error (mín. 10 preguntas).',            chk:(ps,ks)=>(ks.perfectNoError||0)>=1},
 {lv:22, title:'Puntuación 20k',       mission:'Supera los 20,000 puntos en una partida.',                             chk:(ps)=>(ps.bestScore||0)>=20000},
 {lv:23, title:'Doscientas Correctas', mission:'Acumula 200 respuestas correctas.',                                    chk:(ps)=>(ps.totalCorrect||0)>=200},
 {lv:24, title:'Acumulado 80k',        mission:'Acumula 80,000 puntos en total.',                                      chk:(ps)=>(ps.totalScore||0)>=80000},
