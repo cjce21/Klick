@@ -2435,13 +2435,16 @@ body.quality-perf .rrank-bar-fill { transition: none; }
 
 /* ── rc-title en leaderboard ─────────────────────────────────── */
 .rank-card.divinidad-card .rc-title {
-    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff);
-    background-size: 300% 100%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: divinity-text-slide 4s linear infinite;
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff) !important;
+    background-size: 300% 100% !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+    animation: divinity-text-slide 4s linear infinite !important;
     font-weight: 900;
+    will-change: background-position;
+    display: inline-block;
 }
 .rank-card.mitico-card .rc-title {
     color: #ffffff !important;
@@ -2453,43 +2456,135 @@ body.quality-perf .rrank-bar-fill { transition: none; }
 }
 /* CHRISTOPHER — rc-title iridiscente */
 .rank-card.christopher-card .rc-title {
-    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff);
-    background-size: 300% 100%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: divinity-text-slide 4s linear infinite;
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff) !important;
+    background-size: 300% 100% !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+    animation: divinity-text-slide 3s linear infinite !important;
     font-weight: 900;
     letter-spacing: 2px;
+    will-change: background-position;
+    display: inline-block;
 }
 
 /* ── pcard: nombre y etiqueta de CHRISTOPHER ─────────────────── */
 .pcard-big-name.christopher-name-gradient {
-    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff);
-    background-size: 300% 100%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: divinity-text-slide 4s linear infinite;
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff) !important;
+    background-size: 300% 100% !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+    animation: divinity-text-slide 4s linear infinite !important;
     text-shadow: none !important;
+    will-change: background-position;
+    display: inline-block;
 }
 #pcard-chip-title.christopher-chip-gradient {
-    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff);
-    background-size: 300% 100%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: divinity-text-slide 4s linear infinite;
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff) !important;
+    background-size: 300% 100% !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+    animation: divinity-text-slide 4s linear infinite !important;
+    will-change: background-position;
+    display: inline-block;
+}
+
+/* ── Nivel de Poder iridiscente para CHRISTOPHER ─────────────── */
+#pcard-pl.christopher-pl-gradient {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff) !important;
+    background-size: 300% 100% !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    color: transparent !important;
+    animation: divinity-text-slide 3s linear infinite !important;
+    will-change: background-position;
+    display: inline-block;
+}
+
+/* ── Fondo exclusivo del Arquitecto del Sistema ──────────────── */
+@keyframes architect-bg-shift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+@keyframes architect-grid-pulse {
+    0%, 100% { opacity: 0.07; }
+    50%       { opacity: 0.14; }
+}
+@keyframes architect-rune-float {
+    0%   { transform: translateY(0px) rotate(0deg);   opacity: 0.18; }
+    33%  { transform: translateY(-8px) rotate(3deg);  opacity: 0.28; }
+    66%  { transform: translateY(4px) rotate(-2deg);  opacity: 0.20; }
+    100% { transform: translateY(0px) rotate(0deg);   opacity: 0.18; }
+}
+
+/* Fondo del overlay cuando es CHRISTOPHER */
+#pcard-overlay.christopher-overlay::before {
+    background: radial-gradient(ellipse 120% 100% at 50% 0%,
+        #1a0038 0%,
+        #0d001a 35%,
+        #000d1a 60%,
+        #000000 100%) !important;
+}
+#pcard-overlay.christopher-overlay::after {
+    background:
+        radial-gradient(ellipse 80% 50% at 50% 10%, rgba(200,100,255,0.18) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 20% 80%, rgba(0,200,255,0.10) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 35% at 80% 70%, rgba(255,77,200,0.09) 0%, transparent 50%) !important;
+    animation: architect-bg-shift 10s ease-in-out infinite !important;
+    background-size: 200% 200% !important;
+}
+
+/* Grid hexagonal de fondo — pseudo elemento en el panel */
+#pcard-overlay.christopher-overlay .pcard-panel {
+    position: relative;
+    overflow: hidden;
+    background: rgba(20, 0, 45, 0.72) !important;
+    border-color: rgba(200, 100, 255, 0.22) !important;
+    box-shadow:
+        0 0 0 1px rgba(200,100,255,0.12),
+        0 0 40px rgba(200,100,255,0.08),
+        inset 0 0 60px rgba(0,200,255,0.04) !important;
+}
+#pcard-overlay.christopher-overlay .pcard-panel::before {
+    content: '';
+    position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+        linear-gradient(rgba(200,100,255,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(200,100,255,0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+    animation: architect-grid-pulse 4s ease-in-out infinite;
+}
+#pcard-overlay.christopher-overlay .pcard-panel > * {
+    position: relative; z-index: 1;
+}
+
+/* Runas flotantes en el fondo del overlay (usando elementos generados vía JS) */
+.architect-rune {
+    position: absolute;
+    font-size: 1.4rem;
+    color: rgba(200,100,255,0.20);
+    pointer-events: none;
+    user-select: none;
+    animation: architect-rune-float 6s ease-in-out infinite;
+    z-index: 1;
 }
 
 /* quality-perf: sin animaciones */
 body.quality-perf .rank-card.divinidad-card .rc-title,
 body.quality-perf .rank-card.christopher-card .rc-title,
 body.quality-perf .pcard-big-name.christopher-name-gradient,
-body.quality-perf #pcard-chip-title.christopher-chip-gradient {
+body.quality-perf #pcard-chip-title.christopher-chip-gradient,
+body.quality-perf #pcard-pl.christopher-pl-gradient {
     animation: none !important;
-    -webkit-text-fill-color: unset;
-    background: none;
+    -webkit-text-fill-color: unset !important;
+    background: none !important;
     color: var(--divinity-color-static) !important;
 }
 
@@ -2497,10 +2592,11 @@ body.quality-perf #pcard-chip-title.christopher-chip-gradient {
 body.light-mode .rank-card.divinidad-card .rc-title,
 body.light-mode .rank-card.christopher-card .rc-title,
 body.light-mode .pcard-big-name.christopher-name-gradient,
-body.light-mode #pcard-chip-title.christopher-chip-gradient {
+body.light-mode #pcard-chip-title.christopher-chip-gradient,
+body.light-mode #pcard-pl.christopher-pl-gradient {
     animation: none !important;
-    -webkit-text-fill-color: unset;
-    background: none;
+    -webkit-text-fill-color: unset !important;
+    background: none !important;
     color: #6b0fa8 !important;
 }
 body.light-mode .rank-card.mitico-card .rc-title  { color: #1a1a1a !important; }
