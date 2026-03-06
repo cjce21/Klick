@@ -3027,6 +3027,7 @@ let _currentQuestion = null; // Pregunta activa (almacenada por motor, leída po
 let _gameStartHour = -1; // hora al inicio de partida — se valida al terminar
 const TIMER_LIMIT = 15;
 let _gameStatsRecorded = false; // guard: saveGameStats solo cuenta una vez por partida
+let _perfectThisGame  = false;  // se activa cuando la partida llega a 5 correctas sin error
 let currentFastAnswers = 0, currentWrongAnswers = 0, currentTimeoutAnswers = 0, isAnsweringAllowed = false, currentGameLog = [];
 let isGamePaused = false;
 let lives = 3;
@@ -3083,6 +3084,7 @@ function startGame() {
     currentQuestionIndex = score = streak = currentMaxStreak = currentFastAnswers = currentWrongAnswers = currentTimeoutAnswers = 0;
     isAnsweringAllowed = false; // reset defensivo: asegura estado limpio antes del countdown
     _gameStatsRecorded = false; // reset guard: permite que saveGameStats corra una vez por partida
+    _perfectThisGame  = false;  // reset: nueva partida limpia
     _timerPath = _timerText = _scoreEl = _streakEl = _multBadge = null; // reset DOM cache
     _gTimerPath = _gTimerText = _gQuestionEl = _gAnswerBtns = _gAnswersGrid = _gStreakDisp = null; _gAns = []; // reset game DOM cache
       _appEl = null;
@@ -3541,6 +3543,21 @@ function showFeedback(isCorrect, isTimeout = false) {
         score += earned; streak++; if(streak > currentMaxStreak) currentMaxStreak = streak;
         totalCorrectThisGame++;
         consecutiveLivesLost = 0; // reset on correct answer
+        // Partida perfecta: se marca en cuanto se completan 5 correctas sin ningún error ni timeout.
+        // Hacerlo aquí (en tiempo real) garantiza que quede registrado aunque luego falle o abandone.
+        if (!_perfectThisGame && currentWrongAnswers === 0 && currentTimeoutAnswers === 0) {
+            const _correctSoFar = currentQuestionIndex - (currentWrongAnswers||0) - (currentTimeoutAnswers||0);
+            // currentQuestionIndex aún no se ha incrementado en este tick (ocurre después del feedback)
+            // pero totalCorrectThisGame ya sí — usamos eso como fuente de verdad
+            if (totalCorrectThisGame >= 10) {
+                _perfectThisGame = true;
+                const _kpStPf = getKpState();
+                _kpStPf.perfectNoError = (_kpStPf.perfectNoError || 0) + 1;
+                // También sync perfectGames (umbral ≥10 se mantiene para ese contador)
+                saveKpState(_kpStPf);
+                setTimeout(_kpUpdateMenuBadge, 200);
+            }
+        }
         // u19: Resurrección — pierde 2 vidas seguidas y encadena 10 aciertos consecutivos
         if(playerStats._twoConsecLives && streak >= 10) {
             playerStats.u19Earned = true; playerStats._twoConsecLives = false;
@@ -4126,7 +4143,7 @@ const _KP_REWARDS = [
 
 // ── Condiciones de misión (usan playerStats en tiempo real) ───────────
 // Nota: perfectGames: partidas con >= 10 preguntas, 0 errores, 0 timeouts (ver saveGameStats).
-// perfectNoError (kpState): igual pero umbral >= 5 preguntas, actualizado via patch al final del archivo.
+// perfectNoError (kpState): igual pero umbral >= 10 preguntas, actualizado via patch al final del archivo.
 
 const _KP_MISSIONS = [
 // TRAMO 1 — INICIACIÓN (1-10) ——————————————————————————————————————————
@@ -4559,7 +4576,7 @@ function goToKlickPass() {
 }
 
 // ── Hook en saveGameStats para trackear perfectNoError y badge ───────
-// perfectNoError: partida con 0 wrong, 0 timeout, ≥5 preguntas respondidas.
+// perfectNoError: partida con 0 wrong, 0 timeout, ≥10 preguntas respondidas.
 // Se registra ANTES de que saveGameStats resetee las variables
 // (no las resetea, las resetea startGame — así que podemos leerlas en endGame).
 // La forma segura: patchar endGame, que llama saveGameStats internamente.
@@ -4574,10 +4591,14 @@ function goToKlickPass() {
         const wrongAns    = currentWrongAnswers  || 0;
         const timeoutAns  = currentTimeoutAnswers || 0;
         const correctAns  = currentQuestionIndex - wrongAns - timeoutAns;
-        const isPerfect   = wrongAns === 0 && timeoutAns === 0 && correctAns >= 5;
+        const isPerfect   = wrongAns === 0 && timeoutAns === 0 && correctAns >= 10;
         _orig.apply(this, arguments);
-        // Actualizar kpState.perfectNoError si la partida fue perfecta
-        if (isPerfect) {
+        // perfectNoError ya se marcó en tiempo real (en showFeedback al llegar a 5 correctas).
+        // Solo actualizamos el badge; no incrementamos de nuevo para evitar doble conteo.
+        // (Si por alguna razón _perfectThisGame no se activó pero la partida cumple los criterios,
+        // lo registramos aquí como fallback — pero no si ya fue marcado)
+        if (isPerfect && !_perfectThisGame) {
+            _perfectThisGame = true;
             const kpSt = getKpState();
             kpSt.perfectNoError = (kpSt.perfectNoError || 0) + 1;
             saveKpState(kpSt);
@@ -4595,7 +4616,184 @@ _kpUpdateMenuBadge();
 // ════════════════════════════════════ END KLICK PASS ═════════════════
 
 
+
+// ════════════════════════════ RANGOS ══════════════════════════════════
+
+function goToRanks() {
+    initAudio(); SFX.click();
+    renderRanks();
+    switchScreen('ranks-screen');
+}
+
+function renderRanks() {
+    const container = document.getElementById('ranks-container');
+    if (!container) return;
+    const s = playerStats;
+    const current = getRankInfo(s).title;
+    const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
+    const accuracy = totalAns > 0 ? Math.round((s.totalCorrect||0)/totalAns*100) : 0;
+    const fmt = n => n >= 1000000 ? (n/1000000).toFixed(1)+'M' : n >= 1000 ? (n/1000).toFixed(0)+'K' : String(n);
+
+    const RANKS = [
+        {
+            title: 'Novato',
+            color: '0,255,102',
+            hex: '#00ff66',
+            label: 'El punto de partida.',
+            reqs: [],
+            next: null
+        },
+        {
+            title: 'Junior',
+            color: '0,212,255',
+            hex: '#00d4ff',
+            label: 'Tus primeros pasos se consolidan.',
+            reqs: [
+                { label: 'Récord en partida', need: 15000, get: ()=>s.bestScore||0, fmt: v=>`${fmt(v)} / 15K` },
+                { label: 'Partidas jugadas',  need: 5,     get: ()=>s.gamesPlayed||0, fmt: v=>`${v} / 5` },
+            ]
+        },
+        {
+            title: 'Pro',
+            color: '255,42,95',
+            hex: '#ff2a5f',
+            label: 'Consistencia y precisión probadas.',
+            reqs: [
+                { label: 'Puntos acumulados', need: 60000,  get: ()=>s.totalScore||0,   fmt: v=>`${fmt(v)} / 60K` },
+                { label: 'Aciertos totales',  need: 200,    get: ()=>s.totalCorrect||0,  fmt: v=>`${v} / 200` },
+                { label: 'Racha máxima',      need: 12,     get: ()=>s.maxStreak||0,     fmt: v=>`${v} / 12` },
+            ]
+        },
+        {
+            title: 'Maestro',
+            color: '181,23,158',
+            hex: '#b5179e',
+            label: 'Dominio del sistema de multiplicadores.',
+            reqs: [
+                { label: 'Puntos acumulados', need: 150000, get: ()=>s.totalScore||0,   fmt: v=>`${fmt(v)} / 150K` },
+                { label: 'Partidas jugadas',  need: 50,     get: ()=>s.gamesPlayed||0,  fmt: v=>`${v} / 50` },
+                { label: 'Multiplicador x4',  need: 4,      get: ()=>s.maxMult||1,      fmt: v=>`x${v} / x4` },
+            ]
+        },
+        {
+            title: 'Leyenda',
+            color: '255,184,0',
+            hex: '#ffb800',
+            label: 'Solo los mejores llegan aquí.',
+            reqs: [
+                { label: 'Puntos acumulados',    need: 400000, get: ()=>s.totalScore||0,    fmt: v=>`${fmt(v)} / 400K` },
+                { label: 'Aciertos totales',     need: 1500,   get: ()=>s.totalCorrect||0,  fmt: v=>`${v} / 1,500` },
+                { label: 'Partidas perfectas',   need: 10,     get: ()=>s.perfectGames||0,  fmt: v=>`${v} / 10` },
+            ]
+        },
+        {
+            title: 'Mítico',
+            color: '255,255,255',
+            hex: '#ffffff',
+            label: 'El rango supremo. Alcanzado por muy pocos.',
+            reqs: [
+                { label: 'Puntos acumulados',    need: 1200000, get: ()=>s.totalScore||0,              fmt: v=>`${fmt(v)} / 1.2M` },
+                { label: 'Aciertos totales',     need: 5000,    get: ()=>s.totalCorrect||0,            fmt: v=>`${v} / 5,000` },
+                { label: 'Partidas perfectas',   need: 50,      get: ()=>s.perfectGames||0,            fmt: v=>`${v} / 50` },
+                { label: 'Logros desbloqueados', need: 200,     get: ()=>(s.achievements||[]).length,  fmt: v=>`${v} / 200` },
+                { label: 'Racha máxima',         need: 40,      get: ()=>s.maxStreak||0,               fmt: v=>`${v} / 40` },
+                { label: 'Multiplicador máx.',   need: 8,       get: ()=>s.maxMult||1,                 fmt: v=>`x${v} / x8` },
+                { label: 'Precisión global',     need: 85,      get: ()=>accuracy,                     fmt: v=>`${v}% / 85%` },
+                { label: 'Racha de login',       need: 30,      get: ()=>s.maxLoginStreak||0,          fmt: v=>`${v} / 30 días` },
+            ]
+        }
+    ];
+
+    // Determine which ranks are unlocked
+    const ORDER = ['Novato','Junior','Pro','Maestro','Leyenda','Mítico'];
+    const rankIdx = ORDER.indexOf(current);
+
+    let html = '';
+    RANKS.forEach((rank, i) => {
+        const isUnlocked = i <= rankIdx;
+        const isCurrent  = rank.title === current;
+        const isNext     = i === rankIdx + 1;
+        const isLocked   = !isUnlocked && !isNext;
+
+        const allMet = rank.reqs.length === 0 || rank.reqs.every(r => r.get() >= r.need);
+        const statusClass = isCurrent ? 'rank-row--current' : isUnlocked ? 'rank-row--done' : isNext ? 'rank-row--next' : 'rank-row--locked';
+
+        // Build req pills
+        let pillsHtml = '';
+        if (rank.reqs.length > 0) {
+            rank.reqs.forEach(r => {
+                const val  = r.get();
+                const met  = val >= r.need;
+                const pct  = Math.min(100, Math.round((val / r.need) * 100));
+                const dim  = isLocked ? 'opacity:0.4;' : '';
+                pillsHtml += `
+                <div class="rrank-req ${met ? 'rrank-req--met' : ''}" style="${dim}">
+                    <div class="rrank-req-top">
+                        <span class="rrank-req-label">${r.label}</span>
+                        <span class="rrank-req-val" style="color:${met ? rank.hex : 'var(--text-secondary)'};">${r.fmt(val)}</span>
+                    </div>
+                    <div class="rrank-bar-track">
+                        <div class="rrank-bar-fill" style="width:${pct}%;background:rgba(${rank.color},${met?'0.9':'0.5'});"></div>
+                    </div>
+                </div>`;
+            });
+        }
+
+        // Crown/badge icon
+        const badgeSvg = isCurrent
+            ? `<svg viewBox="0 0 24 24" fill="none" stroke="rgba(${rank.color},1)" stroke-width="2.5" width="20" height="20"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+            : isUnlocked
+            ? `<svg viewBox="0 0 24 24" fill="rgba(${rank.color},0.7)" stroke="none" width="16" height="16"><path d="M20 6L9 17l-5-5"/></svg>`
+            : `<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
+
+        html += `
+        <div class="rank-row ${statusClass}" data-rank="${rank.title}">
+            <div class="rank-row-header">
+                <div class="rank-row-left">
+                    <div class="rank-row-badge">${badgeSvg}</div>
+                    <div>
+                        <div class="rank-row-name" style="color:rgba(${rank.color},${isLocked?'0.35':'1'});">${rank.title.toUpperCase()}</div>
+                        <div class="rank-row-desc">${rank.label}</div>
+                    </div>
+                </div>
+                ${isCurrent ? '<div class="rank-row-chip">TU RANGO</div>' : isUnlocked ? '<div class="rank-row-chip rank-row-chip--done">SUPERADO</div>' : ''}
+            </div>
+            ${pillsHtml ? `<div class="rrank-reqs">${pillsHtml}</div>` : '<div class="rrank-reqs rrank-novato">Sin requisitos — ¡todos comienzan aquí!</div>'}
+        </div>`;
+    });
+
+    container.innerHTML = html;
+
+    // Animate bars after DOM paint
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            container.querySelectorAll('.rrank-bar-fill').forEach(el => {
+                const w = el.style.width;
+                el.style.width = '0%';
+                el.style.transition = 'width 0.7s cubic-bezier(.4,0,.2,1)';
+                setTimeout(() => { el.style.width = w; }, 60);
+            });
+        });
+    });
+}
+// ════════════════════════════ END RANGOS ══════════════════════════════
 setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); }, 500);
+
+// ── Auto-retrocompatibilidad perfectNoError ───────────────────────────
+// Jugadores que completaron partidas perfectas antes del sistema en tiempo real
+// no tienen perfectNoError acreditado. Lo corregimos en silencio al cargar.
+(function _retroPerfect() {
+    const kpSt = getKpState();
+    const fromGames = playerStats.perfectGames || 0;         // umbral ≥10 preguntas
+    const hadAny    = playerStats.hadPerfectAccuracyGame ? 1 : 0; // al menos 1 de ≥5
+    const minCredit = Math.max(fromGames, hadAny);
+    if (kpSt.perfectNoError < minCredit) {
+        kpSt.perfectNoError = minCredit;
+        saveKpState(kpSt);
+        // Actualizar badge para que el Klick Pass refleje los nuevos niveles desbloqueados
+        setTimeout(_kpUpdateMenuBadge, 800);
+    }
+})();
 
 // x2 Paciente: espera 10 segundos en la pantalla principal sin hacer nada
 (function() {
