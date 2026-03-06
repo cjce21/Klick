@@ -44,12 +44,23 @@ function _unmuteByFocus() {
     if (audioCtx) {
         // Reanudar contexto suspendido y restaurar volumen con fade suave
         const doFade = () => {
-            if (!masterMusicGain) return;
             const t = audioCtx.currentTime;
-            const targetVol = playerStats.musicVol * 0.8;
-            masterMusicGain.gain.cancelScheduledValues(t);
-            masterMusicGain.gain.setValueAtTime(0.0001, t);
-            masterMusicGain.gain.linearRampToValueAtTime(targetVol, t + 0.35);
+            // Solo restaurar masterMusicGain si la música del Arquitecto NO está activa
+            if (masterMusicGain && !_architectMusicActive) {
+                const targetVol = playerStats.musicVol * 0.8;
+                masterMusicGain.gain.cancelScheduledValues(t);
+                masterMusicGain.gain.setValueAtTime(0.0001, t);
+                masterMusicGain.gain.linearRampToValueAtTime(targetVol, t + 0.35);
+            }
+            // Si el Arquitecto está activo, restaurar su gain propio
+            if (_architectMusicActive && _architectGain) {
+                const targetVol = playerStats.musicVol * 0.75;
+                _architectGain.gain.cancelScheduledValues(t);
+                _architectGain.gain.setValueAtTime(0.0001, t);
+                _architectGain.gain.linearRampToValueAtTime(targetVol, t + 0.35);
+                // Reiniciar el tick si se había detenido
+                if (!_architectMusicTimer) _architectTick();
+            }
         };
         if (audioCtx.state === 'suspended') {
             audioCtx.resume().then(doFade).catch(() => {});
@@ -621,6 +632,7 @@ function getActiveTrack() {
 // ── ARCHITECT TRACK: música exclusiva para la tarjeta de CHRISTOPHER ──────
 // Épico, oscuro y etéreo — cuerdas de catedral, bajo profundo y arpegios de cristal.
 // Solo se activa mientras la tarjeta del Arquitecto está abierta.
+// Usa su propio GainNode para no interferir con masterMusicGain.
 const ARCHITECT_TRACK = {
     CHORD_PROG: [[36,43,48,55],[33,40,45,52],[38,45,50,57],[35,42,47,54]],
     ARP_PAT: [0,3,1,2,3,0,2,1,0,3,2,0,1,3,0,2],
@@ -634,10 +646,31 @@ let _architectMusicTimer = null;
 let _architectMusicStep = 0;
 let _architectChordIndex = 0;
 let _architectNextNote = 0;
+let _architectGain = null; // GainNode propio — nunca toca masterMusicGain
+
+function _getArchitectGain() {
+    if (!audioCtx) return null;
+    // Recrear si el contexto fue recreado (raro pero posible)
+    if (!_architectGain || _architectGain.context !== audioCtx) {
+        _architectGain = audioCtx.createGain();
+        _architectGain.gain.value = 0.0001;
+        _architectGain.connect(masterLimiter);
+    }
+    return _architectGain;
+}
 
 function startArchitectMusic() {
     if (!audioCtx) { try { initAudio(); } catch(e) { return; } }
     if (!audioCtx) return;
+    const ag = _getArchitectGain();
+    if (!ag) return;
+    // Fade in del gain del Arquitecto
+    const t = audioCtx.currentTime;
+    const targetVol = playerStats.musicVol * 0.75;
+    ag.gain.cancelScheduledValues(t);
+    ag.gain.setValueAtTime(0.0001, t);
+    ag.gain.linearRampToValueAtTime(targetVol, t + 0.8);
+
     _architectMusicActive = true;
     _architectMusicStep = 0;
     _architectChordIndex = 0;
@@ -648,10 +681,22 @@ function startArchitectMusic() {
 function stopArchitectMusic() {
     _architectMusicActive = false;
     clearTimeout(_architectMusicTimer);
+    // Fade out suave del gain del Arquitecto
+    if (_architectGain && audioCtx) {
+        const t = audioCtx.currentTime;
+        _architectGain.gain.cancelScheduledValues(t);
+        _architectGain.gain.setValueAtTime(_architectGain.gain.value, t);
+        _architectGain.gain.linearRampToValueAtTime(0.0001, t + 0.5);
+    }
 }
 
 function _architectTick() {
     if (!_architectMusicActive || !audioCtx) return;
+    // Pausar si el audioCtx está suspendido (tab en background)
+    if (audioCtx.state === 'suspended') {
+        _architectMusicTimer = setTimeout(_architectTick, 100);
+        return;
+    }
     while (_architectNextNote < audioCtx.currentTime + 0.18) {
         _architectStep(_architectNextNote);
         _architectNextNote += 60.0 / ARCHITECT_TRACK.bpmBase / 4;
@@ -666,6 +711,8 @@ function _architectTick() {
 
 function _architectStep(t) {
     const tc = ARCHITECT_TRACK;
+    const ag = _getArchitectGain();
+    if (!ag) return;
     const chord = tc.CHORD_PROG[_architectChordIndex];
     const step  = _architectMusicStep;
 
@@ -677,7 +724,7 @@ function _architectStep(t) {
         o.frequency.exponentialRampToValueAtTime(0.01, t + 0.6);
         g.gain.setValueAtTime(tc.kickVol, t);
         g.gain.exponentialRampToValueAtTime(0.0001, t + 0.65);
-        o.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 0.7);
+        o.connect(g); g.connect(ag); o.start(t); o.stop(t + 0.7);
     }
 
     // Bajo de dron profundo (cada 2 pasos)
@@ -689,7 +736,7 @@ function _architectStep(t) {
         f.frequency.exponentialRampToValueAtTime(60, t + 0.25);
         g.gain.setValueAtTime(tc.bassVol, t);
         g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
-        o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 0.35);
+        o.connect(f); f.connect(g); g.connect(ag); o.start(t); o.stop(t + 0.35);
     }
 
     // Dron continuo de catedral (cada 8 pasos)
@@ -706,7 +753,7 @@ function _architectStep(t) {
             g.gain.linearRampToValueAtTime(dv, t + 0.8);
             g.gain.setValueAtTime(dv, t + droneDur - 0.8);
             g.gain.linearRampToValueAtTime(0.0001, t + droneDur);
-            o.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + droneDur + 0.05);
+            o.connect(g); g.connect(ag); o.start(t); o.stop(t + droneDur + 0.05);
         });
     }
 
@@ -723,7 +770,7 @@ function _architectStep(t) {
             g.gain.linearRampToValueAtTime(padV, t + 1.2);
             g.gain.setValueAtTime(padV, t + 2.2);
             g.gain.linearRampToValueAtTime(0.0001, t + 3.2);
-            o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 3.3);
+            o.connect(f); f.connect(g); g.connect(ag); o.start(t); o.stop(t + 3.3);
         });
     }
 
@@ -737,7 +784,7 @@ function _architectStep(t) {
         g.gain.setValueAtTime(0.0001, t);
         g.gain.linearRampToValueAtTime(tc.arpVol, t + 0.04);
         g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
-        o.connect(f); f.connect(g); g.connect(masterMusicGain); o.start(t); o.stop(t + 0.65);
+        o.connect(f); f.connect(g); g.connect(ag); o.start(t); o.stop(t + 0.65);
     }
 }
 
@@ -1396,14 +1443,15 @@ function openPlayerCard(index) {
         overlay.classList.add('christopher-overlay');
         // Runas flotantes del Arquitecto
         _spawnArchitectRunes(overlay);
-        // Silenciar música normal y arrancar la del Arquitecto
+        // Bajar la música normal con fade suave — el Arquitecto usa GainNode propio
         if (isMusicPlaying && masterMusicGain && audioCtx) {
             const t = audioCtx.currentTime;
             masterMusicGain.gain.cancelScheduledValues(t);
             masterMusicGain.gain.setValueAtTime(masterMusicGain.gain.value, t);
-            masterMusicGain.gain.linearRampToValueAtTime(0.0001, t + 0.6);
+            masterMusicGain.gain.linearRampToValueAtTime(0.0001, t + 0.7);
         }
-        setTimeout(() => { if (_architectMusicActive === false) startArchitectMusic(); }, 620);
+        // Arrancar música del Arquitecto de inmediato (GainNode independiente)
+        if (!_architectMusicActive) startArchitectMusic();
     } else {
         overlay.classList.remove('christopher-overlay');
         _clearArchitectRunes(overlay);
@@ -1442,20 +1490,25 @@ function pcardOverlayClick(e) {
 }
 
 // ── Runas flotantes del Arquitecto ───────────────────────────────
-const _ARCHITECT_RUNES = ['⬡','◈','⟁','⬢','◉','⌬','⎔','◇','⟐','⊛','⌖','◈'];
+const _ARCHITECT_RUNES = ['⬡','◈','⟁','⬢','◉','⌬','⎔','◇','⟐','⊛','⌖','⬣'];
 function _spawnArchitectRunes(overlay) {
     _clearArchitectRunes(overlay);
-    const count = 10;
+    const count = 14;
     for (let i = 0; i < count; i++) {
         const el = document.createElement('div');
         el.className = 'architect-rune';
         el.textContent = _ARCHITECT_RUNES[i % _ARCHITECT_RUNES.length];
-        el.style.left   = (Math.random() * 92 + 2) + '%';
-        el.style.top    = (Math.random() * 88 + 4) + '%';
-        el.style.fontSize = (0.8 + Math.random() * 1.2) + 'rem';
-        el.style.animationDelay = (Math.random() * 5) + 's';
-        el.style.animationDuration = (5 + Math.random() * 4) + 's';
-        el.style.opacity = (0.10 + Math.random() * 0.18).toFixed(2);
+        el.style.left   = (Math.random() * 90 + 2) + '%';
+        el.style.top    = (Math.random() * 86 + 4) + '%';
+        // Mezclar tamaños: algunos grandes y prominentes, otros medianos
+        const sizeTier = Math.random();
+        el.style.fontSize = sizeTier > 0.75 ? (2.2 + Math.random() * 1.4) + 'rem'
+                          : sizeTier > 0.35 ? (1.2 + Math.random() * 0.8) + 'rem'
+                          :                   (0.7 + Math.random() * 0.4) + 'rem';
+        el.style.animationDelay    = (Math.random() * 6) + 's';
+        el.style.animationDuration = (5 + Math.random() * 5) + 's';
+        // Opacidad visible — 0.30 a 0.60
+        el.style.opacity = (0.30 + Math.random() * 0.30).toFixed(2);
         overlay.appendChild(el);
     }
 }
