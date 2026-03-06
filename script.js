@@ -405,6 +405,20 @@ if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOP
     // ── extra5 subió de 10 a 15 logros en un día ──────────────────────────
     if (playerStats.achievements.includes('extra5') && (playerStats.dailyAchUnlocks||0) < 15) toRevoke.push('extra5');
 
+    // ── Logros únicos que duplicaban escalas — umbrales corregidos ───────────
+    // u2 Tropiezo: 100→75 incorrectas
+    if (playerStats.achievements.includes('u2') && (playerStats.totalWrong||0) < 75) toRevoke.push('u2');
+    // u4 AFK: 50→35 timeouts
+    if (playerStats.achievements.includes('u4') && (playerStats.totalTimeouts||0) < 35) toRevoke.push('u4');
+    // u23 Imparable: racha 25→35
+    if (playerStats.achievements.includes('u23') && (playerStats.maxStreak||0) < 35) toRevoke.push('u23');
+    // u16 Frenesí Máximo: mult x4 → frenesís 15 (cambio de stat)
+    if (playerStats.achievements.includes('u16') && (playerStats.frenziesTriggered||0) < 15) toRevoke.push('u16');
+    // x17 Veterano: 100→150 partidas
+    if (playerStats.achievements.includes('x17') && (playerStats.gamesPlayed||0) < 150) toRevoke.push('x17');
+    // u15 Superviviente: 100→120 preguntas
+    if (playerStats.achievements.includes('u15') && (playerStats.maxQuestionReached||0) < 120) toRevoke.push('u15');
+
     if (toRevoke.length > 0) {
         playerStats.achievements     = playerStats.achievements.filter(id => !toRevoke.includes(id));
         playerStats.pinnedAchievements = playerStats.pinnedAchievements.filter(id => !toRevoke.includes(id));
@@ -542,6 +556,14 @@ function revokeInvalidAchievements() {
     if (playerStats.achievements.includes('master1') && _riaAchs < 75)  toRevoke.add('master1');
     if (playerStats.achievements.includes('master4') && _riaAchs < 150) toRevoke.add('master4');
     if (playerStats.achievements.includes('master5') && _riaAchs < 200) toRevoke.add('master5');
+
+    // ── Logros únicos diferenciados de sus escalas ──────────────────────────
+    if (playerStats.achievements.includes('u2')  && (playerStats.totalWrong||0)          < 75)  toRevoke.add('u2');
+    if (playerStats.achievements.includes('u4')  && (playerStats.totalTimeouts||0)        < 35)  toRevoke.add('u4');
+    if (playerStats.achievements.includes('u23') && (playerStats.maxStreak||0)            < 35)  toRevoke.add('u23');
+    if (playerStats.achievements.includes('u16') && (playerStats.frenziesTriggered||0)    < 15)  toRevoke.add('u16');
+    if (playerStats.achievements.includes('x17') && (playerStats.gamesPlayed||0)          < 150) toRevoke.add('x17');
+    if (playerStats.achievements.includes('u15') && (playerStats.maxQuestionReached||0)   < 120) toRevoke.add('u15');
 
     if (toRevoke.size > 0) {
         playerStats.achievements = playerStats.achievements.filter(id => !toRevoke.has(id));
@@ -1848,7 +1870,7 @@ addAchs([
     { id: 'u9',   title: 'Inmortal',         desc: 'Completa 50 preguntas seguidas sin perder ninguna vida.',           color: colors.purple, icon: SVG_SHIELD },
     { id: 'np3',  title: 'Sin Límites',      desc: 'Completa una partida de más de 60 preguntas sin rendirte.',         color: colors.purple, icon: SVG_BOLT },
     { id: 'extra3', title: 'Maratonista',    desc: 'Supera las 80 preguntas en una sola partida.',                      color: colors.green,  icon: SVG_SHIELD },
-    { id: 'u15',  title: 'Superviviente',    desc: 'Llega a 100 preguntas en una sola partida.',                        color: colors.green,  icon: SVG_SHIELD },
+    { id: 'u15',  title: 'Superviviente',    desc: 'Llega a 120 preguntas en una sola partida.',                        color: colors.green,  icon: SVG_SHIELD },
     { id: 'x11',  title: 'El Último Chance', desc: 'Responde correctamente estando en la última vida.',                 color: colors.orange, icon: SVG_SHIELD },
 ]);
 
@@ -1856,7 +1878,7 @@ addAchs([
 const strkTiers=[5,10,15,20,25,30,40,50];
 for(let i=0;i<8;i++) addAchs([{ id:`sk${i+1}`, title:`Encadenado ${i+1}`, desc:`Alcanza una racha de ${strkTiers[i]} aciertos seguidos en alguna partida.`, color:colors.orange, icon:SVG_BOLT }]);
 addAchs([
-    { id: 'u23', title: 'Imparable', desc: 'Encadena una racha de 25 aciertos o más en una partida.', color: colors.yellow, icon: SVG_TARGET },
+    { id: 'u23', title: 'Imparable', desc: 'Encadena una racha de 35 aciertos o más en una partida.', color: colors.yellow, icon: SVG_TARGET },
 ]);
 const multTiers=[2,3,4,5];
 for(let i=0;i<4;i++) addAchs([{ id:`mx${i+1}`, title:`Multiplicador x${multTiers[i]}`, desc:`Alcanza el multiplicador x${multTiers[i]} en una partida.`, color:colors.red, icon:SVG_FIRE }]);
@@ -1866,7 +1888,7 @@ addAchs([
     { id: 'mx8',  title: 'Multiplicador x8',           desc: 'Alcanza el multiplicador x8 en una partida.',             color: colors.red,    icon: SVG_BOLT },
     { id: 'mx9',  title: 'Multiplicador x9',           desc: 'Alcanza el multiplicador x9 en una partida.',             color: colors.yellow, icon: SVG_BOLT },
     { id: 'mx10', title: 'Multiplicador x10 — MÁXIMO', desc: 'Alcanza el multiplicador máximo x10. Eres imparable.',    color: colors.yellow, icon: SVG_TROPHY },
-    { id: 'u16',  title: 'Frenesí Máximo',             desc: 'Alcanza el multiplicador x4 o superior.',                 color: colors.orange, icon: SVG_FIRE },
+    { id: 'u16',  title: 'Frenesí Máximo',             desc: 'Activa el Modo Frenesí 15 veces en total.',               color: colors.orange, icon: SVG_FIRE },
 ]);
 
 // ─── 7. VELOCIDAD Y REFLEJOS (8 velocidad + racha sin timeout + únicos) ──
@@ -1911,8 +1933,8 @@ for(let i=0;i<5;i++) addAchs([{ id:`wr${i+1}`, title:`Torpeza ${i+1}`, desc:`Acu
 const toTiers=[5,20,50,100,250];
 for(let i=0;i<5;i++) addAchs([{ id:`to${i+1}`, title:`Ausente ${i+1}`, desc:`Deja el reloj llegar a cero ${toTiers[i]} veces.`, color:colors.dark, icon:SVG_CLOCK }]);
 addAchs([
-    { id: 'u2',   title: 'Tropiezo',    desc: 'Acumula 100 respuestas incorrectas en tu carrera.',                     color: colors.dark,   icon: SVG_INCORRECT },
-    { id: 'u4',   title: 'AFK',         desc: 'Deja que el reloj llegue a cero 50 veces en total.',                    color: colors.dark,   icon: SVG_CLOCK },
+    { id: 'u2',   title: 'Tropiezo',    desc: 'Acumula 75 respuestas incorrectas en tu carrera.',                      color: colors.dark,   icon: SVG_INCORRECT },
+    { id: 'u4',   title: 'AFK',         desc: 'Deja que el reloj llegue a cero 35 veces en total.',                    color: colors.dark,   icon: SVG_CLOCK },
     { id: 'u10',  title: 'Desastre',    desc: 'Pierde las 3 vidas en las primeras 3 preguntas.',                       color: colors.dark,   icon: SVG_SKULL },
     { id: 'u18',  title: 'Suicida',     desc: 'Pierde las 3 vidas en menos de 30 segundos de partida.',                color: colors.dark,   icon: SVG_SKULL },
     { id: 'u12',  title: 'Tragedia',    desc: 'Pierde la última vida durante una racha de 20 o más.',                  color: colors.dark,   icon: SVG_INCORRECT },
@@ -2043,7 +2065,7 @@ addAchs([
     { id: 'u8',        title: 'Leyenda',  desc: 'Alcanza el codiciado rango Leyenda.',                                color: colors.yellow, icon: SVG_TROPHY },
     { id: 'u_mitico',  title: 'Mítico',   desc: 'Alcanza el rango Mítico. El más difícil de conseguir.',              color: '#ffffff',     icon: SVG_STAR },
     { id: 'fin4',      title: 'El Pacto', desc: 'Juega durante 7 días seguidos y alcanza el rango Junior.',           color: colors.green,  icon: SVG_SHIELD },
-    { id: 'x17',       title: 'Veterano', desc: 'Acumula más de 100 partidas jugadas.',                               color: colors.blue,   icon: SVG_TROPHY },
+    { id: 'x17',       title: 'Veterano', desc: 'Acumula más de 150 partidas jugadas.',                               color: colors.blue,   icon: SVG_TROPHY },
 ]);
 
 // ─── 22. PANTALLA DE RANGOS (nuevos logros de navegación) ─────────────
@@ -2228,9 +2250,9 @@ function _checkAchievementsImpl() {
     const nt = playerStats.maxNoTimeoutStreak||0; for(let i=0;i<5;i++) if(nt>=noTimoutTiers[i]) unlock(`nt${i+1}`);
 
     // ÚNICOS
-    if (playerStats.totalWrong > 0) unlock('u1'); if (playerStats.totalWrong >= 100) unlock('u2'); 
-    if (playerStats.totalTimeouts > 0) unlock('u3'); if (playerStats.totalTimeouts >= 50) unlock('u4'); 
-    if (playerStats.todayGames >= 50) unlock('u22'); if ((playerStats.maxStreak||0) >= 25) unlock('u23');
+    if (playerStats.totalWrong > 0) unlock('u1'); if (playerStats.totalWrong >= 75) unlock('u2'); 
+    if (playerStats.totalTimeouts > 0) unlock('u3'); if (playerStats.totalTimeouts >= 35) unlock('u4'); 
+    if (playerStats.todayGames >= 50) unlock('u22'); if ((playerStats.maxStreak||0) >= 35) unlock('u23');
     const rank = getRankInfo(playerStats).title; 
     // Logros de rango: solo usar el rango REAL de playerStats (stats guardadas).
     // NO proyectar con el score en curso para evitar otorgar logros de rango
@@ -2319,11 +2341,11 @@ function _checkAchievementsImpl() {
     // ÚNICOS EXTRA
     if(playerStats.gamesPlayed>=1) unlock('x3');
     if(playerStats.gamesPlayed>=1 || playerStats.maxLoginStreak>=1) unlock('x1');
-    if(playerStats.gamesPlayed>=100) unlock('x17');
+    if(playerStats.gamesPlayed>=150) unlock('x17');
     if(playerStats.nameChanges===0 && playerStats.maxLoginStreak>=30) unlock('x18');
     if((rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad') && normalAchs>=300) unlock('fin5');
     if(days>=7 && (rank==='Junior'||rank==='Pro'||rank==='Maestro'||rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad')) unlock('fin4');
-    if((playerStats.maxMult||1)>=4) unlock('u16');
+    if((playerStats.frenziesTriggered||0)>=15) unlock('u16');
     // u9 Inmortal: handled in-game via inGameUnlock (line ~4420)
     // u24 Extremis: 3 last-second answers in single game
     if((playerStats.extremisCount||0)>=1) unlock('u24');
@@ -2373,7 +2395,7 @@ function _checkAchievementsImpl() {
     if((playerStats.maxQuestionReached||0)>=30 && (playerStats.invictoEarned||false)) unlock('x14');
     // x10: Economía (20 preguntas sin perder vida) — in-game via inGameUnlock
     if((playerStats.x10Earned||false)) unlock('x10');
-    if((playerStats.maxQuestionReached||0)>=100) unlock('u15');
+    if((playerStats.maxQuestionReached||0)>=120) unlock('u15');
     if((playerStats.maxQuestionReached||0)>=59) unlock('np3');  // 60 preguntas = índice 59
 
     // VELOCIDAD Y REFLEJOS (por partida — tracked via persisted stats)
