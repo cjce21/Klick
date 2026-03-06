@@ -117,7 +117,8 @@ let _gameWindowW = window.innerWidth;   // se actualiza al iniciar partida
 let _gameWindowH = window.innerHeight;
 window.addEventListener('resize', () => {
     if (!isAnsweringAllowed || isGamePaused) return;
-    if (window.screen.width <= 600) return; // ignorar en móvil
+    const isSmallMobile = window.screen.width <= 430 && window.screen.height <= 932;
+    if (isSmallMobile) return; // ignorar solo iPhones pequeños, NO iPads
     clearTimeout(_resizeCheatTimer);
     _resizeCheatTimer = setTimeout(() => {
         if (!isAnsweringAllowed || isGamePaused) return;
@@ -3427,7 +3428,8 @@ async function startGameCheck() {
     // 5. Pantalla dividida o ventana muy reducida
     //    En desktop: innerWidth debe cubrir >= 52% de la pantalla
     //    En mobile se omite (screen.width puede ser distorsionado por devicePixelRatio)
-    if (window.screen.width > 600) {
+    const _isSmallMobile = window.screen.width <= 430 && window.screen.height <= 932;
+    if (!_isSmallMobile) {
         const wRatio = window.innerWidth / window.screen.width;
         const hRatio = window.innerHeight / window.screen.height;
         if (wRatio < 0.52) {
