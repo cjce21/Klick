@@ -168,7 +168,8 @@ const defaultStats = {
     selectedTrack: 'track_chill', trackSwitches: 0, tracksTriedSet: [], triedAllTracks: false,
     sameTrackGames: 0, lastGameTrack: '',
     kpViews: 0, kpClaimDays: [], kpSessionClaims: 0,
-    qualityMode: 'normal'
+    qualityMode: 'normal',
+    seenChristopher: false, christopherCardViews: 0, christopherSeenCount: 0
 };
 
 const STORAGE_KEY = 'klick_player_data_permanent';
@@ -177,9 +178,9 @@ try { savedData = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('kli
 let playerStats = { ...defaultStats, ...JSON.parse(savedData) };
 
 if(!playerStats.uuid) playerStats.uuid = generateUUID();
-// ADMINTEST: UUID canónico fijo — garantiza una sola entrada en el leaderboard,
+// CHRISTOPHER: UUID canónico fijo — garantiza una sola entrada en el leaderboard,
 // sin importar el dispositivo. El servidor sobreescribe siempre la misma fila.
-if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'ADMINTEST') {
+if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') {
     playerStats.uuid = '00000000-spec-tral-0000-klickphantom0';
 }
 
@@ -188,8 +189,8 @@ if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'ADMINTES
 // Compara stats reales contra los nuevos umbrales del modo infinito y
 // elimina del array achievements cualquier id que ya no se cumpla.
 (function migrateAchievementsV2() {
-    // ADMINTEST: nunca revocar logros
-    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'ADMINTEST') return;
+    // CHRISTOPHER: nunca revocar logros
+    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') return;
     if (playerStats.migratedV2) {
         // ── Migración v2b: revoca fin1/fin2 si se ganaron sin el flag real ──
         if (!playerStats.migratedV2b) {
@@ -353,8 +354,8 @@ function saveStatsDebounced(force = false) {
 // ── Revoca logros obtenidos por bugs/errores de lógica ──────────────────────
 // Función pública: puede llamarse en cualquier momento para limpiar logros inválidos.
 function revokeInvalidAchievements() {
-    // ADMINTEST: nunca revocar logros de la cuenta de prueba
-    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'ADMINTEST') return 0;
+    // CHRISTOPHER: nunca revocar logros de la cuenta de prueba
+    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') return 0;
     const before = playerStats.achievements.length;
     const toRevoke = new Set();
 
@@ -914,21 +915,19 @@ function calculatePowerLevel(stats) {
 
 let _submitDebounceTimer = null;
 async function submitLeaderboard() {
-    // ADMINTEST: cuenta de prueba — funciona normalmente pero nunca envía datos al ranking
     if (!playerStats.playerName || playerStats.playerName === "JUGADOR" || GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") return;
-    // ADMINTEST puede enviar al ranking (para pruebas de leaderboard)
     // Debounce: avoid multiple rapid submits (e.g. saveGameStats + setInterval overlap)
     clearTimeout(_submitDebounceTimer);
     _submitDebounceTimer = setTimeout(async () => {
         const pl = calculatePowerLevel(playerStats);
         playerStats.powerLevel = pl;
-        // ADMINTEST: nombre enmascarado + UUID canónico en el payload
-        const _isAdmin = playerStats.playerName.toUpperCase() === 'ADMINTEST';
+        // CHRISTOPHER: UUID canónico + PL fijo destacado; envía su nombre directamente
+        const _isChristopher = playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
         const payload = {
-            uuid:       _isAdmin ? '00000000-spec-tral-0000-klickphantom0' : playerStats.uuid,
-            name:       _isAdmin ? 'CHRISTOPHER' : playerStats.playerName,
+            uuid:       _isChristopher ? '00000000-spec-tral-0000-klickphantom0' : playerStats.uuid,
+            name:       playerStats.playerName,
             rankTitle:  getRankInfo(playerStats).title,
-            powerLevel: _isAdmin ? 21000000 : pl,
+            powerLevel: _isChristopher ? 21000000 : pl,
             totalScore: playerStats.totalScore,
             maxStreak:  playerStats.maxStreak
         };
@@ -994,25 +993,34 @@ async function fetchLeaderboard() {
                 }
             }
 
-            // KlickVoid (ADMINTEST): posición 0 — entidad fuera de la clasificación
-            const isKlickVoid = p.uuid === '00000000-spec-tral-0000-klickphantom0';
-            const displayPos  = isKlickVoid ? '∅' : pos;
+            // CHRISTOPHER: posición especial ∞, siempre visible cuando está logueado
+            const isChristopher  = p.uuid === '00000000-spec-tral-0000-klickphantom0';
+            const displayPos     = isChristopher ? '∞' : pos;
 
             // Podio titles — requiere Leyenda o superior
             let rankTitle = p.rankTitle;
             const podiumTitles = { 1: 'Rey Klick', 2: 'Señor Klick', 3: 'Caballero Klick' };
-            if (!isKlickVoid && pos <= 3 && (p.rankTitle === 'Leyenda' || p.rankTitle === 'Mítico' || p.rankTitle === 'Divinidad')) rankTitle = podiumTitles[pos];
-            if (isKlickVoid) rankTitle = 'Entidad del Sistema';
+            if (!isChristopher && pos <= 3 && (p.rankTitle === 'Leyenda' || p.rankTitle === 'Mítico' || p.rankTitle === 'Divinidad')) rankTitle = podiumTitles[pos];
+            if (isChristopher) rankTitle = 'Arquitecto del Sistema';
 
-            const meClass         = isMe ? 'is-me' : '';
-            const divinidadClass  = p.rankTitle === 'Divinidad' ? 'divinidad-card' : '';
-            const leyendaClass    = p.rankTitle === 'Leyenda'   ? 'leyenda-card'   : '';
-            const miticoClass     = p.rankTitle === 'Mítico'    ? 'mitico-card'    : '';
-            const klickvoidClass  = isKlickVoid                 ? 'klickvoid-card' : '';
-            const titleColor      = rankTitleColor(p.rankTitle);
+            // Tracking: primer avistamiento de CHRISTOPHER en el ranking
+            if (isChristopher && !playerStats.seenChristopher) {
+                playerStats.seenChristopher = true;
+                saveStatsLocally(); checkAchievements();
+            }
+            if (isChristopher) {
+                playerStats.christopherSeenCount = (playerStats.christopherSeenCount||0) + 1;
+            }
 
-            html += `<div class="rank-card ${meClass} ${divinidadClass} ${leyendaClass} ${miticoClass} ${klickvoidClass}" onclick="openPlayerCard(${index})" title="Ver perfil">
-                <div class="rc-pos${isKlickVoid ? ' rc-pos-void' : ''}">${displayPos}</div>
+            const meClass          = isMe ? 'is-me' : '';
+            const divinidadClass   = p.rankTitle === 'Divinidad' ? 'divinidad-card'   : '';
+            const leyendaClass     = p.rankTitle === 'Leyenda'   ? 'leyenda-card'     : '';
+            const miticoClass      = p.rankTitle === 'Mítico'    ? 'mitico-card'      : '';
+            const christopherClass = isChristopher               ? 'christopher-card' : '';
+            const titleColor       = rankTitleColor(p.rankTitle);
+
+            html += `<div class="rank-card ${meClass} ${divinidadClass} ${leyendaClass} ${miticoClass} ${christopherClass}" onclick="openPlayerCard(${index})" title="Ver perfil">
+                <div class="rc-pos">${displayPos}</div>
                 <div class="rc-info">
                     <div class="rc-name">${p.name}</div>
                     <div class="rc-title" style="color:${titleColor}">${rankTitle}</div>
@@ -1152,6 +1160,11 @@ function openPlayerCard(index) {
     const p   = data[index];
     const pos = index + 1;
     const isMe = p.uuid === playerStats.uuid;
+    // Track CHRISTOPHER card views for cx2/cx3
+    if (p.uuid === '00000000-spec-tral-0000-klickphantom0') {
+        playerStats.christopherCardViews = (playerStats.christopherCardViews||0) + 1;
+        saveStatsLocally(); checkAchievements();
+    }
 
     const baseRank = p.rankTitle || 'Novato';
     const { color, rgb } = _pcardRankVars(baseRank);
@@ -1552,7 +1565,7 @@ addAchs([
     { id: 'u7',        title: 'Maestro',  desc: 'Alcanza el rango Maestro.',                                          color: colors.purple, icon: SVG_TROPHY },
     { id: 'u8',        title: 'Leyenda',  desc: 'Alcanza el codiciado rango Leyenda.',                                color: colors.yellow, icon: SVG_TROPHY },
     { id: 'u_mitico',  title: 'Mítico',   desc: 'Alcanza el rango Mítico. El más difícil de conseguir.',              color: '#ffffff',     icon: SVG_STAR },
-    { id: 'u_divinidad', title: 'Divinidad', desc: 'Trasciende todos los rangos. Alcanza la Divinidad.',               color: 'var(--divinity-color-static)', icon: SVG_STAR },
+
     { id: 'fin4',      title: 'El Pacto', desc: 'Juega durante 7 días seguidos y alcanza el rango Junior.',           color: colors.green,  icon: SVG_SHIELD },
     { id: 'x17',       title: 'Veterano', desc: 'Acumula más de 100 partidas jugadas.',                               color: colors.blue,   icon: SVG_TROPHY },
 ]);
@@ -1566,7 +1579,7 @@ addAchs([
     { id: 'rk5', title: 'Cartógrafo Klick',       desc: 'Visita la pantalla de Rangos 50 veces.',                       color: colors.yellow, icon: SVG_STAR },
 ]);
 
-// ─── 23. ESTADÍSTICAS EXTREMAS — DIVINIDAD ──────────────────────────────
+// ─── 23. ESTADÍSTICAS EXTREMAS ─────────────────────────────────────────────
 addAchs([
     { id: 'div1', title: 'Punto de No Retorno',   desc: 'Acumula 2,000,000 puntos en total.',                           color: colors.red,    icon: SVG_BOLT },
     { id: 'div2', title: 'El Inmortal',           desc: 'Alcanza 8,000 aciertos totales.',                              color: colors.purple, icon: SVG_FIRE },
@@ -1587,20 +1600,17 @@ addAchs([
     { id: 'sp11', title: 'Velocidad Absoluta',    desc: 'Acumula 10,000 respuestas rápidas en total.',                  color: colors.yellow, icon: SVG_FIRE },
 ]);
 
-// ─── 26. KLICK PASS + DIVINIDAD ──────────────────────────────────────────
-addAchs([
-    { id: 'kpa11', title: 'Ascendido',            desc: 'Completa el Klick Pass completo y alcanza el rango Divinidad.', color: 'var(--divinity-color-static)', icon: SVG_STAR },
-]);
-
-// ─── 27. COLECCIÓN MAESTRA — NUEVO MÁXIMO ────────────────────────────────
-addAchs([
-    { id: 'master6', title: 'Absoluto',           desc: 'Desbloquea los 169 logros del juego y alcanza Divinidad. La cúspide absoluta.',    color: 'var(--divinity-color-static)', icon: SVG_STAR },
-]);
-
-// ─── NUEVAS INTEGRACIONES — Precisión y Rango Divinidad ─────────────────
+// ─── 26. PRECISIÓN GLOBAL ────────────────────────────────────────────────
 addAchs([
     { id: 'prec1', title: 'Sin Fisuras',     desc: 'Alcanza 95% de precisión global acumulada (mín. 500 respuestas).',    color: colors.blue,   icon: SVG_TARGET },
-    { id: 'div4',  title: 'Ascensión Total', desc: 'Completa el Klick Pass completo estando en rango Divinidad.',          color: 'var(--divinity-color-static)', icon: SVG_STAR },
+]);
+
+// ─── 27. EL ARQUITECTO — logros relacionados con CHRISTOPHER ─────────────
+addAchs([
+    { id: 'cx1', title: 'Avistamiento',       desc: 'Ve al Arquitecto del Sistema en la Clasificación por primera vez.',   color: 'var(--divinity-color-static)', icon: SVG_TROPHY },
+    { id: 'cx2', title: 'Cara a Cara',        desc: 'Abre la tarjeta de CHRISTOPHER en la Clasificación.',                 color: 'var(--divinity-color-static)', icon: SVG_USER },
+    { id: 'cx3', title: 'Observador Atento',  desc: 'Consulta las estadísticas de CHRISTOPHER 5 veces.',                  color: 'var(--divinity-color-static)', icon: SVG_TARGET },
+    { id: 'cx4', title: 'Testigo del Origen', desc: 'Visita la Clasificación 10 veces mientras CHRISTOPHER está presente.', color: 'var(--divinity-color-static)', icon: SVG_STAR },
 ]);
 
 
@@ -1617,7 +1627,7 @@ addAchs([
     { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 100 logros en total.',                                  color: colors.orange, icon: SVG_STAR },
     { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 130 logros en total.',                                  color: colors.purple, icon: SVG_STAR },
     { id: 'master5', title: 'A las Puertas', desc: 'Desbloquea 155 logros en total. El límite está a la vista.',      color: colors.yellow, icon: SVG_STAR },
-    { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea todos los logros del juego. Eres absoluto.',            color: colors.red,    icon: SVG_STAR },
+    { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea los 166 logros del juego. La cúspide para cualquier jugador.', color: colors.red, icon: SVG_STAR },
 ]);
 
 // ── Índice O(1) para lookup por ID ──────────────────────────────────────────
@@ -1647,11 +1657,8 @@ function getRankInfo(stats) {
     const totalAnswers = (stats.totalCorrect||0)+(stats.totalWrong||0)+(stats.totalTimeouts||0);
     const accuracy = totalAnswers>0 ? Math.round((stats.totalCorrect||0)/totalAnswers*100) : 0;
     const kpClaimed = (getKpState().claimed || []).length;
-    // ── Divinidad — rango trascendente, más allá de Mítico ──────────
-    if (stats.totalScore >= 3000000 && stats.totalCorrect >= 10000 && stats.perfectGames >= 100 &&
-        (stats.achievements||[]).length >= 169 && stats.maxStreak >= 60 && (stats.maxMult||1) >= 10 &&
-        accuracy >= 92 && stats.maxLoginStreak >= 60 && (stats.gamesPlayed||0) >= 200 &&
-        kpClaimed >= 100)
+    // ── Divinidad — rango exclusivo del Arquitecto del Sistema ─────
+    if ((stats.playerName||'').toUpperCase() === 'CHRISTOPHER' && stats.uuid === '00000000-spec-tral-0000-klickphantom0')
         return { title: "Divinidad", color: "var(--divinity-color)", rgb: "180,100,255", divinidad: true };
     // ── Mítico ───────────────────────────────────────────────────────
     if (stats.totalScore >= 1200000 && stats.totalCorrect >= 5000 && stats.perfectGames >= 50 &&
@@ -1707,13 +1714,12 @@ function _checkAchievementsImpl() {
     if (playerStats.achViews >= 1) unlock('m4'); if (playerStats.achViews >= 10) unlock('m5'); if (playerStats.achViews >= 50) unlock('m6');
     if (playerStats.pinnedAchievements.filter(id => id !== 'tramposo').length > 0) unlock('m7'); 
     if (normalAchs >= 10) unlock('m8'); if (normalAchs >= 50) unlock('m9'); if (normalAchs >= 100) unlock('m10');
-    // Colección maestra — escalera coherente con el total real de 169 logros
+    // Colección maestra — escalera coherente con el total real de 166 logros
     if (normalAchs >= 50)  unlock('master1'); // Casi Dios
     if (normalAchs >= 100) unlock('master2'); // Semidivino
     if (normalAchs >= 130) unlock('master4'); // Leyenda Total
     if (normalAchs >= 155) unlock('master5'); // A las Puertas
-    if (normalAchs >= 169) unlock('master3'); // Dios Klick — todos
-    if (normalAchs >= 169 && effectiveRank === 'Divinidad') unlock('master6'); // Absoluto — todos + Divinidad
+    if (normalAchs >= 166) unlock('master3'); // Dios Klick — todos
     // ── Pantalla de Rangos ──────────────────────────────────────────
     const rv2 = playerStats.ranksViews||0;
     if(rv2>=1) unlock('rk1'); if(rv2>=5) unlock('rk2'); if(rv2>=15) unlock('rk3'); if(rv2>=30) unlock('rk4'); if(rv2>=50) unlock('rk5');
@@ -1723,7 +1729,6 @@ function _checkAchievementsImpl() {
     if((playerStats.perfectGames||0)>=75)    unlock('div3');
     // ── KP completo + Divinidad ──────────────────────────────────────
     const kpClaimedChk = (getKpState().claimed||[]).length;
-    if(kpClaimedChk>=100 && effectiveRank==='Divinidad') unlock('kpa11');
 
     // DÍAS (Consecutivos vs Totales)
     const days = playerStats.maxLoginStreak; 
@@ -1763,7 +1768,6 @@ function _checkAchievementsImpl() {
     if (effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u7'); 
     if (effectiveRank==="Leyenda"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u8');
     if (effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u_mitico');
-    if (effectiveRank==="Divinidad") unlock('u_divinidad');
     if (playerStats.clickedLogo) unlock('secret_logo');
 
     // RULETA
@@ -1937,9 +1941,11 @@ function _checkAchievementsImpl() {
     // ─── Precisión global 95% ─────────────────────────────────────────
     const _p1Tot = (playerStats.totalCorrect||0)+(playerStats.totalWrong||0)+(playerStats.totalTimeouts||0);
     if (_p1Tot >= 500 && (playerStats.totalCorrect||0) / _p1Tot >= 0.95) unlock('prec1');
-    // ─── Divinidad + KP completo combo ───────────────────────────────
-    const _kpForDiv4 = (getKpState().claimed || []).length;
-    if (effectiveRank === 'Divinidad' && _kpForDiv4 >= 100) unlock('div4');
+    // ─── El Arquitecto (CHRISTOPHER) ────────────────────────────────────
+    if (playerStats.seenChristopher) unlock('cx1');
+    if ((playerStats.christopherCardViews||0) >= 1) unlock('cx2');
+    if ((playerStats.christopherCardViews||0) >= 5) unlock('cx3');
+    if ((playerStats.christopherSeenCount||0) >= 10) unlock('cx4');
 
     if (newlyUnlocked.length > 0) { 
         // Track daily achievement unlocks para da1-da5 y extra5 "Día Épico"
@@ -2034,11 +2040,9 @@ function _vsCardHTML(ach, isUnlocked, isManualPin, isInProfile) {
     if (isManualPin)  cls += ' pinned';
     else if (isInProfile) cls += ' in-profile';
     if (ach.id === 'u_mitico')    cls += ' ach-mitico';
-    if (ach.id === 'u_divinidad') cls += ' ach-divinidad';
     // Logros especiales: animación propia cuando están desbloqueados
     if (isUnlocked && ach.id === 'u8')          cls += ' ach-leyenda';
     if (isUnlocked && ach.id === 'u_mitico')    cls += ' ach-mitico';
-    if (isUnlocked && ach.id === 'u_divinidad') cls += ' ach-divinidad';
 
     const isLight = document.body.classList.contains('light-mode');
     const displayColor = isUnlocked ? (isLight ? darkenHex(ach.color, 0.4) : ach.color) : '';
@@ -2998,7 +3002,7 @@ function goToProfile(needsName = false) {
                     `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/1,200,000</span> &nbsp;`+
                     `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/5,000</span> &nbsp;`+
                     `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/50</span> &nbsp;`+
-                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/169</span> &nbsp;`+
+                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/166</span> &nbsp;`+
                     `<span style="${c5?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/40</span> &nbsp;`+
                     `<span style="${c6?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. ${s.maxMult||1}/x8</span> &nbsp;`+
                     `<span style="${c7?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/85%</span> &nbsp;`+
@@ -3094,6 +3098,11 @@ document.getElementById('profile-name-input').addEventListener('input', e => {
     if (words.length > 2) { val = words.slice(0, 2).join(' '); }
     // Si termina con espacio y ya hay 2 palabras, no permitir más espacios
     if (words.length >= 2 && val.endsWith(' ')) val = val.trimEnd();
+    e.target.value = val;
+    // Nombre reservado: solo permitido con UUID canónico
+    if (val.trim() === 'CHRISTOPHER' && playerStats.uuid !== '00000000-spec-tral-0000-klickphantom0') {
+        val = val.slice(0, -1);
+    }
     e.target.value = val;
     document.getElementById('profile-warning').style.opacity = val ? '0' : '1'; 
 });
@@ -4839,7 +4848,7 @@ function renderRanks() {
                 { label: 'Puntos acumulados',    need: 3000000, get: ()=>s.totalScore||0,              fmt: v=>`${fmt(v)} / 3M` },
                 { label: 'Aciertos totales',     need: 10000,   get: ()=>s.totalCorrect||0,            fmt: v=>`${v} / 10,000` },
                 { label: 'Partidas perfectas',   need: 100,     get: ()=>s.perfectGames||0,            fmt: v=>`${v} / 100` },
-                { label: 'Logros desbloqueados', need: 169,     get: ()=>(s.achievements||[]).length,  fmt: v=>`${v} / 169` },
+                { label: 'Logros desbloqueados', need: 166, get: ()=>(s.achievements||[]).length,  fmt: v=>`${v} / 166` },
                 { label: 'Racha máxima',         need: 60,      get: ()=>s.maxStreak||0,               fmt: v=>`${v} / 60` },
                 { label: 'Multiplicador máx.',   need: 10,      get: ()=>s.maxMult||1,                 fmt: v=>`x${v} / x10` },
                 { label: 'Precisión global',     need: 92,      get: ()=>accuracy,                     fmt: v=>`${v}% / 92%` },
@@ -4851,22 +4860,22 @@ function renderRanks() {
     ];
 
     // Determine which ranks are unlocked
+    const isChristopher = (s.playerName||'').toUpperCase() === 'CHRISTOPHER' && s.uuid === '00000000-spec-tral-0000-klickphantom0';
     const ORDER = ['Novato','Junior','Pro','Maestro','Leyenda','Mítico','Divinidad'];
     const rankIdx = ORDER.indexOf(current);
 
     let html = '';
     RANKS.forEach((rank, i) => {
+        // Divinidad — solo visible para CHRISTOPHER
+        if (rank.title === 'Divinidad' && !isChristopher) return;
+
         const isUnlocked = i <= rankIdx;
         const isCurrent  = rank.title === current;
         const isNext     = i === rankIdx + 1;
         const isLocked   = !isUnlocked && !isNext;
 
         const allMet = rank.reqs.length === 0 || rank.reqs.every(r => r.get() >= r.need);
-        let _currentExtra = '';
-        if (rank.title === 'Divinidad') _currentExtra = ' rank-row--divinidad';
-        else if (rank.title === 'Mítico')  _currentExtra = ' rank-row--mitico';
-        else if (rank.title === 'Leyenda') _currentExtra = ' rank-row--leyenda';
-        const statusClass = isCurrent ? ('rank-row--current' + _currentExtra) : isUnlocked ? 'rank-row--done' : isNext ? 'rank-row--next' : 'rank-row--locked';
+        const statusClass = isCurrent ? 'rank-row--current' : isUnlocked ? 'rank-row--done' : isNext ? 'rank-row--next' : 'rank-row--locked';
 
         // Build req pills
         let pillsHtml = '';
@@ -5092,9 +5101,9 @@ setTimeout(() => {
         }
     });
 
-})();    // ── ADMINTEST: inyectar todo — stats, logros, KP ────────────────
-    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'ADMINTEST') {
-        // Stats numéricas — mínimos de Divinidad
+})();    // ── CHRISTOPHER: inyectar todo — stats, logros, KP ────────────────
+    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') {
+        // Stats numéricas — nivel Divinidad (exclusivo de CHRISTOPHER)
         playerStats.totalScore          = Math.max(playerStats.totalScore||0,          3000000);
         playerStats.totalCorrect        = Math.max(playerStats.totalCorrect||0,        10000);
         playerStats.totalWrong          = Math.max(playerStats.totalWrong||0, 100); // u1+u2 require totalWrong>0
@@ -5114,6 +5123,9 @@ setTimeout(() => {
         playerStats.rouletteSpins       = Math.max(playerStats.rouletteSpins||0,       200);
         playerStats.rankingViews        = Math.max(playerStats.rankingViews||0,        100);
         playerStats.nameChanges         = 0;
+        playerStats.seenChristopher     = true;
+        playerStats.christopherCardViews = Math.max(playerStats.christopherCardViews||0, 5);
+        playerStats.christopherSeenCount = Math.max(playerStats.christopherSeenCount||0, 10);
         playerStats.maxScoreCount       = Math.max(playerStats.maxScoreCount||0,       10);
         playerStats.maxQuestionReached  = Math.max(playerStats.maxQuestionReached||0,  800);
         playerStats.flashInOneGame      = true;
