@@ -1302,7 +1302,10 @@ function _pcInitCanvas(rgb) {
     _pc.canvas.height = window.innerHeight;
     _pc.rgb = rgb;
     _pc.particles = [];
-    const n = Math.min(55, Math.round((_pc.canvas.width * _pc.canvas.height) / 14000));
+    const isPerf = playerStats && playerStats.qualityMode === 'perf';
+    const isMax  = playerStats && playerStats.qualityMode === 'max';
+    const baseN = isPerf ? 20 : (isMax ? 70 : 55);
+    const n = Math.min(baseN, Math.round((_pc.canvas.width * _pc.canvas.height) / (isPerf ? 28000 : 14000)));
     for (let i = 0; i < n; i++) {
         _pc.particles.push({
             x:  Math.random() * _pc.canvas.width,
@@ -1336,22 +1339,34 @@ function _pcDraw(now) {
     }
     c.fill();
 
-    // Líneas de conexión
+    // Líneas de conexión — omitir en modo bajo rendimiento
+    if (playerStats && playerStats.qualityMode === 'perf') return;
     const maxD2 = (W / 8) * (H / 8);
     c.lineWidth = 0.6;
+    const _pcBuckets = 5;
+    const _pcLines = new Array(_pcBuckets).fill(null).map(() => []);
     for (let a = 0; a < pts.length; a++) {
         for (let b = a + 1; b < pts.length; b++) {
             const dx = pts[a].x - pts[b].x, dy = pts[a].y - pts[b].y;
             const d2 = dx*dx + dy*dy;
             if (d2 < maxD2) {
                 const alpha = (1 - d2 / maxD2) * 0.22;
-                c.strokeStyle = `rgba(${_pc.rgb},${alpha.toFixed(2)})`;
-                c.beginPath();
-                c.moveTo(pts[a].x, pts[a].y);
-                c.lineTo(pts[b].x, pts[b].y);
-                c.stroke();
+                const bi = Math.min(_pcBuckets - 1, Math.floor(alpha * _pcBuckets / 0.22));
+                _pcLines[bi].push(pts[a].x, pts[a].y, pts[b].x, pts[b].y);
             }
         }
+    }
+    for (let bi = 0; bi < _pcBuckets; bi++) {
+        const lines = _pcLines[bi];
+        if (!lines.length) continue;
+        const alpha = (((bi + 0.5) / _pcBuckets) * 0.22).toFixed(2);
+        c.strokeStyle = `rgba(${_pc.rgb},${alpha})`;
+        c.beginPath();
+        for (let i = 0; i < lines.length; i += 4) {
+            c.moveTo(lines[i], lines[i+1]);
+            c.lineTo(lines[i+2], lines[i+3]);
+        }
+        c.stroke();
     }
 }
 
@@ -2272,9 +2287,13 @@ function _checkAchievementsImpl() {
         } else {
             renderAchievements();
         }
-        newlyUnlocked.forEach((ach, index) => { 
-            setTimeout(() => { SFX.achievement(); showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon); }, index * 1300); 
-        }); 
+        newlyUnlocked.forEach((ach, index) => {
+            setTimeout(() => {
+                try { initAudio(); } catch(e) {}
+                SFX.achievement();
+                showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon);
+            }, index * 600);
+        });
     }
 }
 
@@ -2531,7 +2550,13 @@ let isAchievementsInitialized = true; // siempre true, setup es lazy
 const achCardElements = {};           // mantenido vacío para compatibilidad con código existente
 let _currentScreen = null;
 function switchScreen(id) {
-    if (_currentScreen) _currentScreen.classList.remove('active');
+    if (_currentScreen) {
+        // Si salimos de feedback-screen, limpiar clases de estado para evitar que persistan
+        if (_currentScreen.id === 'feedback-screen') {
+            _currentScreen.className = 'screen';
+        }
+        _currentScreen.classList.remove('active');
+    }
     const next = document.getElementById(id);
     // Slightly longer delay on iOS to allow Safari layout to settle
     const delay = /iPad|iPhone|iPod/.test(navigator.userAgent) ? 60 : 16;
@@ -2729,8 +2754,6 @@ const ROULETTE_PRIZES = [
 
 let rouletteActive = false;
 let currentPrize = null;
-let rouletteAngle = 0;     // legacy, no-op
-let rouletteAnimFrame = null; // legacy, no-op
 let activeBoostNextQ = null; // current active power-up for next question
 let shieldActive = false;
 let hintActive = false;
@@ -2738,10 +2761,6 @@ let extraTimeActive = 0;
 let streakShieldActive = false;
 let totalCorrectThisGame = 0; // counts all corrects in game for roulette trigger
 let nextRouletteTrigger = 10; // fire roulette when this many corrects reached
-
-function drawRouletteWheel() {} // legacy no-op, kept for safety
-
-function getPrizeAtAngle() { return ROULETTE_PRIZES[0]; } // legacy no-op
 
 // ─── Iconos SVG para cada tipo de premio ───────────────────────────────────
 const PRIZE_ICONS = {
@@ -3734,14 +3753,6 @@ function getNextQuestion() {
     return q;
 }
 
-// _markUsed ya no es necesaria (el motor la gestiona internamente)
-// Se mantiene como no-op por si algún llamador antiguo la referencia
-function _markUsed() {}
-
-// Alias legacy que ya no se usa (startGame llama _qeResetGame directamente)
-const _recentQuestionIds = { clear: () => {} };
-let _recentQueue = [];
-
 // Cached game DOM elements (reset each game in startGame)
 let _gTimerPath = null, _gTimerText = null, _gQuestionEl = null, _gAnswerBtns = null, _gAnswersGrid = null, _gAns = [], _gStreakDisp = null;
 
@@ -3752,6 +3763,7 @@ function _warmGameDOMCache() {
     _gAnswerBtns  = document.querySelectorAll('.answer-btn');
     _gAnswersGrid = document.getElementById('answers-grid');
     _gAns         = [0,1,2,3].map(i => document.getElementById('ans-' + i));
+    _gStreakDisp  = document.getElementById('streak-display');
 }
 
 function loadQuestion() {
@@ -3996,14 +4008,24 @@ function showFeedback(isCorrect, isTimeout = false) {
         const inGameUnlock = (id, title, col, ico) => {
             if (!_achSetFB.has(id)) {
                 _achSetFB.add(id);
-                playerStats.achievements.push(id); SFX.achievement();
+                playerStats.achievements.push(id);
+                try { initAudio(); } catch(e) {}
+                SFX.achievement();
                 showToast('Logro Desbloqueado', title, col, ico);
                 // Track daily unlocks so da1-da5 "Productivo" count in-game achievements too
                 const _igTodayStr = new Date().toISOString().split('T')[0];
                 if (playerStats.lastLoginDate === _igTodayStr) {
                     playerStats.dailyAchUnlocks = (playerStats.dailyAchUnlocks||0) + 1;
                 }
-                saveStatsDebounced(); renderAchievements();
+                saveStatsDebounced();
+                // Refresh solo la fila afectada si el virtual scroller está activo
+                if (_vsInitialized) {
+                    _vsAchSet = new Set(playerStats.achievements);
+                    _vsDisplayPin = getAutoProfileAchs();
+                    _vsRefreshRows([id]);
+                } else {
+                    renderAchievements();
+                }
             }
         };
         // np1: 10 aciertos seguidos con las 3 vidas intactas (nunca perdió vida)
@@ -4241,6 +4263,7 @@ let particlesArray = [];
 let fpsInterval = 1000 / playerStats.maxFps;
 let then = performance.now();
 let _cpFrame = 0;
+const _cpFrameMask = 0x7FFFFFFF; // keep within safe integer range
 let _smoothDelta = fpsInterval; // EMA del delta real para suavizar jitter
 const _EMA_K = 0.12;           // factor de suavizado (menor = más suave)
 let _particleRaf = null;        // handle del loop principal — garantiza un único loop activo
@@ -4390,7 +4413,7 @@ function animateParticles(now) {
     const _qm = playerStats.qualityMode;
     if (_qm === 'perf') {
         // Perf: sin conexiones nunca, reducir frecuencia de actualización
-        _cpFrame++;
+        _cpFrame = (_cpFrame + 1) & _cpFrameMask;
         return;
     }
     if (_qm === 'max') {
@@ -4400,7 +4423,7 @@ function animateParticles(now) {
         // Normal/custom: conexiones cuando hay racha o audio activo, o en frames pares
         if (streak >= 5 || pulse > 0.05 || (_cpFrame & 1) === 0) connectParticles(pulse);
     }
-    _cpFrame++;
+    _cpFrame = (_cpFrame + 1) & _cpFrameMask;
 }
 
 // Debounced resize to avoid thrashing on window resize
