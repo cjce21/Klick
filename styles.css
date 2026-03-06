@@ -2449,3 +2449,352 @@ body.light-mode .rank-row-chip {
 /* ── Modo rendimiento ───────────────────────────────────────────────── */
 body.quality-perf .rank-row--current { box-shadow: none; transform: none; }
 body.quality-perf .rrank-bar-fill { transition: none; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   RANGO DIVINIDAD — Color iridiscente animado
+   --divinity-color       : color vivo animado (para texto/stroke con animación)
+   --divinity-color-static: valor fijo para contextos sin animación
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Variable estática para logros, leaderboard remoto, etc. */
+:root { --divinity-color-static: #c864ff; }
+
+/* ── Animación del color que recorre el espectro violeta-cian-dorado ── */
+@keyframes divinity-hue {
+    0%   { --divinity-color: #c864ff; --rank-rgb: 200,100,255; }
+    16%  { --divinity-color: #7b2fff; --rank-rgb: 123,47,255;  }
+    33%  { --divinity-color: #00c8ff; --rank-rgb: 0,200,255;   }
+    50%  { --divinity-color: #00ffb8; --rank-rgb: 0,255,184;   }
+    66%  { --divinity-color: #ffe600; --rank-rgb: 255,230,0;   }
+    83%  { --divinity-color: #ff4dc8; --rank-rgb: 255,77,200;  }
+    100% { --divinity-color: #c864ff; --rank-rgb: 200,100,255; }
+}
+
+/* Safari/Chrome no animan custom properties sin @property — fallback con filter */
+@keyframes divinity-hue-filter {
+    0%   { filter: hue-rotate(0deg)   brightness(1.15); }
+    50%  { filter: hue-rotate(200deg) brightness(1.3);  }
+    100% { filter: hue-rotate(360deg) brightness(1.15); }
+}
+
+/* ── Body class aplicada por updateLogoDots cuando rank === Divinidad ── */
+body.rank-divinidad {
+    animation: divinity-hue 6s linear infinite;
+    /* Fallback para navegadores sin soporte de @property */
+    --divinity-color: #c864ff;
+}
+
+/* Logo dot y favicon heredan --rank-color que ya es var(--divinity-color) */
+body.rank-divinidad .logo-dot {
+    animation: divinity-hue-filter 6s linear infinite;
+}
+
+/* Fondo de app con halo iridiscente sutil */
+body.rank-divinidad #app {
+    background: radial-gradient(
+        circle at 50% 50%,
+        rgba(200,100,255,0.07) 0%,
+        var(--bg-base) 70%
+    ) !important;
+    animation: divinity-hue 6s linear infinite, divinity-bg-shift 6s linear infinite;
+}
+@keyframes divinity-bg-shift {
+    0%   { background-position: 50% 50%; }
+    50%  { background-position: 55% 45%; }
+    100% { background-position: 50% 50%; }
+}
+
+/* Avatar ring iridiscente */
+body.rank-divinidad #profile-avatar-ring {
+    box-shadow:
+        0 0 0 2px rgba(200,100,255,0.5),
+        0 0 18px rgba(200,100,255,0.4),
+        0 0 38px rgba(200,100,255,0.15) !important;
+    animation: divinity-hue-filter 6s linear infinite;
+}
+
+/* ── rank-card en el leaderboard ─────────────────────────────────── */
+.rank-card.divinidad-card {
+    border-color: rgba(200,100,255,0.55) !important;
+    background: rgba(200,100,255,0.05) !important;
+    animation: divinity-shimmer 4s ease-in-out infinite;
+}
+@keyframes divinity-shimmer {
+    0%, 100% {
+        box-shadow:
+            0 0 12px rgba(200,100,255,0.25),
+            inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+    33% {
+        box-shadow:
+            0 0 20px rgba(0,200,255,0.3),
+            inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+    66% {
+        box-shadow:
+            0 0 20px rgba(255,230,0,0.25),
+            inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+}
+.rank-card.divinidad-card .rc-title {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: divinity-text-slide 4s linear infinite;
+    font-weight: 900;
+}
+@keyframes divinity-text-slide {
+    0%   { background-position: 0%   50%; }
+    100% { background-position: 300% 50%; }
+}
+
+/* ── Pantalla de rangos — fila Divinidad ─────────────────────────── */
+.rank-row--divinidad {
+    border-color: rgba(200,100,255,0.4) !important;
+    background: rgba(200,100,255,0.05) !important;
+    box-shadow:
+        0 0 30px rgba(200,100,255,0.12),
+        0 0 60px rgba(200,100,255,0.05),
+        inset 0 1px 0 rgba(255,255,255,0.15) !important;
+    transform: scale(1.02) !important;
+    animation: divinity-shimmer 4s ease-in-out infinite;
+}
+.rank-row--divinidad .rank-row-name {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: divinity-text-slide 4s linear infinite;
+    letter-spacing: 3px;
+}
+.rank-row--divinidad .rank-row-chip {
+    background: linear-gradient(90deg, rgba(200,100,255,0.2), rgba(0,200,255,0.2));
+    border-color: rgba(200,100,255,0.5);
+    color: #e8b4ff;
+}
+.rank-row--divinidad .rrank-bar-fill {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600) !important;
+    animation: divinity-bar-shift 3s linear infinite;
+    background-size: 200% 100% !important;
+}
+@keyframes divinity-bar-shift {
+    0%   { background-position: 0%   50%; }
+    100% { background-position: 200% 50%; }
+}
+.rank-row--divinidad .rrank-req--met .rrank-req-val {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: divinity-text-slide 3s linear infinite;
+}
+
+/* ── quality-max: amplificar glows ──────────────────────────────── */
+body.quality-max.rank-divinidad #feedback-screen.correct .feedback-title {
+    animation: divinity-hue-filter 6s linear infinite;
+}
+body.quality-max.rank-divinidad #profile-avatar-ring {
+    box-shadow:
+        0 0 0 2px rgba(200,100,255,0.7),
+        0 0 30px rgba(200,100,255,0.6),
+        0 0 60px rgba(200,100,255,0.25) !important;
+    animation: divinity-hue-filter 4s linear infinite;
+}
+body.quality-max .rank-card.divinidad-card {
+    box-shadow:
+        0 0 20px rgba(200,100,255,0.4),
+        0 0 40px rgba(200,100,255,0.15),
+        inset 0 1px 0 rgba(255,255,255,0.15) !important;
+}
+
+/* ── quality-perf: todo estático, sin animaciones ───────────────── */
+body.quality-perf.rank-divinidad,
+body.quality-perf .rank-row--divinidad,
+body.quality-perf .rank-card.divinidad-card,
+body.quality-perf.rank-divinidad .logo-dot,
+body.quality-perf.rank-divinidad #profile-avatar-ring,
+body.quality-perf.rank-divinidad #app {
+    animation: none !important;
+}
+body.quality-perf.rank-divinidad { --divinity-color: #c864ff; }
+body.quality-perf .rank-row--divinidad {
+    box-shadow: none !important;
+    transform: scale(1.01) !important;
+}
+
+/* ── light mode ─────────────────────────────────────────────────── */
+body.light-mode .rank-card.divinidad-card {
+    border-color: rgba(107,15,168,0.4) !important;
+    background: rgba(107,15,168,0.04) !important;
+}
+body.light-mode .rank-row--divinidad {
+    border-color: rgba(107,15,168,0.3) !important;
+    background: rgba(107,15,168,0.03) !important;
+}
+body.light-mode.rank-divinidad #profile-avatar-ring {
+    box-shadow: 0 0 14px rgba(107,15,168,0.3) !important;
+    animation: none;
+    filter: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LOGROS ESPECIALES — u_mitico y u_divinidad
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── u_mitico: destello blanco pulsante ─────────────────────────── */
+@keyframes ach-mitico-pulse {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(255,255,255,0.3), inset 0 0 0px rgba(255,255,255,0);
+        border-color: rgba(255,255,255,0.4);
+    }
+    50% {
+        box-shadow: 0 0 22px rgba(255,255,255,0.7), 0 0 40px rgba(255,255,255,0.2), inset 0 0 12px rgba(255,255,255,0.06);
+        border-color: rgba(255,255,255,0.9);
+    }
+}
+.ach-card.ach-mitico {
+    animation: ach-mitico-pulse 3s ease-in-out infinite;
+    border-color: rgba(255,255,255,0.4) !important;
+    background: rgba(255,255,255,0.05) !important;
+}
+.ach-card.ach-mitico .ach-title { color: #ffffff !important; }
+.ach-card.ach-mitico .ach-icon  { filter: drop-shadow(0 0 6px rgba(255,255,255,0.8)); }
+
+/* ── u_divinidad: gradiente iridiscente animado ─────────────────── */
+@keyframes ach-divinidad-border {
+    0%   { border-color: rgba(200,100,255,0.7); box-shadow: 0 0 14px rgba(200,100,255,0.4), 0 0 30px rgba(200,100,255,0.1); }
+    25%  { border-color: rgba(0,200,255,0.7);   box-shadow: 0 0 14px rgba(0,200,255,0.4),   0 0 30px rgba(0,200,255,0.1); }
+    50%  { border-color: rgba(255,230,0,0.7);   box-shadow: 0 0 14px rgba(255,230,0,0.4),   0 0 30px rgba(255,230,0,0.1); }
+    75%  { border-color: rgba(255,77,200,0.7);  box-shadow: 0 0 14px rgba(255,77,200,0.4),  0 0 30px rgba(255,77,200,0.1); }
+    100% { border-color: rgba(200,100,255,0.7); box-shadow: 0 0 14px rgba(200,100,255,0.4), 0 0 30px rgba(200,100,255,0.1); }
+}
+.ach-card.ach-divinidad {
+    animation: ach-divinidad-border 4s linear infinite;
+    background: rgba(200,100,255,0.04) !important;
+}
+.ach-card.ach-divinidad .ach-title {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: divinity-text-slide 4s linear infinite;
+}
+.ach-card.ach-divinidad .ach-icon {
+    animation: divinity-hue-filter 4s linear infinite;
+}
+
+/* ── Modo claro ──────────────────────────────────────────────────── */
+body.light-mode .ach-card.ach-mitico {
+    animation: ach-mitico-pulse 3s ease-in-out infinite;
+    background: rgba(0,0,0,0.04) !important;
+    border-color: rgba(0,0,0,0.5) !important;
+}
+body.light-mode .ach-card.ach-mitico .ach-title { color: #000000 !important; }
+body.light-mode .ach-card.ach-divinidad { background: rgba(107,15,168,0.04) !important; }
+
+/* ── quality-perf: sin animaciones ──────────────────────────────── */
+body.quality-perf .ach-card.ach-mitico,
+body.quality-perf .ach-card.ach-divinidad { animation: none !important; }
+body.quality-perf .ach-card.ach-divinidad .ach-title { animation: none !important; }
+body.quality-perf .ach-card.ach-divinidad .ach-icon  { animation: none !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   LOGROS ESPECIALES — u_mitico y u_divinidad
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Mítico — shimmer blanco pulsante ────────────────────────────── */
+.ach-card.ach-mitico.unlocked {
+    border-color: rgba(255,255,255,0.5) !important;
+    background: rgba(255,255,255,0.05) !important;
+    animation: ach-mitico-pulse 3s ease-in-out infinite;
+}
+@keyframes ach-mitico-pulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(255,255,255,0.2), inset 0 1px 0 rgba(255,255,255,0.1); }
+    50%       { box-shadow: 0 0 22px rgba(255,255,255,0.4), inset 0 1px 0 rgba(255,255,255,0.18); }
+}
+.ach-card.ach-mitico.unlocked .ach-title {
+    color: #ffffff !important;
+    text-shadow: 0 0 8px rgba(255,255,255,0.5);
+}
+.ach-card.ach-mitico.unlocked .ach-icon {
+    animation: ach-mitico-icon 3s ease-in-out infinite;
+}
+@keyframes ach-mitico-icon {
+    0%, 100% { filter: drop-shadow(0 0 4px rgba(255,255,255,0.4)); }
+    50%       { filter: drop-shadow(0 0 12px rgba(255,255,255,0.8)); }
+}
+
+/* ── Divinidad — gradiente iridiscente animado ───────────────────── */
+.ach-card.ach-divinidad.unlocked {
+    border-color: rgba(200,100,255,0.55) !important;
+    background: rgba(200,100,255,0.06) !important;
+    animation: ach-divinity-pulse 4s ease-in-out infinite;
+}
+@keyframes ach-divinity-pulse {
+    0%, 100% { box-shadow: 0 0 14px rgba(200,100,255,0.3), inset 0 1px 0 rgba(255,255,255,0.08); border-color: rgba(200,100,255,0.55) !important; }
+    33%       { box-shadow: 0 0 20px rgba(0,200,255,0.35), inset 0 1px 0 rgba(255,255,255,0.12); border-color: rgba(0,200,255,0.55) !important; }
+    66%       { box-shadow: 0 0 20px rgba(255,230,0,0.3),  inset 0 1px 0 rgba(255,255,255,0.1);  border-color: rgba(255,200,0,0.55) !important; }
+}
+.ach-card.ach-divinidad.unlocked .ach-title {
+    background: linear-gradient(90deg, #c864ff, #00c8ff, #ffe600, #ff4dc8, #c864ff);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: divinity-text-slide 4s linear infinite;
+}
+.ach-card.ach-divinidad.unlocked .ach-icon {
+    animation: ach-divinity-icon 4s ease-in-out infinite;
+}
+@keyframes ach-divinity-icon {
+    0%, 100% { filter: drop-shadow(0 0 5px rgba(200,100,255,0.7)); }
+    33%       { filter: drop-shadow(0 0 8px rgba(0,200,255,0.8)); }
+    66%       { filter: drop-shadow(0 0 8px rgba(255,230,0,0.7)); }
+}
+
+/* ── quality-max: amplificar ────────────────────────────────────── */
+body.quality-max .ach-card.ach-mitico.unlocked {
+    box-shadow: 0 0 30px rgba(255,255,255,0.25), 0 0 60px rgba(255,255,255,0.08) !important;
+}
+body.quality-max .ach-card.ach-divinidad.unlocked {
+    box-shadow: 0 0 30px rgba(200,100,255,0.4), 0 0 60px rgba(200,100,255,0.12) !important;
+}
+
+/* ── quality-perf: sin animaciones ──────────────────────────────── */
+body.quality-perf .ach-card.ach-mitico,
+body.quality-perf .ach-card.ach-divinidad { animation: none !important; }
+body.quality-perf .ach-card.ach-mitico .ach-icon,
+body.quality-perf .ach-card.ach-divinidad .ach-icon { animation: none !important; filter: none !important; }
+body.quality-perf .ach-card.ach-divinidad .ach-title {
+    animation: none !important;
+    -webkit-text-fill-color: unset;
+    background: none;
+    color: var(--text-primary) !important;
+}
+
+/* ── light-mode ─────────────────────────────────────────────────── */
+body.light-mode .ach-card.ach-mitico.unlocked {
+    border-color: rgba(0,0,0,0.35) !important;
+    background: rgba(0,0,0,0.03) !important;
+    animation: none;
+}
+body.light-mode .ach-card.ach-mitico.unlocked .ach-title {
+    color: #1a1a1a !important;
+    text-shadow: none;
+}
+body.light-mode .ach-card.ach-divinidad.unlocked {
+    border-color: rgba(107,15,168,0.4) !important;
+    background: rgba(107,15,168,0.04) !important;
+    animation: none;
+}
+body.light-mode .ach-card.ach-divinidad.unlocked .ach-title {
+    -webkit-text-fill-color: unset;
+    background: none;
+    color: #6b0fa8 !important;
+    animation: none;
+}
