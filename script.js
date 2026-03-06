@@ -177,6 +177,11 @@ try { savedData = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('kli
 let playerStats = { ...defaultStats, ...JSON.parse(savedData) };
 
 if(!playerStats.uuid) playerStats.uuid = generateUUID();
+// ADMINTEST: UUID canónico fijo — garantiza una sola entrada en el leaderboard,
+// sin importar el dispositivo. El servidor sobreescribe siempre la misma fila.
+if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'ADMINTEST') {
+    playerStats.uuid = '00000000-spec-tral-0000-klickphantom0';
+}
 
 // ── MIGRACIÓN v2: retira logros que el jugador no ha ganado realmente ──
 // Se ejecuta UNA vez por perfil (marca con migratedV2=true al terminar).
@@ -907,14 +912,17 @@ let _submitDebounceTimer = null;
 async function submitLeaderboard() {
     // ADMINTEST: cuenta de prueba — funciona normalmente pero nunca envía datos al ranking
     if (!playerStats.playerName || playerStats.playerName === "JUGADOR" || GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") return;
-    if (playerStats.playerName.toUpperCase() === "ADMINTEST") return;
+    // ADMINTEST puede enviar al ranking (para pruebas de leaderboard)
     // Debounce: avoid multiple rapid submits (e.g. saveGameStats + setInterval overlap)
     clearTimeout(_submitDebounceTimer);
     _submitDebounceTimer = setTimeout(async () => {
         const pl = calculatePowerLevel(playerStats);
         playerStats.powerLevel = pl;
+        // ADMINTEST: nombre enmascarado + UUID canónico en el payload
+        const _isAdmin = playerStats.playerName.toUpperCase() === 'ADMINTEST';
         const payload = {
-            uuid: playerStats.uuid, name: playerStats.playerName,
+            uuid:      _isAdmin ? '00000000-spec-tral-0000-klickphantom0' : playerStats.uuid,
+            name:      _isAdmin ? 'TheVoid' : playerStats.playerName,
             rankTitle: getRankInfo(playerStats).title,
             powerLevel: pl, totalScore: playerStats.totalScore, maxStreak: playerStats.maxStreak
         };
@@ -933,6 +941,7 @@ async function fetchLeaderboard() {
         // Map rank title to color
         function rankTitleColor(title) {
             switch(title) {
+                case 'Divinidad': return isLight ? '#6b0fa8' : 'var(--divinity-color-static)';
                 case 'Mítico':  return isLight ? '#000000' : '#ffffff';
                 case 'Leyenda': return isLight ? '#8a6200' : 'var(--accent-yellow)';
                 case 'Maestro': return isLight ? '#7a0a8c' : 'var(--accent-purple)';
@@ -986,7 +995,8 @@ async function fetchLeaderboard() {
 
             const meClass = isMe ? 'is-me' : '';
 
-            html += `<div class="rank-card ${meClass}" onclick="openPlayerCard(${index})" title="Ver perfil">
+            const divinidadClass = p.rankTitle === 'Divinidad' ? 'divinidad-card' : '';
+            html += `<div class="rank-card ${meClass} ${divinidadClass}" onclick="openPlayerCard(${index})" title="Ver perfil">
                 <div class="rc-pos">${pos}</div>
                 <div class="rc-info">
                     <div class="rc-name">${p.name}</div>
@@ -1028,6 +1038,7 @@ setInterval(() => {
 function _pcardRankVars(title) {
     const light = document.body.classList.contains('light-mode');
     const map = {
+        'Divinidad': { color: light ? '#6b0fa8' : 'var(--divinity-color)', rgb: '180,100,255' },
         'Mítico':  { color: light ? '#000000' : '#ffffff', rgb: '255,255,255' },
         'Leyenda': { color: light ? '#8a6200' : '#ffb800', rgb: '255,184,0'   },
         'Maestro': { color: light ? '#7a0a8c' : '#b5179e', rgb: '181,23,158'  },
@@ -1133,7 +1144,7 @@ function openPlayerCard(index) {
     // Título de podio (solo visual)
     let displayTitle = baseRank;
     const podiumTitles = { 1: 'Rey Klick', 2: 'Señor Klick', 3: 'Caballero Klick' };
-    if (pos <= 3 && (baseRank === 'Leyenda' || baseRank === 'Mítico')) displayTitle = podiumTitles[pos];
+    if (pos <= 3 && (baseRank === 'Leyenda' || baseRank === 'Mítico' || baseRank === 'Divinidad')) displayTitle = podiumTitles[pos];
 
     // CSS vars en el overlay para el gradiente de fondo
     const overlay = document.getElementById('pcard-overlay');
@@ -1526,6 +1537,7 @@ addAchs([
     { id: 'u7',        title: 'Maestro',  desc: 'Alcanza el rango Maestro.',                                          color: colors.purple, icon: SVG_TROPHY },
     { id: 'u8',        title: 'Leyenda',  desc: 'Alcanza el codiciado rango Leyenda.',                                color: colors.yellow, icon: SVG_TROPHY },
     { id: 'u_mitico',  title: 'Mítico',   desc: 'Alcanza el rango Mítico. El más difícil de conseguir.',              color: '#ffffff',     icon: SVG_STAR },
+    { id: 'u_divinidad', title: 'Divinidad', desc: 'Trasciende todos los rangos. Alcanza la Divinidad.',                   color: 'var(--divinity-color-static)', icon: SVG_STAR },
     { id: 'fin4',      title: 'El Pacto', desc: 'Juega durante 7 días seguidos y alcanza el rango Junior.',           color: colors.green,  icon: SVG_SHIELD },
     { id: 'x17',       title: 'Veterano', desc: 'Acumula más de 100 partidas jugadas.',                               color: colors.blue,   icon: SVG_TROPHY },
 ]);
@@ -1570,9 +1582,16 @@ function processDailyLogin() {
 function shuffleArray(array) { let current = array.length, random; while (current !== 0) { random = Math.floor(Math.random() * current); current--; [array[current], array[random]] = [array[random], array[current]]; } return array; }
 
 function getRankInfo(stats) {
-    // Mítico — el rango supremo, requisitos extremos
     const totalAnswers = (stats.totalCorrect||0)+(stats.totalWrong||0)+(stats.totalTimeouts||0);
     const accuracy = totalAnswers>0 ? Math.round((stats.totalCorrect||0)/totalAnswers*100) : 0;
+    const kpClaimed = (getKpState().claimed || []).length;
+    // ── Divinidad — rango trascendente, más allá de Mítico ──────────
+    if (stats.totalScore >= 3000000 && stats.totalCorrect >= 10000 && stats.perfectGames >= 100 &&
+        (stats.achievements||[]).length >= 250 && stats.maxStreak >= 60 && (stats.maxMult||1) >= 10 &&
+        accuracy >= 92 && stats.maxLoginStreak >= 60 && (stats.gamesPlayed||0) >= 200 &&
+        kpClaimed >= 100)
+        return { title: "Divinidad", color: "var(--divinity-color)", rgb: "180,100,255", divinidad: true };
+    // ── Mítico ───────────────────────────────────────────────────────
     if (stats.totalScore >= 1200000 && stats.totalCorrect >= 5000 && stats.perfectGames >= 50 &&
         (stats.achievements||[]).length >= 200 && stats.maxStreak >= 40 && (stats.maxMult||1) >= 8 &&
         accuracy >= 85 && stats.maxLoginStreak >= 30)
@@ -1659,11 +1678,12 @@ function _checkAchievementsImpl() {
     // que se revocarían si el jugador abandona o pierde antes de terminar la partida.
     const effectiveRank = rank;
     // Rank achievements: cada rango desbloquea todos los anteriores (escalera)
-    if (effectiveRank==="Junior"||effectiveRank==="Pro"||effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico") unlock('u_junior');
-    if (effectiveRank==="Pro"||effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico") unlock('u6'); 
-    if (effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico") unlock('u7'); 
-    if (effectiveRank==="Leyenda"||effectiveRank==="Mítico") unlock('u8');
-    if (effectiveRank==="Mítico") unlock('u_mitico');
+    if (effectiveRank==="Junior"||effectiveRank==="Pro"||effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u_junior');
+    if (effectiveRank==="Pro"||effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u6'); 
+    if (effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u7'); 
+    if (effectiveRank==="Leyenda"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u8');
+    if (effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u_mitico');
+    if (effectiveRank==="Divinidad") unlock('u_divinidad');
     if (playerStats.clickedLogo) unlock('secret_logo');
 
     // RULETA
@@ -1706,9 +1726,9 @@ function _checkAchievementsImpl() {
 
     // PODIO LEYENDA (solo top 1-3 Y rango Leyenda o superior)
     // rank ya calculado arriba — no necesita segunda llamada
-    if(rp===1 && (rank==='Leyenda'||rank==='Mítico')) unlock('pod1');
-    if(rp===2 && (rank==='Leyenda'||rank==='Mítico')) unlock('pod2');
-    if(rp===3 && (rank==='Leyenda'||rank==='Mítico')) unlock('pod3');
+    if(rp===1 && (rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad')) unlock('pod1');
+    if(rp===2 && (rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad')) unlock('pod2');
+    if(rp===3 && (rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad')) unlock('pod3');
 
     // MULTIPLICADORES x6-x10
     if(mx>=6) unlock('mx6'); if(mx>=7) unlock('mx7'); if(mx>=8) unlock('mx8'); if(mx>=9) unlock('mx9'); if(mx>=10) unlock('mx10');
@@ -1743,8 +1763,8 @@ function _checkAchievementsImpl() {
     if(playerStats.gamesPlayed>=1 || playerStats.maxLoginStreak>=1) unlock('x1');
     if(playerStats.gamesPlayed>=100) unlock('x17');
     if(playerStats.nameChanges===0 && playerStats.maxLoginStreak>=30) unlock('x18');
-    if((rank==='Leyenda'||rank==='Mítico') && normalAchs>=200) unlock('fin5');
-    if(days>=7 && (rank==='Junior'||rank==='Pro'||rank==='Maestro'||rank==='Leyenda'||rank==='Mítico')) unlock('fin4');
+    if((rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad') && normalAchs>=200) unlock('fin5');
+    if(days>=7 && (rank==='Junior'||rank==='Pro'||rank==='Maestro'||rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad')) unlock('fin4');
     if((playerStats.maxMult||1)>=4) unlock('u16');
     // u9 Inmortal: handled in-game via inGameUnlock (line ~4420)
     // u24 Extremis: 3 last-second answers in single game
@@ -3006,6 +3026,12 @@ let _logoDotsCached = null;
 function updateLogoDots() {
     document.documentElement.style.setProperty('--rank-rgb', currentRankInfo.rgb);
     document.documentElement.style.setProperty('--rank-color', currentRankInfo.color);
+    // Divinidad: activa body class para animación CSS de --divinity-color
+    if (currentRankInfo.divinidad) {
+        document.body.classList.add('rank-divinidad');
+    } else {
+        document.body.classList.remove('rank-divinidad');
+    }
     const isLight = document.body.classList.contains('light-mode');
     if (!_logoDotsCached || !_logoDotsCached.length) _logoDotsCached = document.querySelectorAll('.logo-dot');
     const shadow = isLight ? 'none' : `0 0 15px rgba(${currentRankInfo.rgb}, 0.5)`;
@@ -4631,6 +4657,7 @@ function renderRanks() {
     const container = document.getElementById('ranks-container');
     if (!container) return;
     const s = playerStats;
+    const kpClaimed = (getKpState().claimed || []).length;
     const current = getRankInfo(s).title;
     const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
     const accuracy = totalAns > 0 ? Math.round((s.totalCorrect||0)/totalAns*100) : 0;
@@ -4703,11 +4730,29 @@ function renderRanks() {
                 { label: 'Precisión global',     need: 85,      get: ()=>accuracy,                     fmt: v=>`${v}% / 85%` },
                 { label: 'Racha de login',       need: 30,      get: ()=>s.maxLoginStreak||0,          fmt: v=>`${v} / 30 días` },
             ]
+        },
+        {
+            title: 'Divinidad',
+            color: '180,100,255',
+            hex: 'var(--divinity-color-static)',
+            label: 'Más allá de todo. Un rango que trasciende lo conocido.',
+            reqs: [
+                { label: 'Puntos acumulados',    need: 3000000, get: ()=>s.totalScore||0,              fmt: v=>`${fmt(v)} / 3M` },
+                { label: 'Aciertos totales',     need: 10000,   get: ()=>s.totalCorrect||0,            fmt: v=>`${v} / 10,000` },
+                { label: 'Partidas perfectas',   need: 100,     get: ()=>s.perfectGames||0,            fmt: v=>`${v} / 100` },
+                { label: 'Logros desbloqueados', need: 250,     get: ()=>(s.achievements||[]).length,  fmt: v=>`${v} / 250` },
+                { label: 'Racha máxima',         need: 60,      get: ()=>s.maxStreak||0,               fmt: v=>`${v} / 60` },
+                { label: 'Multiplicador máx.',   need: 10,      get: ()=>s.maxMult||1,                 fmt: v=>`x${v} / x10` },
+                { label: 'Precisión global',     need: 92,      get: ()=>accuracy,                     fmt: v=>`${v}% / 92%` },
+                { label: 'Racha de login',       need: 60,      get: ()=>s.maxLoginStreak||0,          fmt: v=>`${v} / 60 días` },
+                { label: 'Partidas jugadas',     need: 200,     get: ()=>s.gamesPlayed||0,             fmt: v=>`${v} / 200` },
+                { label: 'Klick Pass completo',  need: 100,     get: ()=>kpClaimed,                    fmt: v=>`${v} / 100 niveles` },
+            ]
         }
     ];
 
     // Determine which ranks are unlocked
-    const ORDER = ['Novato','Junior','Pro','Maestro','Leyenda','Mítico'];
+    const ORDER = ['Novato','Junior','Pro','Maestro','Leyenda','Mítico','Divinidad'];
     const rankIdx = ORDER.indexOf(current);
 
     let html = '';
@@ -4718,7 +4763,7 @@ function renderRanks() {
         const isLocked   = !isUnlocked && !isNext;
 
         const allMet = rank.reqs.length === 0 || rank.reqs.every(r => r.get() >= r.need);
-        const statusClass = isCurrent ? 'rank-row--current' : isUnlocked ? 'rank-row--done' : isNext ? 'rank-row--next' : 'rank-row--locked';
+        const statusClass = isCurrent ? ('rank-row--current' + (rank.title==='Divinidad' ? ' rank-row--divinidad' : '')) : isUnlocked ? 'rank-row--done' : isNext ? 'rank-row--next' : 'rank-row--locked';
 
         // Build req pills
         let pillsHtml = '';
@@ -4779,7 +4824,49 @@ function renderRanks() {
     });
 }
 // ════════════════════════════ END RANGOS ══════════════════════════════
-setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); }, 500);
+setTimeout(() => {
+    // ── ADMINTEST: inyectar estadísticas mínimas de Divinidad ────────
+    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'ADMINTEST') {
+        // Estadísticas numéricas mínimas para cumplir todos los requisitos de Divinidad
+        playerStats.totalScore       = Math.max(playerStats.totalScore,       3000000);
+        playerStats.totalCorrect     = Math.max(playerStats.totalCorrect,     10000);
+        playerStats.perfectGames     = Math.max(playerStats.perfectGames,     100);
+        playerStats.maxStreak        = Math.max(playerStats.maxStreak,        60);
+        playerStats.maxMult          = Math.max(playerStats.maxMult,          10);
+        playerStats.maxLoginStreak   = Math.max(playerStats.maxLoginStreak,   60);
+        playerStats.gamesPlayed      = Math.max(playerStats.gamesPlayed,      200);
+        playerStats.bestScore        = Math.max(playerStats.bestScore,        15000);
+        // Precisión: asegurar que totalWrong y totalTimeouts dan ≥92%
+        // Si ya hay suficientes respuestas, no tocamos. Si no, ajustamos.
+        const _tot = (playerStats.totalCorrect||0)+(playerStats.totalWrong||0)+(playerStats.totalTimeouts||0);
+        const _acc = _tot > 0 ? (playerStats.totalCorrect / _tot) * 100 : 0;
+        if (_acc < 92) {
+            // Forzar precisión: totalWrong+totalTimeouts ≤ 8% del total
+            const maxErrors = Math.floor(playerStats.totalCorrect * 0.08);
+            playerStats.totalWrong    = Math.min(playerStats.totalWrong    || 0, maxErrors);
+            playerStats.totalTimeouts = Math.min(playerStats.totalTimeouts || 0, 0);
+        }
+        // KP: marcar los 100 niveles como reclamados
+        const _kpAdmin = getKpState();
+        if ((_kpAdmin.claimed || []).length < 100) {
+            _kpAdmin.claimed = Array.from({length: 100}, (_, i) => i + 1);
+            _kpAdmin.perfectNoError = Math.max(_kpAdmin.perfectNoError || 0, 100);
+            saveKpState(_kpAdmin);
+        }
+        // Logros: asegurar ≥250 logros desbloqueados
+        // Añadimos IDs ficticios de relleno solo si faltan — no interferimos con los reales
+        const _existingAchs = new Set(playerStats.achievements || []);
+        let _achIdx = 1;
+        while (_existingAchs.size < 250) {
+            const _fakeId = `_admin_fill_${_achIdx++}`;
+            if (!_existingAchs.has(_fakeId)) _existingAchs.add(_fakeId);
+        }
+        playerStats.achievements = [..._existingAchs];
+        saveStatsLocally();
+    }
+    // ─────────────────────────────────────────────────────────────────
+    processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions();
+}, 500);
 
 // ── Auto-retrocompatibilidad perfectNoError ───────────────────────────
 // Jugadores que completaron partidas perfectas antes del sistema en tiempo real
