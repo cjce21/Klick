@@ -1852,7 +1852,7 @@ addAchs([
     { id: 'kpa4', title: 'Casi en la Cima',  desc: 'Completa 75 niveles del Klick Pass.',                             color: colors.orange, icon: SVG_STAR },
     { id: 'kpa9', title: 'Sin Pausas',       desc: 'Completa 10 niveles del Klick Pass en una sola sesión.',          color: colors.orange, icon: SVG_BOLT },
     { id: 'kpa5', title: 'Pase Completado',  desc: 'Reclama los 100 niveles del Klick Pass en su totalidad.',         color: colors.red,    icon: SVG_STAR },
-    { id: 'kpa10',title: 'Coleccionista Total', desc: 'Completa el Klick Pass y desbloquea más de 200 logros.',       color: colors.red,    icon: SVG_TROPHY },
+    { id: 'kpa10',title: 'Coleccionista Total', desc: 'Completa el Klick Pass y desbloquea más de 300 logros.',       color: colors.red,    icon: SVG_TROPHY },
 ]);
 
 // ─── 13. MÚSICA Y AUDIO (3 pistas) ───────────────────────────────────────
@@ -1997,7 +1997,7 @@ addAchs([
 addAchs([
     { id: 'fin1', title: 'Nocturno',      desc: 'Juega una partida después de las 11:00 PM.',                        color: colors.dark,   icon: SVG_CLOCK },
     { id: 'fin2', title: 'Madrugador',    desc: 'Juega una partida antes de las 6:00 AM.',                          color: colors.blue,   icon: SVG_CLOCK },
-    { id: 'fin5', title: 'Monarca',       desc: 'Alcanza simultáneamente el rango Leyenda y 200 logros.',            color: colors.yellow, icon: SVG_TROPHY },
+    { id: 'fin5', title: 'Monarca',       desc: 'Alcanza simultáneamente el rango Leyenda y 300 logros.',            color: colors.yellow, icon: SVG_TROPHY },
 ]);
 
 // ─── 21. MAESTROS DE COLECCIÓN (logros extremos de platino) ─────────────
@@ -2006,7 +2006,7 @@ addAchs([
     { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 100 logros en total.',                                  color: colors.orange, icon: SVG_STAR },
     { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 130 logros en total.',                                  color: colors.purple, icon: SVG_STAR },
     { id: 'master5', title: 'A las Puertas', desc: 'Desbloquea 155 logros en total. El límite está a la vista.',      color: colors.yellow, icon: SVG_STAR },
-    { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea los 165 logros del juego. Eres absoluto.',            color: colors.red,    icon: SVG_STAR },
+    { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea los 300 logros del juego. Eres absoluto.',            color: colors.red,    icon: SVG_STAR },
 ]);
 
 // ── Índice O(1) para lookup por ID ──────────────────────────────────────────
@@ -2041,7 +2041,7 @@ function getRankInfo(stats) {
         return { title: "Divinidad", color: "var(--divinity-color)", rgb: "180,100,255", divinidad: true };
     // ── Mítico ───────────────────────────────────────────────────────
     if (stats.totalScore >= 1200000 && stats.totalCorrect >= 5000 && stats.perfectGames >= 50 &&
-        (stats.achievements||[]).length >= 200 && stats.maxStreak >= 40 && (stats.maxMult||1) >= 8 &&
+        (stats.achievements||[]).length >= 300 && stats.maxStreak >= 40 && (stats.maxMult||1) >= 8 &&
         accuracy >= 85 && stats.maxLoginStreak >= 30)
         return { title: "Mítico", color: "#ffffff", rgb: "255,255,255", mitico: true };
     if (stats.totalScore >= 400000 && stats.totalCorrect >= 1500 && stats.perfectGames >= 10) return { title: "Leyenda", color: "var(--accent-yellow)", rgb: "255,184,0" };
@@ -2098,7 +2098,7 @@ function _checkAchievementsImpl() {
     if (normalAchs >= 100) unlock('master2'); // Semidivino
     if (normalAchs >= 130) unlock('master4'); // Leyenda Total
     if (normalAchs >= 155) unlock('master5'); // A las Puertas
-    if (normalAchs >= 165) unlock('master3'); // Dios Klick — todos
+    if (normalAchs >= 300) unlock('master3'); // Dios Klick — todos
     // ── Pantalla de Rangos ──────────────────────────────────────────
     const rv2 = playerStats.ranksViews||0;
     if(rv2>=1) unlock('rk1'); if(rv2>=5) unlock('rk2'); if(rv2>=15) unlock('rk3'); if(rv2>=30) unlock('rk4'); if(rv2>=50) unlock('rk5');
@@ -2172,7 +2172,7 @@ function _checkAchievementsImpl() {
     if ((playerStats.kpSessionClaims||0) >= 10)                 unlock('kpa9');
     if (kpClaimed >= 75)                                         unlock('kpa4');
     if (kpClaimed >= 100)                                        unlock('kpa5');
-    if (kpClaimed >= 100 && normalAchs >= 200)                  unlock('kpa10');
+    if (kpClaimed >= 100 && normalAchs >= 300)                  unlock('kpa10');
 
     // ESCALABLES GENERALES
     const wr = playerStats.totalWrong||0; for(let i=0;i<5;i++) if(wr>=wrnTiers[i]) unlock(`wr${i+1}`);
@@ -2225,7 +2225,7 @@ function _checkAchievementsImpl() {
     if(playerStats.gamesPlayed>=1 || playerStats.maxLoginStreak>=1) unlock('x1');
     if(playerStats.gamesPlayed>=100) unlock('x17');
     if(playerStats.nameChanges===0 && playerStats.maxLoginStreak>=30) unlock('x18');
-    if((rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad') && normalAchs>=200) unlock('fin5');
+    if((rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad') && normalAchs>=300) unlock('fin5');
     if(days>=7 && (rank==='Junior'||rank==='Pro'||rank==='Maestro'||rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad')) unlock('fin4');
     if((playerStats.maxMult||1)>=4) unlock('u16');
     // u9 Inmortal: handled in-game via inGameUnlock (line ~4420)
@@ -3378,7 +3378,7 @@ function goToProfile(needsName = false) {
                 const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
                 const acc2 = totalAns>0?Math.round((s.totalCorrect||0)/totalAns*100):0;
                 const c1=(s.totalScore||0)>=1200000, c2=(s.totalCorrect||0)>=5000, c3=(s.perfectGames||0)>=50;
-                const c4=(s.achievements||[]).length>=200, c5=(s.maxStreak||0)>=40, c6=(s.maxMult||1)>=8;
+                const c4=(s.achievements||[]).length>=300, c5=(s.maxStreak||0)>=40, c6=(s.maxMult||1)>=8;
                 const c7=acc2>=85, c8=(s.maxLoginStreak||0)>=30;
                 condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;letter-spacing:1px;text-shadow:0 0 8px rgba(255,255,255,0.5);">-- SIGUIENTE: MÍTICO --</span> &nbsp;`+
                     `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/1,200,000</span> &nbsp;`+
@@ -5186,7 +5186,7 @@ function renderRanks() {
         // Leyenda: trofeo — reconocimiento permanente
         'Leyenda': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>`,
         // Mítico: corona — el pináculo
-        'Mítico':  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M5 20V10l7-7 7 7v10"/><path d="M2 10l4.5 4L12 3l5.5 11L22 10"/></svg>`,
+        'Mítico':  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 17h20v3H2z"/><polyline points="2 17 5 8 12 13 19 8 22 17"/><circle cx="12" cy="6" r="2"/></svg>`,
     };
 
     const RANKS = [
@@ -5249,7 +5249,7 @@ function renderRanks() {
                 { label: 'Puntos acumulados',    need: 1200000, get: ()=>s.totalScore||0,             fmt: v=>`${fmt(v)} / 1.2M` },
                 { label: 'Aciertos totales',     need: 5000,    get: ()=>s.totalCorrect||0,           fmt: v=>`${v} / 5,000` },
                 { label: 'Partidas perfectas',   need: 50,      get: ()=>s.perfectGames||0,           fmt: v=>`${v} / 50` },
-                { label: 'Logros desbloqueados', need: 200,     get: ()=>(s.achievements||[]).length, fmt: v=>`${v} / 200` },
+                { label: 'Logros desbloqueados', need: 300,     get: ()=>(s.achievements||[]).length, fmt: v=>`${v} / 300` },
                 { label: 'Racha máxima',         need: 40,      get: ()=>s.maxStreak||0,              fmt: v=>`${v} / 40` },
                 { label: 'Multiplicador máx.',   need: 8,       get: ()=>s.maxMult||1,                fmt: v=>`x${v} / x8` },
                 { label: 'Precisión global',     need: 85,      get: ()=>accuracy,                    fmt: v=>`${v}% / 85%` },
@@ -5299,20 +5299,11 @@ function renderRanks() {
         const iconColor  = isLocked ? 'rgba(255,255,255,0.22)' : `rgba(${rank.color},${isCurrent ? '1' : '0.75'})`;
         const iconSize   = isCurrent ? '22' : '18';
         const iconSvgRaw = RANK_ICONS[rank.title] || SVG_STAR;
-        // Inyectar color y tamaño en el SVG base.
-        // Los SVGs de RANK_ICONS solo tienen viewBox (sin width/height),
-        // por eso se insertan los atributos directamente en la etiqueta <svg.
-        let badgeSvg = iconSvgRaw.replace('stroke="currentColor"', `stroke="${iconColor}"`);
-        if (/width="/.test(badgeSvg)) {
-            badgeSvg = badgeSvg.replace(/width="\d+"/, `width="${iconSize}"`);
-        } else {
-            badgeSvg = badgeSvg.replace('<svg ', `<svg width="${iconSize}" `);
-        }
-        if (/height="/.test(badgeSvg)) {
-            badgeSvg = badgeSvg.replace(/height="\d+"/, `height="${iconSize}"`);
-        } else {
-            badgeSvg = badgeSvg.replace('<svg ', `<svg height="${iconSize}" `);
-        }
+        // Inyectar color, width y height en el SVG base en un solo replace
+        // para evitar que '<svg ' se duplique al reemplazar dos veces.
+        let badgeSvg = iconSvgRaw
+            .replace('stroke="currentColor"', `stroke="${iconColor}"`)
+            .replace('<svg ', `<svg width="${iconSize}" height="${iconSize}" `);
 
         html += `
         <div class="rank-row ${statusClass}" data-rank="${rank.title}">
