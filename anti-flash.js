@@ -14,7 +14,7 @@
             var tw = s.totalWrong||0, tt = s.totalTimeouts||0;
             var acc = (tc+tw+tt)>0 ? Math.round(tc/(tc+tw+tt)*100) : 0;
             var color, rgb;
-            if (ts>=1200000&&tc>=5000&&pf>=50&&ach>=200&&sk>=40&&mx>=8&&acc>=85&&ml>=30) { color='#ffffff'; rgb='255,255,255'; }
+            if (ts>=1200000&&tc>=5000&&pf>=50&&ach>=300&&sk>=40&&mx>=8&&acc>=85&&ml>=30) { color='#ffffff'; rgb='255,255,255'; }
             else if (ts>=400000 && tc>=1500 && pf>=10)      { color='#ffb800'; rgb='255,184,0'; }
             else if (ts>=150000 && gp>=50 && mx>=4)    { color='#b5179e'; rgb='181,23,158'; }
             else if (ts>=60000 && tc>=200 && sk>=12)   { color='#ff2a5f'; rgb='255,42,95'; }
