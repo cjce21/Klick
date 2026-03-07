@@ -1516,10 +1516,10 @@ async function submitLeaderboard() {
     // Debounce: avoid multiple rapid submits (e.g. saveGameStats + setInterval overlap)
     clearTimeout(_submitDebounceTimer);
     _submitDebounceTimer = setTimeout(async () => {
-        const pl = calculatePowerLevel(playerStats);
-        playerStats.powerLevel = pl;
         // CHRISTOPHER: UUID canónico fijo + nombre propio
         const _isAdmin = playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+        const pl = _isAdmin ? 21000000 : calculatePowerLevel(playerStats);
+        if (!_isAdmin) playerStats.powerLevel = pl; // nunca sobreescribir PL del admin
         const payload = {
             uuid:       _isAdmin ? '00000000-spec-tral-0000-klickphantom0' : playerStats.uuid,
             name:       playerStats.playerName,
@@ -2347,15 +2347,6 @@ addAchs([
     { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea los 300 logros del juego. Eres absoluto.',           color: colors.red,    icon: SVG_STAR },
 ]);
 
-// ─── 28. EXPLORACIÓN Y CURIOSIDAD ────────────────────────────────────────
-addAchs([
-    { id: 'exp1', title: 'Explorador',      desc: 'Visita las pantallas de Perfil, Rangos, Logros y Klick Pass al menos una vez.', color: colors.blue,   icon: SVG_TARGET, hidden: true },
-    { id: 'exp2', title: 'Curioso',         desc: 'Abre la Configuracion y cambia al menos un ajuste.',                             color: colors.dark,   icon: SVG_TARGET, hidden: true },
-    { id: 'exp3', title: 'Cambio de Aire',  desc: 'Prueba el modo claro al menos una vez.',                                         color: colors.yellow, icon: SVG_BOLT,   hidden: true },
-    { id: 'exp4', title: 'Melomano',        desc: 'Prueba las tres pistas musicales disponibles.',                                   color: colors.purple, icon: SVG_TARGET, hidden: true },
-    { id: 'exp5', title: 'Completista',     desc: 'Visita la pantalla de Logros 10 veces.',                                         color: colors.orange, icon: SVG_STAR,   hidden: true },
-]);
-
 // ── Índice O(1) para lookup por ID ──────────────────────────────────────────
 const ACHIEVEMENTS_MAP   = new Map(ACHIEVEMENTS_DATA.map(a => [a.id, a]));
 const ACHIEVEMENTS_INDEX = new Map(ACHIEVEMENTS_DATA.map((a, i) => [a.id, i]));
@@ -2671,19 +2662,6 @@ function _checkAchievementsImpl() {
     if ((playerStats.christopherCardViews||0) >= 1) unlock('cx2');
     if ((playerStats.christopherCardViews||0) >= 5) unlock('cx3');
     if ((playerStats.christopherSeenCount||0) >= 10) unlock('cx4');
-
-    // ─── EXPLORACIÓN ────────────────────────────────────────────────────
-    // exp1: visita las 4 pantallas de navegacion principales
-    const _visited = playerStats.sectionsVisited || {};
-    if (_visited.profile && _visited.ranks && _visited.achievements && _visited.klickpass) unlock('exp1');
-    // exp2: visita configuracion
-    if (_visited.settings) unlock('exp2');
-    // exp3: usa modo claro al menos una vez
-    if (playerStats.usedLightMode) unlock('exp3');
-    // exp4: prueba las 3 pistas
-    if ((playerStats.tracksTriedSet||[]).length >= 3) unlock('exp4');
-    // exp5: visita logros 10+ veces
-    if ((playerStats.achViews||0) >= 10) unlock('exp5');
 
     if (newlyUnlocked.length > 0) { 
         // Track daily achievement unlocks para da1-da5 y extra5 "Día Épico"
@@ -4361,12 +4339,15 @@ function loadQuestion() {
     const answerBtns = _gAnswerBtns;
 
     // ── Animación de entrada ──────────────────────────────────────────────
-    // Elimina clases previas para reiniciar animación
+    // Reset forzado: quitar clases + deshabilitar animation + reflow + rehabilitar
+    // Esto garantiza que la animación se reinicia aunque el nombre sea igual
     questionEl.classList.remove('q-enter', 'q-exit');
     answerBtns.forEach(btn => btn.classList.remove('q-enter', 'q-exit'));
-
-    // Fuerza reflow para reiniciar animación
-    void questionEl.offsetWidth;
+    questionEl.style.animation = 'none';
+    answerBtns.forEach(btn => { btn.style.animation = 'none'; });
+    void questionEl.offsetWidth; // force reflow — limpia estado de animación anterior
+    questionEl.style.animation = '';
+    answerBtns.forEach(btn => { btn.style.animation = ''; });
     
     questionEl.innerText = currentQ.question;
     
