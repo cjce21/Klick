@@ -72,7 +72,6 @@ function _unmuteByFocus() {
 
 // ── Cooldown global: evita sanciones dobles por eventos simultáneos ──────
 let _cheaterCooldown = false;
-let _userIsViewingRanking = false; // true solo cuando el usuario navegó activamente al ranking
 function _triggerCheatIfActive(source) {
     if (!isAnsweringAllowed || isGamePaused) return;
     if (_cheaterCooldown) return;
@@ -169,13 +168,10 @@ function punishCheater() {
     // La cuenta admin nunca recibe el logro de tramposo ni penalización
     const _isAdminAccount = playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
     if (!_isAdminAccount) {
-        // Penalización escalada: reincidentes pagan más
         const isRepeat = playerStats.achievements.includes('tramposo');
         const penalty = isRepeat ? 5000 : 2000;
         playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
         playerStats.cheatCount = (playerStats.cheatCount || 0) + 1;
-
-        // Logro permanente de tramposo
         if (!playerStats.achievements.includes('tramposo')) {
             playerStats.achievements.push('tramposo');
         }
@@ -248,7 +244,6 @@ if(!playerStats.uuid) playerStats.uuid = generateUUID();
 // sin importar el dispositivo. El servidor sobreescribe siempre la misma fila.
 if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') {
     playerStats.uuid = '00000000-spec-tral-0000-klickphantom0';
-    // La cuenta admin nunca debe tener el logro de tramposo
     if (playerStats.achievements && playerStats.achievements.includes('tramposo')) {
         playerStats.achievements = playerStats.achievements.filter(id => id !== 'tramposo');
         playerStats.pinnedAchievements = (playerStats.pinnedAchievements || []).filter(id => id !== 'tramposo');
@@ -256,21 +251,28 @@ if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOP
     }
 }
 
-// ── MIGRACIÓN v0: retira cx1/cx4 asignados sin visitar la Clasificación ──
-// Bug: fetchLeaderboard() en startup seteaba seenChristopher=true sin que el usuario
-// visitara el ranking. Fix: solo revocar si seenChristopher sigue en false
-// (si seenChristopher=true con rankingViews=0, probablemente fue ganado legítimamente
-// en una sesión anterior donde rankingViews no se contaba aún).
+// ── MIGRACIÓN v0: normaliza logros cx al nuevo sistema (christopherCardViews) ──
 (function migrateAchievementsV0() {
     if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') return;
     if (playerStats.migratedV0cx) return;
     playerStats.migratedV0cx = true;
-    // Revocar cx1 SOLO si lo tiene pero seenChristopher=false (asignación imposible)
-    if (playerStats.achievements.includes('cx1') && !playerStats.seenChristopher) {
-        playerStats.achievements = playerStats.achievements.filter(id => id !== 'cx1' && id !== 'cx4');
-        playerStats.pinnedAchievements = (playerStats.pinnedAchievements||[]).filter(id => id !== 'cx1' && id !== 'cx4');
-        playerStats.christopherSeenCount = 0;
+    const cv = playerStats.christopherCardViews || 0;
+    const toRevoke = [];
+    // cx1 ahora requiere cardViews >= 1 (antes: seenChristopher=true que se daba sin interacción)
+    if (playerStats.achievements.includes('cx1') && cv < 1)  toRevoke.push('cx1');
+    // cx2 ahora requiere cardViews >= 3 (antes: cardViews >= 1)
+    if (playerStats.achievements.includes('cx2') && cv < 3)  toRevoke.push('cx2');
+    // cx3 ahora requiere cardViews >= 10 (antes: cardViews >= 5)
+    if (playerStats.achievements.includes('cx3') && cv < 10) toRevoke.push('cx3');
+    // cx4 ahora requiere cardViews >= 25 (antes: christopherSeenCount >= 10)
+    if (playerStats.achievements.includes('cx4') && cv < 25) toRevoke.push('cx4');
+    if (toRevoke.length > 0) {
+        playerStats.achievements = playerStats.achievements.filter(id => !toRevoke.includes(id));
+        playerStats.pinnedAchievements = (playerStats.pinnedAchievements||[]).filter(id => !toRevoke.includes(id));
     }
+    // Limpiar flags obsoletos
+    playerStats.seenChristopher = undefined;
+    playerStats.christopherSeenCount = undefined;
 })();
 
 // ── MIGRACIÓN v2: retira logros que el jugador no ha ganado realmente ──
@@ -781,11 +783,11 @@ function revokeInvalidAchievements() {
     check('div2', (s.totalCorrect||0) >= 8000);
     check('div3', (s.perfectGames||0) >= 75);
 
-    // El Arquitecto (cx1–cx4)
-    check('cx1', !!s.seenChristopher);
-    check('cx2', (s.christopherCardViews||0) >= 1);
-    check('cx3', (s.christopherCardViews||0) >= 5);
-    check('cx4', (s.christopherSeenCount||0) >= 10);
+    // El Arquitecto (cx1–cx4) — todos basados en christopherCardViews (clicks reales en tarjeta)
+    check('cx1', (s.christopherCardViews||0) >= 1);
+    check('cx2', (s.christopherCardViews||0) >= 3);
+    check('cx3', (s.christopherCardViews||0) >= 10);
+    check('cx4', (s.christopherCardViews||0) >= 25);
 
     // ── 6. NOTIFICACIÓN Y GUARDADO ───────────────────────────────────────────
     if (toRevoke.size > 0) {
@@ -1516,8 +1518,7 @@ function calculatePowerLevel(stats) {
     const best = stats.bestScore * 1.5; 
     const streak = stats.maxStreak * 200;
     const perf = stats.perfectGames * 1000;
-    const normalAchsCount = stats.achievements.filter(id => id !== 'tramposo').length;
-    const achs = normalAchsCount * 300;
+    const achs = stats.achievements.filter(id => id !== 'tramposo').length * 300;
     const winRate = stats.gamesPlayed > 0 ? (stats.totalCorrect / (stats.gamesPlayed * 20)) * 5000 : 0;
     // efficiency bonus: average score per game (rewards quality over quantity)
     const avgScore = stats.gamesPlayed > 0 ? stats.totalScore / stats.gamesPlayed : 0;
@@ -1630,15 +1631,7 @@ async function fetchLeaderboard() {
                 }
             }
 
-            // Tracking: primer avistamiento de CHRISTOPHER
-            // Solo cuenta si el usuario está ACTIVAMENTE en la pantalla de clasificación
-            if (isChristopher && _userIsViewingRanking) {
-                if (!playerStats.seenChristopher) {
-                    playerStats.seenChristopher = true;
-                    saveStatsLocally(); checkAchievements();
-                }
-                playerStats.christopherSeenCount = (playerStats.christopherSeenCount||0) + 1;
-            }
+            // cx logros se asignan por christopherCardViews (click en tarjeta) — no por fetch
 
             const displayPos = isChristopher ? '∞' : pos;
 
@@ -2354,10 +2347,10 @@ addAchs([
 
 // ─── 27. EL ARQUITECTO — logros relacionados con CHRISTOPHER ─────────────
 addAchs([
-    { id: 'cx1', title: 'Avistamiento',       desc: 'Visita la Clasificación y encuentra al Arquitecto del Sistema en la tabla.',    color: 'var(--divinity-color-static)', icon: SVG_TROPHY },
-    { id: 'cx2', title: 'Cara a Cara',        desc: 'Abre la tarjeta del Arquitecto del Sistema en la Clasificación.',       color: 'var(--divinity-color-static)', icon: SVG_USER },
-    { id: 'cx3', title: 'Observador',         desc: 'Abre la tarjeta del Arquitecto del Sistema 5 veces.',                   color: 'var(--divinity-color-static)', icon: SVG_USER },
-    { id: 'cx4', title: 'Testigo del Origen', desc: 'Abre la Clasificación 10 veces mientras el Arquitecto del Sistema está presente.', color: 'var(--divinity-color-static)', icon: SVG_STAR },
+    { id: 'cx1', title: 'Cara a Cara',        desc: 'Abre la tarjeta del Arquitecto del Sistema en la Clasificación.',             color: 'var(--divinity-color-static)', icon: SVG_USER },
+    { id: 'cx2', title: 'Estudiado',           desc: 'Consulta la tarjeta del Arquitecto del Sistema 3 veces.',                       color: 'var(--divinity-color-static)', icon: SVG_USER },
+    { id: 'cx3', title: 'Observador',          desc: 'Abre la tarjeta del Arquitecto del Sistema 10 veces.',                          color: 'var(--divinity-color-static)', icon: SVG_USER },
+    { id: 'cx4', title: 'Testigo del Origen',  desc: 'Examina la tarjeta del Arquitecto del Sistema 25 veces.',                       color: 'var(--divinity-color-static)', icon: SVG_STAR },
 ]);
 
 
@@ -2688,10 +2681,12 @@ function _checkAchievementsImpl() {
     const _p1Tot = (playerStats.totalCorrect||0)+(playerStats.totalWrong||0)+(playerStats.totalTimeouts||0);
     if (_p1Tot >= 500 && (playerStats.totalCorrect||0) / _p1Tot >= 0.95) unlock('prec1');
     // ─── El Arquitecto (CHRISTOPHER) ────────────────────────────────────
-    if (playerStats.seenChristopher) unlock('cx1');
-    if ((playerStats.christopherCardViews||0) >= 1) unlock('cx2');
-    if ((playerStats.christopherCardViews||0) >= 5) unlock('cx3');
-    if ((playerStats.christopherSeenCount||0) >= 10) unlock('cx4');
+    // El Arquitecto (cx1-cx4): todos basados en christopherCardViews (click real en tarjeta)
+    const _cxv = playerStats.christopherCardViews||0;
+    if (_cxv >= 1)  unlock('cx1');
+    if (_cxv >= 3)  unlock('cx2');
+    if (_cxv >= 10) unlock('cx3');
+    if (_cxv >= 25) unlock('cx4');
 
     if (newlyUnlocked.length > 0) { 
         // Track daily achievement unlocks para da1-da5 y extra5 "Día Épico"
@@ -2974,7 +2969,6 @@ let isAchievementsInitialized = true; // siempre true, setup es lazy
 const achCardElements = {};           // mantenido vacío para compatibilidad con código existente
 let _currentScreen = null;
 function switchScreen(id) {
-    if (id !== 'ranking-screen') _userIsViewingRanking = false; // salir del ranking
     if (_currentScreen) {
         // Si salimos de feedback-screen, limpiar clases de estado para evitar que persistan
         if (_currentScreen.id === 'feedback-screen') {
@@ -3641,7 +3635,6 @@ function goToRanking() {
     playerStats.rankingViews = (playerStats.rankingViews||0) + 1;
     trackSectionVisit('ranking');
     saveStatsLocally(); checkAchievements();
-    _userIsViewingRanking = true; // el usuario navegó activamente al ranking
     switchScreen('ranking-screen');
 }
 
@@ -3788,354 +3781,165 @@ function goToProfile(needsName = false) {
         const accEl=document.getElementById('pl-accuracy-pct');
         if(accEl) accEl.innerText=`Precisión: ${accuracy}%`;
     })();
-    renderAchievements(); renderRankProgress(); switchScreen('profile-screen');
+    renderAchievements(); switchScreen('profile-screen');
     if (needsName) setTimeout(() => { document.getElementById('profile-name-input').focus(); document.getElementById('profile-name-input').classList.add('shake'); setTimeout(() => document.getElementById('profile-name-input').classList.remove('shake'), 400); }, 400);
 }
 
-function renderRankProgress() {
-    const s = playerStats;
-    const ri = currentRankInfo;
-    const fmt = n => (n||0).toLocaleString();
-    const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
-    const accuracy = totalAns>0 ? Math.round((s.totalCorrect||0)/totalAns*100) : 0;
-    const card = document.getElementById('rank-progress-card');
-    const titleEl = document.getElementById('rank-progress-title');
-    const pctEl = document.getElementById('rank-progress-pct');
-    const listEl = document.getElementById('rank-req-list');
-    const barEl = document.getElementById('rank-progress-bar');
-    if (!card || !listEl || !barEl) return;
-
-    // Definir requerimientos del siguiente rango
-    let reqs = [], nextColor = ri.color, nextName = '';
-    if (ri.title === 'Novato') {
-        nextName = 'Junior'; nextColor = 'var(--accent-blue)';
-        reqs = [
-            { label: 'Récord', cur: s.bestScore||0, need: 15000, fmt: v => fmt(v) },
-            { label: 'Partidas', cur: s.gamesPlayed||0, need: 5, fmt: v => v },
-        ];
-    } else if (ri.title === 'Junior') {
-        nextName = 'Pro'; nextColor = 'var(--accent-red)';
-        reqs = [
-            { label: 'Acum.', cur: s.totalScore||0, need: 60000, fmt: v => fmt(v) },
-            { label: 'Aciertos', cur: s.totalCorrect||0, need: 200, fmt: v => v },
-            { label: 'Racha', cur: s.maxStreak||0, need: 12, fmt: v => v },
-        ];
-    } else if (ri.title === 'Pro') {
-        nextName = 'Maestro'; nextColor = 'var(--accent-purple)';
-        reqs = [
-            { label: 'Acum.', cur: s.totalScore||0, need: 150000, fmt: v => fmt(v) },
-            { label: 'Partidas', cur: s.gamesPlayed||0, need: 50, fmt: v => v },
-            { label: 'Mult. máx.', cur: s.maxMult||1, need: 4, fmt: v => 'x'+v },
-        ];
-    } else if (ri.title === 'Maestro') {
-        nextName = 'Leyenda'; nextColor = 'var(--accent-yellow)';
-        reqs = [
-            { label: 'Acum.', cur: s.totalScore||0, need: 400000, fmt: v => fmt(v) },
-            { label: 'Aciertos', cur: s.totalCorrect||0, need: 1500, fmt: v => v },
-            { label: 'Perfectas', cur: s.perfectGames||0, need: 10, fmt: v => v },
-        ];
-    } else if (ri.title === 'Leyenda') {
-        nextName = 'Mítico'; nextColor = '#ffffff';
-        reqs = [
-            { label: 'Acum.', cur: s.totalScore||0, need: 1200000, fmt: v => fmt(v) },
-            { label: 'Aciertos', cur: s.totalCorrect||0, need: 5000, fmt: v => v },
-            { label: 'Perfectas', cur: s.perfectGames||0, need: 50, fmt: v => v },
-            { label: 'Logros', cur: (s.achievements||[]).length, need: 165, fmt: v => v },
-            { label: 'Racha', cur: s.maxStreak||0, need: 40, fmt: v => v },
-            { label: 'Mult.', cur: s.maxMult||1, need: 8, fmt: v => 'x'+v },
-            { label: 'Precisión', cur: accuracy, need: 85, fmt: v => v+'%' },
-            { label: 'Días', cur: s.maxLoginStreak||0, need: 30, fmt: v => v },
-        ];
-    } else {
-        // Mítico o Divinidad — rango máximo
-        if (titleEl) titleEl.textContent = 'Rango máximo alcanzado';
-        if (pctEl) pctEl.textContent = '✓';
-        listEl.innerHTML = '';
-        barEl.parentElement.style.display = 'none';
-        card.style.borderColor = 'rgba(255,255,255,0.15)';
-        return;
-    }
-
-    barEl.parentElement.style.display = '';
-    if (titleEl) titleEl.textContent = 'Progreso → ' + nextName;
-    card.style.borderColor = nextColor.startsWith('var') ? '' : `rgba(${nextColor.replace('#','')},0.3)`;
-
-    // Calcular % global: promedio de todos los reqs completados
-    const dones = reqs.filter(r => r.cur >= r.need).length;
-    const pct = Math.round((dones / reqs.length) * 100);
-    if (pctEl) { pctEl.textContent = pct + '%'; pctEl.style.color = nextColor; }
-
-    // Chips por requisito
-    listEl.innerHTML = reqs.map(r => {
-        const done = r.cur >= r.need;
-        const chipPct = Math.min(100, Math.round((r.cur / r.need) * 100));
-        return `<div style="display:flex;flex-direction:column;gap:3px;padding:6px 8px;border-radius:8px;background:${done ? 'rgba(0,255,102,0.07)' : 'rgba(255,255,255,0.03)'};border:1px solid ${done ? 'rgba(0,255,102,0.25)' : 'rgba(255,255,255,0.06)'};">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:0.55rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${done ? 'var(--accent-green)' : 'var(--text-secondary)'};">${r.label}</span>
-                ${done ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
-            </div>
-            <div style="font-size:0.68rem;font-weight:800;color:${done ? 'var(--accent-green)' : 'var(--text-primary)'};font-variant-numeric:tabular-nums;">${r.fmt(r.cur)}<span style="font-size:0.5rem;font-weight:500;color:var(--text-secondary);"> / ${r.fmt(r.need)}</span></div>
-            <div style="height:2px;border-radius:4px;background:rgba(255,255,255,0.05);overflow:hidden;">
-                <div style="height:100%;width:${chipPct}%;border-radius:4px;background:${done ? 'var(--accent-green)' : nextColor};transition:width 0.8s cubic-bezier(0.16,1,0.3,1);"></div>
-            </div>
-        </div>`;
-    }).join('');
-
-    // Barra global
-    setTimeout(() => { if(barEl) { barEl.style.width = pct + '%'; barEl.style.background = nextColor; } }, 120);
-}
 
 function showOnboarding(onComplete) {
     playerStats.hasSeenOnboarding = true;
     saveStatsLocally();
 
-    // ── Contenedor principal ──────────────────────────────────────
+    // ── Contenedor ────────────────────────────────────────────────
     const overlay = document.createElement('div');
     overlay.id = 'onboarding-overlay';
-    overlay.style.cssText = [
-        'position:fixed;inset:0;z-index:9999',
-        'background:#050508',
-        'display:grid;grid-template-rows:1fr auto 1fr',
-        'align-items:center;justify-items:center',
-        'overflow:hidden'
-    ].join(';');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#04040a;display:flex;align-items:center;justify-content:center;overflow:hidden;';
+    document.body.appendChild(overlay);
 
-    // ── Canvas de partículas ──────────────────────────────────────
+    // ── Canvas de partículas (creado aparte para no ser destruido) ─
     const canvas = document.createElement('canvas');
-    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
     overlay.appendChild(canvas);
 
-    // ── Panel central ─────────────────────────────────────────────
+    // ── Panel central (nunca se recrea, solo su contenido) ─────────
     const panel = document.createElement('div');
-    panel.id = 'ob-panel';
-    panel.style.cssText = [
-        'position:relative;z-index:1;grid-row:2',
-        'width:min(400px,90vw)',
-        'display:grid;grid-template-rows:auto auto auto auto auto auto',
-        'gap:0;align-items:center;justify-items:center',
-        'text-align:center'
-    ].join(';');
+    panel.style.cssText = 'position:relative;z-index:1;width:min(400px,88vw);display:flex;flex-direction:column;align-items:center;text-align:center;';
     overlay.appendChild(panel);
-
-    document.body.appendChild(overlay);
 
     // ── Slides ────────────────────────────────────────────────────
     const slides = [
-        {
-            tag:   'INICIO',
-            title: 'Bienvenido a Klick',
-            body:  'Responde preguntas correctamente para ganar puntos. Tienes <strong style="color:var(--accent-red)">3 vidas</strong> — si las pierdes todas, la partida termina.',
-            note:  null
-        },
-        {
-            tag:   'TIEMPO',
-            title: 'El Cronómetro',
-            body:  'Cada pregunta tiene entre <strong style="color:var(--accent-blue)">15 y 30 segundos</strong>. Responder más rápido suma puntos adicionales por tiempo restante.',
-            note:  null
-        },
-        {
-            tag:   'COMBO',
-            title: 'Multiplicador',
-            body:  'Cada <strong style="color:var(--accent-yellow)">5 aciertos consecutivos</strong> suben tu multiplicador de ×1 hasta ×10. Un error o un timeout lo reinician a ×1.',
-            note:  null
-        },
-        {
-            tag:   'RULETA',
-            title: 'La Ruleta',
-            body:  'Cada <strong style="color:var(--accent-purple)">10 aciertos</strong> en una partida activas la ruleta. Gana vidas extra, escudos, multiplicadores y más.',
-            note:  null
-        },
-        {
-            tag:   'PASE',
-            title: 'Klick Pass',
-            body:  'El Klick Pass tiene <strong style="color:var(--accent-green)">100 niveles</strong> con misiones progresivas. Cada nivel completado otorga <strong style="color:var(--accent-yellow)">Pinceles</strong> — la moneda del pase, no puntos de partida.',
-            note:  'Premio total: 100,000 Pinceles'
-        },
-        {
-            tag:   'PROGRESO',
-            title: 'Logros y Rangos',
-            body:  'Desbloquea más de <strong style="color:var(--accent-orange)">300 logros</strong> jugando y explorando. Tu <strong style="color:var(--rank-color)">Rango</strong> y <strong style="color:var(--rank-color)">Power Level</strong> crecen con tus estadísticas acumuladas.',
-            note:  null
-        },
+        { tag:'INICIO',    title:'Bienvenido a Klick',
+          body:'Responde preguntas correctamente para ganar puntos. Tienes <strong style="color:var(--accent-red)">3 vidas</strong>. Si las pierdes todas, la partida termina.',
+          note: null },
+        { tag:'TIEMPO',    title:'El Cronometro',
+          body:'Cada pregunta dura entre <strong style="color:var(--accent-blue)">15 y 30 segundos</strong>. Responder mas rapido genera mas puntos por tiempo restante.',
+          note: null },
+        { tag:'COMBO',     title:'Multiplicador de Puntos',
+          body:'Cada <strong style="color:var(--accent-yellow)">5 aciertos consecutivos</strong> suben tu multiplicador de x1 hasta x10. Un error o timeout lo reinicia a x1.',
+          note: null },
+        { tag:'RULETA',    title:'La Ruleta',
+          body:'Cada <strong style="color:var(--accent-purple)">10 aciertos</strong> en una partida activas la ruleta. Obtiene vidas extra, escudos, multiplicadores y mas.',
+          note: null },
+        { tag:'PASE',      title:'Klick Pass',
+          body:'100 niveles con misiones progresivas. Completar cada nivel otorga <strong style="color:var(--accent-yellow)">Pinceles</strong>, la moneda del pase.',
+          note: 'Premio total acumulado: 100,000 Pinceles' },
+        { tag:'PROGRESO',  title:'Logros y Rangos',
+          body:'Mas de <strong style="color:var(--accent-orange)">300 logros</strong> desbloqueables jugando y explorando. Tu <strong style="color:var(--rank-color)">Rango</strong> y <strong style="color:var(--rank-color)">Power Level</strong> suben con tus estadisticas.',
+          note: null },
     ];
     const N = slides.length;
     let current = 0;
 
-    // ── Música ambiente: pad armónico suave en bucle ──────────────
-    let _obMusicNodes = [];
-    function _startObMusic() {
-        if (!audioCtx) return;
+    // ── Musica suave de fondo ──────────────────────────────────────
+    let _obNodes = [];
+    function _startMusic() {
         try {
+            if (!audioCtx) return;
             const t = audioCtx.currentTime;
-            const chords = [
-                [261.6, 329.6, 392.0],
-                [293.7, 369.9, 440.0],
-                [246.9, 311.1, 369.9],
-                [261.6, 329.6, 392.0],
-            ];
-            const gainMaster = audioCtx.createGain();
-            gainMaster.gain.setValueAtTime(0, t);
-            gainMaster.gain.linearRampToValueAtTime(0.045, t + 1.5);
-            gainMaster.connect(masterMusicGain || audioCtx.destination);
-            _obMusicNodes.push(gainMaster);
-            const chordDur = 3.2;
-            chords.forEach((chord, ci) => {
+            const gMaster = audioCtx.createGain();
+            gMaster.gain.setValueAtTime(0, t);
+            gMaster.gain.linearRampToValueAtTime(0.04, t + 1.8);
+            gMaster.connect(masterMusicGain || audioCtx.destination);
+            _obNodes.push(gMaster);
+            [[261.6, 329.6, 392.0],[293.7, 369.9, 440.0],[246.9, 311.1, 369.9],[261.6, 329.6, 392.0]].forEach((chord, ci) => {
                 chord.forEach(freq => {
-                    const osc  = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.value = freq;
-                    gain.gain.setValueAtTime(0, t + ci * chordDur);
-                    gain.gain.linearRampToValueAtTime(0.4, t + ci * chordDur + 0.8);
-                    gain.gain.setValueAtTime(0.4, t + ci * chordDur + chordDur - 0.6);
-                    gain.gain.linearRampToValueAtTime(0, t + ci * chordDur + chordDur);
-                    osc.connect(gain);
-                    gain.connect(gainMaster);
-                    osc.start(t + ci * chordDur);
-                    osc.stop(t + ci * chordDur + chordDur + 0.1);
-                    _obMusicNodes.push(osc, gain);
+                    const osc = audioCtx.createOscillator();
+                    const g   = audioCtx.createGain();
+                    const d   = 3.4;
+                    osc.type = 'sine'; osc.frequency.value = freq;
+                    g.gain.setValueAtTime(0, t + ci*d);
+                    g.gain.linearRampToValueAtTime(0.38, t + ci*d + 0.9);
+                    g.gain.setValueAtTime(0.38, t + ci*d + d - 0.7);
+                    g.gain.linearRampToValueAtTime(0, t + ci*d + d);
+                    osc.connect(g); g.connect(gMaster);
+                    osc.start(t + ci*d); osc.stop(t + ci*d + d + 0.1);
+                    _obNodes.push(osc, g);
                 });
             });
         } catch(e) {}
     }
-    function _stopObMusic() {
-        try {
-            _obMusicNodes.forEach(n => {
-                try { if (n.gain) { n.gain.cancelScheduledValues(audioCtx.currentTime); n.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4); } } catch(e) {}
-                try { if (n.stop) n.stop(audioCtx.currentTime + 0.5); } catch(e) {}
-            });
-        } catch(e) {}
-        _obMusicNodes = [];
+    function _stopMusic() {
+        try { _obNodes.forEach(n => { try { if(n.gain){n.gain.cancelScheduledValues(audioCtx.currentTime);n.gain.linearRampToValueAtTime(0,audioCtx.currentTime+0.3);} if(n.stop)n.stop(audioCtx.currentTime+0.4); } catch(e){} }); } catch(e){}
+        _obNodes = [];
     }
 
-    // ── Partículas ────────────────────────────────────────────────
-    let _obRaf = 0;
+    // ── Particulas ────────────────────────────────────────────────
+    let _raf = 0;
     function _startParticles() {
         const ctx = canvas.getContext('2d');
         canvas.width  = overlay.offsetWidth  || window.innerWidth;
         canvas.height = overlay.offsetHeight || window.innerHeight;
         const W = canvas.width, H = canvas.height;
-        const PAL = ['#00ff66','#00d4ff','#b5179e','#ff2a5f','#ffb800','#ffffff'];
-        const pts = Array.from({length: 60}, () => ({
-            x: Math.random() * W,  y: Math.random() * H,
-            r: Math.random() * 1.4 + 0.3,
-            vx: (Math.random() - 0.5) * 0.3,
-            vy: (Math.random() - 0.5) * 0.3,
-            c: PAL[Math.floor(Math.random() * PAL.length)],
-            a: Math.random() * 0.4 + 0.15,
-            p: Math.random() * Math.PI * 2
+        const PAL = ['#00ff66','#00d4ff','#b5179e','#ff2a5f','#ffb800','#aaaaff'];
+        const pts = Array.from({length:55},()=>({
+            x:Math.random()*W, y:Math.random()*H,
+            r:Math.random()*1.5+0.3,
+            vx:(Math.random()-0.5)*0.28, vy:(Math.random()-0.5)*0.28,
+            c:PAL[Math.floor(Math.random()*PAL.length)],
+            a:Math.random()*0.38+0.12, p:Math.random()*Math.PI*2
         }));
         function tick() {
-            ctx.clearRect(0, 0, W, H);
+            ctx.clearRect(0,0,W,H);
             pts.forEach(p => {
-                p.x += p.vx; p.y += p.vy;
-                if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
-                if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
-                p.p += 0.016;
-                ctx.globalAlpha = p.a * (0.6 + 0.4 * Math.sin(p.p));
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                ctx.fillStyle = p.c;
-                ctx.fill();
+                p.x+=p.vx; p.y+=p.vy; p.p+=0.014;
+                if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+                if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+                ctx.globalAlpha = p.a*(0.55+0.45*Math.sin(p.p));
+                ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+                ctx.fillStyle=p.c; ctx.fill();
             });
-            ctx.globalAlpha = 1;
-            _obRaf = requestAnimationFrame(tick);
+            ctx.globalAlpha=1;
+            _raf = requestAnimationFrame(tick);
         }
         tick();
     }
-    function _stopParticles() { cancelAnimationFrame(_obRaf); }
+    function _stopParticles() { cancelAnimationFrame(_raf); }
 
-    // ── Render slide ──────────────────────────────────────────────
+    // ── Render ────────────────────────────────────────────────────
     function render() {
-        const s = slides[current];
+        const s     = slides[current];
         const isLast = current === N - 1;
+        const cols  = current > 0 ? '1fr 2fr' : '1fr';
 
-        // Indicadores de progreso (puntos de posición)
-        const dots = slides.map((_, i) => {
-            const active = i === current;
-            return `<div style="width:${active?'22px':'7px'};height:7px;border-radius:4px;background:${active?'var(--rank-color)':'rgba(255,255,255,0.15)'};transition:all 0.35s cubic-bezier(.4,0,0.2,1);flex-shrink:0;"></div>`;
-        }).join('');
+        const dots = slides.map((_,i) =>
+            `<div style="width:${i===current?'20px':'6px'};height:6px;border-radius:3px;background:${i===current?'var(--rank-color)':'rgba(255,255,255,0.13)'};transition:all 0.3s ease;flex-shrink:0;"></div>`
+        ).join('');
 
         panel.innerHTML = `
-            <div style="margin-bottom:28px;display:flex;gap:6px;align-items:center;justify-content:center;">${dots}</div>
+            <div style="display:flex;gap:5px;align-items:center;justify-content:center;margin-bottom:26px;">${dots}</div>
 
-            <div style="
-                padding:3px 12px;border-radius:20px;
-                border:1px solid rgba(var(--rank-rgb),0.4);
-                background:rgba(var(--rank-rgb),0.08);
-                font-size:0.6rem;font-weight:900;letter-spacing:2.5px;
-                color:var(--rank-color);text-transform:uppercase;
-                margin-bottom:18px;
-            ">${s.tag}</div>
+            <div style="padding:2px 11px;border-radius:20px;border:1px solid rgba(var(--rank-rgb),0.35);background:rgba(var(--rank-rgb),0.07);font-size:0.58rem;font-weight:900;letter-spacing:2.5px;color:var(--rank-color);text-transform:uppercase;margin-bottom:16px;">${s.tag}</div>
 
-            <div style="
-                font-size:clamp(1.5rem,5vw,2rem);font-weight:900;
-                color:var(--text-primary);letter-spacing:-0.5px;
-                line-height:1.15;margin-bottom:16px;
-                width:100%;
-            ">${s.title}</div>
+            <div style="font-size:clamp(1.45rem,4.5vw,1.9rem);font-weight:900;color:var(--text-primary);letter-spacing:-0.5px;line-height:1.15;margin-bottom:14px;">${s.title}</div>
 
-            <div style="
-                font-size:0.9rem;color:var(--text-secondary);
-                line-height:1.75;font-weight:500;
-                max-width:320px;min-height:72px;
-                margin-bottom:${s.note ? '14px' : '28px'};
-            ">${s.body}</div>
+            <div style="font-size:0.88rem;color:var(--text-secondary);line-height:1.78;font-weight:500;max-width:310px;min-height:68px;margin-bottom:${s.note?'12px':'26px'};">${s.body}</div>
 
-            ${s.note ? `<div style="
-                width:min(300px,85vw);padding:10px 16px;border-radius:12px;
-                background:rgba(var(--rank-rgb),0.08);
-                border:1px solid rgba(var(--rank-rgb),0.25);
-                font-size:0.72rem;font-weight:700;
-                color:var(--rank-color);letter-spacing:0.3px;
-                margin-bottom:28px;
-            ">${s.note}</div>` : ''}
+            ${s.note ? `<div style="width:min(290px,80vw);padding:9px 14px;border-radius:11px;background:rgba(var(--rank-rgb),0.07);border:1px solid rgba(var(--rank-rgb),0.22);font-size:0.7rem;font-weight:700;color:var(--rank-color);letter-spacing:0.2px;margin-bottom:26px;">${s.note}</div>` : ''}
 
-            <div style="display:grid;grid-template-columns:${current > 0 ? '1fr 2fr' : '1fr'};gap:10px;width:min(320px,85vw);">
-                ${current > 0 ? `<button id="ob-btn-prev" style="
-                    padding:14px 0;border-radius:14px;cursor:pointer;
-                    background:transparent;border:1.5px solid rgba(255,255,255,0.12);
-                    color:var(--text-secondary);font-size:0.82rem;font-weight:800;
-                    text-transform:uppercase;letter-spacing:1px;
-                ">Atras</button>` : ''}
-                <button id="ob-btn-next" style="
-                    padding:14px 0;border-radius:14px;cursor:pointer;
-                    background:rgba(var(--rank-rgb),0.14);
-                    border:1.5px solid rgba(var(--rank-rgb),0.5);
-                    color:var(--rank-color);font-size:0.88rem;font-weight:900;
-                    text-transform:uppercase;letter-spacing:1px;
-                ">${isLast ? 'Jugar' : 'Siguiente'}</button>
+            <div style="display:grid;grid-template-columns:${cols};gap:10px;width:min(310px,80vw);">
+                ${current>0?`<button id="ob-prev" style="padding:13px 0;border-radius:13px;cursor:pointer;background:transparent;border:1.5px solid rgba(255,255,255,0.1);color:var(--text-secondary);font-size:0.8rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Atras</button>`:''}
+                <button id="ob-next" style="padding:13px 0;border-radius:13px;cursor:pointer;background:rgba(var(--rank-rgb),0.13);border:1.5px solid rgba(var(--rank-rgb),0.48);color:var(--rank-color);font-size:0.86rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;">${isLast?'Jugar':'Siguiente'}</button>
             </div>
 
-            <button id="ob-btn-skip" style="
-                margin-top:16px;background:none;border:none;
-                color:rgba(255,255,255,0.25);font-size:0.68rem;
-                cursor:pointer;font-weight:600;letter-spacing:0.5px;
-            ">Saltar introduccion</button>
+            <button id="ob-skip" style="margin-top:14px;background:none;border:none;color:rgba(255,255,255,0.22);font-size:0.67rem;cursor:pointer;font-weight:600;letter-spacing:0.4px;">Saltar introduccion</button>
         `;
 
-        // Bind events
-        const btnNext = panel.querySelector('#ob-btn-next');
-        const btnPrev = panel.querySelector('#ob-btn-prev');
-        const btnSkip = panel.querySelector('#ob-btn-skip');
-        if (btnNext) btnNext.onclick = () => {
+        const next = panel.querySelector('#ob-next');
+        const prev = panel.querySelector('#ob-prev');
+        const skip = panel.querySelector('#ob-skip');
+        if (next) next.onclick = () => {
             try { initAudio(); SFX.click(); } catch(e) {}
-            if (isLast) { _stopParticles(); _stopObMusic(); overlay.remove(); onComplete(); }
+            if (isLast) { _stopParticles(); _stopMusic(); overlay.remove(); onComplete(); }
             else { current++; render(); }
         };
-        if (btnPrev) btnPrev.onclick = () => {
-            try { SFX.click(); } catch(e) {}
-            current--; render();
-        };
-        if (btnSkip) btnSkip.onclick = () => {
-            _stopParticles(); _stopObMusic(); overlay.remove(); onComplete();
-        };
+        if (prev) prev.onclick = () => { try { SFX.click(); } catch(e){} current--; render(); };
+        if (skip) skip.onclick = () => { _stopParticles(); _stopMusic(); overlay.remove(); onComplete(); };
     }
 
     // ── Arrancar ──────────────────────────────────────────────────
     requestAnimationFrame(() => {
         _startParticles();
-        try { initAudio(); _startObMusic(); } catch(e) {}
+        try { initAudio(); _startMusic(); } catch(e) {}
         render();
     });
 }
@@ -6362,9 +6166,7 @@ function _setupPushReminder() {
         playerStats.rouletteSpins       = Math.max(playerStats.rouletteSpins||0,       200);
         playerStats.rankingViews        = Math.max(playerStats.rankingViews||0,        100);
         playerStats.nameChanges         = 0;
-        playerStats.seenChristopher     = true;
-        playerStats.christopherCardViews = Math.max(playerStats.christopherCardViews||0, 1);
-        playerStats.christopherSeenCount = Math.max(playerStats.christopherSeenCount||0, 10);
+        playerStats.christopherCardViews = Math.max(playerStats.christopherCardViews||0, 25);
         playerStats.maxScoreCount       = Math.max(playerStats.maxScoreCount||0,       10);
         playerStats.maxQuestionReached  = Math.max(playerStats.maxQuestionReached||0,  800);
         playerStats.flashInOneGame      = true;
