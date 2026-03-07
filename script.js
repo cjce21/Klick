@@ -1483,13 +1483,17 @@ function showToast(title, message, color, icon) {
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxbLrjL45NYaQsRaSlZJXHKlQj-1Qh4f-CPxz4KsOMpfMI4jwwYC1UrNpnm_-f6ISeCww/exec"; 
 
 function calculatePowerLevel(stats) {
-    const base = stats.totalScore * 0.05; 
+    // base: totalScore contributes but is capped to prevent infinite grinding advantage
+    const base = Math.min(stats.totalScore * 0.05, 50000); 
     const best = stats.bestScore * 1.5; 
     const streak = stats.maxStreak * 200;
     const perf = stats.perfectGames * 1000;
     const achs = stats.achievements.length * 300;
     const winRate = stats.gamesPlayed > 0 ? (stats.totalCorrect / (stats.gamesPlayed * 20)) * 5000 : 0;
-    return Math.floor(base + best + streak + perf + achs + winRate);
+    // efficiency bonus: average score per game (rewards quality over quantity)
+    const avgScore = stats.gamesPlayed > 0 ? stats.totalScore / stats.gamesPlayed : 0;
+    const efficiency = Math.min(avgScore * 0.3, 15000);
+    return Math.floor(base + best + streak + perf + achs + winRate + efficiency);
 }
 
 let _submitDebounceTimer = null;
@@ -2323,6 +2327,15 @@ addAchs([
     { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea los 300 logros del juego. Eres absoluto.',           color: colors.red,    icon: SVG_STAR },
 ]);
 
+// ─── 28. EXPLORACIÓN Y CURIOSIDAD ────────────────────────────────────────
+addAchs([
+    { id: 'exp1', title: 'Explorador',      desc: 'Visita las pantallas de Perfil, Rangos, Logros y Klick Pass al menos una vez.', color: colors.blue,   icon: SVG_TARGET, hidden: true },
+    { id: 'exp2', title: 'Curioso',         desc: 'Abre la Configuracion y cambia al menos un ajuste.',                             color: colors.dark,   icon: SVG_TARGET, hidden: true },
+    { id: 'exp3', title: 'Cambio de Aire',  desc: 'Prueba el modo claro al menos una vez.',                                         color: colors.yellow, icon: SVG_BOLT,   hidden: true },
+    { id: 'exp4', title: 'Melomano',        desc: 'Prueba las tres pistas musicales disponibles.',                                   color: colors.purple, icon: SVG_TARGET, hidden: true },
+    { id: 'exp5', title: 'Completista',     desc: 'Visita la pantalla de Logros 10 veces.',                                         color: colors.orange, icon: SVG_STAR,   hidden: true },
+]);
+
 // ── Índice O(1) para lookup por ID ──────────────────────────────────────────
 const ACHIEVEMENTS_MAP   = new Map(ACHIEVEMENTS_DATA.map(a => [a.id, a]));
 const ACHIEVEMENTS_INDEX = new Map(ACHIEVEMENTS_DATA.map((a, i) => [a.id, i]));
@@ -2638,6 +2651,19 @@ function _checkAchievementsImpl() {
     if ((playerStats.christopherCardViews||0) >= 1) unlock('cx2');
     if ((playerStats.christopherCardViews||0) >= 5) unlock('cx3');
     if ((playerStats.christopherSeenCount||0) >= 10) unlock('cx4');
+
+    // ─── EXPLORACIÓN ────────────────────────────────────────────────────
+    // exp1: visita las 4 pantallas de navegacion principales
+    const _visited = playerStats.sectionsVisited || {};
+    if (_visited.profile && _visited.ranks && _visited.achievements && _visited.klickpass) unlock('exp1');
+    // exp2: visita configuracion
+    if (_visited.settings) unlock('exp2');
+    // exp3: usa modo claro al menos una vez
+    if (playerStats.usedLightMode) unlock('exp3');
+    // exp4: prueba las 3 pistas
+    if ((playerStats.tracksTriedSet||[]).length >= 3) unlock('exp4');
+    // exp5: visita logros 10+ veces
+    if ((playerStats.achViews||0) >= 10) unlock('exp5');
 
     if (newlyUnlocked.length > 0) { 
         // Track daily achievement unlocks para da1-da5 y extra5 "Día Épico"
@@ -3536,6 +3562,10 @@ function trackSectionVisit(section) {
     if (!playerStats.sectionsVisitedThisSession.includes(section)) {
         playerStats.sectionsVisitedThisSession.push(section);
     }
+    // Persistir secciones visitadas para logros de exploración
+    if (!playerStats.sectionsVisited) playerStats.sectionsVisited = {};
+    playerStats.sectionsVisited[section] = true;
+
     const ALL_SECTIONS = ['profile', 'achievements', 'ranking', 'settings'];
     if (!playerStats.allSectionsVisited && ALL_SECTIONS.every(s => playerStats.sectionsVisitedThisSession.includes(s))) {
         playerStats.allSectionsVisited = true;
@@ -3716,11 +3746,52 @@ function goToProfile(needsName = false) {
     if (needsName) setTimeout(() => { document.getElementById('profile-name-input').focus(); document.getElementById('profile-name-input').classList.add('shake'); setTimeout(() => document.getElementById('profile-name-input').classList.remove('shake'), 400); }, 400);
 }
 
+function showOnboarding(onComplete) {
+    playerStats.hasSeenOnboarding = true;
+    saveStatsLocally();
+    const overlay = document.createElement('div');
+    overlay.id = 'onboarding-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;gap:0;';
+    const slides = [
+        { title: 'Bienvenido a Klick', body: 'Responde preguntas correctamente para ganar puntos. Tienes 3 vidas. Si las pierdes todas, la partida termina.' },
+        { title: 'El Timer', body: 'Cada pregunta tiene entre 15 y 30 segundos. Cuanto mas rapido respondas, mas puntos obtienes.' },
+        { title: 'Multiplicador', body: 'Cada 5 respuestas correctas seguidas aumentas tu multiplicador (x1 a x10). Un error lo reinicia a x1.' },
+        { title: 'La Ruleta', body: 'Cada 10 aciertos en una partida giras la ruleta. Puedes ganar vidas extra, escudos, multiplicadores y mas.' },
+        { title: 'Klick Pass', body: 'El Klick Pass tiene 100 niveles con recompensas en puntos (P). Completa misiones para desbloquearlos en orden.' },
+    ];
+    let current = 0;
+    function render() {
+        const s = slides[current];
+        overlay.innerHTML = `
+            <div style="max-width:380px;width:100%;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;">
+                <div style="font-size:0.7rem;font-weight:800;letter-spacing:3px;color:var(--text-secondary);text-transform:uppercase;">${current+1} / ${slides.length}</div>
+                <div style="width:40px;height:3px;background:var(--rank-color);border-radius:2px;"></div>
+                <div style="font-size:clamp(1.6rem,5vw,2.2rem);font-weight:900;color:var(--text-primary);letter-spacing:-1px;line-height:1.1;">${s.title}</div>
+                <div style="font-size:0.95rem;color:var(--text-secondary);line-height:1.6;font-weight:500;">${s.body}</div>
+                <div style="display:flex;gap:10px;width:100%;margin-top:10px;">
+                    ${current > 0 ? `<button onclick="document.getElementById('onboarding-overlay')._prev()" style="flex:1;padding:14px;background:transparent;border:1.5px solid rgba(255,255,255,0.2);color:var(--text-secondary);border-radius:16px;font-size:0.9rem;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:1px;">Atras</button>` : ''}
+                    <button onclick="document.getElementById('onboarding-overlay')._next()" style="flex:2;padding:14px;background:rgba(var(--rank-rgb),0.15);border:1.5px solid rgba(var(--rank-rgb),0.5);color:var(--rank-color);border-radius:16px;font-size:0.9rem;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:1px;">${current < slides.length-1 ? 'Siguiente' : 'Comenzar'}</button>
+                </div>
+                <button onclick="document.getElementById('onboarding-overlay')._skip()" style="background:none;border:none;color:var(--text-secondary);font-size:0.75rem;cursor:pointer;text-decoration:underline;font-weight:600;">Saltar tutorial</button>
+            </div>`;
+        overlay._prev = () => { current--; render(); };
+        overlay._next = () => { if (current < slides.length-1) { current++; render(); } else { overlay.remove(); onComplete(); } };
+        overlay._skip = () => { overlay.remove(); onComplete(); };
+    }
+    render();
+    document.body.appendChild(overlay);
+}
 async function startGameCheck() {
     // iOS/Safari: AudioContext MUST be resumed synchronously inside a user gesture handler
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
     if (!playerStats.playerName || playerStats.playerName === "JUGADOR") { 
         SFX.incorrect(); goToProfile(true); 
+        return;
+    }
+
+    // Onboarding: mostrar tutorial en la primera partida de un jugador nuevo
+    if (!playerStats.hasSeenOnboarding && (playerStats.gamesPlayed || 0) === 0) {
+        showOnboarding(() => startGameCheck());
         return;
     }
 
@@ -3839,6 +3910,8 @@ function updateLogoDots() {
         const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgb(${currentRankInfo.rgb})' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'></polygon></svg>`;
         favicon.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
     }
+    const themeColor = document.getElementById('meta-theme-color');
+    if (themeColor) themeColor.setAttribute('content', currentRankInfo.color);
 }
 
 // --- Game Logic ---
@@ -3853,6 +3926,7 @@ let currentFastAnswers = 0, currentWrongAnswers = 0, currentTimeoutAnswers = 0, 
 let isGamePaused = false;
 let lives = 3;
 let multiplier = 1;
+let _currentGameMaxMult = 1;
 let lastSecondAnswers = 0; 
 let ultraFastStreak = 0;   
 let currentNoTimeoutStreak = 0;
@@ -3910,7 +3984,7 @@ function startGame() {
     _gTimerPath = _gTimerText = _gQuestionEl = _gAnswerBtns = _gAnswersGrid = _gStreakDisp = null; _gAns = []; // reset game DOM cache
       _appEl = null;
     currentGameLog = []; isGamePaused = false;
-    lives = 3; multiplier = 1;
+    lives = 3; multiplier = 1; _currentGameMaxMult = 1;
     lastSecondAnswers = 0; ultraFastStreak = 0; currentNoTimeoutStreak = 0; livesLostThisGame = 0; consecutiveLivesLost = 0; frenziesThisGame = 0;
     // Reset roulette state for new game
     totalCorrectThisGame = 0; nextRouletteTrigger = 10;
@@ -3976,6 +4050,7 @@ function updateMultiplierUI() {
     const b = document.getElementById('multiplier-badge');
     multiplier = Math.min(10, Math.max(1, Math.floor(streak / 5) + 1));
     if(multiplier > (playerStats.maxMult||1)) { playerStats.maxMult = multiplier; }
+    if(multiplier > _currentGameMaxMult) { _currentGameMaxMult = multiplier; }
     if(multiplier > 1) {
         b.style.display = 'block';
         b.innerText = `x${multiplier}`;
@@ -4215,7 +4290,13 @@ function loadQuestion() {
         timeLeft = remaining;
         timerText.innerText = timeLeft;
         timerPath.style.strokeDashoffset = 283 - (timeLeft / timerTotal) * 283; 
-        if (timeLeft <= 5 && timeLeft > 0) { SFX.tick(); timerPath.style.stroke = 'var(--accent-red)'; timerText.style.color = 'var(--accent-red)'; } 
+        if (timeLeft <= 5 && timeLeft > 0) { SFX.tick(); timerPath.style.stroke = 'var(--accent-red)'; timerText.style.color = 'var(--accent-red)'; }
+        if (timeLeft <= 3 && timeLeft > 0) {
+            timerText.classList.add('timer-urgent');
+            if (navigator.vibrate) navigator.vibrate(50);
+        } else {
+            timerText.classList.remove('timer-urgent');
+        }
         if (timeLeft <= 0) handleTimeout(); 
     }, 250); // poll cada 250ms — reacciona al segundo exacto sin drift
 }
@@ -4349,9 +4430,11 @@ function animateScore(target) {
 
 function showFeedback(isCorrect, isTimeout = false) {
     const scr = document.getElementById('feedback-screen'), icon = document.getElementById('feedback-icon-container'), title = document.getElementById('feedback-title'), points = document.getElementById('feedback-points');
+    const correctAnswerEl = document.getElementById('feedback-correct-answer');
     // Reset any inline style overrides from previous feedback (e.g. shield cyan)
     points.style.borderColor = '';
     points.style.color = '';
+    if (correctAnswerEl) { correctAnswerEl.style.display = 'none'; correctAnswerEl.textContent = ''; }
     // Cache achievements Set for O(1) lookups inside inGameUnlock
     const _achSetFB = new Set(playerStats.achievements);
     
@@ -4480,6 +4563,14 @@ function showFeedback(isCorrect, isTimeout = false) {
             SFX.incorrect(); 
             if (isTimeout) { scr.className = 'screen timeout'; icon.innerHTML = SVG_TIMEOUT; title.innerText = "TIEMPO"; } 
             else { scr.className = 'screen incorrect'; icon.innerHTML = SVG_INCORRECT; title.innerText = "INCORRECTO"; }
+            // Show the correct answer
+            if (correctAnswerEl && _currentQuestion) {
+                const correctText = _currentQuestion.answers[_currentQuestion.currentCorrectIndex] || '';
+                if (correctText) {
+                    correctAnswerEl.textContent = 'Respuesta: ' + correctText;
+                    correctAnswerEl.style.display = 'block';
+                }
+            }
             // Streak shield from roulette: protect racha on one mistake
             if (streakShieldActive) {
                 streakShieldActive = false;
@@ -4506,7 +4597,7 @@ function showFeedback(isCorrect, isTimeout = false) {
                     if (playerStats.lastLoginDate === _fuTodayStr) {
                         playerStats.dailyAchUnlocks = (playerStats.dailyAchUnlocks||0) + 1;
                     }
-                    saveStatsDebounced(); renderAchievements();
+                    saveStatsDebounced(true); renderAchievements();
                 }
             };
             // u10: Desastre — pierde 3 vidas en las primeras 3 preguntas (index 0,1,2)
@@ -4556,7 +4647,7 @@ function showFeedback(isCorrect, isTimeout = false) {
         } else {
             endGame();
         }
-    }, 2000);
+    }, isCorrect ? (streak >= 10 ? 1200 : 1600) : 2000);
 }
 
 function saveGameStats() {
@@ -4580,7 +4671,6 @@ function saveGameStats() {
     // x5: La Revancha — tras 0 aciertos consigue 10+ (tracked via currentGameLog)
     const prevGameCorrect = (playerStats.lastGameCorrect||0);
     if(prevGameCorrect === 0 && currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers >= 10) playerStats.revengeGame = true;
-    else playerStats.revengeGame = false;
     // x8: Sin Prisa — termina partida con <5 respuestas rápidas
     playerStats.xSinPrisa = (currentFastAnswers < 5 && currentQuestionIndex >= 5);
     // extra2 Precisionista: partida con 100% de precisión (min 10 respuestas)
@@ -4641,9 +4731,19 @@ function endGame() {
 
     document.getElementById('final-name').innerText = playerStats.playerName || 'ESTUDIANTE';
     document.getElementById('final-correct-label').innerText = 'Aciertos';
-    document.getElementById('final-correct').innerText = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
+    const _endCorrect = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
+    const _endTotal = currentQuestionIndex;
+    document.getElementById('final-correct').innerText = _endCorrect;
     document.getElementById('final-streak').innerText = currentMaxStreak; 
     document.getElementById('final-speed').innerText = currentFastAnswers;
+    // New expanded stats
+    const _endAccuracy = _endTotal > 0 ? Math.round((_endCorrect / _endTotal) * 100) : 0;
+    const _accEl = document.getElementById('final-accuracy');
+    const _multEl = document.getElementById('final-maxmult');
+    const _wrongEl = document.getElementById('final-wrong');
+    if (_accEl) _accEl.innerText = _endAccuracy + '%';
+    if (_multEl) _multEl.innerText = 'x' + _currentGameMaxMult;
+    if (_wrongEl) _wrongEl.innerText = currentWrongAnswers + currentTimeoutAnswers;
     
     document.getElementById('app').classList.remove('streak-active'); streak = 0; switchScreen('end-screen');
 }
@@ -5191,6 +5291,12 @@ function kpClaim(lvNum) {
 
     // DOM updates
     _kpSetNodeState(lvNum, 'claimed');
+    // Completion message for level 100
+    if (lvNum === KP_TOTAL) {
+        setTimeout(() => {
+            showToast('KLICK PASS COMPLETADO', 'Has reclamado los 100,000 ℙ del pase. El progreso permanece en tu historial.', 'var(--rank-color)', icon);
+        }, 600);
+    }
     // Unlock next node if its condition is already met
     if (lvNum < KP_TOTAL) {
         const newState = getKpState();
@@ -5418,6 +5524,7 @@ function goToKlickPass() {
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e){}
     SFX.click();
     playerStats.kpViews = (playerStats.kpViews||0) + 1;
+    trackSectionVisit('klickpass');
     saveStatsLocally(); checkAchievements();
     renderKpPath();
     _kpUpdateMenuBadge();
@@ -5653,6 +5760,8 @@ function renderRanks() {
 // ════════════════════════════ END RANGOS ══════════════════════════════
 setTimeout(() => {
     processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions();
+    // Notificaciones push opt-in (solo si ya jugaron 3+ partidas)
+    setTimeout(_setupPushReminder, 2000);
 }, 500);
 
 // ── Auto-retrocompatibilidad perfectNoError ───────────────────────────
@@ -5703,6 +5812,43 @@ setTimeout(() => {
     // Arrancar en la carga inicial si ya estamos en el menú
     setTimeout(_startPacienteTimer, 600);
 })();
+
+// ══════════════════════════════════════════════════════════════════
+//  NOTIFICACIONES PUSH — Recordatorio opt-in de racha diaria
+// ══════════════════════════════════════════════════════════════════
+function _setupPushReminder() {
+    if (!('Notification' in window)) return;
+    // Solo proponer una vez, tras la tercera partida jugada, si no se ha respondido antes
+    if (playerStats.pushAsked || (playerStats.gamesPlayed || 0) < 3) return;
+    if (Notification.permission === 'granted' || Notification.permission === 'denied') {
+        playerStats.pushAsked = true; return;
+    }
+    // Mostrar un toast invitando al jugador a activar las notificaciones
+    setTimeout(() => {
+        const toastId = 'push-invite-toast';
+        if (document.getElementById(toastId)) return;
+        const t = document.createElement('div');
+        t.id = toastId;
+        t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9990;background:var(--bg-elevated);border:1.5px solid rgba(255,255,255,0.12);border-radius:16px;padding:14px 18px;max-width:320px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,0.4);display:flex;flex-direction:column;gap:10px;';
+        t.innerHTML = `<div style="font-size:0.8rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;">Recordatorio de racha</div>
+            <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.5;">Activa las notificaciones para recibir un aviso cuando tu racha diaria este en peligro.</div>
+            <div style="display:flex;gap:8px;">
+                <button onclick="document.getElementById('push-invite-toast').remove();playerStats.pushAsked=true;saveStatsLocally();" style="flex:1;padding:8px;background:transparent;border:1px solid rgba(255,255,255,0.2);color:var(--text-secondary);border-radius:10px;font-size:0.75rem;font-weight:700;cursor:pointer;">Ahora no</button>
+                <button id="push-accept-btn" style="flex:1;padding:8px;background:rgba(var(--rank-rgb),0.15);border:1px solid rgba(var(--rank-rgb),0.4);color:var(--rank-color);border-radius:10px;font-size:0.75rem;font-weight:700;cursor:pointer;">Activar</button>
+            </div>`;
+        document.body.appendChild(t);
+        document.getElementById('push-accept-btn').addEventListener('click', () => {
+            t.remove();
+            playerStats.pushAsked = true;
+            saveStatsLocally();
+            Notification.requestPermission().then(perm => {
+                if (perm === 'granted') {
+                    showToast('Notificaciones activadas', 'Te avisaremos cuando tu racha este en peligro.', 'var(--rank-color)', null);
+                }
+            });
+        });
+    }, 3000);
+}
 
 // ══════════════════════════════════════════════════════════════════
 //  SERVICE WORKER — Auto-actualización con notificación visible
@@ -5815,6 +5961,9 @@ setTimeout(() => {
             _showUpdateBanner();
         }
     });
+
+    // Setup notificaciones push opcionales (recordatorio de racha diaria)
+    _setupPushReminder();
 
 })();    // ── CHRISTOPHER: inyectar todo — stats, logros, KP ────────────────
     if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') {
