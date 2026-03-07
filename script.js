@@ -165,15 +165,19 @@ function punishCheater() {
     lives = 0;
     _currentQuestion = null;
 
-    // Penalización escalada: reincidentes pagan más
-    const isRepeat = playerStats.achievements.includes('tramposo');
-    const penalty = isRepeat ? 5000 : 2000;
-    playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
-    playerStats.cheatCount = (playerStats.cheatCount || 0) + 1;
+    // La cuenta admin nunca recibe el logro de tramposo ni penalización
+    const _isAdminAccount = playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+    if (!_isAdminAccount) {
+        // Penalización escalada: reincidentes pagan más
+        const isRepeat = playerStats.achievements.includes('tramposo');
+        const penalty = isRepeat ? 5000 : 2000;
+        playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
+        playerStats.cheatCount = (playerStats.cheatCount || 0) + 1;
 
-    // Logro permanente de tramposo
-    if (!playerStats.achievements.includes('tramposo')) {
-        playerStats.achievements.push('tramposo');
+        // Logro permanente de tramposo
+        if (!playerStats.achievements.includes('tramposo')) {
+            playerStats.achievements.push('tramposo');
+        }
     }
 
     saveStatsLocally();
@@ -243,6 +247,12 @@ if(!playerStats.uuid) playerStats.uuid = generateUUID();
 // sin importar el dispositivo. El servidor sobreescribe siempre la misma fila.
 if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') {
     playerStats.uuid = '00000000-spec-tral-0000-klickphantom0';
+    // La cuenta admin nunca debe tener el logro de tramposo
+    if (playerStats.achievements && playerStats.achievements.includes('tramposo')) {
+        playerStats.achievements = playerStats.achievements.filter(id => id !== 'tramposo');
+        playerStats.pinnedAchievements = (playerStats.pinnedAchievements || []).filter(id => id !== 'tramposo');
+        playerStats.cheatCount = 0;
+    }
 }
 
 // ── MIGRACIÓN v2: retira logros que el jugador no ha ganado realmente ──
