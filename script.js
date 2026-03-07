@@ -165,19 +165,15 @@ function punishCheater() {
     lives = 0;
     _currentQuestion = null;
 
-    // La cuenta admin nunca recibe el logro de tramposo ni penalización
-    const _isAdminAccount = playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
-    if (!_isAdminAccount) {
-        // Penalización escalada: reincidentes pagan más
-        const isRepeat = playerStats.achievements.includes('tramposo');
-        const penalty = isRepeat ? 5000 : 2000;
-        playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
-        playerStats.cheatCount = (playerStats.cheatCount || 0) + 1;
+    // Penalización escalada: reincidentes pagan más
+    const isRepeat = playerStats.achievements.includes('tramposo');
+    const penalty = isRepeat ? 5000 : 2000;
+    playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
+    playerStats.cheatCount = (playerStats.cheatCount || 0) + 1;
 
-        // Logro permanente de tramposo
-        if (!playerStats.achievements.includes('tramposo')) {
-            playerStats.achievements.push('tramposo');
-        }
+    // Logro permanente de tramposo
+    if (!playerStats.achievements.includes('tramposo')) {
+        playerStats.achievements.push('tramposo');
     }
 
     saveStatsLocally();
@@ -247,13 +243,23 @@ if(!playerStats.uuid) playerStats.uuid = generateUUID();
 // sin importar el dispositivo. El servidor sobreescribe siempre la misma fila.
 if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') {
     playerStats.uuid = '00000000-spec-tral-0000-klickphantom0';
-    // La cuenta admin nunca debe tener el logro de tramposo
-    if (playerStats.achievements && playerStats.achievements.includes('tramposo')) {
-        playerStats.achievements = playerStats.achievements.filter(id => id !== 'tramposo');
-        playerStats.pinnedAchievements = (playerStats.pinnedAchievements || []).filter(id => id !== 'tramposo');
-        playerStats.cheatCount = 0;
-    }
 }
+
+// ── MIGRACIÓN v0: retira cx1/cx4 asignados sin visitar la Clasificación ──
+// Bug anterior: fetchLeaderboard() corría en el arranque y seteaba seenChristopher=true
+// incluso sin que el usuario hubiese visitado la pantalla de clasificación.
+(function migrateAchievementsV0() {
+    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') return;
+    if (playerStats.migratedV0cx) return;
+    playerStats.migratedV0cx = true;
+    // Si tiene cx1 pero nunca visitó el ranking manualmente → revocar
+    if (playerStats.achievements.includes('cx1') && (playerStats.rankingViews||0) === 0) {
+        playerStats.achievements = playerStats.achievements.filter(id => id !== 'cx1' && id !== 'cx4');
+        playerStats.pinnedAchievements = (playerStats.pinnedAchievements||[]).filter(id => id !== 'cx1' && id !== 'cx4');
+        playerStats.seenChristopher = false;
+        playerStats.christopherSeenCount = 0;
+    }
+})();
 
 // ── MIGRACIÓN v2: retira logros que el jugador no ha ganado realmente ──
 // Se ejecuta UNA vez por perfil (marca con migratedV2=true al terminar).
@@ -764,9 +770,12 @@ function revokeInvalidAchievements() {
     check('div3', (s.perfectGames||0) >= 75);
 
     // El Arquitecto (cx1–cx4)
+    // cx1: requiere haber visto a CHRISTOPHER estando en la pantalla de clasificación
+    // seenChristopher ahora solo se setea si el usuario está en la pantalla activa
     check('cx1', !!s.seenChristopher);
     check('cx2', (s.christopherCardViews||0) >= 1);
     check('cx3', (s.christopherCardViews||0) >= 5);
+    // cx4: requiere haber visto a CHRISTOPHER en el ranking al menos 10 veces (vistas activas)
     check('cx4', (s.christopherSeenCount||0) >= 10);
 
     // ── 6. NOTIFICACIÓN Y GUARDADO ───────────────────────────────────────────
@@ -1498,7 +1507,7 @@ function calculatePowerLevel(stats) {
     const best = stats.bestScore * 1.5; 
     const streak = stats.maxStreak * 200;
     const perf = stats.perfectGames * 1000;
-    const achs = stats.achievements.length * 300;
+    const achs = stats.achievements.filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP && ACHIEVEMENTS_MAP.has(id)).length * 300;
     const winRate = stats.gamesPlayed > 0 ? (stats.totalCorrect / (stats.gamesPlayed * 20)) * 5000 : 0;
     // efficiency bonus: average score per game (rewards quality over quantity)
     const avgScore = stats.gamesPlayed > 0 ? stats.totalScore / stats.gamesPlayed : 0;
@@ -1612,11 +1621,14 @@ async function fetchLeaderboard() {
             }
 
             // Tracking: primer avistamiento de CHRISTOPHER
-            if (isChristopher && !playerStats.seenChristopher) {
-                playerStats.seenChristopher = true;
-                saveStatsLocally(); checkAchievements();
-            }
-            if (isChristopher) {
+            // Solo cuenta si el usuario está ACTIVAMENTE viendo la pantalla de clasificación
+            const _isViewingRanking = document.getElementById('ranking-screen') &&
+                document.getElementById('ranking-screen').classList.contains('active');
+            if (isChristopher && _isViewingRanking) {
+                if (!playerStats.seenChristopher) {
+                    playerStats.seenChristopher = true;
+                    saveStatsLocally(); checkAchievements();
+                }
                 playerStats.christopherSeenCount = (playerStats.christopherSeenCount||0) + 1;
             }
 
@@ -2199,7 +2211,7 @@ addAchs([
     { id: 'kpa4', title: 'Casi en la Cima',  desc: 'Completa 75 niveles del Klick Pass.',                             color: colors.orange, icon: SVG_STAR },
     { id: 'kpa9', title: 'Sin Pausas',       desc: 'Completa 10 niveles del Klick Pass en una sola sesión.',          color: colors.orange, icon: SVG_BOLT },
     { id: 'kpa5', title: 'Pase Completado',  desc: 'Reclama los 100 niveles del Klick Pass en su totalidad.',         color: colors.red,    icon: SVG_STAR },
-    { id: 'kpa10',title: 'Coleccionista Total', desc: 'Completa el Klick Pass y desbloquea más de 300 logros.',       color: colors.red,    icon: SVG_TROPHY },
+    { id: 'kpa10',title: 'Coleccionista Total', desc: 'Reclama los 100 niveles del Klick Pass y desbloquea todos los 300 logros del juego.', color: colors.red,    icon: SVG_TROPHY },
 ]);
 
 // ─── 13. MÚSICA Y AUDIO (3 pistas) ───────────────────────────────────────
@@ -2334,10 +2346,10 @@ addAchs([
 
 // ─── 27. EL ARQUITECTO — logros relacionados con CHRISTOPHER ─────────────
 addAchs([
-    { id: 'cx1', title: 'Avistamiento',       desc: 'Ve al Arquitecto del Sistema en la Clasificación por primera vez.',    color: 'var(--divinity-color-static)', icon: SVG_TROPHY },
+    { id: 'cx1', title: 'Avistamiento',       desc: 'Visita la Clasificación y encuentra al Arquitecto del Sistema en la tabla.',    color: 'var(--divinity-color-static)', icon: SVG_TROPHY },
     { id: 'cx2', title: 'Cara a Cara',        desc: 'Abre la tarjeta del Arquitecto del Sistema en la Clasificación.',       color: 'var(--divinity-color-static)', icon: SVG_USER },
     { id: 'cx3', title: 'Observador',         desc: 'Abre la tarjeta del Arquitecto del Sistema 5 veces.',                   color: 'var(--divinity-color-static)', icon: SVG_USER },
-    { id: 'cx4', title: 'Testigo del Origen', desc: 'Visita la Clasificación 10 veces mientras el Arquitecto del Sistema está presente.', color: 'var(--divinity-color-static)', icon: SVG_STAR },
+    { id: 'cx4', title: 'Testigo del Origen', desc: 'Abre la Clasificación 10 veces y confirma la presencia del Arquitecto del Sistema.', color: 'var(--divinity-color-static)', icon: SVG_STAR },
 ]);
 
 
@@ -3658,7 +3670,7 @@ function goToProfile(needsName = false) {
         const plBest   = Math.floor((s.bestScore||0)*1.5);
         const plStreak = (s.maxStreak||0)*200;
         const plPerf   = (s.perfectGames||0)*1000;
-        const plAchs   = (s.achievements||[]).length*300;
+        const plAchs   = (s.achievements||[]).filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP.has(id)).length*300;
         const plAcc    = s.gamesPlayed>0 ? Math.floor(((s.totalCorrect||0)/(s.gamesPlayed*20))*5000) : 0;
         const avgScore = s.gamesPlayed>0 ? Math.floor((s.totalScore||0)/s.gamesPlayed) : 0;
         const plEfficiency = Math.min(Math.floor(avgScore * 0.3), 15000);
@@ -3683,7 +3695,7 @@ function goToProfile(needsName = false) {
             { label:'Récord',          raw:fmt(s.bestScore||0),      factor:'× 1.5',              result:plBest,        color:colors[1] },
             { label:'Racha máxima',    raw:`${s.maxStreak||0} aciertos`, factor:'× 200',          result:plStreak,      color:colors[2] },
             { label:'Partidas perfectas', raw:`${s.perfectGames||0} partidas`, factor:'× 1,000',  result:plPerf,        color:colors[3] },
-            { label:'Logros',          raw:`${(s.achievements||[]).length} logros`, factor:'× 300', result:plAchs,      color:colors[4] },
+            { label:'Logros',          raw:`${(s.achievements||[]).filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP.has(id)).length} logros`, factor:'× 300', result:plAchs,      color:colors[4] },
             { label:'Precisión',       raw:`${accuracy}%`,           factor:'× 5,000',            result:plAcc,         color:colors[5] },
             { label:'Eficiencia',      raw:`${fmt(avgScore)} prom/p`, factor:'× 0.3 (máx 15k)',   result:plEfficiency,  color:colors[6] },
         ];
@@ -3866,37 +3878,138 @@ function renderRankProgress() {
 function showOnboarding(onComplete) {
     playerStats.hasSeenOnboarding = true;
     saveStatsLocally();
+
     const overlay = document.createElement('div');
     overlay.id = 'onboarding-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;gap:0;';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow:hidden;';
+
+    // ── Canvas de partículas de fondo ─────────────────────────────
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0.55;';
+    overlay.appendChild(canvas);
+
+    function initParticles() {
+        const ctx = canvas.getContext('2d');
+        canvas.width  = overlay.offsetWidth  || window.innerWidth;
+        canvas.height = overlay.offsetHeight || window.innerHeight;
+        const W = canvas.width, H = canvas.height;
+        const COLORS = ['#00ff66','#00d4ff','#b5179e','#ff2a5f','#ffb800'];
+        const N = 55;
+        const particles = Array.from({length: N}, () => ({
+            x: Math.random() * W, y: Math.random() * H,
+            r: Math.random() * 1.6 + 0.4,
+            vx: (Math.random() - 0.5) * 0.35,
+            vy: (Math.random() - 0.5) * 0.35,
+            color: COLORS[Math.floor(Math.random() * COLORS.length)],
+            alpha: Math.random() * 0.5 + 0.2,
+            pulse: Math.random() * Math.PI * 2
+        }));
+        let raf;
+        function tick() {
+            ctx.clearRect(0, 0, W, H);
+            const now = Date.now() / 1000;
+            particles.forEach(p => {
+                p.x += p.vx; p.y += p.vy;
+                if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+                if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+                p.pulse += 0.018;
+                const a = p.alpha * (0.7 + 0.3 * Math.sin(p.pulse));
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = a;
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+            raf = requestAnimationFrame(tick);
+        }
+        tick();
+        return () => cancelAnimationFrame(raf);
+    }
+    let stopParticles = () => {};
+
+    // ── Contenido de las slides ───────────────────────────────────
     const slides = [
-        { title: 'Bienvenido a Klick', body: 'Responde preguntas correctamente para ganar puntos. Tienes 3 vidas. Si las pierdes todas, la partida termina.' },
-        { title: 'El Timer', body: 'Cada pregunta tiene entre 15 y 30 segundos. Cuanto mas rapido respondas, mas puntos obtienes.' },
-        { title: 'Multiplicador', body: 'Cada 5 respuestas correctas seguidas aumentas tu multiplicador (x1 a x10). Un error lo reinicia a x1.' },
-        { title: 'La Ruleta', body: 'Cada 10 aciertos en una partida giras la ruleta. Puedes ganar vidas extra, escudos, multiplicadores y mas.' },
-        { title: 'Klick Pass', body: 'El Klick Pass tiene 100 niveles con recompensas en puntos (P). Completa misiones para desbloquearlos en orden.' },
+        {
+            icon: '🎯',
+            title: 'Bienvenido a Klick',
+            body: 'Responde preguntas correctamente para ganar puntos. Tienes <strong>3 vidas</strong> — si las pierdes todas, la partida termina.',
+            highlight: null
+        },
+        {
+            icon: '⏱️',
+            title: 'El Cronómetro',
+            body: 'Cada pregunta tiene entre <strong>15 y 30 segundos</strong>. Responder más rápido te da más puntos. El tiempo que sobre se suma a tu marcador.',
+            highlight: null
+        },
+        {
+            icon: '⚡',
+            title: 'Multiplicador de Puntos',
+            body: 'Cada <strong>5 respuestas correctas seguidas</strong> sube tu multiplicador de ×1 hasta ×10. Un error o un timeout lo reinicia a ×1.',
+            highlight: null
+        },
+        {
+            icon: '🎰',
+            title: 'La Ruleta',
+            body: 'Cada <strong>10 aciertos</strong> en una partida activas la ruleta. Puedes ganar vidas extra, escudos, multiplicadores y más.',
+            highlight: null
+        },
+        {
+            icon: '🎨',
+            title: 'Klick Pass',
+            body: 'El Klick Pass tiene <strong>100 niveles</strong> con recompensas en <strong>Pinceles (𝓟)</strong>. Completa misiones para desbloquearlos en orden y acumula hasta <strong>100,000 𝓟</strong> en total.',
+            highlight: 'Los Pinceles son la moneda del Klick Pass, no puntos de partida.'
+        },
+        {
+            icon: '🏆',
+            title: 'Logros y Rangos',
+            body: 'Desbloquea más de <strong>300 logros</strong> jugando, explorando y superando retos. Tu <strong>Rango</strong> y <strong>Power Level</strong> suben con tus estadísticas acumuladas.',
+            highlight: null
+        },
     ];
+
     let current = 0;
+
     function render() {
         const s = slides[current];
-        overlay.innerHTML = `
-            <div style="max-width:380px;width:100%;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;">
-                <div style="font-size:0.7rem;font-weight:800;letter-spacing:3px;color:var(--text-secondary);text-transform:uppercase;">${current+1} / ${slides.length}</div>
-                <div style="width:40px;height:3px;background:var(--rank-color);border-radius:2px;"></div>
-                <div style="font-size:clamp(1.6rem,5vw,2.2rem);font-weight:900;color:var(--text-primary);letter-spacing:-1px;line-height:1.1;">${s.title}</div>
-                <div style="font-size:0.95rem;color:var(--text-secondary);line-height:1.6;font-weight:500;">${s.body}</div>
-                <div style="display:flex;gap:10px;width:100%;margin-top:10px;">
-                    ${current > 0 ? `<button onclick="document.getElementById('onboarding-overlay')._prev()" style="flex:1;padding:14px;background:transparent;border:1.5px solid rgba(255,255,255,0.2);color:var(--text-secondary);border-radius:16px;font-size:0.9rem;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:1px;">Atras</button>` : ''}
-                    <button onclick="document.getElementById('onboarding-overlay')._next()" style="flex:2;padding:14px;background:rgba(var(--rank-rgb),0.15);border:1.5px solid rgba(var(--rank-rgb),0.5);color:var(--rank-color);border-radius:16px;font-size:0.9rem;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:1px;">${current < slides.length-1 ? 'Siguiente' : 'Comenzar'}</button>
-                </div>
-                <button onclick="document.getElementById('onboarding-overlay')._skip()" style="background:none;border:none;color:var(--text-secondary);font-size:0.75rem;cursor:pointer;text-decoration:underline;font-weight:600;">Saltar tutorial</button>
-            </div>`;
-        overlay._prev = () => { current--; render(); };
-        overlay._next = () => { if (current < slides.length-1) { current++; render(); } else { overlay.remove(); onComplete(); } };
-        overlay._skip = () => { overlay.remove(); onComplete(); };
+        const isLast = current === slides.length - 1;
+        const dotHtml = slides.map((_,i) =>
+            `<div style="width:${i===current?'18px':'6px'};height:6px;border-radius:3px;background:${i===current?'var(--rank-color)':'rgba(255,255,255,0.18)'};transition:all 0.3s ease;"></div>`
+        ).join('');
+
+        const contentDiv = overlay.querySelector('#ob-content');
+        const html = `
+            <div style="font-size:2.8rem;line-height:1;margin-bottom:4px;">${s.icon}</div>
+            <div style="display:flex;gap:5px;align-items:center;justify-content:center;margin-bottom:16px;">${dotHtml}</div>
+            <div style="font-size:clamp(1.4rem,4.5vw,1.9rem);font-weight:900;color:var(--text-primary);letter-spacing:-0.5px;line-height:1.15;margin-bottom:12px;">${s.title}</div>
+            <div style="font-size:0.9rem;color:var(--text-secondary);line-height:1.7;font-weight:500;max-width:320px;">${s.body}</div>
+            ${s.highlight ? `<div style="margin-top:14px;padding:10px 14px;border-radius:12px;background:rgba(var(--rank-rgb),0.1);border:1px solid rgba(var(--rank-rgb),0.3);font-size:0.75rem;font-weight:700;color:var(--rank-color);letter-spacing:0.3px;max-width:300px;">${s.highlight}</div>` : ''}
+            <div style="display:flex;gap:10px;width:100%;max-width:320px;margin-top:22px;">
+                ${current > 0 ? `<button id="ob-prev-btn" style="flex:1;padding:13px;background:transparent;border:1.5px solid rgba(255,255,255,0.15);color:var(--text-secondary);border-radius:14px;font-size:0.82rem;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:1px;">← Atrás</button>` : '<div style="flex:0.3"></div>'}
+                <button id="ob-next-btn" style="flex:2;padding:13px;background:rgba(var(--rank-rgb),0.15);border:1.5px solid rgba(var(--rank-rgb),0.5);color:var(--rank-color);border-radius:14px;font-size:0.88rem;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:1px;">${isLast ? '¡Jugar!' : 'Siguiente →'}</button>
+            </div>
+            <button id="ob-skip-btn" style="margin-top:12px;background:none;border:none;color:rgba(255,255,255,0.3);font-size:0.7rem;cursor:pointer;font-weight:600;letter-spacing:0.5px;">Saltar introducción</button>
+        `;
+        if (contentDiv) {
+            contentDiv.innerHTML = html;
+        }
+        // Rebind buttons
+        const nb = overlay.querySelector('#ob-next-btn');
+        const pb = overlay.querySelector('#ob-prev-btn');
+        const sb = overlay.querySelector('#ob-skip-btn');
+        if (nb) nb.onclick = () => { if (isLast) { stopParticles(); overlay.remove(); onComplete(); } else { current++; render(); }};
+        if (pb) pb.onclick = () => { current--; render(); };
+        if (sb) sb.onclick = () => { stopParticles(); overlay.remove(); onComplete(); };
     }
-    render();
+
+    overlay.innerHTML += `<div id="ob-content" style="position:relative;z-index:1;max-width:400px;width:100%;display:flex;flex-direction:column;align-items:center;gap:0;text-align:center;"></div>`;
     document.body.appendChild(overlay);
+
+    // Iniciar partículas DESPUÉS de que el overlay esté en el DOM
+    requestAnimationFrame(() => {
+        stopParticles = initParticles();
+        render();
+    });
 }
 async function startGameCheck() {
     // iOS/Safari: AudioContext MUST be resumed synchronously inside a user gesture handler
