@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050505" id="meta-theme-color">
+    <meta name="description" content="Klick: el juego de trivia con multiplicadores, rachas y ranking global. Pon a prueba tus conocimientos.">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Klick">
+    <meta name="format-detection" content="telephone=no">
     <title>Klick</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -182,7 +189,7 @@
     <div id="abandon-modal" class="modal-overlay">
         <div class="settings-card glass-panel" style="text-align: center; max-width: 320px; padding: 25px 30px; border-radius: var(--radius-lg); border-top: 4px solid var(--accent-red); display: flex; flex-direction: column; gap: 15px;">
             <div style="font-size: 1.2rem; font-weight: 900; color: var(--accent-red); text-transform: uppercase;">¿Abandonar Partida?</div>
-            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">Se aplicará una penalidad de <strong style="color: var(--accent-red);">-300 pts</strong> a tu acumulado.</p>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">Se aplicará una penalización de <strong style="color: var(--accent-red);">-300 pts</strong> a tu acumulado.</p>
             <div style="display: flex; gap: 10px; width: 100%;">
                 <button class="btn-outline" onclick="cancelAbandon()" style="flex: 1; border-color: var(--text-secondary); color: var(--text-secondary);">Cancelar</button>
                 <button class="btn-solid" onclick="confirmAbandon()" style="flex: 1; background: transparent; color: var(--accent-red); border-color: var(--accent-red);">Salir</button>
@@ -368,6 +375,7 @@
             <div id="feedback-icon-container"></div>
             <div class="feedback-title" id="feedback-title">Correcto</div>
             <div class="feedback-points" id="feedback-points">+850</div>
+            <div id="feedback-correct-answer" class="feedback-correct-answer" style="display:none;"></div>
             <div class="streak-box">Racha <span id="streak-display">1</span></div>
         </div>
     </div>
@@ -383,6 +391,9 @@
                 <div class="end-stat"><span class="end-stat-val" id="final-correct">0</span><span class="end-stat-label" id="final-correct-label">Aciertos</span></div>
                 <div class="end-stat"><span class="end-stat-val" id="final-streak">0</span><span class="end-stat-label">Racha Max</span></div>
                 <div class="end-stat"><span class="end-stat-val" id="final-speed">0</span><span class="end-stat-label">Rapidas</span></div>
+                <div class="end-stat"><span class="end-stat-val" id="final-accuracy">0%</span><span class="end-stat-label">Precision</span></div>
+                <div class="end-stat"><span class="end-stat-val" id="final-maxmult">x1</span><span class="end-stat-label">Mult. Max</span></div>
+                <div class="end-stat"><span class="end-stat-val" id="final-wrong">0</span><span class="end-stat-label">Errores</span></div>
             </div>
             <div class="end-actions">
                 <button class="btn-end-menu" onclick="goToMainMenu()">Menu</button>
