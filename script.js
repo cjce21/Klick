@@ -72,6 +72,7 @@ function _unmuteByFocus() {
 
 // ── Cooldown global: evita sanciones dobles por eventos simultáneos ──────
 let _cheaterCooldown = false;
+let _userIsViewingRanking = false; // true solo cuando el usuario navegó activamente al ranking
 function _triggerCheatIfActive(source) {
     if (!isAnsweringAllowed || isGamePaused) return;
     if (_cheaterCooldown) return;
@@ -165,15 +166,19 @@ function punishCheater() {
     lives = 0;
     _currentQuestion = null;
 
-    // Penalización escalada: reincidentes pagan más
-    const isRepeat = playerStats.achievements.includes('tramposo');
-    const penalty = isRepeat ? 5000 : 2000;
-    playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
-    playerStats.cheatCount = (playerStats.cheatCount || 0) + 1;
+    // La cuenta admin nunca recibe el logro de tramposo ni penalización
+    const _isAdminAccount = playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+    if (!_isAdminAccount) {
+        // Penalización escalada: reincidentes pagan más
+        const isRepeat = playerStats.achievements.includes('tramposo');
+        const penalty = isRepeat ? 5000 : 2000;
+        playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
+        playerStats.cheatCount = (playerStats.cheatCount || 0) + 1;
 
-    // Logro permanente de tramposo
-    if (!playerStats.achievements.includes('tramposo')) {
-        playerStats.achievements.push('tramposo');
+        // Logro permanente de tramposo
+        if (!playerStats.achievements.includes('tramposo')) {
+            playerStats.achievements.push('tramposo');
+        }
     }
 
     saveStatsLocally();
@@ -243,20 +248,27 @@ if(!playerStats.uuid) playerStats.uuid = generateUUID();
 // sin importar el dispositivo. El servidor sobreescribe siempre la misma fila.
 if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') {
     playerStats.uuid = '00000000-spec-tral-0000-klickphantom0';
+    // La cuenta admin nunca debe tener el logro de tramposo
+    if (playerStats.achievements && playerStats.achievements.includes('tramposo')) {
+        playerStats.achievements = playerStats.achievements.filter(id => id !== 'tramposo');
+        playerStats.pinnedAchievements = (playerStats.pinnedAchievements || []).filter(id => id !== 'tramposo');
+        playerStats.cheatCount = 0;
+    }
 }
 
 // ── MIGRACIÓN v0: retira cx1/cx4 asignados sin visitar la Clasificación ──
-// Bug anterior: fetchLeaderboard() corría en el arranque y seteaba seenChristopher=true
-// incluso sin que el usuario hubiese visitado la pantalla de clasificación.
+// Bug: fetchLeaderboard() en startup seteaba seenChristopher=true sin que el usuario
+// visitara el ranking. Fix: solo revocar si seenChristopher sigue en false
+// (si seenChristopher=true con rankingViews=0, probablemente fue ganado legítimamente
+// en una sesión anterior donde rankingViews no se contaba aún).
 (function migrateAchievementsV0() {
     if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') return;
     if (playerStats.migratedV0cx) return;
     playerStats.migratedV0cx = true;
-    // Si tiene cx1 pero nunca visitó el ranking manualmente → revocar
-    if (playerStats.achievements.includes('cx1') && (playerStats.rankingViews||0) === 0) {
+    // Revocar cx1 SOLO si lo tiene pero seenChristopher=false (asignación imposible)
+    if (playerStats.achievements.includes('cx1') && !playerStats.seenChristopher) {
         playerStats.achievements = playerStats.achievements.filter(id => id !== 'cx1' && id !== 'cx4');
         playerStats.pinnedAchievements = (playerStats.pinnedAchievements||[]).filter(id => id !== 'cx1' && id !== 'cx4');
-        playerStats.seenChristopher = false;
         playerStats.christopherSeenCount = 0;
     }
 })();
@@ -770,12 +782,9 @@ function revokeInvalidAchievements() {
     check('div3', (s.perfectGames||0) >= 75);
 
     // El Arquitecto (cx1–cx4)
-    // cx1: requiere haber visto a CHRISTOPHER estando en la pantalla de clasificación
-    // seenChristopher ahora solo se setea si el usuario está en la pantalla activa
     check('cx1', !!s.seenChristopher);
     check('cx2', (s.christopherCardViews||0) >= 1);
     check('cx3', (s.christopherCardViews||0) >= 5);
-    // cx4: requiere haber visto a CHRISTOPHER en el ranking al menos 10 veces (vistas activas)
     check('cx4', (s.christopherSeenCount||0) >= 10);
 
     // ── 6. NOTIFICACIÓN Y GUARDADO ───────────────────────────────────────────
@@ -1507,7 +1516,8 @@ function calculatePowerLevel(stats) {
     const best = stats.bestScore * 1.5; 
     const streak = stats.maxStreak * 200;
     const perf = stats.perfectGames * 1000;
-    const achs = stats.achievements.filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP && ACHIEVEMENTS_MAP.has(id)).length * 300;
+    const normalAchsCount = stats.achievements.filter(id => id !== 'tramposo').length;
+    const achs = normalAchsCount * 300;
     const winRate = stats.gamesPlayed > 0 ? (stats.totalCorrect / (stats.gamesPlayed * 20)) * 5000 : 0;
     // efficiency bonus: average score per game (rewards quality over quantity)
     const avgScore = stats.gamesPlayed > 0 ? stats.totalScore / stats.gamesPlayed : 0;
@@ -1621,10 +1631,8 @@ async function fetchLeaderboard() {
             }
 
             // Tracking: primer avistamiento de CHRISTOPHER
-            // Solo cuenta si el usuario está ACTIVAMENTE viendo la pantalla de clasificación
-            const _isViewingRanking = document.getElementById('ranking-screen') &&
-                document.getElementById('ranking-screen').classList.contains('active');
-            if (isChristopher && _isViewingRanking) {
+            // Solo cuenta si el usuario está ACTIVAMENTE en la pantalla de clasificación
+            if (isChristopher && _userIsViewingRanking) {
                 if (!playerStats.seenChristopher) {
                     playerStats.seenChristopher = true;
                     saveStatsLocally(); checkAchievements();
@@ -2349,7 +2357,7 @@ addAchs([
     { id: 'cx1', title: 'Avistamiento',       desc: 'Visita la Clasificación y encuentra al Arquitecto del Sistema en la tabla.',    color: 'var(--divinity-color-static)', icon: SVG_TROPHY },
     { id: 'cx2', title: 'Cara a Cara',        desc: 'Abre la tarjeta del Arquitecto del Sistema en la Clasificación.',       color: 'var(--divinity-color-static)', icon: SVG_USER },
     { id: 'cx3', title: 'Observador',         desc: 'Abre la tarjeta del Arquitecto del Sistema 5 veces.',                   color: 'var(--divinity-color-static)', icon: SVG_USER },
-    { id: 'cx4', title: 'Testigo del Origen', desc: 'Abre la Clasificación 10 veces y confirma la presencia del Arquitecto del Sistema.', color: 'var(--divinity-color-static)', icon: SVG_STAR },
+    { id: 'cx4', title: 'Testigo del Origen', desc: 'Abre la Clasificación 10 veces mientras el Arquitecto del Sistema está presente.', color: 'var(--divinity-color-static)', icon: SVG_STAR },
 ]);
 
 
@@ -2966,6 +2974,7 @@ let isAchievementsInitialized = true; // siempre true, setup es lazy
 const achCardElements = {};           // mantenido vacío para compatibilidad con código existente
 let _currentScreen = null;
 function switchScreen(id) {
+    if (id !== 'ranking-screen') _userIsViewingRanking = false; // salir del ranking
     if (_currentScreen) {
         // Si salimos de feedback-screen, limpiar clases de estado para evitar que persistan
         if (_currentScreen.id === 'feedback-screen') {
@@ -3632,6 +3641,7 @@ function goToRanking() {
     playerStats.rankingViews = (playerStats.rankingViews||0) + 1;
     trackSectionVisit('ranking');
     saveStatsLocally(); checkAchievements();
+    _userIsViewingRanking = true; // el usuario navegó activamente al ranking
     switchScreen('ranking-screen');
 }
 
@@ -3670,7 +3680,7 @@ function goToProfile(needsName = false) {
         const plBest   = Math.floor((s.bestScore||0)*1.5);
         const plStreak = (s.maxStreak||0)*200;
         const plPerf   = (s.perfectGames||0)*1000;
-        const plAchs   = (s.achievements||[]).filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP.has(id)).length*300;
+        const plAchs   = (s.achievements||[]).filter(id => id !== 'tramposo').length*300;
         const plAcc    = s.gamesPlayed>0 ? Math.floor(((s.totalCorrect||0)/(s.gamesPlayed*20))*5000) : 0;
         const avgScore = s.gamesPlayed>0 ? Math.floor((s.totalScore||0)/s.gamesPlayed) : 0;
         const plEfficiency = Math.min(Math.floor(avgScore * 0.3), 15000);
@@ -3695,7 +3705,7 @@ function goToProfile(needsName = false) {
             { label:'Récord',          raw:fmt(s.bestScore||0),      factor:'× 1.5',              result:plBest,        color:colors[1] },
             { label:'Racha máxima',    raw:`${s.maxStreak||0} aciertos`, factor:'× 200',          result:plStreak,      color:colors[2] },
             { label:'Partidas perfectas', raw:`${s.perfectGames||0} partidas`, factor:'× 1,000',  result:plPerf,        color:colors[3] },
-            { label:'Logros',          raw:`${(s.achievements||[]).filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP.has(id)).length} logros`, factor:'× 300', result:plAchs,      color:colors[4] },
+            { label:'Logros',          raw:`${(s.achievements||[]).filter(id=>id!=='tramposo').length} logros`, factor:'× 300', result:plAchs,      color:colors[4] },
             { label:'Precisión',       raw:`${accuracy}%`,           factor:'× 5,000',            result:plAcc,         color:colors[5] },
             { label:'Eficiencia',      raw:`${fmt(avgScore)} prom/p`, factor:'× 0.3 (máx 15k)',   result:plEfficiency,  color:colors[6] },
         ];
@@ -3879,135 +3889,253 @@ function showOnboarding(onComplete) {
     playerStats.hasSeenOnboarding = true;
     saveStatsLocally();
 
+    // ── Contenedor principal ──────────────────────────────────────
     const overlay = document.createElement('div');
     overlay.id = 'onboarding-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow:hidden;';
+    overlay.style.cssText = [
+        'position:fixed;inset:0;z-index:9999',
+        'background:#050508',
+        'display:grid;grid-template-rows:1fr auto 1fr',
+        'align-items:center;justify-items:center',
+        'overflow:hidden'
+    ].join(';');
 
-    // ── Canvas de partículas de fondo ─────────────────────────────
+    // ── Canvas de partículas ──────────────────────────────────────
     const canvas = document.createElement('canvas');
-    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0.55;';
+    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
     overlay.appendChild(canvas);
 
-    function initParticles() {
+    // ── Panel central ─────────────────────────────────────────────
+    const panel = document.createElement('div');
+    panel.id = 'ob-panel';
+    panel.style.cssText = [
+        'position:relative;z-index:1;grid-row:2',
+        'width:min(400px,90vw)',
+        'display:grid;grid-template-rows:auto auto auto auto auto auto',
+        'gap:0;align-items:center;justify-items:center',
+        'text-align:center'
+    ].join(';');
+    overlay.appendChild(panel);
+
+    document.body.appendChild(overlay);
+
+    // ── Slides ────────────────────────────────────────────────────
+    const slides = [
+        {
+            tag:   'INICIO',
+            title: 'Bienvenido a Klick',
+            body:  'Responde preguntas correctamente para ganar puntos. Tienes <strong style="color:var(--accent-red)">3 vidas</strong> — si las pierdes todas, la partida termina.',
+            note:  null
+        },
+        {
+            tag:   'TIEMPO',
+            title: 'El Cronómetro',
+            body:  'Cada pregunta tiene entre <strong style="color:var(--accent-blue)">15 y 30 segundos</strong>. Responder más rápido suma puntos adicionales por tiempo restante.',
+            note:  null
+        },
+        {
+            tag:   'COMBO',
+            title: 'Multiplicador',
+            body:  'Cada <strong style="color:var(--accent-yellow)">5 aciertos consecutivos</strong> suben tu multiplicador de ×1 hasta ×10. Un error o un timeout lo reinician a ×1.',
+            note:  null
+        },
+        {
+            tag:   'RULETA',
+            title: 'La Ruleta',
+            body:  'Cada <strong style="color:var(--accent-purple)">10 aciertos</strong> en una partida activas la ruleta. Gana vidas extra, escudos, multiplicadores y más.',
+            note:  null
+        },
+        {
+            tag:   'PASE',
+            title: 'Klick Pass',
+            body:  'El Klick Pass tiene <strong style="color:var(--accent-green)">100 niveles</strong> con misiones progresivas. Cada nivel completado otorga <strong style="color:var(--accent-yellow)">Pinceles</strong> — la moneda del pase, no puntos de partida.',
+            note:  'Premio total: 100,000 Pinceles'
+        },
+        {
+            tag:   'PROGRESO',
+            title: 'Logros y Rangos',
+            body:  'Desbloquea más de <strong style="color:var(--accent-orange)">300 logros</strong> jugando y explorando. Tu <strong style="color:var(--rank-color)">Rango</strong> y <strong style="color:var(--rank-color)">Power Level</strong> crecen con tus estadísticas acumuladas.',
+            note:  null
+        },
+    ];
+    const N = slides.length;
+    let current = 0;
+
+    // ── Música ambiente: pad armónico suave en bucle ──────────────
+    let _obMusicNodes = [];
+    function _startObMusic() {
+        if (!audioCtx) return;
+        try {
+            const t = audioCtx.currentTime;
+            const chords = [
+                [261.6, 329.6, 392.0],
+                [293.7, 369.9, 440.0],
+                [246.9, 311.1, 369.9],
+                [261.6, 329.6, 392.0],
+            ];
+            const gainMaster = audioCtx.createGain();
+            gainMaster.gain.setValueAtTime(0, t);
+            gainMaster.gain.linearRampToValueAtTime(0.045, t + 1.5);
+            gainMaster.connect(masterMusicGain || audioCtx.destination);
+            _obMusicNodes.push(gainMaster);
+            const chordDur = 3.2;
+            chords.forEach((chord, ci) => {
+                chord.forEach(freq => {
+                    const osc  = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0, t + ci * chordDur);
+                    gain.gain.linearRampToValueAtTime(0.4, t + ci * chordDur + 0.8);
+                    gain.gain.setValueAtTime(0.4, t + ci * chordDur + chordDur - 0.6);
+                    gain.gain.linearRampToValueAtTime(0, t + ci * chordDur + chordDur);
+                    osc.connect(gain);
+                    gain.connect(gainMaster);
+                    osc.start(t + ci * chordDur);
+                    osc.stop(t + ci * chordDur + chordDur + 0.1);
+                    _obMusicNodes.push(osc, gain);
+                });
+            });
+        } catch(e) {}
+    }
+    function _stopObMusic() {
+        try {
+            _obMusicNodes.forEach(n => {
+                try { if (n.gain) { n.gain.cancelScheduledValues(audioCtx.currentTime); n.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4); } } catch(e) {}
+                try { if (n.stop) n.stop(audioCtx.currentTime + 0.5); } catch(e) {}
+            });
+        } catch(e) {}
+        _obMusicNodes = [];
+    }
+
+    // ── Partículas ────────────────────────────────────────────────
+    let _obRaf = 0;
+    function _startParticles() {
         const ctx = canvas.getContext('2d');
         canvas.width  = overlay.offsetWidth  || window.innerWidth;
         canvas.height = overlay.offsetHeight || window.innerHeight;
         const W = canvas.width, H = canvas.height;
-        const COLORS = ['#00ff66','#00d4ff','#b5179e','#ff2a5f','#ffb800'];
-        const N = 55;
-        const particles = Array.from({length: N}, () => ({
-            x: Math.random() * W, y: Math.random() * H,
-            r: Math.random() * 1.6 + 0.4,
-            vx: (Math.random() - 0.5) * 0.35,
-            vy: (Math.random() - 0.5) * 0.35,
-            color: COLORS[Math.floor(Math.random() * COLORS.length)],
-            alpha: Math.random() * 0.5 + 0.2,
-            pulse: Math.random() * Math.PI * 2
+        const PAL = ['#00ff66','#00d4ff','#b5179e','#ff2a5f','#ffb800','#ffffff'];
+        const pts = Array.from({length: 60}, () => ({
+            x: Math.random() * W,  y: Math.random() * H,
+            r: Math.random() * 1.4 + 0.3,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: (Math.random() - 0.5) * 0.3,
+            c: PAL[Math.floor(Math.random() * PAL.length)],
+            a: Math.random() * 0.4 + 0.15,
+            p: Math.random() * Math.PI * 2
         }));
-        let raf;
         function tick() {
             ctx.clearRect(0, 0, W, H);
-            const now = Date.now() / 1000;
-            particles.forEach(p => {
+            pts.forEach(p => {
                 p.x += p.vx; p.y += p.vy;
                 if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
                 if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
-                p.pulse += 0.018;
-                const a = p.alpha * (0.7 + 0.3 * Math.sin(p.pulse));
+                p.p += 0.016;
+                ctx.globalAlpha = p.a * (0.6 + 0.4 * Math.sin(p.p));
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = a;
+                ctx.fillStyle = p.c;
                 ctx.fill();
             });
             ctx.globalAlpha = 1;
-            raf = requestAnimationFrame(tick);
+            _obRaf = requestAnimationFrame(tick);
         }
         tick();
-        return () => cancelAnimationFrame(raf);
     }
-    let stopParticles = () => {};
+    function _stopParticles() { cancelAnimationFrame(_obRaf); }
 
-    // ── Contenido de las slides ───────────────────────────────────
-    const slides = [
-        {
-            icon: '🎯',
-            title: 'Bienvenido a Klick',
-            body: 'Responde preguntas correctamente para ganar puntos. Tienes <strong>3 vidas</strong> — si las pierdes todas, la partida termina.',
-            highlight: null
-        },
-        {
-            icon: '⏱️',
-            title: 'El Cronómetro',
-            body: 'Cada pregunta tiene entre <strong>15 y 30 segundos</strong>. Responder más rápido te da más puntos. El tiempo que sobre se suma a tu marcador.',
-            highlight: null
-        },
-        {
-            icon: '⚡',
-            title: 'Multiplicador de Puntos',
-            body: 'Cada <strong>5 respuestas correctas seguidas</strong> sube tu multiplicador de ×1 hasta ×10. Un error o un timeout lo reinicia a ×1.',
-            highlight: null
-        },
-        {
-            icon: '🎰',
-            title: 'La Ruleta',
-            body: 'Cada <strong>10 aciertos</strong> en una partida activas la ruleta. Puedes ganar vidas extra, escudos, multiplicadores y más.',
-            highlight: null
-        },
-        {
-            icon: '🎨',
-            title: 'Klick Pass',
-            body: 'El Klick Pass tiene <strong>100 niveles</strong> con recompensas en <strong>Pinceles (𝓟)</strong>. Completa misiones para desbloquearlos en orden y acumula hasta <strong>100,000 𝓟</strong> en total.',
-            highlight: 'Los Pinceles son la moneda del Klick Pass, no puntos de partida.'
-        },
-        {
-            icon: '🏆',
-            title: 'Logros y Rangos',
-            body: 'Desbloquea más de <strong>300 logros</strong> jugando, explorando y superando retos. Tu <strong>Rango</strong> y <strong>Power Level</strong> suben con tus estadísticas acumuladas.',
-            highlight: null
-        },
-    ];
-
-    let current = 0;
-
+    // ── Render slide ──────────────────────────────────────────────
     function render() {
         const s = slides[current];
-        const isLast = current === slides.length - 1;
-        const dotHtml = slides.map((_,i) =>
-            `<div style="width:${i===current?'18px':'6px'};height:6px;border-radius:3px;background:${i===current?'var(--rank-color)':'rgba(255,255,255,0.18)'};transition:all 0.3s ease;"></div>`
-        ).join('');
+        const isLast = current === N - 1;
 
-        const contentDiv = overlay.querySelector('#ob-content');
-        const html = `
-            <div style="font-size:2.8rem;line-height:1;margin-bottom:4px;">${s.icon}</div>
-            <div style="display:flex;gap:5px;align-items:center;justify-content:center;margin-bottom:16px;">${dotHtml}</div>
-            <div style="font-size:clamp(1.4rem,4.5vw,1.9rem);font-weight:900;color:var(--text-primary);letter-spacing:-0.5px;line-height:1.15;margin-bottom:12px;">${s.title}</div>
-            <div style="font-size:0.9rem;color:var(--text-secondary);line-height:1.7;font-weight:500;max-width:320px;">${s.body}</div>
-            ${s.highlight ? `<div style="margin-top:14px;padding:10px 14px;border-radius:12px;background:rgba(var(--rank-rgb),0.1);border:1px solid rgba(var(--rank-rgb),0.3);font-size:0.75rem;font-weight:700;color:var(--rank-color);letter-spacing:0.3px;max-width:300px;">${s.highlight}</div>` : ''}
-            <div style="display:flex;gap:10px;width:100%;max-width:320px;margin-top:22px;">
-                ${current > 0 ? `<button id="ob-prev-btn" style="flex:1;padding:13px;background:transparent;border:1.5px solid rgba(255,255,255,0.15);color:var(--text-secondary);border-radius:14px;font-size:0.82rem;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:1px;">← Atrás</button>` : '<div style="flex:0.3"></div>'}
-                <button id="ob-next-btn" style="flex:2;padding:13px;background:rgba(var(--rank-rgb),0.15);border:1.5px solid rgba(var(--rank-rgb),0.5);color:var(--rank-color);border-radius:14px;font-size:0.88rem;font-weight:800;cursor:pointer;text-transform:uppercase;letter-spacing:1px;">${isLast ? '¡Jugar!' : 'Siguiente →'}</button>
+        // Indicadores de progreso (puntos de posición)
+        const dots = slides.map((_, i) => {
+            const active = i === current;
+            return `<div style="width:${active?'22px':'7px'};height:7px;border-radius:4px;background:${active?'var(--rank-color)':'rgba(255,255,255,0.15)'};transition:all 0.35s cubic-bezier(.4,0,0.2,1);flex-shrink:0;"></div>`;
+        }).join('');
+
+        panel.innerHTML = `
+            <div style="margin-bottom:28px;display:flex;gap:6px;align-items:center;justify-content:center;">${dots}</div>
+
+            <div style="
+                padding:3px 12px;border-radius:20px;
+                border:1px solid rgba(var(--rank-rgb),0.4);
+                background:rgba(var(--rank-rgb),0.08);
+                font-size:0.6rem;font-weight:900;letter-spacing:2.5px;
+                color:var(--rank-color);text-transform:uppercase;
+                margin-bottom:18px;
+            ">${s.tag}</div>
+
+            <div style="
+                font-size:clamp(1.5rem,5vw,2rem);font-weight:900;
+                color:var(--text-primary);letter-spacing:-0.5px;
+                line-height:1.15;margin-bottom:16px;
+                width:100%;
+            ">${s.title}</div>
+
+            <div style="
+                font-size:0.9rem;color:var(--text-secondary);
+                line-height:1.75;font-weight:500;
+                max-width:320px;min-height:72px;
+                margin-bottom:${s.note ? '14px' : '28px'};
+            ">${s.body}</div>
+
+            ${s.note ? `<div style="
+                width:min(300px,85vw);padding:10px 16px;border-radius:12px;
+                background:rgba(var(--rank-rgb),0.08);
+                border:1px solid rgba(var(--rank-rgb),0.25);
+                font-size:0.72rem;font-weight:700;
+                color:var(--rank-color);letter-spacing:0.3px;
+                margin-bottom:28px;
+            ">${s.note}</div>` : ''}
+
+            <div style="display:grid;grid-template-columns:${current > 0 ? '1fr 2fr' : '1fr'};gap:10px;width:min(320px,85vw);">
+                ${current > 0 ? `<button id="ob-btn-prev" style="
+                    padding:14px 0;border-radius:14px;cursor:pointer;
+                    background:transparent;border:1.5px solid rgba(255,255,255,0.12);
+                    color:var(--text-secondary);font-size:0.82rem;font-weight:800;
+                    text-transform:uppercase;letter-spacing:1px;
+                ">Atras</button>` : ''}
+                <button id="ob-btn-next" style="
+                    padding:14px 0;border-radius:14px;cursor:pointer;
+                    background:rgba(var(--rank-rgb),0.14);
+                    border:1.5px solid rgba(var(--rank-rgb),0.5);
+                    color:var(--rank-color);font-size:0.88rem;font-weight:900;
+                    text-transform:uppercase;letter-spacing:1px;
+                ">${isLast ? 'Jugar' : 'Siguiente'}</button>
             </div>
-            <button id="ob-skip-btn" style="margin-top:12px;background:none;border:none;color:rgba(255,255,255,0.3);font-size:0.7rem;cursor:pointer;font-weight:600;letter-spacing:0.5px;">Saltar introducción</button>
+
+            <button id="ob-btn-skip" style="
+                margin-top:16px;background:none;border:none;
+                color:rgba(255,255,255,0.25);font-size:0.68rem;
+                cursor:pointer;font-weight:600;letter-spacing:0.5px;
+            ">Saltar introduccion</button>
         `;
-        if (contentDiv) {
-            contentDiv.innerHTML = html;
-        }
-        // Rebind buttons
-        const nb = overlay.querySelector('#ob-next-btn');
-        const pb = overlay.querySelector('#ob-prev-btn');
-        const sb = overlay.querySelector('#ob-skip-btn');
-        if (nb) nb.onclick = () => { if (isLast) { stopParticles(); overlay.remove(); onComplete(); } else { current++; render(); }};
-        if (pb) pb.onclick = () => { current--; render(); };
-        if (sb) sb.onclick = () => { stopParticles(); overlay.remove(); onComplete(); };
+
+        // Bind events
+        const btnNext = panel.querySelector('#ob-btn-next');
+        const btnPrev = panel.querySelector('#ob-btn-prev');
+        const btnSkip = panel.querySelector('#ob-btn-skip');
+        if (btnNext) btnNext.onclick = () => {
+            try { initAudio(); SFX.click(); } catch(e) {}
+            if (isLast) { _stopParticles(); _stopObMusic(); overlay.remove(); onComplete(); }
+            else { current++; render(); }
+        };
+        if (btnPrev) btnPrev.onclick = () => {
+            try { SFX.click(); } catch(e) {}
+            current--; render();
+        };
+        if (btnSkip) btnSkip.onclick = () => {
+            _stopParticles(); _stopObMusic(); overlay.remove(); onComplete();
+        };
     }
 
-    overlay.innerHTML += `<div id="ob-content" style="position:relative;z-index:1;max-width:400px;width:100%;display:flex;flex-direction:column;align-items:center;gap:0;text-align:center;"></div>`;
-    document.body.appendChild(overlay);
-
-    // Iniciar partículas DESPUÉS de que el overlay esté en el DOM
+    // ── Arrancar ──────────────────────────────────────────────────
     requestAnimationFrame(() => {
-        stopParticles = initParticles();
+        _startParticles();
+        try { initAudio(); _startObMusic(); } catch(e) {}
         render();
     });
 }
