@@ -1497,6 +1497,20 @@ function calculatePowerLevel(stats) {
 }
 
 let _submitDebounceTimer = null;
+const _LB_PENDING_KEY = 'klick_pending_lb_submit';
+
+// Retry de envíos fallidos cuando vuelve la conexión
+window.addEventListener('online', function() {
+    const pending = localStorage.getItem(_LB_PENDING_KEY);
+    if (!pending) return;
+    try {
+        const payload = JSON.parse(pending);
+        fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
+            .then(() => localStorage.removeItem(_LB_PENDING_KEY))
+            .catch(() => {}); // si falla de nuevo, el listener lo reintentará
+    } catch(e) { localStorage.removeItem(_LB_PENDING_KEY); }
+});
+
 async function submitLeaderboard() {
     if (!playerStats.playerName || playerStats.playerName === "JUGADOR" || GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") return;
     // Debounce: avoid multiple rapid submits (e.g. saveGameStats + setInterval overlap)
@@ -1514,8 +1528,14 @@ async function submitLeaderboard() {
             totalScore: playerStats.totalScore,
             maxStreak:  playerStats.maxStreak
         };
-        try { await fetch(GAS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) });
-        } catch(e) {}
+        try {
+            if (!navigator.onLine) throw new Error('offline');
+            await fetch(GAS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) });
+            localStorage.removeItem(_LB_PENDING_KEY); // limpiar pendiente si había uno
+        } catch(e) {
+            // Guardar para reintento cuando vuelva la conexión
+            try { localStorage.setItem(_LB_PENDING_KEY, JSON.stringify(payload)); } catch(_) {}
+        }
     }, 1200);
 }
 
@@ -3529,6 +3549,19 @@ function closeRoulette() {
     }, 300);
 }
 
+// ── Botón físico "Atrás" (Android/PWA) ──────────────────────────────────────
+window.addEventListener('popstate', function(e) {
+    // Si hay una partida activa, interceptar y mostrar modal de abandono
+    const activeScreen = _currentScreen && _currentScreen.id;
+    if (activeScreen === 'question-screen' || activeScreen === 'feedback-screen' || activeScreen === 'countdown-screen') {
+        // Re-empujar estado para no salir de la app
+        try { history.pushState({ klickGame: true }, ''); } catch(err) {}
+        // Mostrar modal de abandono (el mismo botón "Abandonar" del juego)
+        const abandonModal = document.getElementById('abandon-modal');
+        if (abandonModal) abandonModal.classList.add('active');
+    }
+});
+
 function goToMainMenu() { 
     SFX.click(); 
     // ui2: Vuelvo en Un Segundo — sale de Configuración en <3 segundos
@@ -3629,17 +3662,19 @@ function goToProfile(needsName = false) {
     // Render PL panel
     (function renderPLPanel(){
         const s = playerStats;
-        const plBase   = Math.floor((s.totalScore||0)*0.05);
+        const totalAnswers = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
+        const accuracy = totalAnswers>0 ? Math.min(100,Math.round((s.totalCorrect||0)/totalAnswers*100)) : 0;
+        const fmt = n => n.toLocaleString();
+        // Usar misma fórmula que calculatePowerLevel (con cap + efficiency)
+        const plBase   = Math.min(Math.floor((s.totalScore||0)*0.05), 50000);
         const plBest   = Math.floor((s.bestScore||0)*1.5);
         const plStreak = (s.maxStreak||0)*200;
         const plPerf   = (s.perfectGames||0)*1000;
         const plAchs   = (s.achievements||[]).length*300;
         const plAcc    = s.gamesPlayed>0 ? Math.floor(((s.totalCorrect||0)/(s.gamesPlayed*20))*5000) : 0;
-        const plTotal  = plBase+plBest+plStreak+plPerf+plAchs+plAcc;
-        const fmt = n => n.toLocaleString();
-        // Precision %
-        const totalAnswers = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
-        const accuracy = totalAnswers>0 ? Math.min(100,Math.round((s.totalCorrect||0)/totalAnswers*100)) : 0;
+        const avgScore = s.gamesPlayed>0 ? Math.floor((s.totalScore||0)/s.gamesPlayed) : 0;
+        const plEfficiency = Math.min(Math.floor(avgScore * 0.3), 15000);
+        const plTotal  = plBase+plBest+plStreak+plPerf+plAchs+plAcc+plEfficiency;
         // PL total & rank color
         const plTotalEl = document.getElementById('pl-total');
         if(plTotalEl){ plTotalEl.innerText=fmt(plTotal); plTotalEl.style.color=currentRankInfo.color; }
@@ -3654,14 +3689,15 @@ function goToProfile(needsName = false) {
         // Build rows
         const rowsEl=document.getElementById('pl-rows');
         if(!rowsEl) return;
-        const colors=['var(--accent-blue)','var(--accent-yellow)','var(--accent-orange)','var(--accent-green)','var(--accent-purple)','var(--accent-red)'];
+        const colors=['var(--accent-blue)','var(--accent-yellow)','var(--accent-orange)','var(--accent-green)','var(--accent-purple)','var(--accent-red)','var(--accent-blue)'];
         const rows=[
-            { label:'Puntaje acum.',   raw:fmt(s.totalScore||0),    factor:'× 0.05',  result:plBase,   color:colors[0] },
-            { label:'Récord',          raw:fmt(s.bestScore||0),      factor:'× 1.5',   result:plBest,   color:colors[1] },
-            { label:'Racha máxima',    raw:`${s.maxStreak||0} aciertos`, factor:'× 200', result:plStreak, color:colors[2] },
-            { label:'Partidas perfectas', raw:`${s.perfectGames||0} partidas`, factor:'× 1,000', result:plPerf, color:colors[3] },
-            { label:'Logros',          raw:`${(s.achievements||[]).length} logros`, factor:'× 300', result:plAchs, color:colors[4] },
-            { label:'Precisión',       raw:`${accuracy}%`,           factor:'× 5,000', result:plAcc,    color:colors[5] },
+            { label:'Puntaje acum.',   raw:fmt(s.totalScore||0),    factor:'× 0.05 (máx 50k)',  result:plBase,        color:colors[0] },
+            { label:'Récord',          raw:fmt(s.bestScore||0),      factor:'× 1.5',              result:plBest,        color:colors[1] },
+            { label:'Racha máxima',    raw:`${s.maxStreak||0} aciertos`, factor:'× 200',          result:plStreak,      color:colors[2] },
+            { label:'Partidas perfectas', raw:`${s.perfectGames||0} partidas`, factor:'× 1,000',  result:plPerf,        color:colors[3] },
+            { label:'Logros',          raw:`${(s.achievements||[]).length} logros`, factor:'× 300', result:plAchs,      color:colors[4] },
+            { label:'Precisión',       raw:`${accuracy}%`,           factor:'× 5,000',            result:plAcc,         color:colors[5] },
+            { label:'Eficiencia',      raw:`${fmt(avgScore)} prom/p`, factor:'× 0.3 (máx 15k)',   result:plEfficiency,  color:colors[6] },
         ];
         rowsEl.innerHTML = rows.map((r,i)=>`
             <div class="pl-calc-row">
@@ -3742,8 +3778,101 @@ function goToProfile(needsName = false) {
         const accEl=document.getElementById('pl-accuracy-pct');
         if(accEl) accEl.innerText=`Precisión: ${accuracy}%`;
     })();
-    renderAchievements(); switchScreen('profile-screen');
+    renderAchievements(); renderRankProgress(); switchScreen('profile-screen');
     if (needsName) setTimeout(() => { document.getElementById('profile-name-input').focus(); document.getElementById('profile-name-input').classList.add('shake'); setTimeout(() => document.getElementById('profile-name-input').classList.remove('shake'), 400); }, 400);
+}
+
+function renderRankProgress() {
+    const s = playerStats;
+    const ri = currentRankInfo;
+    const fmt = n => (n||0).toLocaleString();
+    const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
+    const accuracy = totalAns>0 ? Math.round((s.totalCorrect||0)/totalAns*100) : 0;
+    const card = document.getElementById('rank-progress-card');
+    const titleEl = document.getElementById('rank-progress-title');
+    const pctEl = document.getElementById('rank-progress-pct');
+    const listEl = document.getElementById('rank-req-list');
+    const barEl = document.getElementById('rank-progress-bar');
+    if (!card || !listEl || !barEl) return;
+
+    // Definir requerimientos del siguiente rango
+    let reqs = [], nextColor = ri.color, nextName = '';
+    if (ri.title === 'Novato') {
+        nextName = 'Junior'; nextColor = 'var(--accent-blue)';
+        reqs = [
+            { label: 'Récord', cur: s.bestScore||0, need: 15000, fmt: v => fmt(v) },
+            { label: 'Partidas', cur: s.gamesPlayed||0, need: 5, fmt: v => v },
+        ];
+    } else if (ri.title === 'Junior') {
+        nextName = 'Pro'; nextColor = 'var(--accent-red)';
+        reqs = [
+            { label: 'Acum.', cur: s.totalScore||0, need: 60000, fmt: v => fmt(v) },
+            { label: 'Aciertos', cur: s.totalCorrect||0, need: 200, fmt: v => v },
+            { label: 'Racha', cur: s.maxStreak||0, need: 12, fmt: v => v },
+        ];
+    } else if (ri.title === 'Pro') {
+        nextName = 'Maestro'; nextColor = 'var(--accent-purple)';
+        reqs = [
+            { label: 'Acum.', cur: s.totalScore||0, need: 150000, fmt: v => fmt(v) },
+            { label: 'Partidas', cur: s.gamesPlayed||0, need: 50, fmt: v => v },
+            { label: 'Mult. máx.', cur: s.maxMult||1, need: 4, fmt: v => 'x'+v },
+        ];
+    } else if (ri.title === 'Maestro') {
+        nextName = 'Leyenda'; nextColor = 'var(--accent-yellow)';
+        reqs = [
+            { label: 'Acum.', cur: s.totalScore||0, need: 400000, fmt: v => fmt(v) },
+            { label: 'Aciertos', cur: s.totalCorrect||0, need: 1500, fmt: v => v },
+            { label: 'Perfectas', cur: s.perfectGames||0, need: 10, fmt: v => v },
+        ];
+    } else if (ri.title === 'Leyenda') {
+        nextName = 'Mítico'; nextColor = '#ffffff';
+        reqs = [
+            { label: 'Acum.', cur: s.totalScore||0, need: 1200000, fmt: v => fmt(v) },
+            { label: 'Aciertos', cur: s.totalCorrect||0, need: 5000, fmt: v => v },
+            { label: 'Perfectas', cur: s.perfectGames||0, need: 50, fmt: v => v },
+            { label: 'Logros', cur: (s.achievements||[]).length, need: 165, fmt: v => v },
+            { label: 'Racha', cur: s.maxStreak||0, need: 40, fmt: v => v },
+            { label: 'Mult.', cur: s.maxMult||1, need: 8, fmt: v => 'x'+v },
+            { label: 'Precisión', cur: accuracy, need: 85, fmt: v => v+'%' },
+            { label: 'Días', cur: s.maxLoginStreak||0, need: 30, fmt: v => v },
+        ];
+    } else {
+        // Mítico o Divinidad — rango máximo
+        if (titleEl) titleEl.textContent = 'Rango máximo alcanzado';
+        if (pctEl) pctEl.textContent = '✓';
+        listEl.innerHTML = '';
+        barEl.parentElement.style.display = 'none';
+        card.style.borderColor = 'rgba(255,255,255,0.15)';
+        return;
+    }
+
+    barEl.parentElement.style.display = '';
+    if (titleEl) titleEl.textContent = 'Progreso → ' + nextName;
+    card.style.borderColor = nextColor.startsWith('var') ? '' : `rgba(${nextColor.replace('#','')},0.3)`;
+
+    // Calcular % global: promedio de todos los reqs completados
+    const dones = reqs.filter(r => r.cur >= r.need).length;
+    const pct = Math.round((dones / reqs.length) * 100);
+    if (pctEl) { pctEl.textContent = pct + '%'; pctEl.style.color = nextColor; }
+
+    // Chips por requisito
+    listEl.innerHTML = reqs.map(r => {
+        const done = r.cur >= r.need;
+        const chipPct = Math.min(100, Math.round((r.cur / r.need) * 100));
+        return `<div style="display:flex;flex-direction:column;gap:3px;padding:6px 8px;border-radius:8px;background:${done ? 'rgba(0,255,102,0.07)' : 'rgba(255,255,255,0.03)'};border:1px solid ${done ? 'rgba(0,255,102,0.25)' : 'rgba(255,255,255,0.06)'};">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.55rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${done ? 'var(--accent-green)' : 'var(--text-secondary)'};">${r.label}</span>
+                ${done ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+            </div>
+            <div style="font-size:0.68rem;font-weight:800;color:${done ? 'var(--accent-green)' : 'var(--text-primary)'};font-variant-numeric:tabular-nums;">${r.fmt(r.cur)}<span style="font-size:0.5rem;font-weight:500;color:var(--text-secondary);"> / ${r.fmt(r.need)}</span></div>
+            <div style="height:2px;border-radius:4px;background:rgba(255,255,255,0.05);overflow:hidden;">
+                <div style="height:100%;width:${chipPct}%;border-radius:4px;background:${done ? 'var(--accent-green)' : nextColor};transition:width 0.8s cubic-bezier(0.16,1,0.3,1);"></div>
+            </div>
+        </div>`;
+    }).join('');
+
+    // Barra global
+    setTimeout(() => { if(barEl) { barEl.style.width = pct + '%'; barEl.style.background = nextColor; } }, 120);
 }
 
 function showOnboarding(onComplete) {
@@ -3937,6 +4066,8 @@ let frenziesThisGame = 0;      // for extra1 Doble Frenesí
 function startGame() {
     _gameSessionId++; // invalidate stale feedback timeouts
     initAudio(); SFX.gameStart();
+    // Botón físico "Atrás" de Android/PWA: empujar estado para capturar popstate
+    try { history.pushState({ klickGame: true }, ''); } catch(e) {}
     
     // Track same-track-game streak for achievement
     const lastTrack = playerStats.lastGameTrack || '';
@@ -4273,6 +4404,7 @@ function loadQuestion() {
     if (extraTimeActive) { questionTime += extraTimeActive; extraTimeActive = 0; updateRewardIndicator(); }
     isAnsweringAllowed = true; isGamePaused = false; timeLeft = questionTime; timerText.innerText = timeLeft;
     
+    timerText.classList.remove('timer-urgent'); // limpiar urgencia de pregunta anterior
     timerPath.style.transition = 'none'; timerPath.style.strokeDashoffset = '0'; timerPath.style.stroke = 'var(--text-primary)'; timerText.style.color = 'var(--text-primary)'; void timerPath.offsetWidth; timerPath.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s ease';
     
     const timerTotal = questionTime;
@@ -4565,7 +4697,10 @@ function showFeedback(isCorrect, isTimeout = false) {
             else { scr.className = 'screen incorrect'; icon.innerHTML = SVG_INCORRECT; title.innerText = "INCORRECTO"; }
             // Show the correct answer
             if (correctAnswerEl && _currentQuestion) {
-                const correctText = _currentQuestion.answers[_currentQuestion.currentCorrectIndex] || '';
+                // Lee del DOM: currentCorrectIndex apunta al botón correcto ya mezclado
+                const _ci = _currentQuestion.currentCorrectIndex;
+                const _ansSpan = (_gAns && _gAns[_ci]) ? _gAns[_ci] : document.getElementById('ans-' + _ci);
+                const correctText = (_ansSpan ? _ansSpan.innerText : '') || '';
                 if (correctText) {
                     correctAnswerEl.textContent = 'Respuesta: ' + correctText;
                     correctAnswerEl.style.display = 'block';
@@ -4578,8 +4713,11 @@ function showFeedback(isCorrect, isTimeout = false) {
                 showToast('RACHA PROTEGIDA', 'Tu racha ha sido salvada.', '#aaaaff', SVG_SHIELD);
                 // Don't reset streak, but do lose a life
             } else {
-                streak = 0;
-                playerStats.currentFrenzyStreak = 0;
+                // Caída gradual: baja un nivel de multiplicador (5 puntos de racha) en vez de colapsar a x1
+                // Si quedan 0 vidas tras este fallo, sí resetea completamente (fin de partida inminente)
+                const streakDrop = 5;
+                streak = Math.max(0, streak - streakDrop);
+                playerStats.currentFrenzyStreak = Math.max(0, (playerStats.currentFrenzyStreak||0) - streakDrop);
             }
             points.style.display = 'none';
             lives--;
@@ -4723,11 +4861,17 @@ function endGame() {
     
     const msg = document.getElementById('final-message');
     const rankLabel = document.getElementById('end-rank-label');
+    const recordBadge = document.getElementById('end-record-badge');
+
+    // Badge nuevo récord — saveGameStats ya actualizó bestScore, comparar con score actual
+    if (recordBadge) {
+        recordBadge.style.display = (playerStats.bestScore === score && score > 0) ? 'flex' : 'none';
+    }
 
     if(score > 300000) { msg.innerText = "¡Leyenda!"; if(rankLabel) rankLabel.innerText = "Clasificación Final"; }
     else if(score > 100000) { msg.innerText = "¡Superviviente Nato!"; if(rankLabel) rankLabel.innerText = "Resultado"; }
     else if(score > 25000) { msg.innerText = "¡Buen Desempeño!"; if(rankLabel) rankLabel.innerText = "Resultado"; }
-    else { msg.innerText = "Sigue practicando"; if(rankLabel) rankLabel.innerText = "Resultado"; }
+    else { msg.innerText = "Sigue Practicando"; if(rankLabel) rankLabel.innerText = "Resultado"; }
 
     document.getElementById('final-name').innerText = playerStats.playerName || 'ESTUDIANTE';
     document.getElementById('final-correct-label').innerText = 'Aciertos';
@@ -4736,7 +4880,6 @@ function endGame() {
     document.getElementById('final-correct').innerText = _endCorrect;
     document.getElementById('final-streak').innerText = currentMaxStreak; 
     document.getElementById('final-speed').innerText = currentFastAnswers;
-    // New expanded stats
     const _endAccuracy = _endTotal > 0 ? Math.round((_endCorrect / _endTotal) * 100) : 0;
     const _accEl = document.getElementById('final-accuracy');
     const _multEl = document.getElementById('final-maxmult');
