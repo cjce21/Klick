@@ -1,27 +1,42 @@
 // ═══════════════════════════════════════════════════════════════════════════
-//  SISTEMA ANTI-TRAMPAS — v3
-//  Vectores cubiertos:
-//   1. Clic derecho / inspección / view-source
-//   2. Atajos de teclado para DevTools
-//   3. Cambio de pestaña (visibilitychange)
-//   4. Pérdida de foco (blur) — ventana tapada, diálogo del sistema, snap lateral
-//   5. Reducción de ventana durante partida (resize → split-screen activado mid-game)
-//   6. Pantalla dividida al iniciar (startGameCheck)
-//   7. Picture-in-Picture
-//   8. Polling periódico de foco + visibilidad durante partida activa
-//   9. pagehide (iOS Safari)
+//  KLICK SHIELD v2 — Sistema de Detección y Sanción
+//
+//  Principio: ningún evento aislado genera sanción. El sistema recolecta
+//  señales durante la partida, las pondera, aplica atenuantes al terminar,
+//  y solo actúa cuando la evidencia acumulada es inequívoca.
+//
+//  Fases:
+//   1. Recolección silenciosa de señales (durante partida)
+//   2. Análisis post-partida con atenuantes (nunca interrumpe el juego)
+//   3. Escalada de sanciones por infracciones acumuladas (máx. 24 h)
+//
+//  Protecciones especiales para iPad/Safari: blur y poll ponderados a la
+//  mitad; resize ignorado en tablet; poll cada 10 s en lugar de 3 s.
 // ═══════════════════════════════════════════════════════════════════════════
 
-document.addEventListener('contextmenu', e => e.preventDefault());
-
-document.addEventListener('keydown', e => {
-    if (e.keyCode === 123 ||
-        (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) ||
-        (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 67 || e.keyCode === 83 || e.keyCode === 80))) {
-        e.preventDefault();
-        return false;
-    }
+document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    if (typeof isAnsweringAllowed !== 'undefined' && isAnsweringAllowed)
+        _ksAddSignal('contextmenu', 3);
 });
+
+document.addEventListener('keydown', (e) => {
+    const k    = e.keyCode || e.which;
+    const ctrl = e.ctrlKey || e.metaKey;
+    const sh   = e.shiftKey;
+    const game = typeof isAnsweringAllowed !== 'undefined' && isAnsweringAllowed;
+    // Bloquear DevTools, fuente, guardar, imprimir, buscar, sel-all, zoom
+    if (k === 123) { e.preventDefault(); return false; }
+    if (ctrl && sh && (k===73||k===74||k===67||k===75)) { e.preventDefault(); return false; }
+    if (ctrl && (k===85||k===83||k===80||k===65||k===70||k===71||k===72)) { e.preventDefault(); return false; }
+    if (ctrl && (k===187||k===61||k===189||k===173||k===48)) { e.preventDefault(); return false; }
+    // Registrar capturas de pantalla (no se pueden bloquear)
+    if (game) {
+        if (k === 44) _ksAddSignal('printscreen_key', 7);
+        if (ctrl && sh && (k===51||k===52||k===53)) _ksAddSignal('screenshot_key', 7);
+        if (e.metaKey && sh && k === 83) _ksAddSignal('screenshot_key', 7);
+    }
+}, { capture: true });
 
 // ── Estado de silencio por pérdida de foco ───────────────────────────────
 let _audioPausedByFocus = false;
@@ -35,9 +50,7 @@ function _muteByFocus() {
         masterMusicGain.gain.setValueAtTime(masterMusicGain.gain.value, t);
         masterMusicGain.gain.linearRampToValueAtTime(0.0001, t + 0.08);
         setTimeout(() => {
-            if (_audioPausedByFocus && audioCtx && audioCtx.state === 'running') {
-                audioCtx.suspend();
-            }
+            if (_audioPausedByFocus && audioCtx && audioCtx.state === 'running') audioCtx.suspend();
         }, 100);
     }
 }
@@ -62,131 +75,1105 @@ function _unmuteByFocus() {
                 if (!_architectMusicTimer) _architectTick();
             }
         };
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume().then(doFade).catch(() => {});
-        } else {
-            doFade();
-        }
+        if (audioCtx.state === 'suspended') audioCtx.resume().then(doFade).catch(() => {});
+        else doFade();
     }
 }
 
-// ── Cooldown global: evita sanciones dobles por eventos simultáneos ──────
-let _cheaterCooldown = false;
-function _triggerCheatIfActive(source) {
-    if (!isAnsweringAllowed || isGamePaused) return;
-    if (_cheaterCooldown) return;
-    _cheaterCooldown = true;
-    setTimeout(() => { _cheaterCooldown = false; }, 4000);
-    punishCheater();
+// ══════════════════════════════════════════════════════════════════════════
+//  KLICK SHIELD — Detección de dispositivo iPad/Safari
+// ══════════════════════════════════════════════════════════════════════════
+function _isIpadSafari() {
+    const ua  = navigator.userAgent || '';
+    const mtp = navigator.maxTouchPoints || 0;
+    const sw  = window.screen.width;
+    if (/iPad/.test(ua)) return true;
+    if (navigator.platform === 'MacIntel' && mtp > 1) return true; // iPadOS 13+
+    if (mtp >= 2 && sw >= 768 && /Safari/.test(ua) && !/Chrome/.test(ua)) return true;
+    return false;
+}
+const _KS_IS_IPAD = _isIpadSafari();
+
+// ══════════════════════════════════════════════════════════════════════════
+//  KLICK SHIELD v4 — Sistema completo de detección y señales
+// ══════════════════════════════════════════════════════════════════════════
+
+// ── Estado global de la partida ──────────────────────────────────────────
+let _ksWeight      = 0;
+let _ksSignals     = [];
+let _ksLastBlurTs  = 0;
+let _ksLastVisTs   = 0;
+let _ksFocusLostTs = 0;
+let _ksNoFocusSecs = 0;
+let _ksResizeTimer = null;
+let _gameWindowW   = window.innerWidth;
+let _gameWindowH   = window.innerHeight;
+let _ksRespTimings = [];
+let _ksQStartTs    = 0;
+let _ksScrollSpikes   = 0;
+let _ksLastScrollY    = 0;
+let _ksLastPtrTs      = Date.now();
+let _ksAlertCooldownTs = 0;
+// iOS signals
+let _ksIosHiddenTs     = 0;
+let _ksIosMultitaskTs  = 0;
+let _ksIosBlurOnlyTs   = 0;
+// visualViewport
+let _ksVvLastScale = (window.visualViewport ? window.visualViewport.scale : 1);
+let _ksVvLastW     = (window.visualViewport ? window.visualViewport.width : window.innerWidth);
+// TTS / Mic
+let _ksTtsWasIdle  = true;
+window._ksActiveMicTracks = [];
+// AssistiveTouch
+let _ksAssistTapHistory = [];
+// Window geometry (para Stage Manager / ventana flotante)
+let _ksWinX = (window.screenX || 0);
+let _ksWinY = (window.screenY || 0);
+let _ksWinOW = window.outerWidth;
+let _ksWinOH = window.outerHeight;
+// ── Split-screen tracking ────────────────────────────────────────────────
+// Estado de si la ventana está en modo split ahora mismo
+let _ksSplitActive     = false;
+let _ksSplitEnterTs    = 0;    // cuando entró al split
+let _ksSplitInteractTs = 0;    // timestamp de última interacción DURANTE split
+
+function _ksReset() {
+    _ksWeight = 0; _ksSignals = [];
+    _ksLastBlurTs = 0; _ksLastVisTs = 0;
+    _ksFocusLostTs = 0; _ksNoFocusSecs = 0;
+    _ksRespTimings = []; _ksQStartTs = 0;
+    _ksScrollSpikes = 0; _ksLastScrollY = window.scrollY || 0;
+    _ksLastPtrTs = Date.now(); _ksAssistTapHistory = [];
+    _ksWinX = (window.screenX || 0); _ksWinY = (window.screenY || 0);
+    _ksWinOW = window.outerWidth; _ksWinOH = window.outerHeight;
+    _ksSplitActive = false; _ksSplitEnterTs = 0; _ksSplitInteractTs = 0;
+    _ksTtsWasIdle = true;
+    // NO resetear _ksGameActive aquí — se gestiona en _start/_stopAntiCheatPoll
 }
 
-// ── 1. visibilitychange — cambio de pestaña, minimizar, bloqueo de pantalla
+// _ksGameActive: true mientras una partida esté en curso (incluyendo entre preguntas/feedback)
+let _ksGameActive = false;
+
+function _ksAddSignal(name, pts) {
+    // Aceptar si hay partida activa (isAnsweringAllowed) O si el juego está en pausa/feedback
+    // pero la partida no ha terminado (_ksGameActive)
+    if (!_ksGameActive && !isAnsweringAllowed && !isGamePaused) return;
+    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') return;
+    _ksWeight += pts;
+    _ksSignals.push(name);
+    if (pts >= 6) _ksShowSilentAlert();
+}
+
+// ── Toast discreto in-game ────────────────────────────────────────────────
+function _ksShowSilentAlert() {
+    const now = Date.now();
+    if (now - _ksAlertCooldownTs < 11000) return;
+    _ksAlertCooldownTs = now;
+    const prev = document.getElementById('ks-ingame-alert');
+    if (prev) prev.remove();
+    const el = document.createElement('div');
+    el.id = 'ks-ingame-alert';
+    el.className = 'ks-silent-alert';
+    el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>Actividad registrada</span>';
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('ks-silent-alert-visible'));
+    setTimeout(() => {
+        el.classList.remove('ks-silent-alert-visible');
+        setTimeout(() => { try { el.remove(); } catch(_){} }, 450);
+    }, 3200);
+}
+
+// ══ Listeners: visibilidad y foco ════════════════════════════════════════
+
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
         _muteByFocus();
-        _triggerCheatIfActive('visibility');
+        const now = Date.now();
+        _ksLastVisTs = now;
+        if (_ksFocusLostTs === 0) _ksFocusLostTs = now;
+        const blurFirst = (now - _ksLastBlurTs) < 250;
+        // blurFirst = blur justo antes → cambio de pestaña o Alt+Tab clásico
+        // solo visibility → minimizar, notificación de OS, bloqueo de pantalla
+        if (blurFirst) {
+            _ksAddSignal('tab_switch', 6);      // cambio de pestaña / Alt+Tab
+        } else {
+            _ksAddSignal('window_minimize', 5); // minimizar / lock screen / notificación OS
+        }
+        _ksIosHiddenTs    = now;
+        _ksIosMultitaskTs = now;
+        // Split: si salió a otra app mientras la ventana estaba en split
+        if (_ksSplitActive && isAnsweringAllowed) {
+            _ksSplitInteractTs = now;
+            _ksAddSignal('split_app_switch', 6);
+        }
     } else {
         _unmuteByFocus();
+        if (_ksFocusLostTs > 0) { _ksNoFocusSecs += (Date.now() - _ksFocusLostTs) / 1000; _ksFocusLostTs = 0; }
+        if (isAnsweringAllowed) {
+            const hiddenMs = Date.now() - _ksIosHiddenTs;
+            if (_ksIosHiddenTs > 0 && hiddenMs > 0 && hiddenMs < 180)
+                _ksAddSignal('ios_screenshot_flash', 7);
+            if (_ksIosMultitaskTs > 0 && hiddenMs >= 300 && hiddenMs <= 1200)
+                _ksAddSignal('ios_quick_app_switch', 5);
+        }
+        _ksIosHiddenTs = 0; _ksIosMultitaskTs = 0;
     }
 });
 
-// ── 2. blur — ventana tapada, dialogo del sistema, snap lateral, alt-tab
 window.addEventListener('blur', () => {
     _muteByFocus();
-    _triggerCheatIfActive('blur');
+    const now = Date.now();
+    _ksLastBlurTs = now;
+    if (_ksFocusLostTs === 0) _ksFocusLostTs = now;
+    _ksAddSignal('blur', _KS_IS_IPAD ? 0.6 : 3);
+    // Desktop: blur sin visibilitychange inmediato = minimizar ventana o Alt+Tab rápido
+    if (!_KS_IS_IPAD && window.screen.width > 480) {
+        setTimeout(() => {
+            if (_ksFocusLostTs > 0 && document.visibilityState === 'visible' && !document.hasFocus()) {
+                // Sigue visible pero sin foco = otra ventana en primer plano (Alt+Tab / minimizar)
+                _ksAddSignal('window_minimized_or_alttab', 5);
+            }
+        }, 180);
+    }
+    // iOS: blur sin visibility→hidden = Control Center / Siri lateral
+    if (_KS_IS_IPAD && isAnsweringAllowed) {
+        _ksIosBlurOnlyTs = now;
+        setTimeout(() => {
+            if (_ksIosBlurOnlyTs > 0 && document.visibilityState === 'visible' && isAnsweringAllowed)
+                _ksAddSignal('ios_control_center', 4);
+            _ksIosBlurOnlyTs = 0;
+        }, 280);
+    }
+    // Split: pérdida de foco con split activo = interacción en la otra mitad
+    if (_ksSplitActive && isAnsweringAllowed) {
+        _ksSplitInteractTs = now;
+        _ksAddSignal('split_focus_lost', 5);
+    }
 });
 
-// ── 3. focus — restaurar audio al volver
 window.addEventListener('focus', () => {
     if (document.visibilityState === 'visible') {
         _unmuteByFocus();
+        if (_ksFocusLostTs > 0) { _ksNoFocusSecs += (Date.now() - _ksFocusLostTs) / 1000; _ksFocusLostTs = 0; }
     }
+    _ksIosBlurOnlyTs = 0;
 });
 
-// ── 4. pagehide — iOS Safari no emite blur al navegar fuera
-window.addEventListener('pagehide', () => {
+window.addEventListener('pagehide', (e) => {
     _muteByFocus();
+    if (isAnsweringAllowed && !e.persisted) _ksAddSignal('page_unload_game', 8);
 });
 
-// ── 5. resize — detecta activación de pantalla dividida DURANTE la partida
-//    Umbral: si la ventana cae por debajo del 52% del ancho de pantalla
-//    mientras hay partida activa → trampa. Solo en desktop (screen.width > 600).
-//    Debounced 600ms para ignorar reajustes normales de layout.
-let _resizeCheatTimer = null;
-let _gameWindowW = window.innerWidth;   // se actualiza al iniciar partida
-let _gameWindowH = window.innerHeight;
+// ── Resize / split-screen ─────────────────────────────────────────────────
 window.addEventListener('resize', () => {
-    if (!isAnsweringAllowed || isGamePaused) return;
-    const isSmallMobile = window.screen.width <= 430 && window.screen.height <= 932;
-    if (isSmallMobile) return; // ignorar solo iPhones pequeños, NO iPads
-    clearTimeout(_resizeCheatTimer);
-    _resizeCheatTimer = setTimeout(() => {
-        if (!isAnsweringAllowed || isGamePaused) return;
-        const wRatio = window.innerWidth  / window.screen.width;
-        const hRatio = window.innerHeight / window.screen.height;
-        // Reducción significativa respecto al inicio de partida O respecto a pantalla
-        const shrunkW = window.innerWidth  < _gameWindowW * 0.75;
-        const shrunkH = window.innerHeight < _gameWindowH * 0.70;
-        const splitW  = wRatio < 0.52;
-        const splitH  = hRatio < 0.42;
-        if (shrunkW || shrunkH || splitW || splitH) {
-            _triggerCheatIfActive('resize');
+    if (_KS_IS_IPAD || window.screen.width <= 480) return;
+    clearTimeout(_ksResizeTimer);
+    _ksResizeTimer = setTimeout(() => {
+        if (!isAnsweringAllowed && !isGamePaused) return;
+        const shrunkW = window.innerWidth  < _gameWindowW * 0.60;
+        const shrunkH = window.innerHeight < _gameWindowH * 0.58;
+        const splitW  = (window.innerWidth  / window.screen.width)  < 0.52;
+        const splitH  = (window.innerHeight / window.screen.height) < 0.42;
+        const isSplit = shrunkW || shrunkH || splitW || splitH;
+        if (isSplit) {
+            if (!_ksSplitActive) {
+                _ksSplitActive  = true;
+                _ksSplitEnterTs = Date.now();
+                _ksAddSignal('split_enter', 5);
+            }
+            _ksAddSignal('resize', 4);
+        } else {
+            if (_ksSplitActive) {
+                // Al cerrar el split, si usó la otra ventana → señal acumulada de uso
+                if (_ksSplitInteractTs > 0 && (Date.now() - _ksSplitEnterTs) < 120000)
+                    _ksAddSignal('split_used', 7);
+                _ksSplitActive = false; _ksSplitEnterTs = 0; _ksSplitInteractTs = 0;
+            }
         }
-    }, 600);
+    }, 650);
 });
 
-// ── 6. Polling periódico durante partida activa ───────────────────────────
-//    Cada 3 segundos verifica foco + visibilidad. Captura casos donde blur/
-//    visibilitychange no dispararon (algunos navegadores móviles en split-view,
-//    extensiones que bloquean eventos, etc.).
+// ── Scroll de página ──────────────────────────────────────────────────────
+document.addEventListener('scroll', () => {
+    if (!isAnsweringAllowed) return;
+    const dy = Math.abs((window.scrollY || 0) - _ksLastScrollY);
+    _ksLastScrollY = window.scrollY || 0;
+    if (dy > 200) { _ksScrollSpikes++; if (_ksScrollSpikes >= 2) _ksAddSignal('page_scroll', 4); }
+    // Scroll con split activo = probablemente está leyendo contenido en otra ventana
+    if (_ksSplitActive && dy > 60) {
+        _ksSplitInteractTs = Date.now();
+        _ksAddSignal('split_scroll', 4);
+    }
+}, { passive: true });
+
+// ── Movimiento de puntero / pointer events ────────────────────────────────
+document.addEventListener('pointermove', () => { _ksLastPtrTs = Date.now(); }, { passive: true });
+document.addEventListener('pointerdown', () => {
+    _ksLastPtrTs = Date.now();
+    // Clic con split activo = pudo haber clicado en la otra ventana y vuelto
+    if (_ksSplitActive && isAnsweringAllowed) {
+        _ksSplitInteractTs = Date.now();
+        _ksAddSignal('split_click', 4);
+    }
+}, { passive: true });
+
+// ── Polling de foco ──────────────────────────────────────────────────────
 let _antiCheatPollTimer = null;
 function _startAntiCheatPoll() {
+    _ksGameActive = true;
     _stopAntiCheatPoll();
+    const interval   = _KS_IS_IPAD ? 5000 : 3000;
+    const minNoFocus = _KS_IS_IPAD ? 4 : 3;
     _antiCheatPollTimer = setInterval(() => {
-        if (!isAnsweringAllowed || isGamePaused) return;
-        const hidden = document.visibilityState === 'hidden' || document.hidden;
+        if (!_ksGameActive && !isAnsweringAllowed && !isGamePaused) return;
+        const hidden  = document.visibilityState === 'hidden' || document.hidden;
         const noFocus = !document.hasFocus();
         if (hidden || noFocus) {
             _muteByFocus();
-            _triggerCheatIfActive('poll');
+            if (_ksFocusLostTs === 0) _ksFocusLostTs = Date.now();
+            const secsLost = (Date.now() - _ksFocusLostTs) / 1000;
+            if (secsLost >= minNoFocus) {
+                _ksAddSignal('poll_nofocus', _KS_IS_IPAD ? 3 : 4);
+                _ksFocusLostTs = Date.now();
+            }
+        } else {
+            // Recuperó foco: acumular tiempo perdido
+            if (_ksFocusLostTs > 0) { _ksNoFocusSecs += (Date.now() - _ksFocusLostTs) / 1000; _ksFocusLostTs = 0; }
         }
-    }, 3000);
+        // Puntero ausente >35s en desktop = bot o app externa
+        if (!_KS_IS_IPAD && window.screen.width > 480) {
+            if ((Date.now() - _ksLastPtrTs) > 35000) _ksAddSignal('pointer_absent', 5);
+        }
+        // Tiempo total fuera de foco en la sesión > 12s = sospechoso
+        if (_ksNoFocusSecs > 12 && isAnsweringAllowed) {
+            _ksAddSignal('extended_nofocus', Math.min(Math.floor(_ksNoFocusSecs / 8), 6));
+            _ksNoFocusSecs = 0; // reset para no duplicar
+        }
+    }, interval);
 }
 function _stopAntiCheatPoll() {
+    _ksGameActive = false;
     if (_antiCheatPollTimer) { clearInterval(_antiCheatPollTimer); _antiCheatPollTimer = null; }
 }
 
-function punishCheater() {
-    if(!isAnsweringAllowed || isGamePaused) return;
-    isAnsweringAllowed = false;
-    isGamePaused = false;
-    clearInterval(timerInterval);
-    _stopAntiCheatPoll(); // detener polling
-    lives = 0;
-    _currentQuestion = null;
+// ══ Monitores de exploit ══════════════════════════════════════════════════
 
-    // La cuenta admin nunca recibe el logro de tramposo ni penalización
-    const _isAdminAccount = playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
-    if (!_isAdminAccount) {
-        const isRepeat = playerStats.achievements.includes('tramposo');
-        const penalty = isRepeat ? 5000 : 2000;
-        playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
-        playerStats.cheatCount = (playerStats.cheatCount || 0) + 1;
-        if (!playerStats.achievements.includes('tramposo')) {
-            playerStats.achievements.push('tramposo');
+// ── Copy / paste ──────────────────────────────────────────────────────────
+document.addEventListener('copy',  () => { if (isAnsweringAllowed) _ksAddSignal('clipboard_copy',  3); });
+document.addEventListener('paste', () => { if (isAnsweringAllowed) _ksAddSignal('clipboard_paste', 7); });
+
+// ── Print / screenshot ────────────────────────────────────────────────────
+window.addEventListener('beforeprint', () => { if (isAnsweringAllowed) _ksAddSignal('print_dialog', 7); });
+
+// ── PiP ──────────────────────────────────────────────────────────────────
+document.addEventListener('enterpictureinpicture', () => { if (isAnsweringAllowed) _ksAddSignal('pip_enter', 8); });
+
+// ── TTS (iOS Speak Screen, lectores, asistentes) ─────────────────────────
+setInterval(() => {
+    if (!isAnsweringAllowed || !window.speechSynthesis) return;
+    const active = window.speechSynthesis.speaking || window.speechSynthesis.pending;
+    if (active && _ksTtsWasIdle) { _ksAddSignal('tts_speaking', 8); _ksTtsWasIdle = false; }
+    else if (!active) _ksTtsWasIdle = true;
+}, 1500);
+
+// ── Reconocimiento de voz (SpeechRecognition) ────────────────────────────
+// Parche al SpeechRecognition para detectar activación durante el juego
+(function _patchSpeechRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    const _origStart = SR.prototype.start;
+    SR.prototype.start = function(...args) {
+        if (isAnsweringAllowed) _ksAddSignal('speech_recognition', 9);
+        return _origStart.apply(this, args);
+    };
+})();
+
+// ── getUserMedia: micrófono activo ────────────────────────────────────────
+(function _patchGUM() {
+    try {
+        const orig = navigator.mediaDevices && navigator.mediaDevices.getUserMedia
+            ? navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices) : null;
+        if (!orig) return;
+        navigator.mediaDevices.getUserMedia = async function(c) {
+            const stream = await orig(c);
+            if (c && c.audio) {
+                const tracks = stream.getAudioTracks();
+                window._ksActiveMicTracks = (window._ksActiveMicTracks || []).concat(tracks);
+                tracks.forEach(t => t.addEventListener('ended', () => {
+                    window._ksActiveMicTracks = (window._ksActiveMicTracks || []).filter(x => x !== t);
+                }));
+                if (isAnsweringAllowed) _ksAddSignal('mic_opened', 9);
+            }
+            return stream;
+        };
+    } catch(_) {}
+})();
+
+// ── DevTools ─────────────────────────────────────────────────────────────
+(function _watchDevTools() {
+    if (_KS_IS_IPAD || window.screen.width <= 480) return;
+    setInterval(() => {
+        if (!isAnsweringAllowed || isGamePaused) return;
+        if ((window.outerWidth - window.innerWidth) > 200 || (window.outerHeight - window.innerHeight) > 200)
+            _ksAddSignal('devtools_open', 5);
+    }, 3200);
+})();
+
+// ── visualViewport: zoom / Slide Over / Share Sheet ──────────────────────
+if (window.visualViewport) {
+    let _vvTimer = null;
+    window.visualViewport.addEventListener('resize', () => {
+        clearTimeout(_vvTimer);
+        _vvTimer = setTimeout(() => {
+            if (!isAnsweringAllowed && !isGamePaused) return;
+            const sc = window.visualViewport.scale;
+            const w  = window.visualViewport.width;
+            if (sc > _ksVvLastScale * 1.3 && sc > 1.4)         _ksAddSignal('vv_zoom_in',  5);
+            if (w  < _ksVvLastW * 0.72)                        _ksAddSignal('vv_shrink',   7);
+            if (_KS_IS_IPAD && sc > 1.9 && sc > _ksVvLastScale * 1.6) _ksAddSignal('ios_a11y_zoom', 7);
+            _ksVvLastScale = sc; _ksVvLastW = w;
+        }, 450);
+    });
+    window.visualViewport.addEventListener('scroll', () => {
+        if (!isAnsweringAllowed) return;
+        if (Math.abs(window.visualViewport.offsetTop) > 55) _ksAddSignal('vv_scroll', 4);
+        // Scroll en viewport con split activo
+        if (_ksSplitActive) {
+            _ksSplitInteractTs = Date.now();
+            _ksAddSignal('split_vv_scroll', 4);
         }
+    });
+}
+
+// ── Overlays externos (extensions, asistentes) ───────────────────────────
+(function _watchOverlays() {
+    const _ownIds  = new Set(['ks-ingame-alert','ks-modal-overlay','roulette-overlay',
+        'onboarding-overlay','powerup-overlay','endgame-overlay']);
+    const _ownPfx  = ['ks-','toast-','klick-'];
+    const obs = new MutationObserver((mutations) => {
+        if (!isAnsweringAllowed || isGamePaused) return;
+        for (const m of mutations) {
+            for (const node of m.addedNodes) {
+                if (node.nodeType !== 1) continue;
+                const id  = node.id   || '';
+                const cls = typeof node.className === 'string' ? node.className : '';
+                if (_ownIds.has(id) || _ownPfx.some(p => id.startsWith(p) || cls.includes(p))) continue;
+                try {
+                    const st = window.getComputedStyle(node);
+                    if ((st.position === 'fixed' || st.position === 'absolute') && parseInt(st.zIndex) > 8000)
+                        _ksAddSignal('external_overlay', 8);
+                } catch(_) {}
+            }
+        }
+    });
+    obs.observe(document.body, { childList: true, subtree: false });
+})();
+
+// ── Stage Manager / ventana flotante (desktop) ────────────────────────────
+(function _watchWindowGeometry() {
+    if (window.screen.width <= 480) return;
+    setInterval(() => {
+        if (!isAnsweringAllowed || isGamePaused) return;
+        const nx = window.screenX || 0, ny = window.screenY || 0;
+        const nw = window.outerWidth, nh = window.outerHeight;
+        if (!_KS_IS_IPAD) {
+            if (Math.abs(nx - _ksWinX) > 100 || Math.abs(ny - _ksWinY) > 100) _ksAddSignal('window_moved',  4);
+            if (nw < _ksWinOW * 0.62 || nh < _ksWinOH * 0.58)                 _ksAddSignal('window_shrunk', 6);
+        }
+        _ksWinX = nx; _ksWinY = ny; _ksWinOW = nw; _ksWinOH = nh;
+    }, 2200);
+})();
+
+// ── iOS AssistiveTouch (tap repetido en borde de pantalla) ────────────────
+document.addEventListener('touchend', (e) => {
+    if (!isAnsweringAllowed || !_KS_IS_IPAD) return;
+    if (e.changedTouches.length !== 1) return;
+    const t = e.changedTouches[0];
+    const x = Math.round(t.clientX), y = Math.round(t.clientY), now = Date.now();
+    _ksAssistTapHistory.push({ x, y, t: now });
+    if (_ksAssistTapHistory.length > 10) _ksAssistTapHistory.shift();
+    const recent = _ksAssistTapHistory.filter(h => now - h.t < 4000);
+    if (recent.length >= 3) {
+        const near = recent.filter(h => Math.hypot(h.x - x, h.y - y) < 35);
+        const edge = x < 65 || x > window.innerWidth - 65 || y < 65 || y > window.innerHeight - 65;
+        if (near.length >= 3 && edge) { _ksAddSignal('ios_assistivetouch', 6); _ksAssistTapHistory = []; }
+    }
+}, { passive: true });
+
+// ── iOS multi-touch 3+ dedos ──────────────────────────────────────────────
+document.addEventListener('touchstart', (e) => {
+    if (!isAnsweringAllowed || !_KS_IS_IPAD) return;
+    if (e.touches.length >= 3) _ksAddSignal('ios_multi3touch', 5);
+}, { passive: true });
+
+// ── Orientación ──────────────────────────────────────────────────────────
+let _ksLastOrient = (screen.orientation && screen.orientation.type) || String(window.orientation || '');
+const _ksHandleOrient = () => {
+    if (!isAnsweringAllowed) return;
+    const cur = (screen.orientation && screen.orientation.type) || String(window.orientation || '');
+    if (cur !== _ksLastOrient) {
+        _ksAddSignal(_KS_IS_IPAD ? 'ios_orientation' : 'orientation_change', _KS_IS_IPAD ? 2 : 3);
+        _ksLastOrient = cur;
+    }
+};
+window.addEventListener('orientationchange', _ksHandleOrient);
+if (screen.orientation) screen.orientation.addEventListener('change', _ksHandleOrient);
+
+// ── Análisis de timing ────────────────────────────────────────────────────
+function _ksCheckTimingPattern() {
+    if (_ksRespTimings.length < 6) return;
+    const last6 = _ksRespTimings.slice(-6).map(r => r.ms);
+    const avg   = last6.reduce((a,b) => a+b, 0) / 6;
+    const vari  = last6.reduce((a,b) => a + Math.pow(b-avg, 2), 0) / 6;
+    if (vari < 400 && avg < 900)                                       _ksAddSignal('autoclicker_timing', 9);
+    if (last6.every(ms => Math.abs(ms - last6[0]) < 85) && avg < 1200) _ksAddSignal('macro_fixed_interval', 10);
+    if (last6.every((ms,i) => i===0 || ms < last6[i-1]-30) && avg<700) _ksAddSignal('adaptive_bot', 8);
+}
+
+// ── Registro de tiempo de respuesta ──────────────────────────────────────
+function _ksMarkQuestionStart() { _ksQStartTs = Date.now(); }
+
+function _ksRecordAnswer(isCorrect) {
+    if (_ksQStartTs === 0) return;
+    const ms = Date.now() - _ksQStartTs;
+    _ksRespTimings.push({ ms, correct: isCorrect });
+    _ksQStartTs = 0;
+    if (ms < 280) { _ksAddSignal('answer_impossible', 5); return; }
+    if (ms < 400) {
+        const fastCount = _ksRespTimings.filter(r => r.ms < 400).length;
+        _ksAddSignal('answer_fast', fastCount >= 3 ? 4 : 1);
+    }
+    if (_ksRespTimings.length >= 5) {
+        const last5 = _ksRespTimings.slice(-5);
+        const allFast    = last5.every(r => r.ms < 600);
+        const allCorrect = last5.every(r => r.correct);
+        const anyFail    = last5.some(r => !r.correct);
+        if (allFast && allCorrect) _ksAddSignal('bot_pattern', 8);
+        if (allFast && anyFail)    _ksWeight = Math.max(0, _ksWeight - 4);
+    }
+    try { _ksCheckTimingPattern(); } catch(_) {}
+    // Responder con split activo = buscó en la otra ventana
+    if (_ksSplitActive) {
+        _ksSplitInteractTs = Date.now();
+        _ksAddSignal('split_answer', 8);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  KLICK SHIELD — Análisis post-partida
+// ══════════════════════════════════════════════════════════════════════════
+// ══ Sistema de advertencias (3 antes de sancionar) ═══════════════════════
+// ksWarnings: array de {date, weight, signals} — no tienen penalización
+// Solo después de 3 advertencias activas (últimos 30 días) se sanciona
+function _ksAnalyzeSession(sessionAbandoned) {
+    const isAdmin = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+    if (isAdmin) { _ksReset(); return; }
+
+    let weight = _ksWeight;
+    if (weight <= 0) { _ksReset(); return; }
+
+    const infractions  = playerStats.ksInfractions || [];
+    const gamesPlayed  = playerStats.gamesPlayed || 0;
+    const bestScore    = playerStats.bestScore    || 0;
+    const sessionScore = _ksSessionScore || 0;
+    const hasAnyFail   = _ksRespTimings.some(r => !r.correct) || (playerStats.totalWrong > 0);
+    const hasTimeout   = playerStats.totalTimeouts > 0;
+
+    if (gamesPlayed <= 3)         weight *= 0.50;  // cuenta muy nueva
+    if (gamesPlayed >= 30)        weight *= 0.80;
+    if (bestScore > 0 && sessionScore <= bestScore * 1.35) weight *= 0.85;
+    if (hasAnyFail || hasTimeout) weight *= 0.70;
+    if (_KS_IS_IPAD)              weight *= 0.82;
+    if (sessionAbandoned)         weight *= 0.50;
+
+    weight = Math.round(weight);
+
+    if (weight <= 6) {
+        // Sesión limpia — mostrar feedback positivo si hay partida completa
+        if (!sessionAbandoned) _ksShowPostGameFeedback('clean', weight);
+        _ksReset(); return;
     }
 
-    saveStatsLocally();
-    submitLeaderboard();
+    const now     = new Date().toISOString();
+    const signals = [..._ksSignals];
+    const capturedWeight = weight;
+    _ksReset();
 
-    initAudio(); SFX.incorrect();
-    showToast('¡Trampa detectada!', `Has recibido la marca permanente de Tramposo.`, 'var(--accent-red)', SVG_SKULL);
+    // ── Nivel bajo: acumular sesiones sospechosas ──
+    if (weight <= 11) {
+        const sus = playerStats.ksSuspicious || [];
+        sus.push({ date: now, weight, signals });
+        if (sus.length > 20) sus.splice(0, sus.length - 20);
+        playerStats.ksSuspicious = sus;
+        const sevenDays = Date.now() - 7 * 24 * 3600 * 1000;
+        const recentSus = sus.filter(x => new Date(x.date).getTime() > sevenDays);
+        if (recentSus.length >= 3) {
+            // Acumuló 3 sesiones sospechosas → escalar a advertencia
+            playerStats.ksSuspicious = [];
+            _ksApplyWarning(now, capturedWeight, signals);
+        } else {
+            _ksShowPostGameFeedback('watch', capturedWeight);
+        }
+        saveStatsLocally(); submitLeaderboard(); return;
+    }
 
-    document.getElementById('app').classList.remove('streak-active');
-    streak = 0;
-    switchScreen('start-screen');
+    // ── Nivel medio: advertencia directa ──
+    if (weight <= 19) {
+        _ksApplyWarning(now, capturedWeight, signals);
+        saveStatsLocally(); submitLeaderboard(); return;
+    }
+
+    // ── Nivel alto: sanción (pero primero verificar si tiene < 3 advertencias) ──
+    _ksApplySanctionOrWarn(now, capturedWeight, signals);
 }
+
+// Aplica una advertencia formal sin penalización (hasta 3 antes de sancionar)
+function _ksApplyWarning(date, weight, signals) {
+    const thirtyDays = Date.now() - 30 * 24 * 3600 * 1000;
+    const warnings   = (playerStats.ksWarnings || []).filter(w => new Date(w.date).getTime() > thirtyDays);
+    warnings.push({ date, weight, signals });
+    playerStats.ksWarnings = warnings;
+    // Solo marcar revisión (no sanción, no reducción PL)
+    // Progresión: 1ª advertencia=under_review, 2ª+='warned'
+    if (warnings.length === 1) {
+        playerStats.ksReviewStatus = 'under_review';
+        playerStats.ksReviewDate   = date;
+    } else {
+        playerStats.ksReviewStatus = 'warned';
+    }
+    saveStatsLocally(); submitLeaderboard();
+    // Retrasar el overlay visual para que no tape la pantalla de fin de partida
+    const _warnCount = warnings.length;
+    setTimeout(() => { try { _ksShowWarningScreen(_warnCount); } catch(e) {} }, 2800);
+}
+
+// Sanción real — solo si ya tiene 3+ advertencias activas, si no, da advertencia
+function _ksApplySanctionOrWarn(date, weight, signals) {
+    const thirtyDays    = Date.now() - 30 * 24 * 3600 * 1000;
+    const activeWarnings= (playerStats.ksWarnings || []).filter(w => new Date(w.date).getTime() > thirtyDays);
+
+    if (activeWarnings.length < 3) {
+        // Aún no llega a 3 advertencias — dar advertencia sin sancionar
+        // _ksApplyWarning ya llama saveStatsLocally y submitLeaderboard internamente
+        _ksApplyWarning(date, weight, signals);
+        return;
+    }
+    // Tiene 3+ advertencias → sancionar ahora
+    _ksApplySanction(date, weight, signals);
+}
+
+function _ksApplySanction(date, weight, signals) {
+    const infractions = playerStats.ksInfractions || [];
+    const now45  = Date.now() - 45  * 24 * 3600 * 1000;
+    const now120 = Date.now() - 120 * 24 * 3600 * 1000;
+    const active = infractions.filter(inf => {
+        const d = new Date(inf.date).getTime();
+        return inf.level <= 2 ? d > now45 : d > now120;
+    });
+    const highestPrev = active.length > 0 ? Math.max(...active.map(x => x.level)) : 0;
+    let level;
+    if      (active.length === 0 && weight <= 28) level = 1;
+    else if (active.length === 0 && weight >= 29)  level = 2;
+    else if (active.length === 1 && highestPrev <= 2) level = Math.min(highestPrev+1, 3);
+    else if (active.length >= 2)  level = Math.min(highestPrev+1, 5);
+    else level = Math.min(highestPrev+1, 5);
+
+    const BAN_HOURS  = {1:2, 2:6, 3:12, 4:24, 5:48};
+    const PL_PENALTY = {1:0.10, 2:0.18, 3:0.28, 4:0.40, 5:0.55};
+    const banHours   = BAN_HOURS[level] || 0;
+    const banUntil   = banHours > 0
+        ? new Date(Date.now() + banHours * 3600000).toISOString() : null;
+    const plPct = PL_PENALTY[level] || 0;
+    if (plPct > 0 && playerStats.powerLevel > 0) {
+        playerStats.powerLevel = Math.round(playerStats.powerLevel * (1 - plPct));
+        playerStats.totalScore = Math.round(playerStats.totalScore * (1 - plPct * 0.5));
+    }
+    // Resetear advertencias tras sancionar
+    playerStats.ksWarnings = [];
+    infractions.push({ date, level, weight, signals, banUntil, banHours });
+    playerStats.ksInfractions   = infractions;
+    playerStats.ksBanUntil      = banUntil;
+    playerStats.ksInfractionLvl = Math.max(playerStats.ksInfractionLvl || 0, level);
+    playerStats.ksReviewStatus  = 'sanctioned';
+    saveStatsLocally(); submitLeaderboard();
+    // Retrasar para no tapar la pantalla de fin de partida
+    setTimeout(() => { try { _ksShowSanctionScreen(level, banHours, plPct); } catch(e) {} }, 2800);
+}
+
+// ── Feedback post-partida: píldora discreta tras endGame ─────────────────
+function _ksShowPostGameFeedback(type, weight) {
+    // Eliminar feedback anterior si lo hay
+    const prev = document.getElementById('ks-feedback-overlay');
+    if (prev) prev.remove();
+
+    let html = '';
+    if (type === 'clean') {
+        html = `<div class="ks-feedback-pill ks-fb-shield">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+            Klick Shield · Sesión verificada
+        </div>`;
+    } else if (type === 'watch') {
+        html = `<div class="ks-feedback-pill ks-fb-watch">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Klick Shield · Actividad en monitoreo
+        </div>`;
+    }
+    if (!html) return;
+
+    const el = document.createElement('div');
+    el.id = 'ks-feedback-overlay';
+    el.className = 'ks-feedback-overlay';
+    el.innerHTML = html;
+    document.body.appendChild(el);
+    setTimeout(() => el.classList.add('visible'), 30);
+    setTimeout(() => {
+        el.classList.remove('visible');
+        setTimeout(() => { try { el.remove(); } catch(_){} }, 400);
+    }, 3800);
+}
+
+function _ksCheckBanOnStart() {
+    const isAdmin = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+    if (isAdmin) return false;
+    const banUntil = playerStats.ksBanUntil;
+    if (!banUntil) return false;
+    const remaining = new Date(banUntil).getTime() - Date.now();
+    if (remaining <= 0) {
+        // Ban expiró — limpiar el ban pero mantener 'sanctioned' (historial permanece)
+        playerStats.ksBanUntil = null;
+        // ksReviewStatus queda en 'sanctioned', no se limpia — la infracción sigue en historial
+        saveStatsLocally(); return false;
+    }
+    return true;
+}
+
+function _ksGetBanRemainingMs() {
+    const banUntil = playerStats.ksBanUntil;
+    if (!banUntil) return 0;
+    return Math.max(0, new Date(banUntil).getTime() - Date.now());
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  KLICK SHIELD — Pantallas de notificación full-screen integradas
+// ══════════════════════════════════════════════════════════════════════════
+
+// Ayudantes de partículas mini para los fondos de pantalla
+function _ksSpawnScreenParticles(canvasEl, r, g, b) {
+    try {
+        const cv = canvasEl;
+        cv.width  = cv.offsetWidth  || window.innerWidth;
+        cv.height = cv.offsetHeight || window.innerHeight;
+        const c2  = cv.getContext('2d');
+        const N   = 35;
+        const pts = Array.from({length: N}, () => ({
+            x:  Math.random() * cv.width,
+            y:  Math.random() * cv.height,
+            dx: (Math.random() - 0.5) * 0.55,
+            dy: (Math.random() - 0.5) * 0.55,
+            s:  Math.random() * 1.5 + 0.4,
+            o:  Math.random() * 0.22 + 0.04
+        }));
+        let raf = null;
+        function draw() {
+            if (!cv.parentElement) { cancelAnimationFrame(raf); return; }
+            c2.clearRect(0, 0, cv.width, cv.height);
+            for (const p of pts) {
+                p.x += p.dx; p.y += p.dy;
+                if (p.x < 0) p.x = cv.width;  if (p.x > cv.width)  p.x = 0;
+                if (p.y < 0) p.y = cv.height; if (p.y > cv.height) p.y = 0;
+                // Conexiones entre partículas cercanas
+                for (const q of pts) {
+                    const d = Math.hypot(p.x-q.x, p.y-q.y);
+                    if (d < 90 && d > 0) {
+                        c2.beginPath();
+                        c2.moveTo(p.x, p.y); c2.lineTo(q.x, q.y);
+                        c2.strokeStyle = `rgba(${r},${g},${b},${(1 - d/90) * 0.08})`;
+                        c2.lineWidth = 0.5;
+                        c2.stroke();
+                    }
+                }
+                c2.beginPath();
+                c2.arc(p.x, p.y, p.s, 0, Math.PI*2);
+                c2.fillStyle = `rgba(${r},${g},${b},${p.o})`;
+                c2.fill();
+            }
+            raf = requestAnimationFrame(draw);
+        }
+        draw();
+    } catch(_) {}
+}
+
+function _ksRemoveScreenOverlay() {
+    try { _ksStopOverlayMusic(); } catch(e) {}
+    const el = document.getElementById('ks-screen-overlay');
+    if (el) { el.classList.remove('ks-so-visible'); setTimeout(() => { try { el.remove(); } catch(_){} }, 400); }
+}
+
+// ── Toast de seguridad ────────────────────────────────────────────────────
+const SVG_ALERT   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+const SVG_BAN_ICON= `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
+function _ksShowToastSecurity(type) {
+    const map = {
+        review:   { title:'Cuenta bajo revisión',  msg:'Klick Shield ha abierto monitoreo preventivo.',   color:'#ffb800', icon: SVG_ALERT },
+        warning:  { title:'Advertencia formal',     msg:'Se registró una advertencia en tu cuenta.',       color:'#ff8c00', icon: SVG_ALERT },
+        sanction: { title:'Infracción confirmada',  msg:'Se aplicó una sanción por conducta irregular.',  color:'#ff4040', icon: SVG_BAN_ICON },
+        ban:      { title:'Acceso suspendido',      msg:'No puedes iniciar partidas hasta que expire.',   color:'#ff2a5f', icon: SVG_BAN_ICON },
+    };
+    const t = map[type] || map.review;
+    showToast(t.title, t.msg, t.color, t.icon, 7000);
+}
+
+// ── Barra de advertencias HTML ────────────────────────────────────────────
+function _ksWarnBarHtml(warnCount, isSanction) {
+    const MAX = 3;
+    let pips = '';
+    for (let i = 0; i < MAX; i++) {
+        const cls = i < warnCount ? (isSanction ? 'filled-red' : 'filled-warn') : '';
+        pips += `<div class="ks-so-warn-pip ${cls}"></div>`;
+    }
+    const label = isSanction
+        ? `3 advertencias previas — sanción activada`
+        : `Advertencia ${warnCount} de ${MAX}`;
+    return `<div class="ks-so-warn-bar">${pips}<span class="ks-so-warn-label">${label}</span></div>`;
+}
+
+// ── Pantalla: Cuenta bajo revisión ────────────────────────────────────────
+function _ksShowReviewScreen() {
+    _ksRemoveScreenOverlay();
+    const name = playerStats.playerName || 'Jugador';
+    const dt   = new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'});
+    const el = document.createElement('div');
+    el.id = 'ks-screen-overlay';
+    el.className = 'ks-screen-overlay ks-so-review';
+    el.innerHTML = `
+        <canvas class="ks-so-canvas" id="ks-so-canvas"></canvas>
+        <div class="ks-so-glow ks-so-glow-yellow"></div>
+        <div class="ks-so-content">
+            <div class="ks-so-icon ks-so-icon-review">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+            </div>
+            <div class="ks-so-eyebrow">Klick Shield · Monitoreo preventivo</div>
+            <h1 class="ks-so-title">Cuenta bajo<br><span class="ks-so-accent-yellow">revisión</span></h1>
+            <div class="ks-so-divider ks-divider-yellow"></div>
+            <div class="ks-so-body">
+                El sistema detectó actividad inusual en una sesión reciente de <strong>${name}</strong>.<br><br>
+                <strong>No hay ninguna sanción ni restricción activa.</strong> Puedes continuar jugando con normalidad. Si no se detecta más actividad sospechosa, el proceso se cierra automáticamente.
+            </div>
+            <div class="ks-so-chips">
+                <div class="ks-so-chip ks-chip-ok">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Sin restricciones
+                </div>
+                <div class="ks-so-chip ks-chip-ok">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Partidas permitidas
+                </div>
+                <div class="ks-so-chip ks-chip-warn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>Sesiones monitoreadas
+                </div>
+            </div>
+            <div class="ks-so-meta">Klick Shield · ${dt} · Registro interno</div>
+            <div class="ks-so-btn-row">
+                <button class="ks-so-btn ks-so-btn-review" onclick="_ksRemoveScreenOverlay()">Entendido</button>
+            </div>
+        </div>`;
+    _ksShowToastSecurity('review');
+    _ksSendEventToServer('review_open', '', '', 'Cuenta bajo revisión');
+    document.body.appendChild(el);
+    setTimeout(() => {
+        el.classList.add('ks-so-visible');
+        const cv = document.getElementById('ks-so-canvas');
+        if (cv) _ksSpawnScreenParticles(cv, 255, 184, 0);
+        _ksPlayOverlayMusic('review');
+    }, 30);
+}
+
+// ── Pantalla: Advertencia formal (1–3, sin penalización) ─────────────────
+function _ksShowWarningScreen(warnCount) {
+    _ksRemoveScreenOverlay();
+    const name      = playerStats.playerName || 'Jugador';
+    const dt        = new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'});
+    const remaining = 3 - warnCount;
+    const el = document.createElement('div');
+    el.id = 'ks-screen-overlay';
+    el.className = 'ks-screen-overlay ks-so-review';
+    el.innerHTML = `
+        <canvas class="ks-so-canvas" id="ks-so-canvas"></canvas>
+        <div class="ks-so-glow ks-so-glow-yellow"></div>
+        <div class="ks-so-content">
+            <div class="ks-so-icon ks-so-icon-warning">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            </div>
+            <div class="ks-so-eyebrow">Klick Shield · Advertencia ${warnCount} de 3</div>
+            <h1 class="ks-so-title">Actividad<br><span class="ks-so-accent-orange">detectada</span></h1>
+            <div class="ks-so-divider ks-divider-orange"></div>
+            ${_ksWarnBarHtml(warnCount, false)}
+            <div class="ks-so-body">
+                El sistema registró actividad irregular en una sesión de <strong>${name}</strong>.<br><br>
+                Esta es tu <strong>advertencia ${warnCount} de 3</strong>. ${remaining > 0
+                    ? `Te quedan <strong>${remaining} advertencia${remaining>1?'s':''}</strong> antes de que se apliquen sanciones.`
+                    : '<strong>La próxima infracción activará sanciones.</strong>'}
+                <br><br>No hay restricciones activas ni reducción de Nivel de Poder.
+            </div>
+            <div class="ks-so-chips">
+                <div class="ks-so-chip ks-chip-ok">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Sin suspensión
+                </div>
+                <div class="ks-so-chip ks-chip-ok">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Sin reducción de PL
+                </div>
+                <div class="ks-so-chip ks-chip-orange">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>Advertencia ${warnCount}/3
+                </div>
+            </div>
+            <div class="ks-so-meta">Klick Shield · ${dt} · Advertencia formal</div>
+            <div class="ks-so-btn-row">
+                <button class="ks-so-btn ks-so-btn-warning" onclick="_ksRemoveScreenOverlay()">Entendido</button>
+            </div>
+        </div>`;
+    _ksShowToastSecurity('warning');
+    _ksSendEventToServer('warning', warnCount, '', `Advertencia formal ${warnCount}/3`);
+    document.body.appendChild(el);
+    setTimeout(() => {
+        el.classList.add('ks-so-visible');
+        const cv = document.getElementById('ks-so-canvas');
+        if (cv) _ksSpawnScreenParticles(cv, 255, 140, 0);
+        _ksPlayOverlayMusic('review');
+    }, 30);
+}
+
+// ── Pantalla: Infracción / Suspensión ─────────────────────────────────────
+function _ksShowSanctionScreen(level, banHours, plPct) {
+    _ksRemoveScreenOverlay();
+    const levelLabels = {1:'SUSPENSIÓN LEVE',2:'SUSPENSIÓN CORTA',3:'SUSPENSIÓN SEVERA',4:'SUSPENSIÓN GRAVE',5:'ACCESO REVOCADO'};
+    const banText = banHours > 0
+        ? `Tu acceso ha sido suspendido por <strong>${banHours} hora${banHours>1?'s':''}</strong>.`
+        : 'No hay suspensión de tiempo activa.';
+    const plText  = plPct > 0
+        ? `Tu Nivel de Poder fue reducido un <strong>${Math.round(plPct*100)}%</strong>.`
+        : '';
+    const infraN  = (playerStats.ksInfractions || []).length;
+    const name    = playerStats.playerName || 'Jugador';
+    const dt      = new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'});
+    const el = document.createElement('div');
+    el.id = 'ks-screen-overlay';
+    el.className = 'ks-screen-overlay ks-so-sanction';
+    el.innerHTML = `
+        <canvas class="ks-so-canvas" id="ks-so-canvas"></canvas>
+        <div class="ks-so-glow ks-so-glow-red"></div>
+        <div class="ks-so-content">
+            <div class="ks-so-icon ks-so-icon-sanction">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+            </div>
+            <div class="ks-so-eyebrow">Klick Shield — ${levelLabels[level]||'SANCIÓN'}</div>
+            <h1 class="ks-so-title">Infracción<br><span class="ks-so-accent-red">confirmada</span></h1>
+            <div class="ks-so-divider ks-divider-red"></div>
+            ${_ksWarnBarHtml(3, true)}
+            <div class="ks-so-body">
+                El sistema completó el análisis de <strong>${name}</strong> y encontró evidencia de conducta contraria a las normas.<br><br>
+                ${banText}${plText ? ' ' + plText : ''}
+                <br><br>Esta infracción queda registrada. Las infracciones escalan automáticamente hasta nivel 5 (48 h máx.).
+            </div>
+            <div class="ks-so-chips">
+                <div class="ks-so-chip ks-chip-red">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Nivel ${level}/5
+                </div>
+                <div class="ks-so-chip ks-chip-red">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Infracción #${infraN}
+                </div>
+                ${banHours > 0 ? `<div class="ks-so-chip ks-chip-red">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>${banHours}h suspendido
+                </div>` : ''}
+            </div>
+            <div class="ks-so-meta">Klick Shield · ${dt} · Nivel ${level}/5 · Infracción #${infraN}</div>
+            <div class="ks-so-btn-row">
+                <button class="ks-so-btn ks-so-btn-sanction" onclick="_ksRemoveScreenOverlay()">Acepto las consecuencias</button>
+            </div>
+        </div>`;
+    _ksShowToastSecurity(banHours > 0 ? 'ban' : 'sanction');
+    _ksSendEventToServer('sanction', level, banHours, `Infracción nivel ${level}${banHours>0?' · '+banHours+'h ban':''}`);
+    document.body.appendChild(el);
+    setTimeout(() => {
+        el.classList.add('ks-so-visible');
+        const cv = document.getElementById('ks-so-canvas');
+        if (cv) _ksSpawnScreenParticles(cv, 255, 42, 42);
+        _ksPlayOverlayMusic('sanction');
+    }, 30);
+}
+
+// ── Pantalla: Acceso suspendido (ban activo al intentar jugar) ────────────
+function _ksShowBanScreen() {
+    const remaining = _ksGetBanRemainingMs();
+    if (remaining <= 0) return;
+    _ksRemoveScreenOverlay();
+    const name      = playerStats.playerName || 'Jugador';
+    const infList   = playerStats.ksInfractions || [];
+    const lastInf   = infList[infList.length - 1] || {};
+    const banUntilStr = playerStats.ksBanUntil
+        ? new Date(playerStats.ksBanUntil).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
+        : '';
+    const el = document.createElement('div');
+    el.id = 'ks-screen-overlay';
+    el.className = 'ks-screen-overlay ks-so-ban';
+    el.innerHTML = `
+        <canvas class="ks-so-canvas" id="ks-so-canvas"></canvas>
+        <div class="ks-so-glow ks-so-glow-red"></div>
+        <div class="ks-so-content">
+            <div class="ks-so-icon ks-so-icon-ban">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+            </div>
+            <div class="ks-so-eyebrow">Klick Shield · Acceso suspendido</div>
+            <h1 class="ks-so-title">No puedes<br><span class="ks-so-accent-red">jugar ahora</span></h1>
+            <div class="ks-so-divider ks-divider-red"></div>
+            <div class="ks-so-body">
+                La cuenta de <strong>${name}</strong> tiene una suspensión activa por infracción confirmada.<br><br>
+                No es posible iniciar partidas hasta que la suspensión expire. El acceso se restaura <strong>automáticamente</strong> al llegar la hora indicada.
+            </div>
+            <div class="ks-so-countdown-block">
+                <div class="ks-so-countdown-label">Tiempo restante</div>
+                <div class="ks-so-countdown" id="ks-ban-countdown">--:--:--</div>
+                ${banUntilStr ? `<div class="ks-so-countdown-until">Expira el ${banUntilStr}</div>` : ''}
+            </div>
+            <div class="ks-so-chips">
+                <div class="ks-so-chip ks-chip-red">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Nivel ${lastInf.level||'?'}/5
+                </div>
+                <div class="ks-so-chip ks-chip-red">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>${lastInf.banHours||0}h suspensión
+                </div>
+                <div class="ks-so-chip ks-chip-neutral">Expira automáticamente</div>
+            </div>
+            <div class="ks-so-btn-row">
+                <button class="ks-so-btn ks-so-btn-ban" onclick="_ksRemoveScreenOverlay()">Cerrar</button>
+            </div>
+        </div>`;
+    _ksShowToastSecurity('ban');
+    document.body.appendChild(el);
+    // Actualizar el countdown inmediatamente y luego cada segundo
+    function _ksTickBanCountdown() {
+        const ms2 = _ksGetBanRemainingMs();
+        const cd  = document.getElementById('ks-ban-countdown');
+        if (!cd) return;
+        if (ms2 <= 0) {
+            cd.innerText = '00:00:00';
+            playerStats.ksBanUntil = null;
+            // Mantener 'sanctioned' — ban expiró pero la infracción permanece en historial
+            saveStatsLocally();
+            setTimeout(_ksRemoveScreenOverlay, 1200);
+            return;
+        }
+        const hh = Math.floor(ms2/3600000);
+        const mm = Math.floor((ms2%3600000)/60000);
+        const ss = Math.floor((ms2%60000)/1000);
+        cd.innerText = String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+    }
+    _ksTickBanCountdown(); // valor correcto desde el primer frame
+    const _banOverlayTick = setInterval(() => {
+        if (!document.getElementById('ks-ban-countdown')) { clearInterval(_banOverlayTick); return; }
+        _ksTickBanCountdown();
+    }, 1000);
+    setTimeout(() => {
+        el.classList.add('ks-so-visible');
+        const cv = document.getElementById('ks-so-canvas');
+        if (cv) _ksSpawnScreenParticles(cv, 255, 42, 42);
+        _ksPlayOverlayMusic('ban');
+    }, 30);
+}
+
+// ── Pantalla: Ban permanente (ban del servidor, cuenta eliminada) ─────────
+function _ksShowPermanentBanScreen() {
+    _ksRemoveScreenOverlay();
+    const name = playerStats.playerName || 'Jugador';
+    const el = document.createElement('div');
+    el.id = 'ks-screen-overlay';
+    el.className = 'ks-screen-overlay ks-so-ban';
+    el.innerHTML = `
+        <canvas class="ks-so-canvas" id="ks-so-canvas"></canvas>
+        <div class="ks-so-glow ks-so-glow-red"></div>
+        <div class="ks-so-content">
+            <div class="ks-so-icon ks-so-icon-ban">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+            </div>
+            <div class="ks-so-eyebrow">Klick Shield · Acceso revocado permanentemente</div>
+            <h1 class="ks-so-title">Cuenta<br><span class="ks-so-accent-red">suspendida</span></h1>
+            <div class="ks-so-divider ks-divider-red"></div>
+            <div class="ks-so-body">
+                La cuenta de <strong>${name}</strong> ha sido suspendida de forma permanente por el administrador del sistema.<br><br>
+                Esta acción es definitiva. Todos los datos locales de esta cuenta serán eliminados. No es posible continuar desde esta sesión.
+            </div>
+            <div class="ks-so-chips">
+                <div class="ks-so-chip ks-chip-red">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Suspensión permanente
+                </div>
+                <div class="ks-so-chip ks-chip-red">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Decisión del administrador
+                </div>
+            </div>
+            <div class="ks-so-btn-row">
+                <button class="ks-so-btn ks-so-btn-ban" onclick="_ksConfirmPermanentBan()">Entendido</button>
+            </div>
+        </div>`;
+    document.body.appendChild(el);
+    setTimeout(() => {
+        el.classList.add('ks-so-visible');
+        const cv = document.getElementById('ks-so-canvas');
+        if (cv) _ksSpawnScreenParticles(cv, 255, 42, 42);
+        _ksPlayOverlayMusic('ban');
+    }, 30);
+}
+
+function _ksConfirmPermanentBan() {
+    _ksRemoveScreenOverlay();
+    setTimeout(_wipeAccountData, 600);
+}
+
+// ── Música de overlay — reservado para implementación futura ──────────────
+// Llamada por las pantallas de seguridad (review, sanction, ban).
+// Por ahora es un stub seguro; agregar lógica de audio aquí cuando esté listo.
+function _ksPlayOverlayMusic(type) {
+    // stub — implementar cuando se agregue audio de overlay
+}
+function _ksStopOverlayMusic() {
+    // stub — detener audio de overlay si estuviera activo
+}
+
+// ── Log de eventos KS al servidor (Historial KS) ─────────────────────────
+// Registra revisiones, advertencias y sanciones en el servidor para el admin.
+async function _ksSendEventToServer(type, level, banHours, description) {
+    if (!playerStats.uuid || GAS_URL === 'URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI') return;
+    if (!navigator.onLine) return;
+    try {
+        await fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+                action:      'ks-event',
+                uuid:        playerStats.uuid,
+                name:        playerStats.playerName || '',
+                eventType:   type,
+                level:       level,
+                banHours:    banHours,
+                description: description,
+                date:        new Date().toISOString(),
+            }),
+        });
+    } catch(e) { /* silencioso — el log es informativo, no crítico */ }
+}
+
+function _ksShowReviewModal()        { _ksShowReviewScreen(); }
+function _ksShowSanctionModal(l,h,p) { _ksShowSanctionScreen(l,h,p); }
+
+let _ksSessionScore = 0; // capturado en endGame antes de _ksAnalyzeSession
+
 
 // --- GENERACIÓN DE UUID ---
 function generateUUID() {
@@ -195,6 +1182,118 @@ function generateUUID() {
         return v.toString(16);
     });
 }
+
+// ── HUELLA DE DISPOSITIVO (Device Fingerprint) ─────────────────────────────
+// Genera un ID estable del dispositivo que NO se invalida borrando el historial.
+// Combina múltiples señales de hardware/software que no cambian con la navegación.
+// Se persiste en IndexedDB (más resistente que localStorage) Y en localStorage
+// como fallback. Al arrancar, lee primero de IDB; si no existe, lo crea.
+const DEVICE_FP_KEY = 'klick_device_fp';
+
+async function _computeDeviceFingerprint() {
+    const nav = window.navigator;
+    const screen = window.screen;
+    const signals = [
+        nav.hardwareConcurrency || 0,
+        nav.deviceMemory || 0,
+        screen.width, screen.height, screen.colorDepth, screen.pixelDepth,
+        nav.platform || '',
+        nav.vendor || '',
+        nav.language || '',
+        (nav.languages || []).join(','),
+        Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+        nav.maxTouchPoints || 0,
+        typeof nav.cookieEnabled,
+        typeof WebAssembly !== 'undefined' ? 1 : 0,
+    ].join('|');
+
+    // Canvas fingerprint
+    let canvasFP = '';
+    try {
+        const cv = document.createElement('canvas');
+        cv.width = 200; cv.height = 40;
+        const ctx = cv.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#f60'; ctx.fillRect(0, 0, 200, 40);
+        ctx.fillStyle = '#069'; ctx.fillText('KlickFP-v1', 2, 2);
+        ctx.fillStyle = 'rgba(102,204,0,0.7)'; ctx.fillText('KlickFP-v1', 4, 4);
+        canvasFP = cv.toDataURL().slice(-40);
+    } catch(e) {}
+
+    // WebGL renderer
+    let glFP = '';
+    try {
+        const gl = document.createElement('canvas').getContext('webgl');
+        if (gl) {
+            const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+            glFP = dbg ? (gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '') : '';
+        }
+    } catch(e) {}
+
+    const raw = signals + '|' + canvasFP + '|' + glFP;
+
+    // Hash simple pero suficiente (no criptográfico)
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+        hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+        hash |= 0;
+    }
+    return 'dfp_' + Math.abs(hash).toString(36) + '_' + (raw.length).toString(36);
+}
+
+const _IDB_NAME = 'klick_secure_store', _IDB_VER = 1, _IDB_STORE = 'device';
+function _idbGet(key) {
+    return new Promise(resolve => {
+        try {
+            const req = indexedDB.open(_IDB_NAME, _IDB_VER);
+            req.onupgradeneeded = e => e.target.result.createObjectStore(_IDB_STORE);
+            req.onsuccess = e => {
+                try {
+                    const tx = e.target.result.transaction(_IDB_STORE, 'readonly');
+                    const r = tx.objectStore(_IDB_STORE).get(key);
+                    r.onsuccess = () => resolve(r.result || null);
+                    r.onerror = () => resolve(null);
+                } catch(_) { resolve(null); }
+            };
+            req.onerror = () => resolve(null);
+        } catch(_) { resolve(null); }
+    });
+}
+function _idbSet(key, val) {
+    try {
+        const req = indexedDB.open(_IDB_NAME, _IDB_VER);
+        req.onupgradeneeded = e => e.target.result.createObjectStore(_IDB_STORE);
+        req.onsuccess = e => {
+            try {
+                const tx = e.target.result.transaction(_IDB_STORE, 'readwrite');
+                tx.objectStore(_IDB_STORE).put(val, key);
+            } catch(_) {}
+        };
+    } catch(_) {}
+}
+
+let _deviceFingerprint = null;
+// Promise que resuelve cuando la huella está lista — garantiza que
+// submitLeaderboard nunca envíe 'unknown' en el primer envío.
+let _deviceFpReady = null;
+
+async function _initDeviceFingerprint() {
+    // 1. IDB — persiste aunque se borre historial y cookies
+    let fp = await _idbGet(DEVICE_FP_KEY);
+    // 2. Fallback localStorage
+    if (!fp) { try { fp = localStorage.getItem(DEVICE_FP_KEY); } catch(_) {} }
+    // 3. Generar si no existe
+    if (!fp) { fp = await _computeDeviceFingerprint(); }
+    // Persistir en ambos almacenes
+    _idbSet(DEVICE_FP_KEY, fp);
+    try { localStorage.setItem(DEVICE_FP_KEY, fp); } catch(_) {}
+    _deviceFingerprint = fp;
+    return fp;
+}
+
+// Iniciar inmediatamente y guardar la Promise para que submitLeaderboard la pueda await
+_deviceFpReady = _initDeviceFingerprint().catch(() => { _deviceFingerprint = 'fp_error'; return 'fp_error'; });
 
 // --- SVGs ---
 const SVG_CORRECT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
@@ -231,7 +1330,14 @@ const defaultStats = {
     sameTrackGames: 0, lastGameTrack: '',
     kpViews: 0, kpClaimDays: [], kpSessionClaims: 0,
     qualityMode: 'normal',
-    seenChristopher: false, christopherCardViews: 0, christopherSeenCount: 0
+    seenChristopher: false, christopherCardViews: 0, christopherSeenCount: 0,
+    // KLICK SHIELD v2
+    ksInfractions: [],      // infracciones confirmadas con timestamp
+    ksBanUntil: null,       // ISO string del fin del ban activo
+    ksInfractionLvl: 0,     // nivel más alto alcanzado
+    ksReviewStatus: null,   // null | 'under_review' | 'warned' | 'sanctioned'
+    ksReviewDate: null,     // fecha de la última apertura de revisión
+    ksSuspicious: [],       // sesiones sospechosas internas (peso 8-12)
 };
 
 const STORAGE_KEY = 'klick_player_data_permanent';
@@ -244,12 +1350,15 @@ if(!playerStats.uuid) playerStats.uuid = generateUUID();
 // sin importar el dispositivo. El servidor sobreescribe siempre la misma fila.
 if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') {
     playerStats.uuid = '00000000-spec-tral-0000-klickphantom0';
-    if (playerStats.achievements && playerStats.achievements.includes('tramposo')) {
-        playerStats.achievements = playerStats.achievements.filter(id => id !== 'tramposo');
-        playerStats.pinnedAchievements = (playerStats.pinnedAchievements || []).filter(id => id !== 'tramposo');
-        playerStats.cheatCount = 0;
-    }
 }
+// Purgar el logro de tramposo de cualquier cuenta (eliminado en v4)
+if (playerStats.achievements) {
+    playerStats.achievements = playerStats.achievements.filter(id => id !== 'tramposo');
+}
+if (playerStats.pinnedAchievements) {
+    playerStats.pinnedAchievements = playerStats.pinnedAchievements.filter(id => id !== 'tramposo');
+}
+if (playerStats.cheatCount !== undefined) delete playerStats.cheatCount;
 
 // ── MIGRACIÓN v0: normaliza logros cx al nuevo sistema (christopherCardViews) ──
 (function migrateAchievementsV0() {
@@ -380,7 +1489,7 @@ if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOP
     if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') return;
     if (playerStats.migratedV3) return;
 
-    const normalAchs = (playerStats.achievements || []).filter(id => id !== 'tramposo').length;
+    const normalAchs = (playerStats.achievements || []).length;
     const toRevoke = [];
 
     // fin5 "Monarca": requiere rango Leyenda + 300 logros (antes chequeaba 200)
@@ -539,7 +1648,7 @@ function revokeInvalidAchievements() {
 
     // ── 0. HUÉRFANOS — IDs que ya no existen en el banco de logros ───────────
     s.achievements.forEach(id => {
-        if (id !== 'tramposo' && !ACHIEVEMENTS_MAP.has(id)) toRevoke.add(id);
+        if (!ACHIEVEMENTS_MAP.has(id)) toRevoke.add(id);
     });
 
     // Helpers
@@ -548,7 +1657,7 @@ function revokeInvalidAchievements() {
     const check = (id, cond) => { if (has(id) && !cond) mark(id); };
     const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
     const accuracy = totalAns > 0 ? Math.round((s.totalCorrect||0)/totalAns*100) : 0;
-    const normalAchs = s.achievements.filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP.has(id)).length;
+    const normalAchs = s.achievements.filter(id => ACHIEVEMENTS_MAP.has(id)).length;
     const kpClaimed  = (getKpState().claimed||[]).length;
 
     // ── 1. ESCALAS NUMÉRICAS — verifica cada tier contra el stat real ────────
@@ -1364,6 +2473,8 @@ function playMusicStep(t) {
     }
 }
 
+
+
 // ── SFX definitions (all notes pre-scheduled via WebAudio clock) ─────────
 const SFX = {
     // UI click: short crisp high tick
@@ -1498,15 +2609,16 @@ document.getElementById('op-fps').addEventListener('input', (e) => {
     });
 });
 
-function showToast(title, message, color, icon) {
+function showToast(title, message, color, icon, duration) {
     const container = document.getElementById('toast-container');
     if (!container) return;
+    const ms = duration || 3500;
     const toast = document.createElement('div'); 
     toast.className = 'toast-item'; 
     toast.innerHTML = `<div class="toast-icon" style="color: ${color}">${icon}</div><div class="toast-text"><span class="toast-title" style="color:${color}">${title}</span><span class="toast-name">${message}</span></div>`;
     container.appendChild(toast); 
     setTimeout(() => toast.classList.add('show'), 50); 
-    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, 3500);
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, ms);
 }
 
 // --- Módulo: Clasificación Global ---
@@ -1518,7 +2630,7 @@ function calculatePowerLevel(stats) {
     const best = stats.bestScore * 1.5; 
     const streak = stats.maxStreak * 200;
     const perf = stats.perfectGames * 1000;
-    const achs = stats.achievements.filter(id => id !== 'tramposo').length * 300;
+    const achs = stats.achievements.length * 300;
     const winRate = stats.gamesPlayed > 0 ? (stats.totalCorrect / (stats.gamesPlayed * 20)) * 5000 : 0;
     // efficiency bonus: average score per game (rewards quality over quantity)
     const avgScore = stats.gamesPlayed > 0 ? stats.totalScore / stats.gamesPlayed : 0;
@@ -1543,40 +2655,149 @@ window.addEventListener('online', function() {
 
 async function submitLeaderboard() {
     if (!playerStats.playerName || playerStats.playerName === "JUGADOR" || GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") return;
-    // Debounce: avoid multiple rapid submits (e.g. saveGameStats + setInterval overlap)
     clearTimeout(_submitDebounceTimer);
     _submitDebounceTimer = setTimeout(async () => {
-        // CHRISTOPHER: UUID canónico fijo + nombre propio
+        // Esperar la huella del dispositivo si todavía está calculándose
+        if (_deviceFpReady && !_deviceFingerprint) {
+            try { await _deviceFpReady; } catch(_) {}
+        }
         const _isAdmin = playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
         const pl = _isAdmin ? 21000000 : calculatePowerLevel(playerStats);
-        if (!_isAdmin) playerStats.powerLevel = pl; // nunca sobreescribir PL del admin
+        if (!_isAdmin) playerStats.powerLevel = pl;
         const payload = {
             uuid:       _isAdmin ? '00000000-spec-tral-0000-klickphantom0' : playerStats.uuid,
             name:       playerStats.playerName,
             rankTitle:  getRankInfo(playerStats).title,
             powerLevel: _isAdmin ? 21000000 : pl,
             totalScore: playerStats.totalScore,
-            maxStreak:  playerStats.maxStreak
+            maxStreak:  playerStats.maxStreak,
+            gamesPlayed:   playerStats.gamesPlayed   || 0,
+            bestScore:     playerStats.bestScore      || 0,
+            perfectGames:  playerStats.perfectGames   || 0,
+            totalCorrect:  playerStats.totalCorrect   || 0,
+            totalWrong:    playerStats.totalWrong     || 0,
+            totalTimeouts: playerStats.totalTimeouts  || 0,
+            maxMult:       playerStats.maxMult        || 1,
+            maxLoginStreak:playerStats.maxLoginStreak || 0,
+            deviceFP:      _deviceFingerprint || ('dfp_fallback_' + (playerStats.uuid || '').slice(0,8)),
+            lastSeen:      new Date().toISOString(),
+            pinnedAchievements: playerStats.pinnedAchievements || [],
+            achievementCount:   (playerStats.achievements || []).filter(id => ACHIEVEMENTS_MAP && ACHIEVEMENTS_MAP.has(id)).length,
+            // KS datos viven solo en localStorage — no se envían al servidor
         };
         try {
             if (!navigator.onLine) throw new Error('offline');
             await fetch(GAS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) });
-            localStorage.removeItem(_LB_PENDING_KEY); // limpiar pendiente si había uno
+            localStorage.removeItem(_LB_PENDING_KEY);
         } catch(e) {
-            // Guardar para reintento cuando vuelva la conexión
             try { localStorage.setItem(_LB_PENDING_KEY, JSON.stringify(payload)); } catch(_) {}
         }
     }, 1200);
 }
 
+// ══════════════════════════════════════════════════════════════════
+//  SISTEMA DE ESTADO ONLINE
+//  · Heartbeat cada 45s → actualiza lastSeen en el servidor
+//  · fetchLeaderboard lee lastSeen de cada jugador
+//  · Umbral: < 90s = online, >= 90s = offline
+//  · Admin (CHRISTOPHER) siempre aparece como online
+//  · _formatLastSeen devuelve 'online' o null (no mostramos tiempo)
+// ══════════════════════════════════════════════════════════════════
+
+const _ONLINE_THRESHOLD_MS = 90 * 1000; // 90 segundos
+
+function _formatLastSeen(isoStr) {
+    if (!isoStr) return null;
+    let d;
+    try { d = new Date(isoStr); if (isNaN(d.getTime())) return null; } catch(e) { return null; }
+    const diff = Date.now() - d.getTime();
+    if (diff < 0 || diff < _ONLINE_THRESHOLD_MS) return 'online';
+    return 'offline'; // solo interesa online/offline para el indicador
+}
+
+// Heartbeat: envía lastSeen cada 45s mientras la pestaña esté activa
+let _heartbeatTimer = null;
+function _startHeartbeat() {
+    _stopHeartbeat();
+    // Envío inmediato
+    _sendHeartbeat();
+    _heartbeatTimer = setInterval(_sendHeartbeat, 45000);
+}
+function _stopHeartbeat() {
+    if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
+}
+async function _sendHeartbeat() {
+    if (!playerStats.playerName || playerStats.playerName === 'JUGADOR') return;
+    if (GAS_URL === 'URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI') return;
+    if (!navigator.onLine) return;
+    // Reusar submitLeaderboard que ya incluye lastSeen con timestamp actual
+    // Para el heartbeat usamos un payload mínimo para no sobrecargar
+    if (_deviceFpReady && !_deviceFingerprint) { try { await _deviceFpReady; } catch(_) {} }
+    const _isAdmin = playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+    const pl = _isAdmin ? 21000000 : (playerStats.powerLevel || calculatePowerLevel(playerStats));
+    const payload = {
+        uuid:      _isAdmin ? '00000000-spec-tral-0000-klickphantom0' : playerStats.uuid,
+        name:      playerStats.playerName,
+        rankTitle: getRankInfo(playerStats).title,
+        powerLevel:pl,
+        totalScore:playerStats.totalScore || 0,
+        maxStreak: playerStats.maxStreak  || 0,
+        gamesPlayed:   playerStats.gamesPlayed   || 0,
+        bestScore:     playerStats.bestScore      || 0,
+        perfectGames:  playerStats.perfectGames   || 0,
+        totalCorrect:  playerStats.totalCorrect   || 0,
+        totalWrong:    playerStats.totalWrong     || 0,
+        totalTimeouts: playerStats.totalTimeouts  || 0,
+        maxMult:       playerStats.maxMult        || 1,
+        maxLoginStreak:playerStats.maxLoginStreak || 0,
+        deviceFP:  _deviceFingerprint || ('dfp_fallback_' + (playerStats.uuid || '').slice(0,8)),
+        lastSeen:  new Date().toISOString(),
+    };
+    try {
+        await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
+    } catch(e) {}
+}
+
+// Detener heartbeat cuando la pestaña está oculta, reanudar al volver
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        _startHeartbeat();
+    } else {
+        _stopHeartbeat();
+    }
+});
+
+
+// ── Fetch de seguridad (solo admin, en background) ──────────────────────
+// Independiente de fetchLeaderboard para no mezclar datos.
+// Se llama al iniciar, y renderSecurityStatus() lo usa exclusivamente.
+window._ksSecurityData = null;
+window._ksSecurityFetching = false;
+
+async function fetchSecurityData() {
+    if (GAS_URL === 'URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI') return;
+    // Solo el admin necesita datos del servidor en la zona de seguridad
+    const isAdmin = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+    if (!isAdmin) return;
+    if (window._ksSecurityFetching) return;
+    window._ksSecurityFetching = true;
+    try {
+        const res  = await fetch(GAS_URL + '?admin=1');
+        const data = await res.json();
+        if (Array.isArray(data)) window._ksSecurityData = data;
+    } catch(e) {}
+    window._ksSecurityFetching = false;
+}
+
 async function fetchLeaderboard() {
     if(GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") return;
     try {
-        const res = await fetch(GAS_URL);
+        const _isAdminFetch = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+        const fetchURL = _isAdminFetch ? GAS_URL + '?admin=1' : GAS_URL;
+        const res = await fetch(fetchURL);
         const topPlayers = await res.json();
         const isLight = document.body.classList.contains('light-mode');
         
-        // Map rank title to color
         function rankTitleColor(title) {
             switch(title) {
                 case 'Divinidad': return isLight ? '#6b0fa8' : 'var(--divinity-color-static)';
@@ -1589,11 +2810,10 @@ async function fetchLeaderboard() {
             }
         }
         
-        // Guardar datos para las tarjetas de perfil
         window._leaderboardData = topPlayers;
 
         let html = "";
-        // CHRISTOPHER no ocupa posición numerada — se excluye del conteo
+        let onlineCount = 0;
         let realPos = 0;
         topPlayers.forEach((p, index) => {
             const isChristopher  = p.uuid === '00000000-spec-tral-0000-klickphantom0';
@@ -1605,9 +2825,7 @@ async function fetchLeaderboard() {
                 const prevPos = playerStats.rankingPosition || 999;
                 const prevPL  = playerStats.powerLevel || 0;
                 playerStats.rankingPosition = pos;
-                // nm7: Remontada
                 if (prevPos >= 15 && pos <= 5) playerStats.rankRemontada = true;
-                // nm5: Vigilia — PL sube 3 días consecutivos
                 const todayForNm5 = new Date().toISOString().split('T')[0];
                 if (p.powerLevel > prevPL && prevPL > 0) {
                     const lastRankUpDay = playerStats._lastRankUpDay || '';
@@ -1622,7 +2840,6 @@ async function fetchLeaderboard() {
                 }
                 saveStatsLocally(); checkAchievements();
             }
-            // nm6: Impostado — estamos por encima de alguien con >1000 PL más
             if (!playerStats.surpassedHighPLPlayer && playerStats.uuid) {
                 const myEntry = topPlayers.find(x => x.uuid === playerStats.uuid);
                 const myIdx   = myEntry ? topPlayers.indexOf(myEntry) : -1;
@@ -1631,11 +2848,8 @@ async function fetchLeaderboard() {
                 }
             }
 
-            // cx logros se asignan por christopherCardViews (click en tarjeta) — no por fetch
-
             const displayPos = isChristopher ? '∞' : pos;
 
-            // Podio titles — requiere Leyenda o superior
             let rankTitle = p.rankTitle;
             const podiumTitles = { 1: 'Rey Klick', 2: 'Señor Klick', 3: 'Caballero Klick' };
             if (!isChristopher && pos <= 3 && (p.rankTitle === 'Leyenda' || p.rankTitle === 'Mítico' || p.rankTitle === 'Divinidad')) rankTitle = podiumTitles[pos];
@@ -1647,22 +2861,44 @@ async function fetchLeaderboard() {
             const miticoClass      = p.rankTitle === 'Mítico'    ? 'mitico-card'      : '';
             const christopherClass = isChristopher               ? 'christopher-card' : '';
             const titleColor = rankTitleColor(p.rankTitle);
-            // Christopher y Divinidad: el CSS maneja el color — no aplicar inline style
             const titleStyle = (isChristopher || p.rankTitle === 'Divinidad') ? '' : `color:${titleColor}`;
 
-            html += `<div class="rank-card ${meClass} ${divinidadClass} ${leyendaClass} ${miticoClass} ${christopherClass}" onclick="openPlayerCard(${index})" title="Ver perfil">
+            // Online status — admin siempre online; umbral 90s para resto
+            const _onlineStatus = isChristopher ? 'online' : _formatLastSeen(p.lastSeen || null);
+            const isOnline = _onlineStatus === 'online';
+            if (isOnline) onlineCount++; // admin cuenta también
+            const dotClass = isOnline ? 'rc-online' : (_onlineStatus ? 'rc-offline' : 'rc-unknown');
+            const dotTitle = isOnline ? 'En línea' : 'Desconectado';
+            // Mostrar PL con ∞ para admin
+            const plDisplay = isChristopher ? '∞' : p.powerLevel.toLocaleString();
+
+            html += `<div class="rank-card ${meClass} ${divinidadClass} ${leyendaClass} ${miticoClass} ${christopherClass}" onclick="openPlayerProfileFromRank(${index})" title="Ver perfil completo">
                 <div class="rc-pos">${displayPos}</div>
                 <div class="rc-info">
-                    <div class="rc-name">${p.name}</div>
+                    <div class="rc-name-row">
+                        <div class="rc-status-zone"><span class="rc-online-dot ${dotClass}" title="${dotTitle}"></span></div>
+                        <div class="rc-name">${p.name}</div>
+                    </div>
                     <div class="rc-title" style="${titleStyle}">${rankTitle}</div>
                 </div>
-                <div class="rc-score">${p.powerLevel.toLocaleString()} <span>PL</span></div>
+                <div class="rc-score">${plDisplay} <span>PL</span></div>
             </div>`;
         });
         document.getElementById('ranking-list').innerHTML = html;
-        // Track successful loads for 'Bien Conectado' ui8
+
+        // Online badge — incluye admin, siempre visible si hay al menos 1
+        const onlineBadge = document.getElementById('rank-online-badge');
+        const onlineText  = document.getElementById('rank-online-count');
+        if (onlineBadge && onlineText) {
+            if (onlineCount > 0) {
+                onlineText.textContent = `${onlineCount} en línea`;
+                onlineBadge.style.display = 'flex';
+            } else {
+                onlineBadge.style.display = 'none';
+            }
+        }
+
         playerStats.successfulLeaderboardLoads = (playerStats.successfulLeaderboardLoads||0) + 1;
-        // ui6: Fan de Clasificación — visita el ranking cuando hay menos de 5 jugadores
         if (topPlayers.length < 5 && !playerStats.achievements.includes('ui6')) {
             playerStats.achievements.push('ui6');
             const _ui6 = ACHIEVEMENTS_MAP.get('ui6');
@@ -1797,6 +3033,345 @@ function _pcStop() {
     _pc.active = false;
     if (_pc.raf) { cancelAnimationFrame(_pc.raf); _pc.raf = null; }
     if (_pc.ctx && _pc.canvas) _pc.ctx.clearRect(0, 0, _pc.canvas.width, _pc.canvas.height);
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  PERFIL COMPLETO DESDE RANKING
+//  Al clicar en un jugador abre profile-screen con sus datos.
+//  • Propio perfil  → datos locales completos
+//  • Otro jugador   → datos del servidor (todos visibles, sin restricción)
+//  El botón "Regresar" en profile-screen vuelve al ranking cuando
+//  se entró desde allí.
+// ══════════════════════════════════════════════════════════════════
+let _rankProfileData = null;
+let _isViewingOtherProfile = false;
+let _profileReturnScreen = 'start-screen'; // pantalla a la que volver al salir
+
+function profileGoBack() {
+    try { SFX.click(); } catch(e) {}
+    const target = _profileReturnScreen || 'start-screen';
+    _restoreOwnProfileOnLeave();
+    switchScreen(target);
+}
+
+function openPlayerProfileFromRank(index) {
+    const data = window._leaderboardData;
+    if (!data || !data[index]) return;
+    const p = data[index];
+    const isChristopher = p.uuid === '00000000-spec-tral-0000-klickphantom0';
+    const isMe = p.uuid === playerStats.uuid;
+
+    if (isChristopher) {
+        playerStats.christopherCardViews = (playerStats.christopherCardViews||0) + 1;
+        saveStatsLocally(); checkAchievements();
+    }
+
+    _profileReturnScreen = 'ranking-screen';
+
+    if (isMe) {
+        _isViewingOtherProfile = false;
+        _rankProfileData = null;
+        goToProfile();
+        return;
+    }
+
+    _isViewingOtherProfile = true;
+    _rankProfileData = p;
+
+    try { initAudio(); SFX.click(); } catch(e) {}
+
+    // Posición real
+    let realPos = 0;
+    for (let i = 0; i <= index; i++) {
+        if (data[i].uuid !== '00000000-spec-tral-0000-klickphantom0') realPos++;
+    }
+    const pos = isChristopher ? 0 : realPos;
+
+    // Rango y color
+    const baseRank = p.rankTitle || 'Novato';
+    const light = document.body.classList.contains('light-mode');
+    const rankColorMap = {
+        'Divinidad': { color: light ? '#6b0fa8' : 'var(--divinity-color)', rgb: '180,100,255' },
+        'Mítico':  { color: light ? '#000000' : '#ffffff', rgb: '255,255,255' },
+        'Leyenda': { color: light ? '#8a6200' : '#ffb800', rgb: '255,184,0'   },
+        'Maestro': { color: light ? '#7a0a8c' : '#b5179e', rgb: '181,23,158'  },
+        'Pro':     { color: light ? '#c41940' : '#ff2a5f', rgb: '255,42,95'   },
+        'Junior':  { color: light ? '#0070a8' : '#00d4ff', rgb: '0,212,255'   },
+    };
+    const ri = rankColorMap[baseRank] || { color: light ? '#0a7a3e' : '#00ff66', rgb: '0,255,102' };
+
+    let displayTitle = isChristopher ? 'Arquitecto del Sistema' : baseRank;
+    const podiumTitles = { 1: 'Rey Klick', 2: 'Señor Klick', 3: 'Caballero Klick' };
+    if (!isChristopher && pos <= 3 && ['Leyenda','Mítico','Divinidad'].includes(baseRank)) displayTitle = podiumTitles[pos];
+
+    // CSS vars de rango
+    document.documentElement.style.setProperty('--rank-color', ri.color);
+    document.documentElement.style.setProperty('--rank-rgb', ri.rgb);
+
+    // Nav title con nombre del jugador
+    const navTitle = document.getElementById('profile-nav-title');
+    if (navTitle) navTitle.textContent = p.name;
+
+    // Nombre: readonly
+    const nameInput = document.getElementById('profile-name-input');
+    if (nameInput) {
+        nameInput.value = p.name;
+        nameInput.readOnly = true;
+        nameInput.style.pointerEvents = 'none';
+        nameInput.style.opacity = '0.75';
+    }
+
+    // Rango
+    const rankDisp = document.getElementById('profile-rank-display');
+    if (rankDisp) { rankDisp.innerText = `Rango: ${displayTitle}`; rankDisp.style.color = ri.color; }
+
+    // Ocultar warning
+    const profileWarn = document.getElementById('profile-warning');
+    if (profileWarn) { profileWarn.style.opacity = '0'; profileWarn.innerText = 'Se requiere un nombre'; }
+
+    // ── Stats y Panel PL ──────────────────────────────────────────────
+    // Admin (CHRISTOPHER): todos los datos privados ocultos tras candados
+    // Otros jugadores: todos los datos visibles sin restricción (transparencia total)
+    const totAnswers = (p.totalCorrect||0)+(p.totalWrong||0)+(p.totalTimeouts||0);
+    const accPct = totAnswers > 0 ? Math.round((p.totalCorrect||0)/totAnswers*100) : null;
+    const plVal = isChristopher ? '∞' : (p.powerLevel||0).toLocaleString();
+    const fmt = n => (n||0).toLocaleString();
+
+    const _lockHtml = (label) => `
+        <div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span style="font-size:0.62rem;color:var(--text-secondary);">${label}</span>
+            <span style="font-size:0.58rem;color:rgba(255,255,255,0.2);margin-left:auto;font-style:italic;">Acceso restringido</span>
+        </div>`;
+
+    if (isChristopher) {
+        // Tarjetas de stats: candados
+        ['stat-score','stat-games','stat-streak','stat-days'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+                el.style.display = 'flex';
+                el.style.alignItems = 'center';
+                el.style.justifyContent = 'center';
+                el.style.color = 'rgba(255,255,255,0.2)';
+            }
+        });
+    } else {
+        const se = document.getElementById('stat-score');  if(se)  { se.innerHTML=''; se.innerText=(p.bestScore||0).toLocaleString(); se.style=''; }
+        const ge = document.getElementById('stat-games');  if(ge)  { ge.innerHTML=''; ge.innerText=(p.gamesPlayed||0).toLocaleString(); ge.style=''; }
+        const str= document.getElementById('stat-streak'); if(str) { str.innerHTML=''; str.innerText=(p.maxStreak||0).toLocaleString(); str.style=''; }
+        const dy = document.getElementById('stat-days');   if(dy)  { dy.innerHTML=''; dy.innerText=(p.maxLoginStreak||0).toLocaleString(); dy.style=''; }
+    }
+
+    // Panel PL
+    const plTotalEl = document.getElementById('pl-total');
+    const plHeroEl  = document.getElementById('pl-hero-total');
+    if (plTotalEl) { plTotalEl.innerText = plVal; plTotalEl.style.color = ri.color; }
+    if (plHeroEl)  { plHeroEl.innerText  = plVal; plHeroEl.style.color  = ri.color; }
+
+    const posEl = document.getElementById('pl-ranking-pos');
+    if (posEl) posEl.innerText = isChristopher ? '∞' : '#'+pos;
+
+    const panel = document.getElementById('pl-panel');
+    if (panel) panel.style.borderColor = 'rgba('+ri.rgb+',0.28)';
+
+    // Desglose PL
+    const rowsEl = document.getElementById('pl-rows');
+    if (rowsEl) {
+        if (isChristopher) {
+            // Admin: todas las filas con candados y "Acceso restringido"
+            const lockLabels = ['Puntaje acumulado','Récord de partida','Racha máxima','Partidas perfectas','Logros','Precisión','Eficiencia'];
+            rowsEl.innerHTML = lockLabels.map(l => _lockHtml(l)).join('') +
+                '<div class="pl-calc-divider"></div>' +
+                '<div class="pl-calc-row" style="padding:6px 4px;">' +
+                '<span style="font-size:0.7rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;grid-column:1/3;">Total PL</span>' +
+                '<span></span>' +
+                '<span style="font-size:clamp(1.1rem,2vw,1.4rem);font-weight:900;font-family:monospace;color:'+ri.color+';text-align:right;">∞</span>' +
+                '</div>';
+        } else {
+            const rows = [
+                { label:'Puntaje acum.',      val: fmt(p.totalScore) },
+                { label:'Récord de partida',  val: fmt(p.bestScore) },
+                { label:'Racha máxima',       val: fmt(p.maxStreak)+' aciertos' },
+                { label:'Partidas perfectas', val: fmt(p.perfectGames) },
+                { label:'Aciertos totales',   val: fmt(p.totalCorrect) },
+                { label:'Precisión',          val: accPct !== null ? accPct+'%' : '—' },
+                { label:'Mult. máximo',       val: '×'+(p.maxMult||1) },
+                { label:'Racha días',         val: fmt(p.maxLoginStreak)+' días' },
+            ];
+            rowsEl.innerHTML = rows.map(r =>
+                '<div style="display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">' +
+                '<span style="font-size:0.62rem;color:var(--text-secondary);">'+r.label+'</span>' +
+                '<span style="font-size:0.62rem;font-weight:700;color:var(--text-primary);text-align:right;">'+r.val+'</span>' +
+                '</div>'
+            ).join('');
+        }
+    }
+
+    // Barra PL
+    const barEl = document.getElementById('pl-bar-total');
+    if (barEl) { barEl.style.background = ri.color; barEl.style.width = isChristopher ? '100%' : '65%'; }
+    const nextLbl = document.getElementById('pl-next-label');
+    if (nextLbl) nextLbl.innerText = isChristopher ? '' : (p.gamesPlayed||0)+' partidas disputadas';
+    const accPctEl = document.getElementById('pl-accuracy-pct');
+    if (accPctEl) accPctEl.innerText = isChristopher ? '' : (accPct !== null ? accPct+'% precisión' : '');
+
+    // Logros
+    const achGrid = document.getElementById('profile-achievements-grid');
+    if (achGrid) {
+        if (isChristopher) {
+            // Admin: logros fijados del servidor, igual que cualquier jugador
+            const pinnedIds = Array.isArray(p.pinnedAchievements) ? p.pinnedAchievements : [];
+            const achCount  = p.achievementCount || null;
+            const isLight   = document.body.classList.contains('light-mode');
+            achGrid.innerHTML = '';
+            const fragAdmin = document.createDocumentFragment();
+            let nAdmin = 0;
+            pinnedIds.forEach(id => {
+                if (nAdmin >= 3) return;
+                const ach = ACHIEVEMENTS_MAP.get(id);
+                if (!ach) return;
+                const achDisplayColor = isLight ? darkenHex(ach.color, 0.4) : ach.color;
+                const slot = document.createElement('div');
+                slot.className = 'achievement-slot unlocked';
+                slot.style.borderColor = isLight ? 'rgba(0,0,0,0.2)' : ach.color;
+                slot.style.boxShadow   = isLight ? 'none' : `0 0 12px ${ach.color}44`;
+                slot.innerHTML = `<div class="ach-icon" style="color:${achDisplayColor}">${ach.icon}</div><div class="ach-title" style="color:${achDisplayColor}">${ach.title}</div>`;
+                fragAdmin.appendChild(slot);
+                nAdmin++;
+            });
+            while (nAdmin < 3) {
+                const slot = document.createElement('div');
+                slot.className = 'achievement-slot';
+                if (achCount !== null && nAdmin === 0 && pinnedIds.length === 0) {
+                    slot.style.opacity = '0.85'; slot.style.filter = 'grayscale(0)';
+                    slot.innerHTML = `<div style="font-size:1.4rem;font-weight:900;color:${ri.color};">${achCount}</div><div class="ach-title" style="color:var(--text-secondary);font-size:0.58rem;">Logros</div>`;
+                    fragAdmin.appendChild(slot); nAdmin++; break;
+                }
+                const archIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+                slot.innerHTML = `<div class="ach-icon" style="color:${ri.color};opacity:0.5">${archIcon}</div><div class="ach-title" style="color:${ri.color};font-size:0.58rem;opacity:0.5;">Sin fijar</div>`;
+                fragAdmin.appendChild(slot); nAdmin++;
+            }
+            achGrid.appendChild(fragAdmin);
+        } else {
+            // Otros jugadores: mostrar logros fijados + contador
+            const pinnedIds = Array.isArray(p.pinnedAchievements) ? p.pinnedAchievements : [];
+            const achCount  = p.achievementCount || null;
+            const isLight   = document.body.classList.contains('light-mode');
+            achGrid.innerHTML = '';
+            const fragOther = document.createDocumentFragment();
+            let nOther = 0;
+            pinnedIds.forEach(id => {
+                if (nOther >= 3) return;
+                const ach = ACHIEVEMENTS_MAP.get(id);
+                if (!ach) return;
+                const achDisplayColor = isLight ? darkenHex(ach.color, 0.4) : ach.color;
+                const slot = document.createElement('div');
+                slot.className = 'achievement-slot unlocked';
+                slot.style.borderColor = isLight ? 'rgba(0,0,0,0.2)' : ach.color;
+                slot.style.boxShadow   = isLight ? 'none' : `0 0 12px ${ach.color}44`;
+                slot.innerHTML = `<div class="ach-icon" style="color:${achDisplayColor}">${ach.icon}</div><div class="ach-title" style="color:${achDisplayColor}">${ach.title}</div>`;
+                fragOther.appendChild(slot);
+                nOther++;
+            });
+            while (nOther < 3) {
+                const slot = document.createElement('div');
+                slot.className = 'achievement-slot';
+                if (achCount !== null && nOther === 0 && pinnedIds.length === 0) {
+                    // No hay fijados pero sí hay un contador: mostrar en el primer slot
+                    slot.style.opacity = '0.85';
+                    slot.style.filter  = 'grayscale(0)';
+                    slot.innerHTML = `<div style="font-size:1.4rem;font-weight:900;color:${ri.color};">${achCount}</div><div class="ach-title" style="color:var(--text-secondary);font-size:0.58rem;">Logros</div>`;
+                    fragOther.appendChild(slot);
+                    nOther++;
+                    break;
+                }
+                slot.innerHTML = `<div class="ach-icon" style="color:var(--text-secondary);opacity:0.4">${SVG_LOCK}</div><div class="ach-title" style="color:var(--text-secondary);opacity:0.5;font-size:0.7rem;">Sin fijar</div>`;
+                fragOther.appendChild(slot);
+                nOther++;
+            }
+            achGrid.appendChild(fragOther);
+        }
+    }
+
+    // Música del Arquitecto cuando se abre su perfil desde el Ranking
+    if (isChristopher) {
+        try {
+            initAudio();
+            if (isMusicPlaying && masterMusicGain && audioCtx) {
+                const t = audioCtx.currentTime;
+                masterMusicGain.gain.cancelScheduledValues(t);
+                masterMusicGain.gain.setValueAtTime(masterMusicGain.gain.value, t);
+                masterMusicGain.gain.linearRampToValueAtTime(0.0001, t + 0.7);
+            }
+            if (!_architectMusicActive) startArchitectMusic();
+            // Partículas del Arquitecto en el fondo del profile-screen
+            const ps = document.getElementById('profile-screen');
+            if (ps) ps.classList.add('architect-profile-active');
+        } catch(e) {}
+    }
+
+    switchScreen('profile-screen');
+
+    // ── Admin: mostrar barra ban/unban si es CHRISTOPHER viendo otro jugador ──
+    const _isAdminViewing = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+    const _adminBar  = document.getElementById('profile-admin-bar');
+    const _banBtn    = document.getElementById('profile-admin-ban-btn');
+    const _unbanBtn  = document.getElementById('profile-admin-unban-btn');
+    if (_adminBar) {
+        if (_isAdminViewing && !isChristopher) {
+            _adminBar.style.display = 'flex';
+            const _isBannedOnServer = !!p.isBanned;
+            if (_banBtn)   { _banBtn.style.display   = _isBannedOnServer ? 'none' : 'block'; _banBtn.onclick   = () => _adminBanPlayer(p.uuid, p.name); }
+            if (_unbanBtn) { _unbanBtn.style.display  = _isBannedOnServer ? 'block' : 'none'; _unbanBtn.onclick = () => _adminUnbanPlayer(p.uuid, p.name); }
+        } else {
+            _adminBar.style.display = 'none';
+        }
+    }
+}
+
+function _restoreOwnProfileOnLeave() {
+    if (!_isViewingOtherProfile) return;
+    _isViewingOtherProfile = false;
+    _rankProfileData = null;
+
+    // Detener música del Arquitecto si estaba activa
+    if (_architectMusicActive) {
+        try {
+            stopArchitectMusic();
+            if (isMusicPlaying && masterMusicGain && audioCtx) {
+                const t = audioCtx.currentTime;
+                const targetVol = (playerStats.musicVol || 0.7) * 0.8;
+                masterMusicGain.gain.cancelScheduledValues(t);
+                masterMusicGain.gain.setValueAtTime(0.0001, t);
+                masterMusicGain.gain.linearRampToValueAtTime(targetVol, t + 0.5);
+            }
+        } catch(e) {}
+    }
+    // Quitar clase del perfil del Arquitecto
+    const ps = document.getElementById('profile-screen');
+    if (ps) ps.classList.remove('architect-profile-active');
+
+    // Restaurar CSS vars propias
+    currentRankInfo = getRankInfo(playerStats);
+    document.documentElement.style.setProperty('--rank-color', currentRankInfo.color);
+    document.documentElement.style.setProperty('--rank-rgb', currentRankInfo.rgb);
+    // Restaurar input
+    const nameInput = document.getElementById('profile-name-input');
+    if (nameInput) {
+        nameInput.readOnly = false;
+        nameInput.style.pointerEvents = '';
+        nameInput.style.opacity = '';
+    }
+    const profileWarn = document.getElementById('profile-warning');
+    if (profileWarn) {
+        profileWarn.style.opacity = '0';
+        profileWarn.style.color = '';
+        profileWarn.innerText = 'Se requiere un nombre';
+    }
+    // Restaurar nav title
+    const navTitle = document.getElementById('profile-nav-title');
+    if (navTitle) navTitle.textContent = 'PERFIL';
 }
 
 // ── Abrir tarjeta ─────────────────────────────────────────────────
@@ -2043,7 +3618,7 @@ async function loadQuestions() {
 const ACHIEVEMENTS_DATA = [];
 const colors = { blue: 'var(--accent-blue)', green: 'var(--accent-green)', yellow: 'var(--accent-yellow)', orange: 'var(--accent-orange)', red: 'var(--accent-red)', purple: 'var(--accent-purple)', dark: 'var(--text-secondary)' };
 
-const CHEATER_ACHIEVEMENT = { id: 'tramposo', title: 'TRAMPOSO', desc: 'Infringió las normas. Marca imborrable.', color: 'var(--accent-red)', icon: SVG_SKULL };
+// CHEATER_ACHIEVEMENT removed in v4
 
 function addAchs(arr) { arr.forEach(a => ACHIEVEMENTS_DATA.push(a)); }
 
@@ -2437,22 +4012,12 @@ function _checkAchievementsImpl() {
         } 
     };
     
-    if (achSet.has('tramposo')) {
-        if (!playerStats.pinnedAchievements.includes('tramposo')) {
-            playerStats.pinnedAchievements.unshift('tramposo');
-            if (playerStats.pinnedAchievements.length > 3) playerStats.pinnedAchievements.pop();
-        } else if (playerStats.pinnedAchievements.indexOf('tramposo') !== 0) {
-            playerStats.pinnedAchievements.splice(playerStats.pinnedAchievements.indexOf('tramposo'), 1);
-            playerStats.pinnedAchievements.unshift('tramposo');
-        }
-    }
-
-    const normalAchs = playerStats.achievements.filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP.has(id)).length;
+    const normalAchs = playerStats.achievements.filter(id => ACHIEVEMENTS_MAP.has(id)).length;
 
     // META
     if (playerStats.nameChanges >= 1) unlock('m1'); if (playerStats.nameChanges >= 5) unlock('m2'); if (playerStats.nameChanges >= 20) unlock('m3');
     if (playerStats.achViews >= 1) unlock('m4'); if (playerStats.achViews >= 10) unlock('m5'); if (playerStats.achViews >= 50) unlock('m6');
-    if (playerStats.pinnedAchievements.filter(id => id !== 'tramposo').length > 0) unlock('m7'); 
+    if ((playerStats.pinnedAchievements||[]).length > 0) unlock('m7'); 
     if (normalAchs >= 10) unlock('m8'); if (normalAchs >= 25) unlock('m9'); if (normalAchs >= 50) unlock('m10');
     // Colección maestra — escalera coherente con el total real de 300 logros
     if (normalAchs >= 75)  unlock('master1'); // Ambicioso
@@ -2702,7 +4267,7 @@ function _checkAchievementsImpl() {
             _vsDisplayPin = getAutoProfileAchs();
             _vsRefreshRows(newlyUnlocked.map(a => a.id));
             const progEl = document.getElementById('achievements-progress-text');
-            if (progEl) progEl.innerText = `Desbloqueados: ${[...(_vsAchSet)].filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP.has(id)).length} / ${ACHIEVEMENTS_DATA.length}`;
+            if (progEl) progEl.innerText = `Desbloqueados: ${[...(_vsAchSet)].filter(id => ACHIEVEMENTS_MAP.has(id)).length} / ${ACHIEVEMENTS_DATA.length}`;
         } else {
             renderAchievements();
         }
@@ -2717,10 +4282,7 @@ function _checkAchievementsImpl() {
 }
 
 function togglePin(achId) {
-    if (achId === 'tramposo') { 
-        showToast('Condena Permanente', 'Los tramposos no pueden ocultar sus actos.', 'var(--accent-red)', SVG_SKULL); 
-        return; 
-    }
+
     if (!playerStats.achievements.includes(achId)) return; SFX.click(); const index = playerStats.pinnedAchievements.indexOf(achId);
     if (index > -1) { playerStats.pinnedAchievements.splice(index, 1); showToast('Quitado del perfil', 'Ya no aparecerá destacado.', 'var(--text-secondary)', SVG_PIN); } 
     else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); playerStats.totalPins = (playerStats.totalPins||0) + 1; const ach_data = ACHIEVEMENTS_MAP.get(achId); showToast('Fijado en Perfil', ach_data ? ach_data.title : achId, ach_data ? ach_data.color : '', ach_data ? ach_data.icon : ''); }
@@ -2736,13 +4298,13 @@ function getAchRarity(id) { return RARITY_SCORE[id] || 10; }
 
 function getAutoProfileAchs() {
     const result = [];
-    if (playerStats.achievements.includes('tramposo')) result.push('tramposo');
+    const isAdmin = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
     playerStats.pinnedAchievements
-        .filter(id => id !== 'tramposo')
+        
         .forEach(id => { if (result.length < 3 && playerStats.achievements.includes(id)) result.push(id); });
     if (result.length < 3) {
         const rest = playerStats.achievements
-            .filter(id => id !== 'tramposo' && !result.includes(id))
+            .filter(id => !result.includes(id))
             .sort((a,b) => getAchRarity(b) - getAchRarity(a));
         rest.forEach(id => { if (result.length < 3) result.push(id); });
     }
@@ -2940,7 +4502,7 @@ function renderAchievements() {
         _vsDisplayPin.forEach(id => {
             if (n >= 3) return;
             let ach = ACHIEVEMENTS_MAP.get(id);
-            if (id === 'tramposo') ach = CHEATER_ACHIEVEMENT;
+
             if (!ach) return;
             const slot = document.createElement('div');
             slot.className = 'achievement-slot unlocked';
@@ -2961,7 +4523,7 @@ function renderAchievements() {
     }
 
     const el = document.getElementById('achievements-progress-text');
-    if (el) el.innerText = `Desbloqueados: ${[...(_vsAchSet)].filter(id => id !== 'tramposo' && ACHIEVEMENTS_MAP.has(id)).length} / ${ACHIEVEMENTS_DATA.length}`;
+    if (el) el.innerText = `Desbloqueados: ${[...(_vsAchSet)].filter(id => ACHIEVEMENTS_MAP.has(id)).length} / ${ACHIEVEMENTS_DATA.length}`;
 }
 
 // initializeAchievementsDOM y achCardElements ya no son necesarios con el virtual scroller
@@ -3566,7 +5128,10 @@ window.addEventListener('popstate', function(e) {
 });
 
 function goToMainMenu() { 
-    SFX.click(); 
+    SFX.click();
+    // Restaurar perfil propio si se estaba viendo el de otro jugador
+    _restoreOwnProfileOnLeave();
+    _profileReturnScreen = 'start-screen';
     // ui2: Vuelvo en Un Segundo — sale de Configuración en <3 segundos
     if (playerStats._settingsOpenTime && (Date.now() - playerStats._settingsOpenTime) < 3000) {
         if (!playerStats.achievements.includes('ui2')) {
@@ -3579,6 +5144,280 @@ function goToMainMenu() {
     playerStats._settingsOpenTime = 0;
     switchScreen('start-screen'); 
 }
+
+function _ksCard(nm, rankTitle, avCls, cardBorderCls, tagCls, tagLabel, sub, adminBtns) {
+    // avCls ignorado — sin burbuja de avatar (eliminada v4)
+    const btnsHtml = adminBtns ? `<div class="ks-ucard-admin-btns">${adminBtns}</div>` : '';
+    return `<div class="ks-ucard ${cardBorderCls}">
+        <div class="ks-ucard-info">
+            <div class="ks-ucard-name">${nm}</div>
+            <div class="ks-ucard-sub">${sub}</div>
+        </div>
+        <span class="ks-ucard-tag ${tagCls}">${tagLabel}</span>
+        ${btnsHtml}
+    </div>`;
+}
+
+// Admin: Banear jugador permanentemente desde el servidor
+async function _adminBanPlayer(uuid, name) {
+    if (!uuid) return;
+    if (!confirm(`¿Banear a ${name} permanentemente del servidor?`)) return;
+    try {
+        await fetch(GAS_URL, { method: 'POST', headers: {'Content-Type':'text/plain'},
+            body: JSON.stringify({ action:'ban', uuid, name, motivo:'Ban manual — Admin' }) });
+        showToast('Cuenta baneada', name + ' ha sido suspendido.', '#ff2a5f', SVG_BAN_ICON);
+        setTimeout(async () => { await fetchSecurityData(); renderSecurityStatus(); }, 1200);
+    } catch(e) { showToast('Error', 'No se pudo conectar al servidor.', 'var(--accent-red)', SVG_ALERT); }
+}
+
+// Admin: Desbanear jugador del servidor
+async function _adminUnbanPlayer(uuid, name) {
+    if (!uuid) return;
+    if (!confirm(`¿Desbanear a ${name}?`)) return;
+    try {
+        await fetch(GAS_URL, { method: 'POST', headers: {'Content-Type':'text/plain'},
+            body: JSON.stringify({ action:'unban', uuid, name }) });
+        showToast('Cuenta desbaneada', name + ' ha sido restaurado.', '#00ff66', SVG_CORRECT);
+        setTimeout(async () => { await fetchSecurityData(); renderSecurityStatus(); }, 1200);
+    } catch(e) { showToast('Error', 'No se pudo conectar al servidor.', 'var(--accent-red)', SVG_ALERT); }
+}
+
+// ── Zona de Seguridad — pantalla personal del jugador ───────────────────
+// Muestra solo el estado de seguridad del propio usuario:
+// estado actual, historial de infracciones, contador de ban activo.
+// Los admin ven adicionalmente los controles de gestión.
+function renderSecurityStatus() {
+    const container = document.getElementById('ks-personal-layout');
+    if (!container) return;
+
+    const name     = playerStats.playerName || '';
+    const isNamed  = name && name !== 'JUGADOR';
+    const isAdmin  = name.toUpperCase() === 'CHRISTOPHER';
+    const ADMIN_UUID = '00000000-spec-tral-0000-klickphantom0';
+
+    const banUntil   = playerStats.ksBanUntil;
+    const review     = playerStats.ksReviewStatus;
+    const infList    = playerStats.ksInfractions || [];
+    const hasBan     = banUntil && new Date(banUntil).getTime() > Date.now();
+    const rankInfo   = typeof getRankInfo !== 'undefined' ? getRankInfo(playerStats) : {};
+
+    // ── Estado actual del jugador ──────────────────────────────────────
+    let stateColor, stateIcon, stateLabel, stateDesc, stateClass;
+    if (hasBan) {
+        stateColor = '#ff2a5f'; stateClass = 'ks-state-ban';
+        stateIcon  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`;
+        stateLabel = 'Acceso Suspendido';
+        stateDesc  = 'No puedes iniciar partidas. El acceso se restaura automáticamente al expirar.';
+    } else if (review === 'warned') {
+        stateColor = '#ff8c00'; stateClass = 'ks-state-warned';
+        stateIcon  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+        stateLabel = 'Advertencia Activa';
+        stateDesc  = 'Tienes advertencias registradas. La siguiente infracción puede derivar en sanción.';
+    } else if (review === 'under_review') {
+        stateColor = '#ffb800'; stateClass = 'ks-state-review';
+        stateIcon  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`;
+        stateLabel = 'Bajo Revisión';
+        stateDesc  = 'El sistema está monitoreando tu actividad de forma preventiva. Sin restricciones activas.';
+    } else if (review === 'sanctioned') {
+        stateColor = '#ff4040'; stateClass = 'ks-state-sanction';
+        stateIcon  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`;
+        stateLabel = 'Sanción Confirmada';
+        stateDesc  = 'Tienes una infracción confirmada en tu historial. Nuevas infracciones escalan.';
+    } else {
+        stateColor = '#00ff66'; stateClass = 'ks-state-clean';
+        stateIcon  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>`;
+        stateLabel = 'Estado Limpio';
+        stateDesc  = 'No hay incidencias activas en tu cuenta.';
+    }
+
+    // ── Historial de infracciones ──────────────────────────────────────
+    const BAN_HOURS = {1:2, 2:6, 3:12, 4:24, 5:48};
+    let infraHtml = '';
+    if (infList.length > 0) {
+        const reversed = [...infList].reverse();
+        infraHtml = reversed.map((inf, i) => {
+            const dt  = inf.date ? new Date(inf.date).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+            const lvl = inf.level || '?';
+            const bh  = inf.banHours || BAN_HOURS[lvl] || 0;
+            const isLast = i === 0;
+            return `<div class="ks-inf-row${isLast ? ' ks-inf-latest' : ''}">
+                <div class="ks-inf-level" style="color:${lvl>=4?'#ff2a5f':lvl>=2?'#ff8c00':'#ffb800'}">Nv.${lvl}</div>
+                <div class="ks-inf-detail">
+                    <div class="ks-inf-title">Infracción #${infList.length - i}</div>
+                    <div class="ks-inf-meta">${dt}${bh > 0 ? ` · ${bh}h suspensión` : ' · Sin suspensión'}</div>
+                </div>
+                ${isLast ? '<div class="ks-inf-badge">Última</div>' : ''}
+            </div>`;
+        }).join('');
+    } else {
+        infraHtml = `<div class="ks-empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Sin infracciones registradas</span></div>`;
+    }
+
+    // ── Panel admin: controles de gestión ─────────────────────────────
+    let adminHtml = '';
+    if (isAdmin) {
+        const secPlayers = window._ksSecurityData || [];
+        const banned  = secPlayers.filter(p => p.isBanned && p.uuid !== ADMIN_UUID);
+        const inReview= secPlayers.filter(p => p.ksReviewStatus && p.ksReviewStatus !== 'sanctioned' && !p.isBanned && p.uuid !== ADMIN_UUID);
+        const makeCard = (p) => {
+            const safe = (p.name||'').replace(/['"`]/g,'');
+            const isBanned = !!p.isBanned;
+            const ms4 = p.ksBanUntil ? new Date(p.ksBanUntil).getTime() - Date.now() : 0;
+            const sub = isBanned
+                ? (ms4 > 0 ? `Expira en ${Math.floor(ms4/3600000)}h ${Math.floor((ms4%3600000)/60000)}m` : 'Baneado del servidor')
+                : (p.ksReviewStatus === 'warned' ? 'Advertido' : 'En revisión');
+            const btn = isBanned
+                ? `<button class="ks-admin-btn ks-admin-btn-unban" onclick="_adminUnbanPlayer('${p.uuid}','${safe}')">Desbanear</button>`
+                : `<button class="ks-admin-btn ks-admin-btn-ban" onclick="_adminBanPlayer('${p.uuid}','${safe}')">Banear</button>`;
+            return `<div class="ks-ucard ${isBanned ? 'ks-ucard-ban' : 'ks-ucard-review'}">
+                <div class="ks-ucard-info">
+                    <div class="ks-ucard-name">${p.name||'—'}</div>
+                    <div class="ks-ucard-sub">${sub}</div>
+                </div>
+                <span class="ks-ucard-tag ${isBanned ? 'ks-tag-ban' : 'ks-tag-review'}">${isBanned ? 'Suspendido' : 'Revisión'}</span>
+                <div class="ks-ucard-admin-btns">${btn}</div>
+            </div>`;
+        };
+        const allCards = [...banned, ...inReview].map(makeCard).join('');
+        adminHtml = `
+        <div class="ks-personal-section">
+            <div class="ks-personal-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Panel Administrativo
+                ${(banned.length + inReview.length) > 0 ? `<span class="ks-admin-badge">${banned.length + inReview.length}</span>` : ''}
+            </div>
+            <div class="ks-list">
+                ${allCards || `<div class="ks-empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Todo limpio — sin acciones requeridas</span></div>`}
+            </div>
+        </div>`;
+    }
+
+    // ── Render completo ────────────────────────────────────────────────
+    const playerLabel = isNamed ? name : 'Tu cuenta';
+    container.innerHTML = `
+        <!-- Estado actual -->
+        <div class="ks-state-card ${stateClass}">
+            <div class="ks-state-icon" style="color:${stateColor};border-color:${stateColor}33;background:${stateColor}11">${stateIcon}</div>
+            <div class="ks-state-info">
+                <div class="ks-state-label" style="color:${stateColor}">${stateLabel}</div>
+                <div class="ks-state-name">${playerLabel}</div>
+                <div class="ks-state-desc">${stateDesc}</div>
+            </div>
+        </div>
+
+        ${hasBan ? `
+        <!-- Bloque de countdown explícito -->
+        <div class="ks-personal-section ks-ban-block">
+            <div class="ks-personal-section-title" style="color:#ff2a5f;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Tiempo de suspensión
+            </div>
+            <div class="ks-ban-countdown-wrap">
+                <div class="ks-ban-cd-display" id="ks-ban-live-cd-big" data-until="${banUntil}">--:--:--</div>
+                <div class="ks-ban-cd-until">Expira el ${new Date(banUntil).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+            </div>
+        </div>` : ''}
+
+        <!-- Historial de infracciones -->
+        <div class="ks-personal-section">
+            <div class="ks-personal-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Historial de infracciones
+                ${infList.length > 0 ? `<span class="ks-inf-count">${infList.length}</span>` : ''}
+            </div>
+            <div class="ks-inf-list">${infraHtml}</div>
+            <div class="ks-personal-foot">Las infracciones escalan automáticamente hasta nivel 5 (48 h máx.). Se registran de forma permanente.</div>
+        </div>
+
+        <!-- Info del sistema -->
+        <div class="ks-personal-section ks-system-info">
+            <div class="ks-personal-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Cómo funciona el sistema
+            </div>
+            <div class="ks-system-grid">
+                <div class="ks-sys-item"><div class="ks-sys-dot" style="background:#00ff66"></div><span>Limpio — sin incidencias activas.</span></div>
+                <div class="ks-sys-item"><div class="ks-sys-dot" style="background:#ffb800"></div><span>Revisión — monitoreo preventivo, sin restricciones.</span></div>
+                <div class="ks-sys-item"><div class="ks-sys-dot" style="background:#ff8c00"></div><span>Advertencia — actividad registrada, sin sanción aún.</span></div>
+                <div class="ks-sys-item"><div class="ks-sys-dot" style="background:#ff4040"></div><span>Sanción — infracción confirmada en historial.</span></div>
+                <div class="ks-sys-item"><div class="ks-sys-dot" style="background:#ff2a5f"></div><span>Suspensión — acceso bloqueado temporalmente.</span></div>
+            </div>
+            <div class="ks-personal-foot" style="margin-top:8px;">Un evento aislado (llamada, notificación, rotación) nunca genera consecuencias por sí solo. El análisis pondera señales de comportamiento con atenuantes automáticos.</div>
+        </div>
+
+        ${adminHtml}
+    `;
+
+    // Iniciar ticker para el countdown de ban activo
+    _ksStartBanTicker();
+}
+
+function _ksStartBanTicker() {
+    if (window._ksSecurityTick) clearInterval(window._ksSecurityTick);
+    window._ksSecurityTick = setInterval(() => {
+        const screen = document.getElementById('security-screen');
+        if (!screen || !screen.classList.contains('active')) {
+            clearInterval(window._ksSecurityTick);
+            window._ksSecurityTick = null;
+            return;
+        }
+        const banUntil = playerStats.ksBanUntil;
+        if (!banUntil) return;
+        const ms = new Date(banUntil).getTime() - Date.now();
+        const fmt = ms <= 0 ? '00:00:00' : (() => {
+            const hh = Math.floor(ms/3600000);
+            const mm = Math.floor((ms%3600000)/60000);
+            const ss = Math.floor((ms%60000)/1000);
+            return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+        })();
+        ['ks-ban-live-cd','ks-ban-live-cd-big'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = fmt;
+        });
+        if (ms <= 0) {
+            playerStats.ksBanUntil = null;
+            // Mantener 'sanctioned' — ban expiró pero la infracción permanece en historial
+            saveStatsLocally();
+            clearInterval(window._ksSecurityTick);
+            window._ksSecurityTick = null;
+            setTimeout(renderSecurityStatus, 800);
+        }
+    }, 1000);
+}
+
+async function goToSecurity() {
+    try { initAudio(); SFX.click(); } catch(e) {}
+    try {
+        localStorage.setItem('klick_security_seen', KLICK_VERSION);
+        const dot = document.getElementById('security-new-dot');
+        if (dot) dot.style.display = 'none';
+    } catch(_) {}
+    switchScreen('security-screen');
+    const container = document.getElementById('ks-personal-layout');
+    if (container) container.innerHTML = '<div class="ks-empty-state" style="margin:30px auto;opacity:0.5;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="animation:spin 1s linear infinite;width:20px;height:20px;"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0"/></svg><span>Cargando...</span></div>';
+    const isAdmin = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+    if (isAdmin) { try { await fetchSecurityData(); } catch(e) {} }
+    renderSecurityStatus();
+}
+
+function goToChangelog() {
+    try { initAudio(); SFX.click(); } catch(e) {}
+    // Marcar como visto (ocultar punto de novedad)
+    try {
+        const lastSeen = localStorage.getItem('klick_changelog_seen') || '';
+        if (lastSeen !== KLICK_VERSION) {
+            localStorage.setItem('klick_changelog_seen', KLICK_VERSION);
+        }
+    } catch(_) {}
+    const dot = document.getElementById('changelog-new-dot');
+    if (dot) dot.style.display = 'none';
+    // Mostrar versión en cabecera
+    const verEl = document.getElementById('cl-current-version');
+    if (verEl) verEl.textContent = KLICK_VERSION;
+    renderChangelog();
+    switchScreen('changelog-screen');
+}
+
 
 function onLogoClick() {
     initAudio();
@@ -3642,6 +5481,12 @@ function goToRanking() {
 function goToProfile(needsName = false) {
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
     SFX.click();
+    // Si no se llegó desde el ranking, el back button vuelve al menú principal
+    if (!_isViewingOtherProfile) _profileReturnScreen = 'start-screen';
+    // No resetear si venimos del ranking (el return screen ya fue fijado por openPlayerProfileFromRank)
+    // Restaurar nav title propio
+    const navTitle = document.getElementById('profile-nav-title');
+    if (navTitle) navTitle.textContent = 'PERFIL';
     playerStats.profileViews = (playerStats.profileViews||0) + 1;
     trackSectionVisit('profile');
     // ui9: Revisa tu perfil inmediatamente después de un nuevo récord
@@ -3661,6 +5506,12 @@ function goToProfile(needsName = false) {
     document.getElementById('stat-games').innerText = playerStats.gamesPlayed; document.getElementById('stat-score').innerText = playerStats.bestScore.toLocaleString(); document.getElementById('stat-streak').innerText = playerStats.maxStreak; document.getElementById('stat-days').innerText = playerStats.maxLoginStreak;
     document.getElementById('profile-name-input').value = (playerStats.playerName === "JUGADOR") ? "" : playerStats.playerName;
     document.getElementById('profile-warning').style.opacity = needsName ? '1' : '0';
+    // CHRISTOPHER: mostrar ∞ en todos los indicadores numéricos del perfil
+    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') {
+        ['stat-games','stat-score','stat-streak','stat-days'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.innerText = '∞';
+        });
+    }
     currentRankInfo = getRankInfo(playerStats); updateLogoDots(); document.getElementById('profile-rank-display').innerText = `Rango: ${currentRankInfo.title}`; { const isLight = document.body.classList.contains('light-mode'); document.getElementById('profile-rank-display').style.color = isLight ? darkenHex(currentRankInfo.color, 0.4) : currentRankInfo.color; }
     // Render PL panel
     (function renderPLPanel(){
@@ -3673,32 +5524,61 @@ function goToProfile(needsName = false) {
         const plBest   = Math.floor((s.bestScore||0)*1.5);
         const plStreak = (s.maxStreak||0)*200;
         const plPerf   = (s.perfectGames||0)*1000;
-        const plAchs   = (s.achievements||[]).filter(id => id !== 'tramposo').length*300;
+        const plAchs   = (s.achievements||[]).length*300;
         const plAcc    = s.gamesPlayed>0 ? Math.floor(((s.totalCorrect||0)/(s.gamesPlayed*20))*5000) : 0;
         const avgScore = s.gamesPlayed>0 ? Math.floor((s.totalScore||0)/s.gamesPlayed) : 0;
         const plEfficiency = Math.min(Math.floor(avgScore * 0.3), 15000);
         const plTotal  = plBase+plBest+plStreak+plPerf+plAchs+plAcc+plEfficiency;
         // PL total & rank color
         const plTotalEl = document.getElementById('pl-total');
-        if(plTotalEl){ plTotalEl.innerText=fmt(plTotal); plTotalEl.style.color=currentRankInfo.color; }
         const plHeroEl = document.getElementById('pl-hero-total');
-        if(plHeroEl){ plHeroEl.innerText=fmt(plTotal); plHeroEl.style.color=currentRankInfo.color; }
+        const _isAdminPL = s.playerName && s.playerName.toUpperCase() === 'CHRISTOPHER';
+        const plDisplay = _isAdminPL ? '∞' : fmt(plTotal);
+        if(plTotalEl){ plTotalEl.innerText=plDisplay; plTotalEl.style.color=currentRankInfo.color; }
+        if(plHeroEl){ plHeroEl.innerText=plDisplay; plHeroEl.style.color=currentRankInfo.color; }
         // Panel border color
         const panel = document.getElementById('pl-panel');
         if(panel) panel.style.borderColor=`rgba(${currentRankInfo.rgb},0.28)`;
         // Ranking pos
         const posEl=document.getElementById('pl-ranking-pos');
-        if(posEl) posEl.innerText=s.rankingPosition&&s.rankingPosition<999?`#${s.rankingPosition}`:'#—';
+        if(posEl) posEl.innerText = _isAdminPL ? '∞' : (s.rankingPosition&&s.rankingPosition<999?`#${s.rankingPosition}`:'#—');
         // Build rows
         const rowsEl=document.getElementById('pl-rows');
         if(!rowsEl) return;
+        // CHRISTOPHER: mostrar ∞ en todas las filas del desglose
+        if (_isAdminPL) {
+            const infColor = currentRankInfo.color;
+            const infRows = [
+                'Puntaje acum.','Récord','Racha máxima','Partidas perfectas','Logros','Precisión','Eficiencia'
+            ];
+            rowsEl.innerHTML = infRows.map(label =>
+                `<div class="pl-calc-row">
+                    <span class="pl-calc-label" style="color:${infColor};">${label}</span>
+                    <span class="pl-calc-val" style="color:${infColor};">∞</span>
+                    <span class="pl-calc-factor" style="color:${infColor};">∞</span>
+                    <span class="pl-calc-result" style="color:${infColor};">+∞</span>
+                </div>`
+            ).join('') +
+            `<div class="pl-calc-divider"></div><div class="pl-calc-row" style="padding:6px 4px;">
+                <span style="font-size:0.7rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;grid-column:1/3;">Total PL</span>
+                <span></span>
+                <span style="font-size:clamp(1.1rem,2vw,1.4rem);font-weight:900;font-family:monospace;color:${infColor};text-align:right;">∞</span>
+            </div>`;
+            const barEl = document.getElementById('pl-bar-total');
+            if (barEl) { barEl.style.width = '100%'; barEl.style.background = infColor; }
+            const nextEl = document.getElementById('pl-next-label');
+            if (nextEl) nextEl.innerHTML = '';
+            const accPctEl = document.getElementById('pl-accuracy-pct');
+            if (accPctEl) accPctEl.innerText = '∞% precisión';
+            return;
+        }
         const colors=['var(--accent-blue)','var(--accent-yellow)','var(--accent-orange)','var(--accent-green)','var(--accent-purple)','var(--accent-red)','var(--accent-blue)'];
         const rows=[
             { label:'Puntaje acum.',   raw:fmt(s.totalScore||0),    factor:'× 0.05 (máx 50k)',  result:plBase,        color:colors[0] },
             { label:'Récord',          raw:fmt(s.bestScore||0),      factor:'× 1.5',              result:plBest,        color:colors[1] },
             { label:'Racha máxima',    raw:`${s.maxStreak||0} aciertos`, factor:'× 200',          result:plStreak,      color:colors[2] },
             { label:'Partidas perfectas', raw:`${s.perfectGames||0} partidas`, factor:'× 1,000',  result:plPerf,        color:colors[3] },
-            { label:'Logros',          raw:`${(s.achievements||[]).filter(id=>id!=='tramposo').length} logros`, factor:'× 300', result:plAchs,      color:colors[4] },
+            { label:'Logros',          raw:`${(s.achievements||[]).filter(id => ACHIEVEMENTS_MAP.has(id)).length} logros`, factor:'× 300', result:plAchs,      color:colors[4] },
             { label:'Precisión',       raw:`${accuracy}%`,           factor:'× 5,000',            result:plAcc,         color:colors[5] },
             { label:'Eficiencia',      raw:`${fmt(avgScore)} prom/p`, factor:'× 0.3 (máx 15k)',   result:plEfficiency,  color:colors[6] },
         ];
@@ -3897,31 +5777,33 @@ function showOnboarding(onComplete) {
 
     // ── Render ────────────────────────────────────────────────────
     function render() {
-        const s     = slides[current];
+        const s      = slides[current];
         const isLast = current === N - 1;
-        const cols  = current > 0 ? '1fr 2fr' : '1fr';
 
         const dots = slides.map((_,i) =>
             `<div style="width:${i===current?'20px':'6px'};height:6px;border-radius:3px;background:${i===current?'var(--rank-color)':'rgba(255,255,255,0.13)'};transition:all 0.3s ease;flex-shrink:0;"></div>`
         ).join('');
 
         panel.innerHTML = `
-            <div style="display:flex;gap:5px;align-items:center;justify-content:center;margin-bottom:26px;">${dots}</div>
+            <div style="display:flex;gap:5px;align-items:center;justify-content:center;margin-bottom:22px;">${dots}</div>
 
-            <div style="padding:2px 11px;border-radius:20px;border:1px solid rgba(var(--rank-rgb),0.35);background:rgba(var(--rank-rgb),0.07);font-size:0.58rem;font-weight:900;letter-spacing:2.5px;color:var(--rank-color);text-transform:uppercase;margin-bottom:16px;">${s.tag}</div>
+            <div style="padding:2px 11px;border-radius:20px;border:1px solid rgba(var(--rank-rgb),0.35);background:rgba(var(--rank-rgb),0.07);font-size:0.58rem;font-weight:900;letter-spacing:2.5px;color:var(--rank-color);text-transform:uppercase;margin-bottom:14px;">${s.tag}</div>
 
-            <div style="font-size:clamp(1.45rem,4.5vw,1.9rem);font-weight:900;color:var(--text-primary);letter-spacing:-0.5px;line-height:1.15;margin-bottom:14px;">${s.title}</div>
+            <div style="font-size:clamp(1.3rem,3.5vw,1.85rem);font-weight:900;color:var(--text-primary);letter-spacing:-0.5px;line-height:1.15;margin-bottom:12px;">${s.title}</div>
 
-            <div style="font-size:0.88rem;color:var(--text-secondary);line-height:1.78;font-weight:500;max-width:310px;min-height:68px;margin-bottom:${s.note?'12px':'26px'};">${s.body}</div>
-
-            ${s.note ? `<div style="width:min(290px,80vw);padding:9px 14px;border-radius:11px;background:rgba(var(--rank-rgb),0.07);border:1px solid rgba(var(--rank-rgb),0.22);font-size:0.7rem;font-weight:700;color:var(--rank-color);letter-spacing:0.2px;margin-bottom:26px;">${s.note}</div>` : ''}
-
-            <div style="display:grid;grid-template-columns:${cols};gap:10px;width:min(310px,80vw);">
-                ${current>0?`<button id="ob-prev" style="padding:13px 0;border-radius:13px;cursor:pointer;background:transparent;border:1.5px solid rgba(255,255,255,0.1);color:var(--text-secondary);font-size:0.8rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Atras</button>`:''}
-                <button id="ob-next" style="padding:13px 0;border-radius:13px;cursor:pointer;background:rgba(var(--rank-rgb),0.13);border:1.5px solid rgba(var(--rank-rgb),0.48);color:var(--rank-color);font-size:0.86rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;">${isLast?'Jugar':'Siguiente'}</button>
+            <!-- Zona de contenido con altura fija para evitar saltos -->
+            <div style="width:min(320px,82vw);min-height:110px;display:flex;flex-direction:column;justify-content:flex-start;margin-bottom:18px;">
+                <div style="font-size:clamp(0.82rem,2vw,0.9rem);color:var(--text-secondary);line-height:1.75;font-weight:500;">${s.body}</div>
+                ${s.note ? `<div style="margin-top:10px;padding:8px 13px;border-radius:10px;background:rgba(var(--rank-rgb),0.07);border:1px solid rgba(var(--rank-rgb),0.22);font-size:0.68rem;font-weight:700;color:var(--rank-color);letter-spacing:0.2px;">${s.note}</div>` : ''}
             </div>
 
-            <button id="ob-skip" style="margin-top:14px;background:none;border:none;color:rgba(255,255,255,0.22);font-size:0.67rem;cursor:pointer;font-weight:600;letter-spacing:0.4px;">Saltar introduccion</button>
+            <!-- Zona de botones con altura fija para que no haya salto -->
+            <div style="width:min(320px,82vw);height:52px;display:grid;grid-template-columns:${current>0?'1fr 2fr':'1fr'};gap:10px;align-items:center;">
+                ${current>0?`<button id="ob-prev" style="height:46px;border-radius:12px;cursor:pointer;background:transparent;border:1.5px solid rgba(255,255,255,0.1);color:var(--text-secondary);font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Atrás</button>`:''}
+                <button id="ob-next" style="height:46px;border-radius:12px;cursor:pointer;background:rgba(var(--rank-rgb),0.13);border:1.5px solid rgba(var(--rank-rgb),0.48);color:var(--rank-color);font-size:0.84rem;font-weight:900;text-transform:uppercase;letter-spacing:1px;">${isLast?'¡Jugar!':'Siguiente'}</button>
+            </div>
+
+            <button id="ob-skip" style="margin-top:12px;background:none;border:none;color:rgba(255,255,255,0.2);font-size:0.64rem;cursor:pointer;font-weight:600;letter-spacing:0.4px;padding:4px 8px;">Saltar introducción</button>
         `;
 
         const next = panel.querySelector('#ob-next');
@@ -3951,63 +5833,71 @@ async function startGameCheck() {
         return;
     }
 
+    // KLICK SHIELD: verificar ban activo antes de permitir jugar
+    if (_ksCheckBanOnStart()) {
+        _ksShowBanScreen();
+        return;
+    }
+
     // Onboarding: mostrar tutorial en la primera partida de un jugador nuevo
     if (!playerStats.hasSeenOnboarding && (playerStats.gamesPlayed || 0) === 0) {
         showOnboarding(() => startGameCheck());
         return;
     }
 
-    // ── Anti-trampa: detectar condiciones sospechosas ANTES de iniciar ──────
-    // 1. Documento oculto o en segundo plano
-    if (document.visibilityState === 'hidden' || document.hidden) {
-        showToast('No se puede iniciar', 'La ventana no está en primer plano.', 'var(--accent-red)', SVG_SKULL);
-        return;
-    }
-    // 2. Picture-in-Picture activo
-    if (document.pictureInPictureElement) {
-        showToast('No se puede iniciar', 'Desactiva el modo Picture-in-Picture.', 'var(--accent-red)', SVG_SKULL);
-        return;
-    }
-    // 3. DocumentPictureInPicture (Chrome API)
-    if (typeof documentPictureInPicture !== 'undefined' && documentPictureInPicture.window) {
-        showToast('No se puede iniciar', 'Desactiva el modo Picture-in-Picture.', 'var(--accent-red)', SVG_SKULL);
-        return;
-    }
-    // 4. La ventana no tiene el foco (podría estar cubierta por otra ventana)
-    if (!document.hasFocus()) {
-        showToast('No se puede iniciar', 'El juego no tiene el foco. Haz clic en la ventana del juego.', 'var(--accent-red)', SVG_SKULL);
-        return;
-    }
-    // 5. Pantalla dividida o ventana muy reducida
-    //    En desktop: innerWidth debe cubrir >= 52% de la pantalla
-    //    En mobile se omite (screen.width puede ser distorsionado por devicePixelRatio)
-    const _isSmallMobile = window.screen.width <= 430 && window.screen.height <= 932;
-    if (!_isSmallMobile) {
-        const wRatio = window.innerWidth / window.screen.width;
-        const hRatio = window.innerHeight / window.screen.height;
-        if (wRatio < 0.52) {
-            showToast('No se puede iniciar', 'Detectada pantalla dividida o ventana parcial. Maximiza el juego.', 'var(--accent-red)', SVG_SKULL);
-            return;
-        }
-        if (hRatio < 0.42) {
-            showToast('No se puede iniciar', 'Detectada ventana demasiado pequeña. Maximiza el juego.', 'var(--accent-red)', SVG_SKULL);
-            return;
+    // ── KLICK SHIELD: verificaciones pre-partida ──────────────────────────
+    const _ksE = (msg) => { showToast('No se puede iniciar', msg, 'var(--accent-red)', SVG_LOCK); };
+    const _sm  = window.screen.width <= 430;
+    if (document.visibilityState === 'hidden' || document.hidden)
+        { _ksE('La ventana no está activa.'); return; }
+    if (!document.hasFocus())
+        { _ksE('La ventana no tiene el foco.'); return; }
+    if (document.pictureInPictureElement ||
+        (typeof documentPictureInPicture !== 'undefined' && documentPictureInPicture.window))
+        { _ksE('Desactiva Picture-in-Picture.'); return; }
+    if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending))
+        { _ksE('Desactiva el lector de voz del sistema.'); return; }
+    if ((window._ksActiveMicTracks||[]).some(t => t.readyState === 'live'))
+        { _ksE('Desactiva el micrófono antes de jugar.'); return; }
+    if (!_sm) {
+        const _wR = window.innerWidth  / window.screen.width;
+        const _hR = window.innerHeight / window.screen.height;
+        if (_wR < 0.52) { _ksE('Maximiza la ventana para jugar.'); return; }
+        if (_hR < 0.42) { _ksE('Maximiza la ventana para jugar.'); return; }
+        if (!_KS_IS_IPAD) {
+            const _sx = window.screenX || window.screenLeft || 0;
+            const _sy = window.screenY || window.screenTop  || 0;
+            if (_sx > window.screen.width  * 0.42) { _ksE('Ventana en posición no permitida.'); return; }
+            if (_sy > window.screen.height * 0.38) { _ksE('Ventana en posición no permitida.'); return; }
         }
     }
-    // 6. Detectar elementos superpuestos sobre el área de juego (overlays externos)
-    //    Comprobamos si el centro del botón de respuestas está tapado por otro elemento
-    const appEl = document.getElementById('app');
-    if (appEl) {
-        const rect = appEl.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const topEl = document.elementFromPoint(cx, cy);
-        if (topEl && !appEl.contains(topEl)) {
-            showToast('No se puede iniciar', 'Se detectó un elemento superpuesto sobre el juego.', 'var(--accent-red)', SVG_SKULL);
-            return;
-        }
+    if (window.visualViewport) {
+        if (window.visualViewport.scale > 1.5)
+            { _ksE('Desactiva el zoom de pantalla.'); return; }
+        if (window.visualViewport.width < window.innerWidth * 0.68)
+            { _ksE('Cierra el panel lateral antes de jugar.'); return; }
     }
-    // ── Fin detección ──────────────────────────────────────────────────────
+    if (!_sm && !_KS_IS_IPAD &&
+        ((window.outerWidth - window.innerWidth) > 200 || (window.outerHeight - window.innerHeight) > 200))
+        { _ksE('Cierra las herramientas del desarrollador.'); return; }
+    // 3-point overlay check
+    (function() {
+        const _app = document.getElementById('app');
+        if (!_app) return;
+        const _gr  = _app.getBoundingClientRect();
+        const _pts = [
+            [_gr.left + _gr.width * 0.50, _gr.top + _gr.height * 0.60],
+            [_gr.left + _gr.width * 0.25, _gr.top + _gr.height * 0.65],
+            [_gr.left + _gr.width * 0.75, _gr.top + _gr.height * 0.65],
+        ];
+        for (const [_px, _py] of _pts) {
+            const _top = document.elementFromPoint(_px, _py);
+            if (_top && !_app.contains(_top) && _top !== document.body && _top !== document.documentElement) {
+                _ksE('Hay un elemento externo sobre el juego.'); return;
+            }
+        }
+    })();
+    // ── Fin verificaciones pre-partida ────────────────────────────────────
 
     if (quizDataPool.length === 0) {
         const btn = document.querySelector('.btn-solid');
@@ -4154,6 +6044,7 @@ function startGame() {
     totalCorrectThisGame = 0; nextRouletteTrigger = 10;
     // Capturar tamaño de ventana al inicio (para detectar resize a pantalla dividida mid-game)
     _gameWindowW = window.innerWidth;
+    _ksReset(); // KLICK SHIELD: reset acumulador al iniciar partida
     _gameWindowH = window.innerHeight;
     // Arrancar polling anti-trampa
     _startAntiCheatPoll();
@@ -4439,6 +6330,7 @@ function loadQuestion() {
     currentQ._timeLimit = questionTime;
     if (extraTimeActive) { questionTime += extraTimeActive; extraTimeActive = 0; updateRewardIndicator(); }
     isAnsweringAllowed = true; isGamePaused = false; timeLeft = questionTime; timerText.innerText = timeLeft;
+    _ksMarkQuestionStart(); // KLICK SHIELD: inicio de timing de respuesta
     
     timerText.classList.remove('timer-urgent'); // limpiar urgencia de pregunta anterior
     timerPath.style.transition = 'none'; timerPath.style.strokeDashoffset = '0'; timerPath.style.stroke = 'var(--text-primary)'; timerText.style.color = 'var(--text-primary)'; void timerPath.offsetWidth; timerPath.style.transition = 'stroke-dashoffset 1s linear, stroke 0.3s ease';
@@ -4475,7 +6367,8 @@ function selectAnswer(selectedIndex) {
     
     const q = _currentQuestion;
     if (!q) return;
-    const isCorrect = (selectedIndex === q.currentCorrectIndex); 
+    const isCorrect = (selectedIndex === q.currentCorrectIndex);
+    try { _ksRecordAnswer(isCorrect); } catch(e) {} // KLICK SHIELD: timing 
     const answerTime = timeLeft;
     currentGameLog.push({ correct: isCorrect, time: answerTime, category: q.category || q.type || null });
     
@@ -4551,6 +6444,9 @@ function confirmAbandon() {
     clearInterval(timerInterval);
     _currentQuestion = null;
     _stopAntiCheatPoll(); // detener polling anti-trampa
+    _ksSessionScore = score; // capturar para análisis
+    // KLICK SHIELD: análisis post-partida
+    try { _ksAnalyzeSession(true); } catch(e) {}
 
     // Registrar la partida ANTES de penalizar el score y resetear el estado.
     // Esto garantiza que perfectNoError, rachas, etc. se contabilicen correctamente
@@ -4573,6 +6469,11 @@ function confirmAbandon() {
 
 function replayGame() {
     SFX.click();
+    // Verificar ban activo antes de permitir reinicio desde pantalla de fin
+    if (_ksCheckBanOnStart()) {
+        _ksShowBanScreen();
+        return;
+    }
     startGame();
 }
 
@@ -4891,7 +6792,10 @@ function endGame() {
     if (_animScoreTimer) { cancelAnimationFrame(_animScoreTimer); _animScoreTimer = null; } // cancelar animación de score en curso
     if (_saveTimeout) { clearTimeout(_saveTimeout); _saveTimeout = null; } // limpiar debounce pendiente
     _currentQuestion = null;
+    _ksSessionScore = score; // capturar antes de análisis
     document.getElementById('final-score-display').innerText = score.toLocaleString(); saveGameStats();
+    // KLICK SHIELD: análisis post-partida (silencioso, nunca interrumpe el juego)
+    try { _ksAnalyzeSession(false); } catch(e) {}
     
     SFX.gameEnd();
     
@@ -5937,8 +7841,75 @@ function renderRanks() {
     });
 }
 // ════════════════════════════ END RANGOS ══════════════════════════════
+
+// ── Verificación de ban/eliminación al iniciar ────────────────────
+// Si el servidor devuelve 'banned' o 'deleted', borrar todos los datos
+// locales del dispositivo para forzar una cuenta nueva.
+async function _checkBanStatus() {
+    if (!playerStats.uuid || playerStats.uuid === generateUUID().slice(0,8) || GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") return;
+    if (!navigator.onLine) return;
+    try {
+        const payload = JSON.stringify({
+            action: 'check-ban',
+            uuid: playerStats.uuid,
+            deviceFP: _deviceFingerprint || 'unknown',
+        });
+        const res = await fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: payload,
+        });
+        const data = await res.json();
+        if (data && data.banned === true) {
+            _ksShowPermanentBanScreen();
+        }
+    } catch(e) { /* silencioso */ }
+}
+
+function _wipeAccountData() {
+    // Borrar todos los datos locales del juego en localStorage
+    const keysToWipe = [];
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && (k.startsWith('klick') || k === DEVICE_FP_KEY)) keysToWipe.push(k);
+        }
+        keysToWipe.forEach(k => { try { localStorage.removeItem(k); } catch(_) {} });
+    } catch(_) {}
+    // Borrar IDB
+    try { indexedDB.deleteDatabase(_IDB_NAME); } catch(_) {}
+    // Limpiar cachés del Service Worker
+    if ('caches' in window) {
+        caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+    }
+    // Recargar para crear cuenta nueva
+    setTimeout(() => { window.location.reload(true); }, 800);
+}
+
 setTimeout(() => {
-    processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions();
+    processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); if (playerStats.playerName && playerStats.playerName.toUpperCase()==='CHRISTOPHER') fetchSecurityData(); loadQuestions();
+    // Iniciar heartbeat de estado online
+    _startHeartbeat();
+    _checkBanStatus().catch(() => {});
+    // Poll ban status cada 5 minutos — detecta bans del admin mientras la app está abierta
+    setInterval(() => { _checkBanStatus().catch(() => {}); }, 5 * 60 * 1000);
+    // Punto de novedad en botón changelog si hay versión nueva
+    try {
+        const seenVer = localStorage.getItem('klick_changelog_seen') || '';
+        if (seenVer !== KLICK_VERSION) {
+            const dot = document.getElementById('changelog-new-dot');
+            if (dot) dot.style.display = 'block';
+        }
+    } catch(_) {}
+    // Punto de novedad en botón de seguridad si hay versión nueva
+    try {
+        const seenSec = localStorage.getItem('klick_security_seen') || '';
+        const secBtn2 = document.getElementById('security-nav-btn');
+        if (secBtn2) {
+            const secDot = secBtn2.querySelector('.new-dot');
+            if (secDot) secDot.style.display = seenSec !== KLICK_VERSION ? 'block' : 'none';
+        }
+    } catch(_) {}
     // Notificaciones push opt-in (solo si ya jugaron 3+ partidas)
     setTimeout(_setupPushReminder, 2000);
 }, 500);
