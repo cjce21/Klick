@@ -2490,7 +2490,8 @@ body.quality-perf .rrank-bar-fill { transition: none; }
    Sin animaciones de texto. Color sólido según rango y modo.
    ══════════════════════════════════════════════════════════════════ */
 
-:root { --divinity-color-static: #c864ff; }
+:root { --divinity-color-static: #ffffff; }
+body.light-mode { --divinity-color-static: #0d1117; }
 
 /* ── Títulos de rango en el leaderboard ─────────────────────────── */
 .rank-card.divinidad-card   .rc-title,
@@ -2498,13 +2499,13 @@ body.quality-perf .rrank-bar-fill { transition: none; }
     color: var(--divinity-color-static) !important;
     font-weight: 700;
 }
-.rank-card.mitico-card  .rc-title { color: #ffffff !important;             font-weight: 700; }
-.rank-card.leyenda-card .rc-title { color: var(--accent-yellow) !important; font-weight: 700; }
+.rank-card.mitico-card  .rc-title { color: #ff9500 !important;             font-weight: 700; }
+.rank-card.leyenda-card .rc-title { color: #b5179e !important;             font-weight: 700; }
 
 body.light-mode .rank-card.divinidad-card   .rc-title,
-body.light-mode .rank-card.christopher-card .rc-title { color: #6b0fa8 !important; }
-body.light-mode .rank-card.mitico-card  .rc-title     { color: #1a1a1a !important; }
-body.light-mode .rank-card.leyenda-card .rc-title     { color: #8a6200 !important; }
+body.light-mode .rank-card.christopher-card .rc-title { color: #0d1117 !important; }
+body.light-mode .rank-card.mitico-card  .rc-title     { color: #cc7700 !important; }
+body.light-mode .rank-card.leyenda-card .rc-title     { color: #7a0a8c !important; }
 
 /* rc-title-grad: ya no se usa para gradiente animado —
    mantener la clase por si existe en DOM pero mostrar color sólido */
@@ -2544,8 +2545,8 @@ body.light-mode .rank-card.leyenda-card .rc-title     { color: #8a6200 !importan
 body.light-mode .pcard-big-name.christopher-name-gradient,
 body.light-mode #pcard-chip-title.christopher-chip-gradient,
 body.light-mode #pcard-pl.christopher-pl-gradient {
-    color: #6b0fa8 !important;
-    -webkit-text-fill-color: #6b0fa8 !important;
+    color: #0d1117 !important;
+    -webkit-text-fill-color: #0d1117 !important;
     text-shadow: none !important;
 }
 
@@ -2686,13 +2687,13 @@ body.light-mode #pcard-overlay.christopher-overlay .pcard-panel::before {
     pointer-events: none;
     user-select: none;
     z-index: 1;
-    color: rgba(180,100,255,0.42);
+    color: rgba(0,229,204,0.42);
     will-change: transform;
     transform-origin: center center;
     animation: arch-rune-float var(--rd, 7s) ease-in-out infinite;
 }
 body.quality-perf .architect-rune { animation: none !important; opacity: var(--ro, 0.30); }
-body.light-mode   .architect-rune { color: rgba(140,60,200,0.30); }
+body.light-mode   .architect-rune { color: rgba(0,150,135,0.30); }
 
 /* ══════════════════════════════════════════════════════════════
    CHANGELOG BUTTON — punto de novedad
@@ -2725,6 +2726,21 @@ body.light-mode   .architect-rune { color: rgba(140,60,200,0.30); }
     align-items: center;
     gap: 6px;
 }
+
+/* Escudo KS — aparece a la derecha del nombre */
+.rc-ks-shield {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+    margin-left: 2px;
+}
+.rc-ks-shield svg {
+    width: 13px;
+    height: 13px;
+}
+.rank-card:hover .rc-ks-shield { opacity: 1; }
 
 .rc-online-dot {
     width: 7px;
@@ -2902,6 +2918,14 @@ body.light-mode   .architect-rune { color: rgba(140,60,200,0.30); }
 }
 .ks-so-visible .ks-so-content { transform: translateY(0); }
 
+/* ── Header wrapper ────────────────────────────────────────────────── */
+.ks-so-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
 /* ── Ícono ───────────────────────────────────────────────────────────── */
 .ks-so-icon {
     width: 72px; height: 72px; border-radius: 50%;
@@ -2974,6 +2998,9 @@ body.light-mode   .architect-rune { color: rgba(140,60,200,0.30); }
 .ks-chip-orange  { color: #ff8c00; background: rgba(255,140,0,0.09); border-color: rgba(255,140,0,0.28); }
 .ks-chip-red     { color: #ff6060; background: rgba(255,58,58,0.09); border-color: rgba(255,58,58,0.28); }
 .ks-chip-neutral { color: rgba(255,255,255,0.32); background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); }
+
+/* Countdown oculto cuando no hay ban */
+.ks-so-countdown-block.ks-cd-hidden { display: none; }
 
 /* Countdown (ban) */
 .ks-so-countdown-block {
@@ -3202,8 +3229,10 @@ body.light-mode   .architect-rune { color: rgba(140,60,200,0.30); }
     text-transform: uppercase; border-radius: 20px; padding: 3px 9px;
     border: 1px solid; flex-shrink: 0; align-self: center; margin-left: 12px;
 }
-.ks-tag-review  { color: #ffb800; background: rgba(255,184,0,0.08); border-color: rgba(255,184,0,0.25); }
-.ks-tag-ban     { color: #ff5c5c; background: rgba(255,58,58,0.08);  border-color: rgba(255,58,58,0.25); }
+.ks-tag-review    { color: #ffb800; background: rgba(255,184,0,0.08);  border-color: rgba(255,184,0,0.25); }
+.ks-tag-warn      { color: #ff8c00; background: rgba(255,140,0,0.08);  border-color: rgba(255,140,0,0.25); }
+.ks-tag-sanction  { color: #ff4040; background: rgba(255,64,64,0.08);  border-color: rgba(255,64,64,0.25); }
+.ks-tag-ban       { color: #ff5c5c; background: rgba(255,58,58,0.08);  border-color: rgba(255,58,58,0.25); }
 .ks-tag-done    { color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); }
 .ks-tag-ok      { color: #00ff66; background: rgba(0,255,102,0.07); border-color: rgba(0,255,102,0.22); }
 
@@ -3277,7 +3306,7 @@ body.light-mode   .architect-rune { color: rgba(140,60,200,0.30); }
 }
 .ks-state-clean   { border-left-color: #00ff66; }
 .ks-state-review  { border-left-color: #ffb800; background: rgba(255,184,0,0.04); }
-.ks-state-sanction{ border-left-color: #ff8c00; background: rgba(255,140,0,0.04); }
+.ks-state-sanction{ border-left-color: #ff4040; background: rgba(255,64,64,0.05); }
 .ks-state-ban     { border-left-color: #ff2a5f; background: rgba(255,42,95,0.05); }
 
 .ks-state-icon {
