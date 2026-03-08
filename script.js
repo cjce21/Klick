@@ -664,22 +664,23 @@ function _ksApplySanctionOrWarn(date, weight, signals) {
 
 function _ksApplySanction(date, weight, signals) {
     const infractions = playerStats.ksInfractions || [];
-    const now45  = Date.now() - 45  * 24 * 3600 * 1000;
-    const now120 = Date.now() - 120 * 24 * 3600 * 1000;
+    // Días de vencimiento por nivel (escala 3-21 días)
+    const KS_EXPIRY_DAYS = {1:3, 2:5, 3:7, 4:10, 5:13, 6:16, 7:19, 8:21};
     const active = infractions.filter(inf => {
         const d = new Date(inf.date).getTime();
-        return inf.level <= 2 ? d > now45 : d > now120;
+        const days = KS_EXPIRY_DAYS[inf.level] || 21;
+        return d > Date.now() - days * 24 * 3600 * 1000;
     });
     const highestPrev = active.length > 0 ? Math.max(...active.map(x => x.level)) : 0;
     let level;
-    if      (active.length === 0 && weight <= 28) level = 1;
-    else if (active.length === 0 && weight >= 29)  level = 2;
-    else if (active.length === 1 && highestPrev <= 2) level = Math.min(highestPrev+1, 3);
-    else if (active.length >= 2)  level = Math.min(highestPrev+1, 5);
-    else level = Math.min(highestPrev+1, 5);
+    if      (active.length === 0 && weight <= 28)                 level = 1;
+    else if (active.length === 0 && weight >= 29)                 level = 2;
+    else if (active.length === 1 && highestPrev <= 2)             level = Math.min(highestPrev + 1, 3);
+    else if (active.length === 1 && highestPrev > 2)              level = Math.min(highestPrev + 1, 6);
+    else                                                          level = Math.min(highestPrev + 1, 8);
 
-    const BAN_HOURS  = {1:2, 2:6, 3:12, 4:24, 5:48};
-    const PL_PENALTY = {1:0.10, 2:0.18, 3:0.28, 4:0.40, 5:0.55};
+    const BAN_HOURS  = {1:0, 2:1, 3:3, 4:6, 5:12, 6:24, 7:48, 8:72};
+    const PL_PENALTY = {1:0.10, 2:0.18, 3:0.28, 4:0.40, 5:0.55, 6:0.55, 7:0.55, 8:0.55};
     const banHours   = BAN_HOURS[level] || 0;
     const banUntil   = banHours > 0
         ? new Date(Date.now() + banHours * 3600000).toISOString() : null;
@@ -742,7 +743,7 @@ function _ksCheckBanOnStart() {
         // Ban expiró — limpiar el ban pero mantener 'sanctioned' (historial permanece)
         playerStats.ksBanUntil = null;
         // ksReviewStatus queda en 'sanctioned', no se limpia — la infracción sigue en historial
-        saveStatsLocally(); return false;
+        saveStatsLocally(); submitLeaderboard(); return false;
     }
     return true;
 }
@@ -977,7 +978,7 @@ function _ksShowSanctionScreen(level, banHours, plPct) {
             <div class="ks-so-body">
                 El sistema completó el análisis de <strong>${name}</strong> y encontró evidencia de conducta contraria a las normas.<br><br>
                 ${banText}${plText ? ' ' + plText : ''}
-                <br><br>Esta infracción queda registrada. Las infracciones escalan automáticamente hasta nivel 5 (48 h máx.).
+                <br><br>Esta infracción queda registrada. Las infracciones escalan automáticamente hasta nivel 8 (72 h máx.).
             </div>
             <div class="ks-so-chips">
                 <div class="ks-so-chip ks-chip-red">
@@ -1075,8 +1076,9 @@ function _ksShowBanScreen() {
         cd.innerText = String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
     }
     _ksTickBanCountdown(); // valor correcto desde el primer frame
-    const _banOverlayTick = setInterval(() => {
-        if (!document.getElementById('ks-ban-countdown')) { clearInterval(_banOverlayTick); return; }
+    if (window._banOverlayTick) { clearInterval(window._banOverlayTick); window._banOverlayTick = null; }
+    window._banOverlayTick = setInterval(() => {
+        if (!document.getElementById('ks-ban-countdown')) { clearInterval(window._banOverlayTick); window._banOverlayTick = null; return; }
         _ksTickBanCountdown();
     }, 1000);
     setTimeout(() => {
@@ -1154,6 +1156,7 @@ async function _ksSendEventToServer(type, level, banHours, description) {
     try {
         await fetch(GAS_URL, {
             method: 'POST',
+            mode: 'no-cors',
             headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({
                 action:      'ks-event',
@@ -1329,6 +1332,7 @@ const defaultStats = {
     selectedTrack: 'track_chill', trackSwitches: 0, tracksTriedSet: [], triedAllTracks: false,
     sameTrackGames: 0, lastGameTrack: '',
     kpViews: 0, kpClaimDays: [], kpSessionClaims: 0,
+    equippedTitle: null,
     qualityMode: 'normal',
     seenChristopher: false, christopherCardViews: 0, christopherSeenCount: 0,
     // KLICK SHIELD v2
@@ -1338,6 +1342,7 @@ const defaultStats = {
     ksReviewStatus: null,   // null | 'under_review' | 'warned' | 'sanctioned'
     ksReviewDate: null,     // fecha de la última apertura de revisión
     ksSuspicious: [],       // sesiones sospechosas internas (peso 8-12)
+    ksWarnings: [],         // advertencias formales (máx 3 antes de sancionar)
 };
 
 const STORAGE_KEY = 'klick_player_data_permanent';
@@ -1371,10 +1376,6 @@ if (playerStats.cheatCount !== undefined) delete playerStats.cheatCount;
     if (playerStats.achievements.includes('cx1') && cv < 1)  toRevoke.push('cx1');
     // cx2 ahora requiere cardViews >= 3 (antes: cardViews >= 1)
     if (playerStats.achievements.includes('cx2') && cv < 3)  toRevoke.push('cx2');
-    // cx3 ahora requiere cardViews >= 10 (antes: cardViews >= 5)
-    if (playerStats.achievements.includes('cx3') && cv < 10) toRevoke.push('cx3');
-    // cx4 ahora requiere cardViews >= 25 (antes: christopherSeenCount >= 10)
-    if (playerStats.achievements.includes('cx4') && cv < 25) toRevoke.push('cx4');
     if (toRevoke.length > 0) {
         playerStats.achievements = playerStats.achievements.filter(id => !toRevoke.includes(id));
         playerStats.pinnedAchievements = (playerStats.pinnedAchievements||[]).filter(id => !toRevoke.includes(id));
@@ -1459,8 +1460,8 @@ if (playerStats.cheatCount !== undefined) delete playerStats.cheatCount;
     if(bs < 3000) toRevoke.push('x7');
     // x12: 50k primera partida del día — revocamos si bestScore < 50k
     if(bs < 50000) toRevoke.push('x12');
-    // x15: exactamente 100k ±500 — revocamos si bestScore < 99500
-    if(bs < 99500) toRevoke.push('x15');
+    // x15: exactamente 100k ±500 — revocamos si bestScore está fuera del rango Y hitExactly100k no está marcado
+    if(bs < 99500 || bs > 100500) { if (!playerStats.hitExactly100k) toRevoke.push('x15'); }
 
     if(toRevoke.length > 0) {
         playerStats.achievements = playerStats.achievements.filter(id => !toRevoke.includes(id));
@@ -1489,11 +1490,11 @@ if (playerStats.cheatCount !== undefined) delete playerStats.cheatCount;
     if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') return;
     if (playerStats.migratedV3) return;
 
-    const normalAchs = (playerStats.achievements || []).length;
+    const normalAchs = (playerStats.achievements || []).filter(id => ACHIEVEMENTS_MAP.has(id)).length;
     const toRevoke = [];
 
-    // fin5 "Monarca": requiere rango Leyenda + 300 logros (antes chequeaba 200)
-    if (playerStats.achievements.includes('fin5') && normalAchs < 300) toRevoke.push('fin5');
+    // fin5 "Monarca": requiere rango Eterno + 160 logros
+    if (playerStats.achievements.includes('fin5') && normalAchs < 160) toRevoke.push('fin5');
 
     // kpa10 "Coleccionista Total": requiere kpClaimed>=100 + 300 logros (antes chequeaba 200)
     if (playerStats.achievements.includes('kpa10') && normalAchs < 300) toRevoke.push('kpa10');
@@ -1501,22 +1502,51 @@ if (playerStats.cheatCount !== undefined) delete playerStats.cheatCount;
     // master3 "Dios Klick": requiere los 300 logros del juego (antes chequeaba 165)
     if (playerStats.achievements.includes('master3') && normalAchs < 300) toRevoke.push('master3');
 
-    // u_mitico "Mítico": se otorga al alcanzar el rango Mítico, que exigía 200 logros (ahora 300).
-    // Revocar si el jugador no cumple todos los requisitos actuales del rango Mítico.
+    // u_mitico "Mítico": revocar si el jugador no cumple todos los requisitos actuales del rango Mítico.
     if (playerStats.achievements.includes('u_mitico')) {
         const totalAnswers = (playerStats.totalCorrect||0)+(playerStats.totalWrong||0)+(playerStats.totalTimeouts||0);
         const accuracy = totalAnswers > 0 ? Math.round((playerStats.totalCorrect||0)/totalAnswers*100) : 0;
         const cumpleMitico = (
             (playerStats.totalScore||0)     >= 1200000 &&
-            (playerStats.totalCorrect||0)   >= 5000    &&
-            (playerStats.perfectGames||0)   >= 50      &&
-            normalAchs                      >= 300      &&
-            (playerStats.maxStreak||0)      >= 40       &&
-            (playerStats.maxMult||1)        >= 8        &&
-            accuracy                        >= 85       &&
-            (playerStats.maxLoginStreak||0) >= 30
+            (playerStats.totalCorrect||0)   >= 5500    &&
+            (playerStats.perfectGames||0)   >= 55      &&
+            normalAchs                      >= 280     &&
+            (playerStats.maxStreak||0)      >= 45      &&
+            (playerStats.maxMult||1)        >= 8       &&
+            accuracy                        >= 85      &&
+            (playerStats.gamesPlayed||0)    >= 320
         );
-        if (!cumpleMitico) toRevoke.push('u_mitico');
+        if (!cumpleMitico) {
+            toRevoke.push('u_mitico');
+            ['mit1','mit2','mit3'].forEach(id => { if (playerStats.achievements.includes(id)) toRevoke.push(id); });
+            if (playerStats.equippedTitle && ['mit1','mit2','mit3'].includes(playerStats.equippedTitle)) {
+                playerStats.equippedTitle = null;
+            }
+        }
+    }
+
+    // u_eterno: revocar si el jugador no cumple los requisitos actuales del rango Eterno.
+    if (playerStats.achievements.includes('u_eterno')) {
+        const totalAnswers2 = (playerStats.totalCorrect||0)+(playerStats.totalWrong||0)+(playerStats.totalTimeouts||0);
+        const accuracy2 = totalAnswers2 > 0 ? Math.round((playerStats.totalCorrect||0)/totalAnswers2*100) : 0;
+        const cumpleEterno = (
+            (playerStats.totalScore||0)   >= 700000 &&
+            (playerStats.totalCorrect||0) >= 3200   &&
+            (playerStats.perfectGames||0) >= 30     &&
+            normalAchs                    >= 160    &&
+            (playerStats.maxStreak||0)    >= 35     &&
+            (playerStats.maxMult||1)      >= 6      &&
+            accuracy2                     >= 78     &&
+            (playerStats.gamesPlayed||0)  >= 200
+        );
+        if (!cumpleEterno) {
+            toRevoke.push('u_eterno');
+            // También revocar títulos Eterno si no cumple el rango
+            ['et1','et2','et3'].forEach(id => { if (playerStats.achievements.includes(id)) toRevoke.push(id); });
+            if (playerStats.equippedTitle && ['et1','et2','et3'].includes(playerStats.equippedTitle)) {
+                playerStats.equippedTitle = null;
+            }
+        }
     }
 
     // ── Escala de colección reajustada ──────────────────────────────────────
@@ -1713,9 +1743,10 @@ function revokeInvalidAchievements() {
     const _skT=[5,10,15,20,25,30,40,50];
     for(let i=0;i<8;i++) check(`sk${i+1}`, (s.maxStreak||0) >= _skT[i]);
 
-    // Multiplicadores (mx1–mx4 loop + mx6–mx10 individuales)
+    // Multiplicadores (mx1–mx4 loop + mx5–mx10 individuales)
     const _mxT=[2,3,4,5];
     for(let i=0;i<4;i++) check(`mx${i+1}`, (s.maxMult||1) >= _mxT[i]);
+    check('mx5',  (s.maxMult||1) >= 5 && (s.gamesPlayed||0) >= 30);
     check('mx6',  (s.maxMult||1) >= 6);
     check('mx7',  (s.maxMult||1) >= 7);
     check('mx8',  (s.maxMult||1) >= 8);
@@ -1765,9 +1796,9 @@ function revokeInvalidAchievements() {
     const _cvT=[1,5,15,30];
     for(let i=0;i<4;i++) check(`cv${i+1}`, (s.configViews||0) >= _cvT[i]);
 
-    // Visitas a pantalla de rangos (rk1–rk5): [1,5,15,30,50]
-    const _rkT=[1,5,15,30,50];
-    for(let i=0;i<5;i++) check(`rk${i+1}`, (s.ranksViews||0) >= _rkT[i]);
+    // Visitas a pantalla de rangos (rk1–rk3): [1,5,15]
+    const _rkT=[1,5,15];
+    for(let i=0;i<3;i++) check(`rk${i+1}`, (s.ranksViews||0) >= _rkT[i]);
 
     // Visitas al banco de logros (m4–m6): [1,10,50]
     check('m4', (s.achViews||0) >= 1);
@@ -1800,6 +1831,9 @@ function revokeInvalidAchievements() {
     check('kpa3', kpClaimed >= 50);
     check('kpa4', kpClaimed >= 75);
     check('kpa5', kpClaimed >= 100);
+    check('kpa7', (s.kpClaimDays||[]).length >= 3);
+    check('kpa8', (s.kpClaimDays||[]).length >= 7);
+    check('kpa9', (s.kpClaimDays||[]).length >= 15);
     check('kpa10', kpClaimed >= 100 && normalAchs >= 300);
 
     // Power Level (nm8, nm9, nm10): [10000, 100000, 1000000]
@@ -1828,7 +1862,7 @@ function revokeInvalidAchievements() {
     check('x6',   !!s.consistent5Games);
     check('x7',   !!s.fastStart3k);
     check('x12',  !!s.firstGameOfDay50k);
-    check('x15',  !!s.hitExactly100k);
+    check('x15',  !!s.hitExactly100k || ((s.bestScore||0)>=99500 && (s.bestScore||0)<=100500));
     check('x5',   !!s.revengeGame);
     check('x8',   !!s.xSinPrisa);
     check('x16',  (s.returnTriumph||0) >= 1);
@@ -1853,16 +1887,23 @@ function revokeInvalidAchievements() {
 
     // ── 4. LOGROS DE RANGO — derivados del stat real, no de flags ────────────
     const _rankTitle = getRankInfo(s).title;
-    const _rankOrder = ['Novato','Junior','Pro','Maestro','Leyenda','Mítico','Divinidad'];
+    const _rankOrder = ['Novato','Junior','Pro','Maestro','Leyenda','Eterno','Mítico','Divinidad'];
     const _ri = _rankOrder.indexOf(_rankTitle);
     check('u_junior', _ri >= 1);   // Junior o superior
     check('u6',       _ri >= 2);   // Pro o superior
     check('u7',       _ri >= 3);   // Maestro o superior
     check('u8',       _ri >= 4);   // Leyenda o superior
-    check('u_mitico', _ri >= 5 &&  // Mítico: además verificar todos sus requisitos
-        (s.totalScore||0)>=1200000 && (s.totalCorrect||0)>=5000 &&
-        (s.perfectGames||0)>=50 && normalAchs>=300 && (s.maxStreak||0)>=40 &&
-        (s.maxMult||1)>=8 && accuracy>=85 && (s.maxLoginStreak||0)>=30);
+    check('u_eterno', _ri >= 5);   // Eterno o superior
+    check('et1', _ri >= 5);
+    check('et2', _ri >= 5 && normalAchs >= 100);
+    check('et3', _ri >= 5 && (s.totalDaysPlayed||0) >= 20);
+    check('u_mitico', _ri >= 6 &&  // Mítico: además verificar todos sus requisitos
+        (s.totalScore||0)>=1200000 && (s.totalCorrect||0)>=5500 &&
+        (s.perfectGames||0)>=55 && normalAchs>=280 && (s.maxStreak||0)>=45 &&
+        (s.maxMult||1)>=8 && accuracy>=85 && (s.gamesPlayed||0)>=320);
+    check('mit1', _ri >= 6);
+    check('mit2', _ri >= 6 && (s.gamesPlayed||0)>=320);
+    check('mit3', _ri >= 6 && normalAchs>=280);
 
     // Podio (pod1–pod3): requieren rango Leyenda+ Y posición top
     const _isLeyendaPlus = _ri >= 4;
@@ -1872,7 +1913,7 @@ function revokeInvalidAchievements() {
 
     // ── 5. LOGROS COMBINADOS ─────────────────────────────────────────────────
     check('fin4', (s.maxLoginStreak||0) >= 7 && _ri >= 1);
-    check('fin5', _ri >= 4 && normalAchs >= 300);
+    check('fin5', _ri >= 5 && normalAchs >= 160);
     check('x17',  (s.gamesPlayed||0) >= 150);
     check('u15',  (s.maxQuestionReached||0) >= 120);
     check('u23',  (s.maxStreak||0) >= 35);
@@ -1885,9 +1926,7 @@ function revokeInvalidAchievements() {
     check('u17',  (s.lastSecondAnswersTotal||0) >= 50);
     check('u22',  (s.todayGames||0) >= 50);
     check('u_bisturi', totalAns >= 500 && accuracy >= 90);
-    check('prec1', totalAns >= 500 && accuracy >= 95);
     check('x13',  (s.todayGames||0) >= 10);
-    check('x20',  (s.todayGames||0) >= 20);
     check('div1', (s.totalScore||0) >= 2000000);
     check('div2', (s.totalCorrect||0) >= 8000);
     check('div3', (s.perfectGames||0) >= 75);
@@ -1902,6 +1941,8 @@ function revokeInvalidAchievements() {
     if (toRevoke.size > 0) {
         s.achievements       = s.achievements.filter(id => !toRevoke.has(id));
         s.pinnedAchievements = s.pinnedAchievements.filter(id => !toRevoke.has(id));
+        // Si el título equipado fue revocado, limpiarlo
+        if (s.equippedTitle && toRevoke.has(s.equippedTitle)) s.equippedTitle = null;
         saveStatsLocally();
         const revokedCount = before - s.achievements.length;
         if (revokedCount > 0) {
@@ -2683,7 +2724,17 @@ async function submitLeaderboard() {
             lastSeen:      new Date().toISOString(),
             pinnedAchievements: playerStats.pinnedAchievements || [],
             achievementCount:   (playerStats.achievements || []).filter(id => ACHIEVEMENTS_MAP && ACHIEVEMENTS_MAP.has(id)).length,
-            // KS datos viven solo en localStorage — no se envían al servidor
+            equippedTitle:     playerStats.equippedTitle || null,
+            // KS — solo el estado visible público (no historial ni señales)
+            ksStatus: (() => {
+                const ban = playerStats.ksBanUntil;
+                if (ban && new Date(ban).getTime() > Date.now()) return 'ban';
+                const r = playerStats.ksReviewStatus;
+                if (r === 'sanctioned')  return 'sanctioned';
+                if (r === 'warned')      return 'warned';
+                if (r === 'under_review') return 'review';
+                return null;
+            })(),
         };
         try {
             if (!navigator.onLine) throw new Error('offline');
@@ -2717,6 +2768,7 @@ function _formatLastSeen(isoStr) {
 
 // Heartbeat: envía lastSeen cada 45s mientras la pestaña esté activa
 let _heartbeatTimer = null;
+let _rankingPollTimer = null;
 function _startHeartbeat() {
     _stopHeartbeat();
     // Envío inmediato
@@ -2758,12 +2810,33 @@ async function _sendHeartbeat() {
     } catch(e) {}
 }
 
+// Polling del ranking — refresca los puntos online cada 30s mientras se ve el ranking
+function _startRankingPoll() {
+    _stopRankingPoll();
+    _rankingPollTimer = setInterval(() => {
+        const rankScreen = document.getElementById('ranking-screen');
+        if (rankScreen && rankScreen.classList.contains('active')) {
+            fetchLeaderboard();
+        }
+    }, 30000);
+}
+function _stopRankingPoll() {
+    if (_rankingPollTimer) { clearInterval(_rankingPollTimer); _rankingPollTimer = null; }
+}
+
 // Detener heartbeat cuando la pestaña está oculta, reanudar al volver
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
         _startHeartbeat();
+        // Reanudar poll si el ranking está activo
+        const rankScreen = document.getElementById('ranking-screen');
+        if (rankScreen && rankScreen.classList.contains('active')) {
+            fetchLeaderboard();
+            _startRankingPoll();
+        }
     } else {
         _stopHeartbeat();
+        _stopRankingPoll();
     }
 });
 
@@ -2800,12 +2873,13 @@ async function fetchLeaderboard() {
         
         function rankTitleColor(title) {
             switch(title) {
-                case 'Divinidad': return isLight ? '#6b0fa8' : 'var(--divinity-color-static)';
-                case 'Mítico':  return isLight ? '#000000' : '#ffffff';
-                case 'Leyenda': return isLight ? '#8a6200' : 'var(--accent-yellow)';
-                case 'Maestro': return isLight ? '#7a0a8c' : 'var(--accent-purple)';
-                case 'Pro':     return isLight ? '#c41940' : 'var(--accent-red)';
-                case 'Junior':  return isLight ? '#0070a8' : 'var(--accent-blue)';
+                case 'Divinidad': return isLight ? '#0d1117' : '#ffffff';
+                case 'Mítico':  return isLight ? '#cc7700' : '#ff9500';
+                case 'Eterno':  return isLight ? '#4400cc' : '#6600ff';
+                case 'Leyenda': return isLight ? '#7a0a8c' : '#b5179e';
+                case 'Maestro': return isLight ? '#c41940' : '#ff2a5f';
+                case 'Pro':     return isLight ? '#b8a000' : '#ffe566';
+                case 'Junior':  return isLight ? '#0070a8' : '#00d4ff';
                 default:        return isLight ? '#0a7a3e' : 'var(--accent-green)';
             }
         }
@@ -2850,14 +2924,16 @@ async function fetchLeaderboard() {
 
             const displayPos = isChristopher ? '∞' : pos;
 
-            let rankTitle = p.rankTitle;
+            let rankTitle = (MITICO_TITLE_RANKS.has(p.rankTitle) && p.equippedTitle && MITICO_TITLES.has(p.equippedTitle)) ? MITICO_TITLES.get(p.equippedTitle) :
+                (ETERNO_TITLE_RANKS.has(p.rankTitle) && p.equippedTitle && ETERNO_TITLES.has(p.equippedTitle)) ? ETERNO_TITLES.get(p.equippedTitle) : p.rankTitle;
             const podiumTitles = { 1: 'Rey Klick', 2: 'Señor Klick', 3: 'Caballero Klick' };
-            if (!isChristopher && pos <= 3 && (p.rankTitle === 'Leyenda' || p.rankTitle === 'Mítico' || p.rankTitle === 'Divinidad')) rankTitle = podiumTitles[pos];
+            if (!isChristopher && pos <= 3 && (p.rankTitle === 'Leyenda' || p.rankTitle === 'Eterno' || p.rankTitle === 'Mítico' || p.rankTitle === 'Divinidad')) rankTitle = podiumTitles[pos];
             if (isChristopher) rankTitle = 'Arquitecto del Sistema';
 
             const meClass          = isMe ? 'is-me' : '';
             const divinidadClass   = p.rankTitle === 'Divinidad' ? 'divinidad-card'   : '';
             const leyendaClass     = p.rankTitle === 'Leyenda'   ? 'leyenda-card'     : '';
+            const eternoClass      = p.rankTitle === 'Eterno'    ? 'eterno-card'      : '';
             const miticoClass      = p.rankTitle === 'Mítico'    ? 'mitico-card'      : '';
             const christopherClass = isChristopher               ? 'christopher-card' : '';
             const titleColor = rankTitleColor(p.rankTitle);
@@ -2872,12 +2948,23 @@ async function fetchLeaderboard() {
             // Mostrar PL con ∞ para admin
             const plDisplay = isChristopher ? '∞' : p.powerLevel.toLocaleString();
 
-            html += `<div class="rank-card ${meClass} ${divinidadClass} ${leyendaClass} ${miticoClass} ${christopherClass}" onclick="openPlayerProfileFromRank(${index})" title="Ver perfil completo">
+            // KS shield — visible para todos, solo si el jugador tiene estado activo
+            const ksStatus = p.ksStatus || (p.isBanned ? 'ban' : null);
+            const ksShieldColor = {
+                ban:       '#ff2a5f',
+                sanctioned:'#ff4040',
+                warned:    '#ff8c00',
+                review:    '#ffb800',
+            }[ksStatus] || null;
+            const ksShieldHtml = ksShieldColor ? `<span class="rc-ks-shield" title="Bajo monitoreo de Klick Shield" style="color:${ksShieldColor}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>` : '';
+
+            html += `<div class="rank-card ${meClass} ${divinidadClass} ${leyendaClass} ${eternoClass} ${miticoClass} ${christopherClass}" onclick="openPlayerProfileFromRank(${index})" title="Ver perfil completo">
                 <div class="rc-pos">${displayPos}</div>
                 <div class="rc-info">
                     <div class="rc-name-row">
                         <div class="rc-status-zone"><span class="rc-online-dot ${dotClass}" title="${dotTitle}"></span></div>
                         <div class="rc-name">${p.name}</div>
+                        ${ksShieldHtml}
                     </div>
                     <div class="rc-title" style="${titleStyle}">${rankTitle}</div>
                 </div>
@@ -2899,11 +2986,6 @@ async function fetchLeaderboard() {
         }
 
         playerStats.successfulLeaderboardLoads = (playerStats.successfulLeaderboardLoads||0) + 1;
-        if (topPlayers.length < 5 && !playerStats.achievements.includes('ui6')) {
-            playerStats.achievements.push('ui6');
-            const _ui6 = ACHIEVEMENTS_MAP.get('ui6');
-            if (_ui6) { try { SFX.achievement(); } catch(e){} showToast('Logro Desbloqueado', _ui6.title, _ui6.color, _ui6.icon); }
-        }
         saveStatsLocally();
     } catch(e) {
         if(document.getElementById('ranking-list').innerHTML.includes('ranking-loading')) {
@@ -2928,11 +3010,12 @@ setInterval(() => {
 function _pcardRankVars(title) {
     const light = document.body.classList.contains('light-mode');
     const map = {
-        'Divinidad': { color: light ? '#6b0fa8' : 'var(--divinity-color)', rgb: '180,100,255' },
-        'Mítico':  { color: light ? '#000000' : '#ffffff', rgb: '255,255,255' },
-        'Leyenda': { color: light ? '#8a6200' : '#ffb800', rgb: '255,184,0'   },
-        'Maestro': { color: light ? '#7a0a8c' : '#b5179e', rgb: '181,23,158'  },
-        'Pro':     { color: light ? '#c41940' : '#ff2a5f', rgb: '255,42,95'   },
+        'Divinidad': { color: light ? '#0d1117' : '#ffffff', rgb: light ? '13,17,23' : '255,255,255' },
+        'Mítico':  { color: light ? '#cc7700' : '#ff9500', rgb: '255,149,0'   },
+        'Eterno':  { color: light ? '#4400cc' : '#6600ff', rgb: '102,0,255'   },
+        'Leyenda': { color: light ? '#7a0a8c' : '#b5179e', rgb: '181,23,158'  },
+        'Maestro': { color: light ? '#c41940' : '#ff2a5f', rgb: '255,42,95'   },
+        'Pro':     { color: light ? '#b8a000' : '#ffe566', rgb: '255,229,102' },
         'Junior':  { color: light ? '#0070a8' : '#00d4ff', rgb: '0,212,255'   },
     };
     return map[title] || { color: light ? '#0a7a3e' : '#00ff66', rgb: '0,255,102' };
@@ -2982,9 +3065,9 @@ function _pcDraw(now) {
     c.fillStyle = `rgba(${_pc.rgb}, 0.45)`;
     for (let i = 0; i < pts.length; i++) {
         const p = pts[i];
+        p.x += p.dx; p.y += p.dy;
         if (p.x > W || p.x < 0) p.dx = -p.dx;
         if (p.y > H || p.y < 0) p.dy = -p.dy;
-        p.x += p.dx; p.y += p.dy;
         c.moveTo(p.x + p.s, p.y);
         c.arc(p.x, p.y, p.s, 0, Math.PI * 2);
     }
@@ -3091,18 +3174,21 @@ function openPlayerProfileFromRank(index) {
     const baseRank = p.rankTitle || 'Novato';
     const light = document.body.classList.contains('light-mode');
     const rankColorMap = {
-        'Divinidad': { color: light ? '#6b0fa8' : 'var(--divinity-color)', rgb: '180,100,255' },
-        'Mítico':  { color: light ? '#000000' : '#ffffff', rgb: '255,255,255' },
-        'Leyenda': { color: light ? '#8a6200' : '#ffb800', rgb: '255,184,0'   },
-        'Maestro': { color: light ? '#7a0a8c' : '#b5179e', rgb: '181,23,158'  },
-        'Pro':     { color: light ? '#c41940' : '#ff2a5f', rgb: '255,42,95'   },
+        'Divinidad': { color: light ? '#0d1117' : '#ffffff', rgb: light ? '13,17,23' : '255,255,255' },
+        'Mítico':  { color: light ? '#cc7700' : '#ff9500', rgb: '255,149,0'   },
+        'Eterno':  { color: light ? '#4400cc' : '#6600ff', rgb: '102,0,255'   },
+        'Leyenda': { color: light ? '#7a0a8c' : '#b5179e', rgb: '181,23,158'  },
+        'Maestro': { color: light ? '#c41940' : '#ff2a5f', rgb: '255,42,95'   },
+        'Pro':     { color: light ? '#b8a000' : '#ffe566', rgb: '255,229,102' },
         'Junior':  { color: light ? '#0070a8' : '#00d4ff', rgb: '0,212,255'   },
     };
     const ri = rankColorMap[baseRank] || { color: light ? '#0a7a3e' : '#00ff66', rgb: '0,255,102' };
 
-    let displayTitle = isChristopher ? 'Arquitecto del Sistema' : baseRank;
+    let displayTitle = isChristopher ? 'Arquitecto del Sistema' :
+        (MITICO_TITLE_RANKS.has(baseRank) && p.equippedTitle && MITICO_TITLES.has(p.equippedTitle)) ? MITICO_TITLES.get(p.equippedTitle) :
+        (ETERNO_TITLE_RANKS.has(baseRank) && p.equippedTitle && ETERNO_TITLES.has(p.equippedTitle)) ? ETERNO_TITLES.get(p.equippedTitle) : baseRank;
     const podiumTitles = { 1: 'Rey Klick', 2: 'Señor Klick', 3: 'Caballero Klick' };
-    if (!isChristopher && pos <= 3 && ['Leyenda','Mítico','Divinidad'].includes(baseRank)) displayTitle = podiumTitles[pos];
+    if (!isChristopher && pos <= 3 && ['Leyenda','Eterno','Mítico','Divinidad'].includes(baseRank)) displayTitle = podiumTitles[pos];
 
     // CSS vars de rango
     document.documentElement.style.setProperty('--rank-color', ri.color);
@@ -3220,10 +3306,13 @@ function openPlayerProfileFromRank(index) {
     const achGrid = document.getElementById('profile-achievements-grid');
     if (achGrid) {
         if (isChristopher) {
-            // Admin: logros fijados del servidor, igual que cualquier jugador
+            // Admin: logros fijados en color monocolor Divinidad (ignora el color del logro)
             const pinnedIds = Array.isArray(p.pinnedAchievements) ? p.pinnedAchievements : [];
             const achCount  = p.achievementCount || null;
             const isLight   = document.body.classList.contains('light-mode');
+            const divColor  = isLight ? '#0d1117' : '#ffffff';
+            const divBorder = isLight ? 'rgba(13,17,23,0.35)' : 'rgba(255,255,255,0.35)';
+            const divShadow = isLight ? 'none' : '0 0 12px rgba(255,255,255,0.18)';
             achGrid.innerHTML = '';
             const fragAdmin = document.createDocumentFragment();
             let nAdmin = 0;
@@ -3231,12 +3320,11 @@ function openPlayerProfileFromRank(index) {
                 if (nAdmin >= 3) return;
                 const ach = ACHIEVEMENTS_MAP.get(id);
                 if (!ach) return;
-                const achDisplayColor = isLight ? darkenHex(ach.color, 0.4) : ach.color;
                 const slot = document.createElement('div');
                 slot.className = 'achievement-slot unlocked';
-                slot.style.borderColor = isLight ? 'rgba(0,0,0,0.2)' : ach.color;
-                slot.style.boxShadow   = isLight ? 'none' : `0 0 12px ${ach.color}44`;
-                slot.innerHTML = `<div class="ach-icon" style="color:${achDisplayColor}">${ach.icon}</div><div class="ach-title" style="color:${achDisplayColor}">${ach.title}</div>`;
+                slot.style.borderColor = divBorder;
+                slot.style.boxShadow   = divShadow;
+                slot.innerHTML = `<div class="ach-icon" style="color:${divColor}">${ach.icon}</div><div class="ach-title" style="color:${divColor}">${ach.title}</div>`;
                 fragAdmin.appendChild(slot);
                 nAdmin++;
             });
@@ -3245,11 +3333,11 @@ function openPlayerProfileFromRank(index) {
                 slot.className = 'achievement-slot';
                 if (achCount !== null && nAdmin === 0 && pinnedIds.length === 0) {
                     slot.style.opacity = '0.85'; slot.style.filter = 'grayscale(0)';
-                    slot.innerHTML = `<div style="font-size:1.4rem;font-weight:900;color:${ri.color};">${achCount}</div><div class="ach-title" style="color:var(--text-secondary);font-size:0.58rem;">Logros</div>`;
+                    slot.innerHTML = `<div style="font-size:1.4rem;font-weight:900;color:${divColor};">${achCount}</div><div class="ach-title" style="color:${divColor};opacity:0.6;font-size:0.58rem;">Logros</div>`;
                     fragAdmin.appendChild(slot); nAdmin++; break;
                 }
                 const archIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
-                slot.innerHTML = `<div class="ach-icon" style="color:${ri.color};opacity:0.5">${archIcon}</div><div class="ach-title" style="color:${ri.color};font-size:0.58rem;opacity:0.5;">Sin fijar</div>`;
+                slot.innerHTML = `<div class="ach-icon" style="color:${divColor};opacity:0.4">${archIcon}</div><div class="ach-title" style="color:${divColor};font-size:0.58rem;opacity:0.4;">Sin fijar</div>`;
                 fragAdmin.appendChild(slot); nAdmin++;
             }
             achGrid.appendChild(fragAdmin);
@@ -3310,6 +3398,10 @@ function openPlayerProfileFromRank(index) {
             if (ps) ps.classList.add('architect-profile-active');
         } catch(e) {}
     }
+
+    // Ocultar selector de título al ver perfil ajeno
+    const _existingSel = document.getElementById('mitico-title-selector');
+    if (_existingSel) _existingSel.remove();
 
     switchScreen('profile-screen');
 
@@ -3398,9 +3490,11 @@ function openPlayerCard(index) {
     const { color, rgb } = _pcardRankVars(baseRank);
 
     // Título: CHRISTOPHER siempre "Arquitecto del Sistema"; podio para el resto
-    let displayTitle = isChristopherCard ? 'Arquitecto del Sistema' : baseRank;
+    let displayTitle = isChristopherCard ? 'Arquitecto del Sistema' :
+        (MITICO_TITLE_RANKS.has(baseRank) && p.equippedTitle && MITICO_TITLES.has(p.equippedTitle)) ? MITICO_TITLES.get(p.equippedTitle) :
+        (ETERNO_TITLE_RANKS.has(baseRank) && p.equippedTitle && ETERNO_TITLES.has(p.equippedTitle)) ? ETERNO_TITLES.get(p.equippedTitle) : baseRank;
     const podiumTitles = { 1: 'Rey Klick', 2: 'Señor Klick', 3: 'Caballero Klick' };
-    if (!isChristopherCard && pos <= 3 && (baseRank === 'Leyenda' || baseRank === 'Mítico' || baseRank === 'Divinidad')) displayTitle = podiumTitles[pos];
+    if (!isChristopherCard && pos <= 3 && (baseRank === 'Leyenda' || baseRank === 'Eterno' || baseRank === 'Mítico' || baseRank === 'Divinidad')) displayTitle = podiumTitles[pos];
 
     // CSS vars en el overlay para el gradiente de fondo
     const overlay = document.getElementById('pcard-overlay');
@@ -3416,7 +3510,7 @@ function openPlayerCard(index) {
               : len <= 12 ? 'clamp(1.5rem,6.5vw,3rem)'
               :              'clamp(1.1rem,5.5vw,2.4rem)';
     nameEl.style.fontSize = fs;
-    // christopher-name-gradient aplica color sólido #c864ff vía CSS (sin animación)
+    // christopher-name-gradient aplica --divinity-color-static vía CSS (blanco en dark, negro en light)
     if (isChristopherCard) {
         nameEl.classList.add('christopher-name-gradient');
         nameEl.style.color = '';
@@ -3607,14 +3701,12 @@ async function loadQuestions() {
 //   9. ACIERTOS         — aciertos acumulados en carrera                (volumen)
 //  10. ERRORES          — fallos e intentos fallidos                    (humor/ironía)
 //  11. RULETA           — premios de la ruleta de recompensas           (suerte)
-//  12. INTERFAZ         — logros de navegación, perfil, guía, ranking   (exploración)
-//  13. CONFIGURACIÓN    — música, FPS, partículas, temas                (tweaker)
-//  14. CLASIFICACIÓN    — ranking global, PL, podio                     (competitivo)
-//  15. ESPECIALES       — únicos narrativos, raros y secretos           (difíciles)
-//  16. MAESTROS         — coleccionismo extremo                         (platino)
-// ═══════════════════════════════════════════════════════════════════════════
-
-// --- Data Logros ---
+//  12. MÚSICA Y AUDIO   — pistas, silencio, audio                       (tweaker)
+//  13. CONFIGURACIÓN    — FPS, partículas, temas                        (tweaker)
+//  14. INTERFAZ         — logros de navegación, perfil, ranking          (exploración)
+//  15. NOMBRE           — cambios de nombre                              (social)
+//  16. COLECCIÓN Y META — coleccionismo, pins, logros diarios            (meta)
+//  17. CLASIFICACIÓN    — ranking global, PL, podio                      (competitivo)// --- Data Logros ---
 const ACHIEVEMENTS_DATA = [];
 const colors = { blue: 'var(--accent-blue)', green: 'var(--accent-green)', yellow: 'var(--accent-yellow)', orange: 'var(--accent-orange)', red: 'var(--accent-red)', purple: 'var(--accent-purple)', dark: 'var(--text-secondary)' };
 
@@ -3628,10 +3720,10 @@ addAchs([
     { id: 'm1',       title: 'Bautizado',          desc: 'Configura tu nombre de jugador por primera vez.',             color: colors.blue,   icon: SVG_USER },
     { id: 'ui7',      title: 'Nuevo en el Barrio', desc: 'Juega tu primera partida con nombre registrado.',             color: colors.green,  icon: SVG_USER },
     { id: 'x3',       title: 'Aprendiz',           desc: 'Completa tu primera partida (sin importar el puntaje).',      color: colors.green,  icon: SVG_TARGET },
-    { id: 'x2',       title: 'Paciente',           desc: 'Espera 10 segundos en el menú principal sin hacer nada.',     color: colors.dark,   icon: SVG_CLOCK },
     { id: 'u1',       title: 'Error Inicial',      desc: 'Equivócate al responder por primera vez.',                   color: colors.dark,   icon: SVG_INCORRECT },
     { id: 'u3',       title: 'Dormilón',           desc: 'Deja que el reloj llegue a cero en una pregunta.',            color: colors.dark,   icon: SVG_CLOCK },
     { id: 'secret_logo', title: '¡Klick!',         desc: 'Hiciste clic en el nombre del juego en la pantalla principal.', color: colors.yellow, icon: SVG_BOLT, hidden: true },
+    { id: 'x2',          title: 'Paciente',          desc: 'Espera 10 segundos en la pantalla principal sin hacer nada.',  color: colors.dark,   icon: SVG_CLOCK },
 ]);
 
 // ─── 2. PARTIDAS JUGADAS (8 escalables + partidas por día 5+5) ───────────
@@ -3642,7 +3734,6 @@ const todayTiers=[3,5,8,10,15];
 for(let i=0;i<5;i++) addAchs([{ id:`td${i+1}`, title:`Intenso ${i+1}`, desc:`Juega ${todayTiers[i]} partidas en un solo día.`, color:colors.orange, icon:SVG_FIRE }]);
 addAchs([
     { id: 'x13', title: 'Noche de Fuego',    desc: 'Juega 10 partidas o más en un único día.',                         color: colors.red,    icon: SVG_FIRE },
-    { id: 'x20', title: 'Pura Determinación',desc: 'Juega 20 partidas en un mismo día.', color: colors.red, icon: SVG_FIRE },
     { id: 'u22', title: 'Maratón',           desc: 'Juega 50 partidas en un solo día.',                                color: colors.purple, icon: SVG_HEART },
 ]);
 
@@ -3691,6 +3782,13 @@ addAchs([
     { id: 'x11',  title: 'El Último Chance', desc: 'Responde correctamente estando en la última vida.',                 color: colors.orange, icon: SVG_SHIELD },
 ]);
 
+// ─── 5b. EXPANSIÓN SUPERVIVENCIA (preguntas extremas) ────────────────────
+addAchs([
+    { id: 'pf9',  title: 'Sin Fin I',    desc: 'Llega a la pregunta 300 en una partida.',                               color: colors.green,  icon: SVG_BOLT },
+    { id: 'pf10', title: 'Sin Fin II',   desc: 'Llega a la pregunta 400 en una partida.',                               color: colors.orange, icon: SVG_BOLT },
+    { id: 'pf11', title: 'Sin Fin III',  desc: 'Llega a la pregunta 800 en una partida.',                               color: colors.red,    icon: SVG_BOLT },
+]);
+
 // ─── 6. RACHA Y MULTIPLICADOR (8 racha + 10 mult) ────────────────────────
 const strkTiers=[5,10,15,20,25,30,40,50];
 for(let i=0;i<8;i++) addAchs([{ id:`sk${i+1}`, title:`Encadenado ${i+1}`, desc:`Alcanza una racha de ${strkTiers[i]} aciertos seguidos en alguna partida.`, color:colors.orange, icon:SVG_BOLT }]);
@@ -3700,6 +3798,7 @@ addAchs([
 const multTiers=[2,3,4,5];
 for(let i=0;i<4;i++) addAchs([{ id:`mx${i+1}`, title:`Multiplicador x${multTiers[i]}`, desc:`Alcanza el multiplicador x${multTiers[i]} en una partida.`, color:colors.red, icon:SVG_FIRE }]);
 addAchs([
+    { id: 'mx5',  title: 'Dominio del Caos',           desc: 'Alcanza el multiplicador x5 con al menos 30 partidas jugadas.',  color: colors.red,    icon: SVG_FIRE },
     { id: 'mx6',  title: 'Multiplicador x6',           desc: 'Alcanza el multiplicador x6 en una partida.',             color: colors.purple, icon: SVG_FIRE },
     { id: 'mx7',  title: 'Multiplicador x7',           desc: 'Alcanza el multiplicador x7 en una partida.',             color: colors.red,    icon: SVG_FIRE },
     { id: 'mx8',  title: 'Multiplicador x8',           desc: 'Alcanza el multiplicador x8 en una partida.',             color: colors.red,    icon: SVG_BOLT },
@@ -3726,7 +3825,14 @@ addAchs([
     { id: 'u20',  title: 'Centinela',     desc: 'Llega a la pregunta 50 sin usar ningún fallo por tiempo.',            color: colors.dark,   icon: SVG_CLOCK },
 ]);
 
-// ─── 8. FRENESÍ (8 conteo + 5 eterno) ────────────────────────────────────
+// ─── 7b. EXPANSIÓN VELOCIDAD (reflejos extremos) ─────────────────────────
+addAchs([
+    { id: 'sp9',  title: 'Reflejo Sobrehumano',   desc: 'Acumula 2,000 respuestas rápidas en total.',                   color: colors.blue,   icon: SVG_BOLT },
+    { id: 'sp10', title: 'Máquina Klick',         desc: 'Acumula 5,000 respuestas rápidas en total.',                   color: colors.purple, icon: SVG_BOLT },
+    { id: 'sp11', title: 'Velocidad Absoluta',    desc: 'Acumula 10,000 respuestas rápidas en total.',                  color: colors.yellow, icon: SVG_FIRE },
+]);
+
+// ─── 8. FRENESÍ (8 conteo + 5 eterno + únicos) ───────────────────────────
 const frTiers=[1,5,10,25,50,100,200,500];
 for(let i=0;i<8;i++) addAchs([{ id:`r${i+1}`, title:`Frenético ${i+1}`, desc:`Activa el Modo Frenesí en ${frTiers[i]} ocasiones.`, color:colors.orange, icon:SVG_FIRE }]);
 const frenzyTimeTiers=[3,5,8,12,20];
@@ -3736,10 +3842,9 @@ addAchs([
     { id: 'fin3',   title: 'Momento Épico', desc: 'Entra en Modo Frenesí y luego consigue 20 aciertos más.',            color: colors.red,    icon: SVG_FIRE },
 ]);
 
-// ─── 9. ACIERTOS TOTALES (8 escalables) ──────────────────────────────────
+// ─── 9. ACIERTOS TOTALES (8 escalables + precisión global) ───────────────
 const acTiers=[10,50,100,250,500,1000,2500,5000];
 for(let i=0;i<8;i++) addAchs([{ id:`ac${i+1}`, title:`Cerebro ${i+1}`, desc:`Acumula ${acTiers[i]} respuestas correctas en total.`, color:colors.green, icon:SVG_CORRECT }]);
-
 addAchs([
     { id: 'u_bisturi', title: 'Bisturí', desc: 'Mantén una precisión del 90% o más con al menos 500 respuestas totales en tu carrera.', color: colors.yellow, icon: SVG_TARGET },
 ]);
@@ -3784,8 +3889,8 @@ addAchs([
     { id: 'kpa7', title: 'Constante',        desc: 'Reclama al menos un nivel del Klick Pass en 3 días distintos.',   color: colors.blue,   icon: SVG_TARGET },
     { id: 'kpa3', title: 'A Mitad de Ruta',  desc: 'Completa 50 niveles del Klick Pass.',                             color: colors.yellow, icon: SVG_TARGET },
     { id: 'kpa8', title: 'Dedicado',         desc: 'Reclama al menos un nivel del Klick Pass en 7 días distintos.',   color: colors.yellow, icon: SVG_STAR },
+    { id: 'kpa9', title: 'Imparable',        desc: 'Reclama al menos un nivel del Klick Pass en 15 días distintos.',  color: colors.orange, icon: SVG_STAR },
     { id: 'kpa4', title: 'Casi en la Cima',  desc: 'Completa 75 niveles del Klick Pass.',                             color: colors.orange, icon: SVG_STAR },
-    { id: 'kpa9', title: 'Sin Pausas',       desc: 'Completa 10 niveles del Klick Pass en una sola sesión.',          color: colors.orange, icon: SVG_BOLT },
     { id: 'kpa5', title: 'Pase Completado',  desc: 'Reclama los 100 niveles del Klick Pass en su totalidad.',         color: colors.red,    icon: SVG_STAR },
     { id: 'kpa10',title: 'Coleccionista Total', desc: 'Reclama los 100 niveles del Klick Pass y desbloquea todos los 300 logros del juego.', color: colors.red,    icon: SVG_TROPHY },
 ]);
@@ -3804,18 +3909,13 @@ addAchs([
     { id: 'm5',  title: 'Investigador',        desc: 'Visita el Banco de Logros 10 veces.',                           color: colors.blue,   icon: SVG_TROPHY },
     { id: 'm6',  title: 'Obsesivo',            desc: 'Visita el Banco de Logros 50 veces.',                           color: colors.purple, icon: SVG_TROPHY },
 ]);
-
 const profileVisTiers=[1,5,15,30,60];
 for(let i=0;i<5;i++) addAchs([{ id:`pv${i+1}`, title:`Egocéntrico ${i+1}`, desc:`Visita tu perfil ${profileVisTiers[i]} veces.`, color:colors.purple, icon:SVG_USER }]);
 const rankVisTiers=[1,5,15,30,60];
 for(let i=0;i<5;i++) addAchs([{ id:`rv${i+1}`, title:`Espía de Clasificación ${i+1}`, desc:`Visita la Clasificación Global ${rankVisTiers[i]} veces.`, color:colors.blue, icon:SVG_TROPHY }]);
 addAchs([
     { id: 'ui1',  title: 'Explorador',          desc: 'Visita todas las secciones del menú en una misma sesión.',      color: colors.blue,   icon: SVG_TARGET },
-    { id: 'ui10', title: 'El Circuito',         desc: 'Navega por las 4 secciones del juego en orden secuencial.',     color: colors.purple, icon: SVG_FIRE },
-    { id: 'ui2',  title: 'Vuelvo en Un Segundo',desc: 'Entra y sal del menú de Configuración en menos de 3 segundos.', color: colors.yellow, icon: SVG_BOLT },
     { id: 'ui5',  title: 'El Perfil Importa',   desc: 'Visita tu perfil después de cada una de tus primeras 5 partidas.', color: colors.blue, icon: SVG_USER },
-    { id: 'ui6',  title: 'Fan de Clasificación',desc: 'Visita la Clasificación mientras hay menos de 5 jugadores.',    color: colors.dark,   icon: SVG_TROPHY },
-    { id: 'ui8',  title: 'Bien Conectado',      desc: 'La clasificación global carga sin errores 10 veces.',           color: colors.blue,   icon: SVG_TARGET },
     { id: 'ui9',  title: 'Puntaje en Mente',    desc: 'Revisa tu perfil inmediatamente después de un puntaje récord.', color: colors.yellow, icon: SVG_STAR },
 ]);
 
@@ -3835,13 +3935,13 @@ addAchs([
     { id: 'cfg10', title: 'Vuelta a Casa',     desc: 'Cambia del Modo Claro al Oscuro después de haberlo activado.',   color: colors.dark,   icon: SVG_MOON },
 ]);
 
-// ─── 16. NOMBRE DE JUGADOR (3) ────────────────────────────────────────────
+// ─── 16. NOMBRE DE JUGADOR (2) ────────────────────────────────────────────
 addAchs([
     { id: 'm2',  title: 'Agente Secreto', desc: 'Cambia tu nombre de jugador 5 veces.',                               color: colors.purple, icon: SVG_USER },
     { id: 'm3',  title: 'Identidad Falsa',desc: 'Cambia tu nombre de jugador 20 veces.',                              color: colors.red,    icon: SVG_USER },
 ]);
 
-// ─── 17. LOGROS META Y COLECCIÓN (m8–m10 + pins + productivo + day) ──────
+// ─── 17. COLECCIÓN Y META (escalas + pins + productivo + especiales) ──────
 addAchs([
     { id: 'm8',  title: 'Coleccionista',  desc: 'Desbloquea 10 logros en total.',                                     color: colors.green,  icon: SVG_STAR },
     { id: 'm9',  title: 'Completista',    desc: 'Alcanza el hito de 25 logros desbloqueados.',                        color: colors.orange, icon: SVG_STAR },
@@ -3869,74 +3969,44 @@ addAchs([
     { id: 'nm3',  title: 'Podio',             desc: 'Entra en el Top 3 de la Clasificación.',                         color: colors.yellow, icon: SVG_TROPHY },
     { id: 'nm4',  title: 'El Primero',        desc: 'Llega al primer lugar de la Clasificación.',                     color: colors.yellow, icon: SVG_STAR },
     { id: 'nm10', title: 'PL 1,000,000',      desc: 'Alcanza 1,000,000 de Puntos de Poder. Meta del Top Mundial.',    color: colors.yellow, icon: SVG_STAR },
-    { id: 'pod1', title: 'Rey Klick',         desc: 'Eres Leyenda y ocupas el 1.er lugar de la clasificación.',       color: '#6e8fad',    icon: SVG_TROPHY },
-    { id: 'pod2', title: 'Señor Klick',       desc: 'Eres Leyenda y ocupas el 2.º lugar de la clasificación.',        color: '#ff5e00',    icon: SVG_TROPHY },
-    { id: 'pod3', title: 'Caballero Klick',   desc: 'Eres Leyenda y ocupas el 3.er lugar de la clasificación.',       color: '#ccff00',    icon: SVG_TROPHY },
+    { id: 'pod1', title: 'Rey Klick',         desc: 'Eres Leyenda o superior y ocupas el 1.er lugar de la clasificación.',   color: '#6e8fad',    icon: SVG_TROPHY },
+    { id: 'pod2', title: 'Señor Klick',       desc: 'Eres Leyenda o superior y ocupas el 2.º lugar de la clasificación.',    color: '#ff5e00',    icon: SVG_TROPHY },
+    { id: 'pod3', title: 'Caballero Klick',   desc: 'Eres Leyenda o superior y ocupas el 3.er lugar de la clasificación.',   color: '#ccff00',    icon: SVG_TROPHY },
 ]);
 
-// ─── 19. RANGOS (Junior → Mítico) ─────────────────────────────────────────
+// ─── 19. RANGOS (Junior → Mítico + títulos exclusivos + especiales) ───────
 addAchs([
     { id: 'u_junior',  title: 'Junior',   desc: 'Alcanza el rango Junior.',                                           color: colors.blue,   icon: SVG_TROPHY },
     { id: 'u6',        title: 'Pro',      desc: 'Alcanza el rango Pro.',                                              color: colors.red,    icon: SVG_TROPHY },
     { id: 'u7',        title: 'Maestro',  desc: 'Alcanza el rango Maestro.',                                          color: colors.purple, icon: SVG_TROPHY },
     { id: 'u8',        title: 'Leyenda',  desc: 'Alcanza el codiciado rango Leyenda.',                                color: colors.yellow, icon: SVG_TROPHY },
-    { id: 'u_mitico',  title: 'Mítico',   desc: 'Alcanza el rango Mítico. El más difícil de conseguir.',              color: '#ffffff',     icon: SVG_STAR },
     { id: 'fin4',      title: 'El Pacto', desc: 'Juega durante 7 días seguidos y alcanza el rango Junior.',           color: colors.green,  icon: SVG_SHIELD },
     { id: 'x17',       title: 'Veterano', desc: 'Acumula más de 150 partidas jugadas.',                               color: colors.blue,   icon: SVG_TROPHY },
+    { id: 'u_eterno',  title: 'Eterno',   desc: 'Alcanza el rango Eterno. Un paso entre leyendas y dioses.',          color: '#6600ff',     icon: SVG_STAR },
+    { id: 'et1', title: 'El Eterno',        desc: 'Logro de rango Eterno. Titulo exclusivo: El Eterno.',                color: '#6600ff', icon: SVG_STAR },
+    { id: 'et2', title: 'Sin Principio',    desc: 'Logro de rango Eterno. Titulo exclusivo. Alcanza Eterno con 100 logros desbloqueados.', color: '#6600ff', icon: SVG_STAR },
+    { id: 'et3', title: 'Fuera del Tiempo', desc: 'Logro de rango Eterno. Titulo exclusivo. Alcanza Eterno habiendo jugado 20 dias distintos en total.', color: '#6600ff', icon: SVG_STAR },
+    { id: 'u_mitico',  title: 'Mítico',   desc: 'Alcanza el rango Mítico. El más difícil de conseguir.',              color: '#ff9500',     icon: SVG_STAR },
+    { id: 'mit1', title: 'El Último',      desc: 'Logro de rango Mítico. Título exclusivo: "El Último".',              color: '#ff9500',     icon: SVG_STAR },
+    { id: 'mit2', title: 'Leyenda Viva',   desc: 'Logro de rango Mítico. Título exclusivo: "Leyenda Viva".',           color: '#ff9500',     icon: SVG_STAR },
+    { id: 'mit3', title: 'El Absoluto',    desc: 'Logro de rango Mítico. Completa los 280 logros siendo Mítico.',      color: '#ff9500',     icon: SVG_STAR },
 ]);
 
-// ─── 22. PANTALLA DE RANGOS (nuevos logros de navegación) ─────────────
+// ─── 20. PANTALLA DE RANGOS (navegación) ─────────────────────────────────
 addAchs([
     { id: 'rk1', title: 'Explorador de Rangos',   desc: 'Visita la pantalla de Rangos por primera vez.',                color: colors.blue,   icon: SVG_TROPHY },
     { id: 'rk2', title: 'Aspirante Consciente',   desc: 'Visita la pantalla de Rangos 5 veces.',                        color: colors.green,  icon: SVG_TROPHY },
     { id: 'rk3', title: 'Calculador',             desc: 'Visita la pantalla de Rangos 15 veces.',                       color: colors.purple, icon: SVG_TARGET },
-    { id: 'rk4', title: 'Obsesionado con el Rango', desc: 'Visita la pantalla de Rangos 30 veces.',                     color: colors.orange, icon: SVG_TARGET },
-    { id: 'rk5', title: 'Cartógrafo Klick',       desc: 'Visita la pantalla de Rangos 50 veces.',                       color: colors.yellow, icon: SVG_STAR },
 ]);
 
-// ─── 23. ESTADÍSTICAS EXTREMAS — DIVINIDAD ──────────────────────────────
+// ─── 21. ESTADÍSTICAS EXTREMAS — DIVINIDAD ───────────────────────────────
 addAchs([
     { id: 'div1', title: 'Punto de No Retorno',   desc: 'Acumula 2,000,000 puntos en total.',                           color: colors.red,    icon: SVG_BOLT },
     { id: 'div2', title: 'El Inmortal',           desc: 'Alcanza 8,000 aciertos totales.',                              color: colors.purple, icon: SVG_FIRE },
     { id: 'div3', title: 'Trascendencia',         desc: 'Completa 75 partidas perfectas.',                              color: colors.yellow, icon: SVG_STAR },
 ]);
 
-// ─── 24. EXPANSIÓN PREGUNTAS ALCANZADAS ──────────────────────────────────
-addAchs([
-    { id: 'pf9',  title: 'Sin Fin I',    desc: 'Llega a la pregunta 300 en una partida.',                               color: colors.green,  icon: SVG_BOLT },
-    { id: 'pf10', title: 'Sin Fin II',   desc: 'Llega a la pregunta 400 en una partida.',                               color: colors.orange, icon: SVG_BOLT },
-    { id: 'pf11', title: 'Sin Fin III',  desc: 'Llega a la pregunta 800 en una partida.',                               color: colors.red,    icon: SVG_BOLT },
-]);
-
-// ─── 25. EXPANSIÓN RESPUESTAS RÁPIDAS ────────────────────────────────────
-addAchs([
-    { id: 'sp9',  title: 'Reflejo Sobrehumano',   desc: 'Acumula 2,000 respuestas rápidas en total.',                   color: colors.blue,   icon: SVG_BOLT },
-    { id: 'sp10', title: 'Máquina Klick',         desc: 'Acumula 5,000 respuestas rápidas en total.',                   color: colors.purple, icon: SVG_BOLT },
-    { id: 'sp11', title: 'Velocidad Absoluta',    desc: 'Acumula 10,000 respuestas rápidas en total.',                  color: colors.yellow, icon: SVG_FIRE },
-]);
-
-// ─── 26. PRECISIÓN GLOBAL ────────────────────────────────────────────────
-addAchs([
-    { id: 'prec1', title: 'Sin Fisuras', desc: 'Alcanza 95% de precisión global acumulada (mín. 500 respuestas).', color: colors.blue, icon: SVG_TARGET },
-]);
-
-// ─── 27. EL ARQUITECTO — logros relacionados con CHRISTOPHER ─────────────
-addAchs([
-    { id: 'cx1', title: 'Cara a Cara',        desc: 'Abre la tarjeta del Arquitecto del Sistema en la Clasificación.',             color: 'var(--divinity-color-static)', icon: SVG_USER },
-    { id: 'cx2', title: 'Estudiado',           desc: 'Consulta la tarjeta del Arquitecto del Sistema 3 veces.',                       color: 'var(--divinity-color-static)', icon: SVG_USER },
-    { id: 'cx3', title: 'Observador',          desc: 'Abre la tarjeta del Arquitecto del Sistema 10 veces.',                          color: 'var(--divinity-color-static)', icon: SVG_USER },
-    { id: 'cx4', title: 'Testigo del Origen',  desc: 'Examina la tarjeta del Arquitecto del Sistema 25 veces.',                       color: 'var(--divinity-color-static)', icon: SVG_STAR },
-]);
-
-
-// ─── 20. ÚNICOS DE HORARIO Y SITUACIÓN (logros narrativos raros) ──────────
-addAchs([
-    { id: 'fin1', title: 'Nocturno',      desc: 'Juega una partida después de las 11:00 PM.',                        color: colors.dark,   icon: SVG_CLOCK },
-    { id: 'fin2', title: 'Madrugador',    desc: 'Juega una partida antes de las 6:00 AM.',                          color: colors.blue,   icon: SVG_CLOCK },
-    { id: 'fin5', title: 'Monarca',       desc: 'Alcanza simultáneamente el rango Leyenda y 300 logros.',            color: colors.yellow, icon: SVG_TROPHY },
-]);
-
-// ─── 21. MAESTROS DE COLECCIÓN (logros extremos de platino) ─────────────
+// ─── 22. MAESTROS DE COLECCIÓN (logros extremos de platino) ─────────────
 addAchs([
     { id: 'master1', title: 'Ambicioso',    desc: 'Desbloquea 75 logros en total.',                                  color: colors.yellow, icon: SVG_STAR },
     { id: 'master2', title: 'Centenario',   desc: 'Desbloquea 100 logros en total.',                                 color: colors.orange, icon: SVG_STAR },
@@ -3945,9 +4015,42 @@ addAchs([
     { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea los 300 logros del juego. Eres absoluto.',           color: colors.red,    icon: SVG_STAR },
 ]);
 
+// ─── 23. ÚNICOS DE HORARIO Y SITUACIÓN (narrativos raros) ────────────────
+addAchs([
+    { id: 'fin1', title: 'Nocturno',      desc: 'Juega una partida después de las 11:00 PM.',                        color: colors.dark,   icon: SVG_CLOCK },
+    { id: 'fin2', title: 'Madrugador',    desc: 'Juega una partida antes de las 6:00 AM.',                          color: colors.blue,   icon: SVG_CLOCK },
+    { id: 'fin5', title: 'Monarca',       desc: 'Alcanza el rango Eterno o superior con 160 logros desbloqueados.',  color: colors.yellow, icon: SVG_TROPHY },
+]);
+
+// ─── 24. EL ARQUITECTO — logros relacionados con CHRISTOPHER ─────────────
+addAchs([
+    { id: 'cx1', title: 'Cara a Cara',        desc: 'Abre la tarjeta del Arquitecto del Sistema en la Clasificación.',             color: 'var(--divinity-color-static)', icon: SVG_USER },
+    { id: 'cx2', title: 'Estudiado',           desc: 'Consulta la tarjeta del Arquitecto del Sistema 3 veces.',                      color: 'var(--divinity-color-static)', icon: SVG_USER },
+    { id: 'cx3', title: 'Obsesionado',         desc: 'Consulta la tarjeta del Arquitecto del Sistema 10 veces.',                     color: 'var(--divinity-color-static)', icon: SVG_USER },
+    { id: 'cx4', title: 'El Elegido',          desc: 'Consulta la tarjeta del Arquitecto del Sistema 25 veces.',                     color: 'var(--divinity-color-static)', icon: SVG_STAR },
+]);
+
+
 // ── Índice O(1) para lookup por ID ──────────────────────────────────────────
 const ACHIEVEMENTS_MAP   = new Map(ACHIEVEMENTS_DATA.map(a => [a.id, a]));
 const ACHIEVEMENTS_INDEX = new Map(ACHIEVEMENTS_DATA.map((a, i) => [a.id, i]));
+
+// Títulos exclusivos equipables por jugadores Mítico
+// Mapeados por id de logro → texto del título
+// Títulos exclusivos equipables por jugadores Eterno
+const ETERNO_TITLES = new Map([
+    ['et1', 'El Eterno'],
+    ['et2', 'Sin Principio'],
+    ['et3', 'Fuera del Tiempo'],
+]);
+const ETERNO_TITLE_RANKS = new Set(['Eterno','Mítico','Divinidad']);
+const MITICO_TITLES = new Map([
+    ['mit1', 'El Último'],
+    ['mit2', 'Leyenda Viva'],
+    ['mit3', 'El Absoluto'],
+]);
+// Rangos que permiten equipar títulos Mítico
+const MITICO_TITLE_RANKS = new Set(['Mítico','Divinidad']);
 
 function processDailyLogin() {
     const now = new Date(); const todayStr = now.toISOString().split('T')[0];
@@ -3973,18 +4076,25 @@ function getRankInfo(stats) {
     const accuracy = totalAnswers>0 ? Math.round((stats.totalCorrect||0)/totalAnswers*100) : 0;
     const kpClaimed = (getKpState().claimed || []).length;
     // ── Divinidad — rango exclusivo del Arquitecto del Sistema ─────
-    if ((stats.playerName||''). toUpperCase() === 'CHRISTOPHER' && stats.uuid === '00000000-spec-tral-0000-klickphantom0')
-        return { title: "Divinidad", color: "var(--divinity-color)", rgb: "180,100,255", divinidad: true };
+    if ((stats.playerName||''). toUpperCase() === 'CHRISTOPHER' && stats.uuid === '00000000-spec-tral-0000-klickphantom0') {
+        const light = typeof document !== 'undefined' && document.body && document.body.classList.contains('light-mode');
+        return { title: "Divinidad", color: light ? "#0d1117" : "#ffffff", rgb: light ? "13,17,23" : "255,255,255", divinidad: true };
+    }
     // ── Mítico ───────────────────────────────────────────────────────
-    if (stats.totalScore >= 1200000 && stats.totalCorrect >= 5000 && stats.perfectGames >= 50 &&
-        (stats.achievements||[]).length >= 300 && stats.maxStreak >= 40 && (stats.maxMult||1) >= 8 &&
-        accuracy >= 85 && stats.maxLoginStreak >= 30)
-        return { title: "Mítico", color: "#ffffff", rgb: "255,255,255", mitico: true };
-    if (stats.totalScore >= 400000 && stats.totalCorrect >= 1500 && stats.perfectGames >= 10) return { title: "Leyenda", color: "var(--accent-yellow)", rgb: "255,184,0" };
-    if (stats.totalScore >= 150000 && stats.gamesPlayed >= 50 && (stats.maxMult||1) >= 4) return { title: "Maestro", color: "var(--accent-purple)", rgb: "181,23,158" };
-    if (stats.totalScore >= 60000 && stats.totalCorrect >= 200 && stats.maxStreak >= 12) return { title: "Pro", color: "var(--accent-red)", rgb: "255,42,95" };
-    if (stats.bestScore >= 15000 && stats.gamesPlayed >= 5) return { title: "Junior", color: "var(--accent-blue)", rgb: "0,212,255" };
-    return { title: "Novato", color: "var(--accent-green)", rgb: "0,255,102" };
+    if (stats.totalScore >= 1200000 && stats.totalCorrect >= 5500 && stats.perfectGames >= 55 &&
+        (stats.achievements||[]).length >= 280 && stats.maxStreak >= 45 && (stats.maxMult||1) >= 8 &&
+        accuracy >= 85 && stats.gamesPlayed >= 320)
+        return { title: "Mítico", color: "#ff9500", rgb: "255,149,0", mitico: true };
+    // ── Eterno ───────────────────────────────────────────────────────
+    if (stats.totalScore >= 700000 && stats.totalCorrect >= 3200 && stats.perfectGames >= 30 &&
+        (stats.achievements||[]).length >= 160 && stats.maxStreak >= 35 && (stats.maxMult||1) >= 6 &&
+        accuracy >= 78 && stats.gamesPlayed >= 200)
+        return { title: "Eterno", color: "#6600ff", rgb: "102,0,255" };
+    if (stats.totalScore >= 400000 && stats.totalCorrect >= 1800 && stats.perfectGames >= 15 && stats.gamesPlayed >= 120 && (stats.maxMult||1) >= 5 && stats.maxStreak >= 28 && accuracy >= 70 && (stats.achievements||[]).length >= 80) return { title: "Leyenda", color: "#b5179e", rgb: "181,23,158" };
+    if (stats.totalScore >= 150000 && stats.totalCorrect >= 700 && stats.perfectGames >= 5 && stats.gamesPlayed >= 60 && (stats.maxMult||1) >= 4 && stats.maxStreak >= 20 && accuracy >= 65 && (stats.achievements||[]).length >= 30) return { title: "Maestro", color: "#ff2a5f", rgb: "255,42,95" };
+    if (stats.totalScore >= 60000 && stats.totalCorrect >= 250 && stats.gamesPlayed >= 30 && (stats.maxMult||1) >= 3 && stats.maxStreak >= 10 && accuracy >= 60) return { title: "Pro", color: "#ffe566", rgb: "255,229,102" };
+    if (stats.totalScore >= 20000 && stats.totalCorrect >= 75 && stats.gamesPlayed >= 10) return { title: "Junior", color: "#00d4ff", rgb: "0,212,255" };
+    return { title: "Novato", color: "#00ff66", rgb: "0,255,102" };
 }
 let currentRankInfo = getRankInfo(playerStats);
 
@@ -4027,7 +4137,7 @@ function _checkAchievementsImpl() {
     if (normalAchs >= 300) unlock('master3'); // Dios Klick — todos
     // ── Pantalla de Rangos ──────────────────────────────────────────
     const rv2 = playerStats.ranksViews||0;
-    if(rv2>=1) unlock('rk1'); if(rv2>=5) unlock('rk2'); if(rv2>=15) unlock('rk3'); if(rv2>=30) unlock('rk4'); if(rv2>=50) unlock('rk5');
+    if(rv2>=1) unlock('rk1'); if(rv2>=5) unlock('rk2'); if(rv2>=15) unlock('rk3');
     // ── Estadísticas extremas (Divinidad) ───────────────────────────
     if((playerStats.totalScore||0)>=2000000) unlock('div1');
     if((playerStats.totalCorrect||0)>=8000)  unlock('div2');
@@ -4067,11 +4177,20 @@ function _checkAchievementsImpl() {
     // que se revocarían si el jugador abandona o pierde antes de terminar la partida.
     const effectiveRank = rank;
     // Rank achievements: cada rango desbloquea todos los anteriores (escalera)
-    if (effectiveRank==="Junior"||effectiveRank==="Pro"||effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u_junior');
-    if (effectiveRank==="Pro"||effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u6'); 
-    if (effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u7'); 
-    if (effectiveRank==="Leyenda"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u8');
+    if (effectiveRank==="Junior"||effectiveRank==="Pro"||effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Eterno"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u_junior');
+    if (effectiveRank==="Pro"||effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Eterno"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u6'); 
+    if (effectiveRank==="Maestro"||effectiveRank==="Leyenda"||effectiveRank==="Eterno"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u7'); 
+    if (effectiveRank==="Leyenda"||effectiveRank==="Eterno"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u8');
+    if (effectiveRank==="Eterno"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u_eterno');
+    // Títulos exclusivos de rango Eterno
+    if (effectiveRank==="Eterno"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('et1');
+    if ((effectiveRank==="Eterno"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") && normalAchs>=100) unlock('et2');
+    if ((effectiveRank==="Eterno"||effectiveRank==="Mítico"||effectiveRank==="Divinidad") && (playerStats.totalDaysPlayed||0)>=20) unlock('et3');
     if (effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('u_mitico');
+    // Títulos exclusivos de rango Mítico
+    if (effectiveRank==="Mítico"||effectiveRank==="Divinidad") unlock('mit1');
+    if ((effectiveRank==="Mítico"||effectiveRank==="Divinidad") && (playerStats.gamesPlayed||0)>=320) unlock('mit2');
+    if ((effectiveRank==="Mítico"||effectiveRank==="Divinidad") && normalAchs>=280) unlock('mit3');
     if (playerStats.clickedLogo) unlock('secret_logo');
 
     // RULETA
@@ -4094,8 +4213,8 @@ function _checkAchievementsImpl() {
     if ((playerStats.kpClaimDays||[]).length >= 3)              unlock('kpa7');
     if (kpClaimed >= 25)                                         unlock('kpa2');
     if ((playerStats.kpClaimDays||[]).length >= 7)              unlock('kpa8');
+    if ((playerStats.kpClaimDays||[]).length >= 15)             unlock('kpa9');
     if (kpClaimed >= 50)                                         unlock('kpa3');
-    if ((playerStats.kpSessionClaims||0) >= 10)                 unlock('kpa9');
     if (kpClaimed >= 75)                                         unlock('kpa4');
     if (kpClaimed >= 100)                                        unlock('kpa5');
     if (kpClaimed >= 100 && normalAchs >= 300)                  unlock('kpa10');
@@ -4114,11 +4233,12 @@ function _checkAchievementsImpl() {
 
     // PODIO LEYENDA (solo top 1-3 Y rango Leyenda o superior)
     // rank ya calculado arriba — no necesita segunda llamada
-    if(rp===1 && (rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad')) unlock('pod1');
-    if(rp===2 && (rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad')) unlock('pod2');
-    if(rp===3 && (rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad')) unlock('pod3');
+    if(rp===1 && (rank==='Leyenda'||rank==='Eterno'||rank==='Mítico'||rank==='Divinidad')) unlock('pod1');
+    if(rp===2 && (rank==='Leyenda'||rank==='Eterno'||rank==='Mítico'||rank==='Divinidad')) unlock('pod2');
+    if(rp===3 && (rank==='Leyenda'||rank==='Eterno'||rank==='Mítico'||rank==='Divinidad')) unlock('pod3');
 
     // MULTIPLICADORES x6-x10
+    if(mx>=5 && (playerStats.gamesPlayed||0)>=30) unlock('mx5');
     if(mx>=6) unlock('mx6'); if(mx>=7) unlock('mx7'); if(mx>=8) unlock('mx8'); if(mx>=9) unlock('mx9'); if(mx>=10) unlock('mx10');
 
     // PISTAS MUSICALES
@@ -4151,8 +4271,8 @@ function _checkAchievementsImpl() {
     if(playerStats.gamesPlayed>=1 || playerStats.maxLoginStreak>=1) unlock('x1');
     if(playerStats.gamesPlayed>=150) unlock('x17');
     if(playerStats.nameChanges===0 && playerStats.maxLoginStreak>=30) unlock('x18');
-    if((rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad') && normalAchs>=300) unlock('fin5');
-    if(days>=7 && (rank==='Junior'||rank==='Pro'||rank==='Maestro'||rank==='Leyenda'||rank==='Mítico'||rank==='Divinidad')) unlock('fin4');
+    if((rank==='Eterno'||rank==='Mítico'||rank==='Divinidad') && normalAchs>=160) unlock('fin5');
+    if(days>=7 && (rank==='Junior'||rank==='Pro'||rank==='Maestro'||rank==='Leyenda'||rank==='Eterno'||rank==='Mítico'||rank==='Divinidad')) unlock('fin4');
     if((playerStats.frenziesTriggered||0)>=15) unlock('u16');
     // u9 Inmortal: handled in-game via inGameUnlock (line ~4420)
     // u24 Extremis: 3 last-second answers in single game
@@ -4164,8 +4284,6 @@ function _checkAchievementsImpl() {
     // nm6 Impostado, nm7 Remontada — tracked in game
     if(playerStats.surpassedHighPLPlayer) unlock('nm6');
     if(playerStats.rankRemontada) unlock('nm7');
-    // ui8 Bien Conectado: 10 successful leaderboard loads
-    if((playerStats.successfulLeaderboardLoads||0)>=10) unlock('ui8');
 
     // --- LOGROS EXTRA ---
     // extra1 Doble Frenesí: tracked in-game via frenziesThisGame persisted stat
@@ -4196,7 +4314,6 @@ function _checkAchievementsImpl() {
 
     // PARTIDAS POR DÍA
     if((playerStats.todayGames||0)>=10) unlock('x13');
-    if((playerStats.todayGames||0)>=20) unlock('x20');
 
     // SUPERVIVENCIA / VIDAS
     // x14: Invicto (pregunta 30 sin perder vida) — rastreado in-game via inGameUnlock; también revisar aquí por si se ganó y no se guardó
@@ -4244,7 +4361,6 @@ function _checkAchievementsImpl() {
 
     // ─── Precisión global 95% ─────────────────────────────────────────
     const _p1Tot = (playerStats.totalCorrect||0)+(playerStats.totalWrong||0)+(playerStats.totalTimeouts||0);
-    if (_p1Tot >= 500 && (playerStats.totalCorrect||0) / _p1Tot >= 0.95) unlock('prec1');
     // ─── El Arquitecto (CHRISTOPHER) ────────────────────────────────────
     // El Arquitecto (cx1-cx4): todos basados en christopherCardViews (click real en tarjeta)
     const _cxv = playerStats.christopherCardViews||0;
@@ -4293,7 +4409,7 @@ function togglePin(achId) {
 
 // Rarity score: how exclusive/rare is each achievement (higher = rarer)
 // ── Rarity score for auto-profile fill ──────────────────────────────────
-const RARITY_SCORE = {master3:100,master5:98,master4:96,master2:91,master1:86,fin5:83,u8:81,u7:79,u15:76,nm4:74,nm3:71,nm10:69,u9:66,u23:63,u11:61,u16:59,nm9:56,u19:53,u24:51,np1:49,np3:47,u21:44,u_bisturi:42};
+const RARITY_SCORE = {master3:100,master5:98,master4:96,master2:91,master1:86,mit3:95,mit2:90,mit1:88,u_eterno:85,fin5:83,u8:81,u7:79,u15:76,nm4:74,nm3:71,nm10:69,u9:66,u23:63,u11:61,u16:59,nm9:56,u19:53,u24:51,np1:49,np3:47,u21:44,u_bisturi:42};
 function getAchRarity(id) { return RARITY_SCORE[id] || 10; }
 
 function getAutoProfileAchs() {
@@ -4349,15 +4465,19 @@ function _vsCardHTML(ach, isUnlocked, isManualPin, isInProfile) {
     if (ach.id === 'u_mitico')    cls += ' ach-mitico';
     // Logros especiales: animación propia cuando están desbloqueados
     if (isUnlocked && ach.id === 'u8')          cls += ' ach-leyenda';
-    if (isUnlocked && ach.id === 'u_mitico')    cls += ' ach-mitico';
 
     const isLight = document.body.classList.contains('light-mode');
-    const displayColor = isUnlocked ? (isLight ? darkenHex(ach.color, 0.4) : ach.color) : '';
-    const bdrColor = isUnlocked ? (isLight ? 'rgba(0,0,0,0.2)' : ach.color) : '';
+    // Admin (CHRISTOPHER): forzar color Divinidad en todos los logros
+    const _isAdminAch = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+    const divinityColor = isLight ? '#0d1117' : '#ffffff';
+    const achColor = _isAdminAch && isUnlocked ? divinityColor : ach.color;
+
+    const displayColor = isUnlocked ? (isLight && !_isAdminAch ? darkenHex(ach.color, 0.4) : achColor) : '';
+    const bdrColor = isUnlocked ? (isLight && !_isAdminAch ? 'rgba(0,0,0,0.2)' : achColor) : '';
     let shadow = '';
     if (!isLight) {
-        if (isManualPin)       shadow = `0 0 14px ${ach.color}66`;
-        else if (isInProfile)  shadow = `0 0 7px ${ach.color}33`;
+        if (isManualPin)       shadow = `0 0 14px ${achColor}66`;
+        else if (isInProfile)  shadow = `0 0 7px ${achColor}33`;
     }
 
     let badge = '';
@@ -4365,7 +4485,7 @@ function _vsCardHTML(ach, isUnlocked, isManualPin, isInProfile) {
     else if (isInProfile) badge = `<div class="ach-pin-badge ach-pin-auto">*</div>`;
 
     const isHidden = ach.hidden && !isUnlocked;
-    const iconColor = isUnlocked ? (isLight ? darkenHex(ach.color, 0.4) : ach.color) : 'var(--text-secondary)';
+    const iconColor = isUnlocked ? (isLight && !_isAdminAch ? darkenHex(ach.color, 0.4) : achColor) : 'var(--text-secondary)';
     const iconSVG   = isUnlocked ? ach.icon  : SVG_LOCK;
     const title     = isHidden ? '???' : ach.title;
     const desc      = isUnlocked ? ach.desc  : (isHidden ? 'Logro secreto — descúbrelo tú mismo.' : 'Sigue jugando para descubrirlo.');
@@ -4499,18 +4619,27 @@ function renderAchievements() {
         profileGrid.innerHTML = '';
         const frag = document.createDocumentFragment();
         let n = 0;
+        const _isAdminLocal = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+        const isLight = document.body.classList.contains('light-mode');
+        const divColor  = isLight ? '#0d1117' : '#ffffff';
+        const divBorder = isLight ? 'rgba(13,17,23,0.35)' : 'rgba(255,255,255,0.35)';
+        const divShadow = isLight ? 'none' : '0 0 12px rgba(255,255,255,0.18)';
         _vsDisplayPin.forEach(id => {
             if (n >= 3) return;
             let ach = ACHIEVEMENTS_MAP.get(id);
-
             if (!ach) return;
             const slot = document.createElement('div');
             slot.className = 'achievement-slot unlocked';
-            const isLight = document.body.classList.contains('light-mode');
-            const achDisplayColor = isLight ? darkenHex(ach.color, 0.4) : ach.color;
-            slot.style.borderColor = isLight ? 'rgba(0,0,0,0.2)' : ach.color;
-            slot.style.boxShadow = isLight ? 'none' : `0 0 12px ${ach.color}44`;
-            slot.innerHTML = `<div class="ach-icon" style="color:${achDisplayColor}">${ach.icon}</div><div class="ach-title" style="color:${achDisplayColor}">${ach.title}</div>`;
+            if (_isAdminLocal) {
+                slot.style.borderColor = divBorder;
+                slot.style.boxShadow   = divShadow;
+                slot.innerHTML = `<div class="ach-icon" style="color:${divColor}">${ach.icon}</div><div class="ach-title" style="color:${divColor}">${ach.title}</div>`;
+            } else {
+                const achDisplayColor = isLight ? darkenHex(ach.color, 0.4) : ach.color;
+                slot.style.borderColor = isLight ? 'rgba(0,0,0,0.2)' : ach.color;
+                slot.style.boxShadow = isLight ? 'none' : `0 0 12px ${ach.color}44`;
+                slot.innerHTML = `<div class="ach-icon" style="color:${achDisplayColor}">${ach.icon}</div><div class="ach-title" style="color:${achDisplayColor}">${ach.title}</div>`;
+            }
             frag.appendChild(slot); n++;
         });
         while (n < 3) {
@@ -4531,6 +4660,8 @@ let isAchievementsInitialized = true; // siempre true, setup es lazy
 const achCardElements = {};           // mantenido vacío para compatibilidad con código existente
 let _currentScreen = null;
 function switchScreen(id) {
+    // Parar el poll del ranking si salimos de él
+    if (id !== 'ranking-screen') _stopRankingPoll();
     if (_currentScreen) {
         // Si salimos de feedback-screen, limpiar clases de estado para evitar que persistan
         if (_currentScreen.id === 'feedback-screen') {
@@ -4548,6 +4679,7 @@ _currentScreen = document.querySelector('.screen.active');
 // --- SISTEMA DE TEMA (CLARO / OSCURO) ---
 function setTheme(theme) {
     const previousTheme = playerStats.theme || 'dark';
+    if (theme === previousTheme) return; // ya está aplicado
     playerStats.theme = theme;
     if (theme === 'light') {
         playerStats.usedLightMode = true;
@@ -4558,11 +4690,24 @@ function setTheme(theme) {
     }
     saveStatsLocally();
     checkAchievements();
+
+    // Aplicar clase de forma síncrona para que el navegador pinte en el mismo frame
     if (theme === 'light') {
+        document.documentElement.classList.add('light-mode');
         document.body.classList.add('light-mode');
     } else {
+        document.documentElement.classList.remove('light-mode');
         document.body.classList.remove('light-mode');
     }
+
+    // Actualizar CSS vars de rango según el nuevo tema
+    currentRankInfo = getRankInfo(playerStats);
+    document.documentElement.style.setProperty('--rank-color', currentRankInfo.color);
+    document.documentElement.style.setProperty('--rank-rgb',   currentRankInfo.rgb);
+
+    // Sincronizar favicon y meta-theme-color
+    updateLogoDots();
+
     // Update buttons appearance
     const darkBtn = document.getElementById('theme-dark-btn');
     const lightBtn = document.getElementById('theme-light-btn');
@@ -4585,12 +4730,20 @@ function setTheme(theme) {
     }
     const valTheme = document.getElementById('val-theme');
     if (valTheme) valTheme.innerText = theme === 'light' ? 'Claro' : 'Oscuro';
+
+    // Forzar re-render de logros y rankings que usan colores dependientes del tema
+    if (_vsInitialized) _vsRefreshAll();
+
     SFX.click();
 }
 
-// Apply saved theme on load
+// Apply saved theme on load — sync both html and body for coherence
 if (playerStats.theme === 'light') {
     document.body.classList.add('light-mode');
+    document.documentElement.classList.add('light-mode');
+    document.documentElement.style.background = ''; // limpiar el bg inline del anti-flash
+} else {
+    document.documentElement.classList.remove('light-mode');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -4602,7 +4755,7 @@ if (playerStats.theme === 'light') {
 const QUALITY_PRESETS = {
     max:    { fps: 240, particles: 1.0, musicVol: 1.0, sfxVol: 1.0, bodyClass: 'quality-max',  label: 'Máximo',       desc: 'Cristalix · Glows máximos · 240 FPS · Todo al máximo' },
     normal: { fps: 60,  particles: 1.0, musicVol: 1.0, sfxVol: 1.0, bodyClass: '',              label: 'Normal',       desc: '60 FPS · Blur estándar · Configuración de equilibrio' },
-    perf:   { fps: 30,  particles: 0.25, musicVol: 1.0, sfxVol: 1.0, bodyClass: 'quality-perf', label: 'Rendimiento',  desc: 'Sin blur · Sin glows · Sin conexiones · 30 FPS · Máximo ahorro' },
+    perf:   { fps: 30,  particles: 0.15, musicVol: 1.0, sfxVol: 1.0, bodyClass: 'quality-perf', label: 'Rendimiento',  desc: 'Sin blur · Sin glows · Sin conexiones · 30 FPS · Máximo ahorro' },
     custom: { fps: null, particles: null, musicVol: null, sfxVol: null, bodyClass: '',           label: 'Personalizado',desc: 'Valores ajustados manualmente' }
 };
 
@@ -4933,12 +5086,16 @@ function spinRoulette() {
                 if (stepsDone < totalSteps) {
                     schedNext();
                 } else {
+                    tickInterval = null;
                     deckAnimating = false;
                     currentPrize = ROULETTE_PRIZES[winIdx];
                     setTimeout(() => showCardPrize(currentPrize), 320);
                 }
             }, delay);
-        } catch(e) { deckAnimating = false; }
+        } catch(e) {
+            if (tickInterval) { clearTimeout(tickInterval); tickInterval = null; }
+            deckAnimating = false;
+        }
     }
     schedNext();
 }
@@ -5132,15 +5289,6 @@ function goToMainMenu() {
     // Restaurar perfil propio si se estaba viendo el de otro jugador
     _restoreOwnProfileOnLeave();
     _profileReturnScreen = 'start-screen';
-    // ui2: Vuelvo en Un Segundo — sale de Configuración en <3 segundos
-    if (playerStats._settingsOpenTime && (Date.now() - playerStats._settingsOpenTime) < 3000) {
-        if (!playerStats.achievements.includes('ui2')) {
-            playerStats.achievements.push('ui2');
-            const ach = ACHIEVEMENTS_MAP.get('ui2');
-            if (ach) { setTimeout(() => { SFX.achievement(); showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon); }, 200); }
-            saveStatsDebounced();
-        }
-    }
     playerStats._settingsOpenTime = 0;
     switchScreen('start-screen'); 
 }
@@ -5192,8 +5340,8 @@ function renderSecurityStatus() {
 
     const name     = playerStats.playerName || '';
     const isNamed  = name && name !== 'JUGADOR';
-    const isAdmin  = name.toUpperCase() === 'CHRISTOPHER';
     const ADMIN_UUID = '00000000-spec-tral-0000-klickphantom0';
+    const isAdmin  = name.toUpperCase() === 'CHRISTOPHER' && playerStats.uuid === ADMIN_UUID;
 
     const banUntil   = playerStats.ksBanUntil;
     const review     = playerStats.ksReviewStatus;
@@ -5231,7 +5379,7 @@ function renderSecurityStatus() {
     }
 
     // ── Historial de infracciones ──────────────────────────────────────
-    const BAN_HOURS = {1:2, 2:6, 3:12, 4:24, 5:48};
+    const BAN_HOURS = {1:0, 2:1, 3:3, 4:6, 5:12, 6:24, 7:48, 8:72};
     let infraHtml = '';
     if (infList.length > 0) {
         const reversed = [...infList].reverse();
@@ -5241,7 +5389,7 @@ function renderSecurityStatus() {
             const bh  = inf.banHours || BAN_HOURS[lvl] || 0;
             const isLast = i === 0;
             return `<div class="ks-inf-row${isLast ? ' ks-inf-latest' : ''}">
-                <div class="ks-inf-level" style="color:${lvl>=4?'#ff2a5f':lvl>=2?'#ff8c00':'#ffb800'}">Nv.${lvl}</div>
+                <div class="ks-inf-level" style="color:${lvl>=6?'#ff2a5f':lvl>=4?'#ff8c00':lvl>=2?'#ffb800':'var(--text-secondary)'}">Nv.${lvl}</div>
                 <div class="ks-inf-detail">
                     <div class="ks-inf-title">Infracción #${infList.length - i}</div>
                     <div class="ks-inf-meta">${dt}${bh > 0 ? ` · ${bh}h suspensión` : ' · Sin suspensión'}</div>
@@ -5257,15 +5405,18 @@ function renderSecurityStatus() {
     let adminHtml = '';
     if (isAdmin) {
         const secPlayers = window._ksSecurityData || [];
-        const banned  = secPlayers.filter(p => p.isBanned && p.uuid !== ADMIN_UUID);
-        const inReview= secPlayers.filter(p => p.ksReviewStatus && p.ksReviewStatus !== 'sanctioned' && !p.isBanned && p.uuid !== ADMIN_UUID);
+        const banned    = secPlayers.filter(p => p.isBanned && p.uuid !== ADMIN_UUID);
+        const inReview  = secPlayers.filter(p => p.ksReviewStatus && !p.isBanned && p.uuid !== ADMIN_UUID);
         const makeCard = (p) => {
             const safe = (p.name||'').replace(/['"`]/g,'');
             const isBanned = !!p.isBanned;
+            const ks = p.ksReviewStatus;
             const ms4 = p.ksBanUntil ? new Date(p.ksBanUntil).getTime() - Date.now() : 0;
             const sub = isBanned
                 ? (ms4 > 0 ? `Expira en ${Math.floor(ms4/3600000)}h ${Math.floor((ms4%3600000)/60000)}m` : 'Baneado del servidor')
-                : (p.ksReviewStatus === 'warned' ? 'Advertido' : 'En revisión');
+                : (ks === 'warned' ? 'Advertido' : ks === 'sanctioned' ? 'Sanción confirmada' : 'En revisión');
+            const tagClass = isBanned ? 'ks-tag-ban' : ks === 'sanctioned' ? 'ks-tag-sanction' : ks === 'warned' ? 'ks-tag-warn' : 'ks-tag-review';
+            const tagLabel = isBanned ? 'Suspendido' : ks === 'sanctioned' ? 'Sancionado' : ks === 'warned' ? 'Advertido' : 'Revisión';
             const btn = isBanned
                 ? `<button class="ks-admin-btn ks-admin-btn-unban" onclick="_adminUnbanPlayer('${p.uuid}','${safe}')">Desbanear</button>`
                 : `<button class="ks-admin-btn ks-admin-btn-ban" onclick="_adminBanPlayer('${p.uuid}','${safe}')">Banear</button>`;
@@ -5274,7 +5425,7 @@ function renderSecurityStatus() {
                     <div class="ks-ucard-name">${p.name||'—'}</div>
                     <div class="ks-ucard-sub">${sub}</div>
                 </div>
-                <span class="ks-ucard-tag ${isBanned ? 'ks-tag-ban' : 'ks-tag-review'}">${isBanned ? 'Suspendido' : 'Revisión'}</span>
+                <span class="ks-ucard-tag ${tagClass}">${tagLabel}</span>
                 <div class="ks-ucard-admin-btns">${btn}</div>
             </div>`;
         };
@@ -5326,7 +5477,7 @@ function renderSecurityStatus() {
                 ${infList.length > 0 ? `<span class="ks-inf-count">${infList.length}</span>` : ''}
             </div>
             <div class="ks-inf-list">${infraHtml}</div>
-            <div class="ks-personal-foot">Las infracciones escalan automáticamente hasta nivel 5 (48 h máx.). Se registran de forma permanente.</div>
+            <div class="ks-personal-foot">Las infracciones escalan automáticamente hasta nivel 8 (72 h máx.). Se registran de forma permanente.</div>
         </div>
 
         <!-- Info del sistema -->
@@ -5393,11 +5544,17 @@ async function goToSecurity() {
         if (dot) dot.style.display = 'none';
     } catch(_) {}
     switchScreen('security-screen');
-    const container = document.getElementById('ks-personal-layout');
-    if (container) container.innerHTML = '<div class="ks-empty-state" style="margin:30px auto;opacity:0.5;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="animation:spin 1s linear infinite;width:20px;height:20px;"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0"/></svg><span>Cargando...</span></div>';
-    const isAdmin = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
-    if (isAdmin) { try { await fetchSecurityData(); } catch(e) {} }
+    // Renderizar inmediatamente con datos en caché — sin spinner de carga
     renderSecurityStatus();
+    // Admin: refrescar datos del servidor en segundo plano y re-renderizar silenciosamente
+    const isAdmin = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+    if (isAdmin) {
+        fetchSecurityData().then(() => {
+            // Solo re-renderizar si la pantalla sigue visible
+            const sec = document.getElementById('security-screen');
+            if (sec && sec.classList.contains('active')) renderSecurityStatus();
+        }).catch(() => {});
+    }
 }
 
 function goToChangelog() {
@@ -5445,26 +5602,6 @@ function trackSectionVisit(section) {
     if (!playerStats.allSectionsVisited && ALL_SECTIONS.every(s => playerStats.sectionsVisitedThisSession.includes(s))) {
         playerStats.allSectionsVisited = true;
     }
-    // ui10: El Circuito — navegar las 4 secciones en orden secuencial: profile→achievements→ranking→settings
-    const CIRCUIT_ORDER = ['profile', 'achievements', 'ranking', 'settings'];
-    if (!playerStats.achievements.includes('ui10')) {
-        if (!playerStats._circuitIdx) playerStats._circuitIdx = 0;
-        const expected = CIRCUIT_ORDER[playerStats._circuitIdx];
-        if (section === expected) {
-            playerStats._circuitIdx++;
-            if (playerStats._circuitIdx >= CIRCUIT_ORDER.length) {
-                playerStats._circuitIdx = 0;
-                playerStats.achievements.push('ui10');
-                const ach = ACHIEVEMENTS_MAP.get('ui10');
-                if (ach) { SFX.achievement(); showToast('Logro Desbloqueado', ach.title, ach.color, ach.icon); }
-                saveStatsDebounced();
-            }
-        } else if (section === CIRCUIT_ORDER[0]) {
-            playerStats._circuitIdx = 1; // restart if going back to first
-        } else {
-            playerStats._circuitIdx = 0; // reset if out of order
-        }
-    }
 }
 
 function goToAchievements() { initAudio(); SFX.click(); playerStats.achViews++; trackSectionVisit('achievements'); saveStatsLocally(); checkAchievements(); renderAchievements(); switchScreen('achievements-screen'); const sc = document.getElementById('vscroll-container'); if(sc) sc.scrollTop = 0; }
@@ -5475,15 +5612,17 @@ function goToRanking() {
     trackSectionVisit('ranking');
     saveStatsLocally(); checkAchievements();
     switchScreen('ranking-screen');
+    fetchLeaderboard();
+    _startRankingPoll();
 }
 
 
 function goToProfile(needsName = false) {
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
     SFX.click();
-    // Si no se llegó desde el ranking, el back button vuelve al menú principal
-    if (!_isViewingOtherProfile) _profileReturnScreen = 'start-screen';
-    // No resetear si venimos del ranking (el return screen ya fue fijado por openPlayerProfileFromRank)
+    // Si no se llegó desde el ranking, el back button vuelve al menú principal.
+    // Si venimos del ranking (return screen ya fijado en 'ranking-screen'), preservarlo.
+    if (!_isViewingOtherProfile && _profileReturnScreen !== 'ranking-screen') _profileReturnScreen = 'start-screen';
     // Restaurar nav title propio
     const navTitle = document.getElementById('profile-nav-title');
     if (navTitle) navTitle.textContent = 'PERFIL';
@@ -5513,6 +5652,8 @@ function goToProfile(needsName = false) {
         });
     }
     currentRankInfo = getRankInfo(playerStats); updateLogoDots(); document.getElementById('profile-rank-display').innerText = `Rango: ${currentRankInfo.title}`; { const isLight = document.body.classList.contains('light-mode'); document.getElementById('profile-rank-display').style.color = isLight ? darkenHex(currentRankInfo.color, 0.4) : currentRankInfo.color; }
+    // Título equipable — solo visible para rango Mítico y en perfil propio
+    if (!_isViewingOtherProfile) _renderMiticoTitleSelector();
     // Render PL panel
     (function renderPLPanel(){
         const s = playerStats;
@@ -5611,50 +5752,91 @@ function goToProfile(needsName = false) {
             const ri = currentRankInfo;
             let condHtml = '';
             if (ri.title === 'Novato') {
-                // Next: Junior (bestScore >= 15000 && gamesPlayed >= 5)
-                const c1 = s.bestScore >= 15000, c2 = (s.gamesPlayed||0) >= 5;
-                condHtml = `<span style="color:var(--accent-blue);font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: JUNIOR</span> &nbsp;`+
-                    `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Récord ${fmt(s.bestScore||0)}/15,000</span> &nbsp;`+
-                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Partidas ${s.gamesPlayed||0}/5</span>`;
+                // Next: Junior
+                const c1 = (s.totalScore||0) >= 20000, c2 = (s.totalCorrect||0) >= 75, c3 = (s.gamesPlayed||0) >= 10;
+                condHtml = `<span style="color:#00d4ff;font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: JUNIOR</span> &nbsp;`+
+                    `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/20,000</span> &nbsp;`+
+                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/75</span> &nbsp;`+
+                    `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Partidas ${s.gamesPlayed||0}/10</span>`;
             } else if (ri.title === 'Junior') {
-                // Next: Pro (totalScore >= 60000 && totalCorrect >= 200 && maxStreak >= 12)
-                const c1 = (s.totalScore||0) >= 60000, c2 = (s.totalCorrect||0) >= 200, c3 = (s.maxStreak||0) >= 12;
-                condHtml = `<span style="color:var(--accent-red);font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: PRO</span> &nbsp;`+
+                // Next: Pro
+                const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
+                const acc2 = totalAns>0?Math.round((s.totalCorrect||0)/totalAns*100):0;
+                const c1=(s.totalScore||0)>=60000, c2=(s.totalCorrect||0)>=250, c3=(s.gamesPlayed||0)>=30;
+                const c4=(s.maxMult||1)>=3, c5=(s.maxStreak||0)>=10, c6=acc2>=60;
+                condHtml = `<span style="color:#ffe566;font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: PRO</span> &nbsp;`+
                     `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/60,000</span> &nbsp;`+
-                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/200</span> &nbsp;`+
-                    `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/12</span>`;
+                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/250</span> &nbsp;`+
+                    `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Partidas ${s.gamesPlayed||0}/30</span> &nbsp;`+
+                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. ${s.maxMult||1}/x3</span> &nbsp;`+
+                    `<span style="${c5?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/10</span> &nbsp;`+
+                    `<span style="${c6?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/60%</span>`;
             } else if (ri.title === 'Pro') {
-                // Next: Maestro (totalScore >= 150000 && gamesPlayed >= 50 && maxMult >= 4)
-                const c1 = (s.totalScore||0) >= 150000, c2 = (s.gamesPlayed||0) >= 50, c3 = (s.maxMult||1) >= 4;
-                condHtml = `<span style="color:var(--accent-purple);font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: MAESTRO</span> &nbsp;`+
+                // Next: Maestro
+                const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
+                const acc2 = totalAns>0?Math.round((s.totalCorrect||0)/totalAns*100):0;
+                const c1=(s.totalScore||0)>=150000, c2=(s.totalCorrect||0)>=700, c3=(s.perfectGames||0)>=5;
+                const c4=(s.gamesPlayed||0)>=60, c5=(s.maxMult||1)>=4, c6=(s.maxStreak||0)>=20;
+                const c7=acc2>=65, c8=(s.achievements||[]).length>=30;
+                condHtml = `<span style="color:#ff2a5f;font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: MAESTRO</span> &nbsp;`+
                     `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/150,000</span> &nbsp;`+
-                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Partidas ${s.gamesPlayed||0}/50</span> &nbsp;`+
-                    `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. máx. ${s.maxMult||1}/x4</span>`;
+                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/700</span> &nbsp;`+
+                    `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/5</span> &nbsp;`+
+                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Partidas ${s.gamesPlayed||0}/60</span> &nbsp;`+
+                    `<span style="${c5?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. ${s.maxMult||1}/x4</span> &nbsp;`+
+                    `<span style="${c6?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/20</span> &nbsp;`+
+                    `<span style="${c7?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/65%</span> &nbsp;`+
+                    `<span style="${c8?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/30</span>`;
             } else if (ri.title === 'Maestro') {
-                // Next: Leyenda (totalScore >= 400000 && totalCorrect >= 1500 && perfectGames >= 10)
-                const c1 = (s.totalScore||0) >= 400000, c2 = (s.totalCorrect||0) >= 1500, c3 = (s.perfectGames||0) >= 10;
-                condHtml = `<span style="color:var(--accent-yellow);font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: LEYENDA</span> &nbsp;`+
+                // Next: Leyenda
+                const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
+                const acc2 = totalAns>0?Math.round((s.totalCorrect||0)/totalAns*100):0;
+                const c1=(s.totalScore||0)>=400000, c2=(s.totalCorrect||0)>=1800, c3=(s.perfectGames||0)>=15;
+                const c4=(s.gamesPlayed||0)>=120, c5=(s.maxMult||1)>=5, c6=(s.maxStreak||0)>=28;
+                const c7=acc2>=70, c8=(s.achievements||[]).length>=80;
+                condHtml = `<span style="color:#b5179e;font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: LEYENDA</span> &nbsp;`+
                     `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/400,000</span> &nbsp;`+
-                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/1,500</span> &nbsp;`+
-                    `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/10</span>`;
+                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/1,800</span> &nbsp;`+
+                    `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/15</span> &nbsp;`+
+                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Partidas ${s.gamesPlayed||0}/120</span> &nbsp;`+
+                    `<span style="${c5?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. ${s.maxMult||1}/x5</span> &nbsp;`+
+                    `<span style="${c6?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/28</span> &nbsp;`+
+                    `<span style="${c7?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/70%</span> &nbsp;`+
+                    `<span style="${c8?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/80</span>`;
             } else if (ri.title === 'Leyenda') {
+                // Next: Eterno
+                const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
+                const acc2 = totalAns>0?Math.round((s.totalCorrect||0)/totalAns*100):0;
+                const c1=(s.totalScore||0)>=700000, c2=(s.totalCorrect||0)>=3200, c3=(s.perfectGames||0)>=30;
+                const c4=(s.achievements||[]).length>=160, c5=(s.maxStreak||0)>=35, c6=(s.maxMult||1)>=6;
+                const c7=acc2>=78, c8=(s.gamesPlayed||0)>=200;
+                condHtml = `<span style="color:#6600ff;font-weight:700;font-size:0.62rem;letter-spacing:1px;text-shadow:0 0 8px rgba(102,0,255,0.5);">-- SIGUIENTE: ETERNO --</span> &nbsp;`+
+                    `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/700,000</span> &nbsp;`+
+                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/3,200</span> &nbsp;`+
+                    `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/30</span> &nbsp;`+
+                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/160</span> &nbsp;`+
+                    `<span style="${c5?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/35</span> &nbsp;`+
+                    `<span style="${c6?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. ${s.maxMult||1}/x6</span> &nbsp;`+
+                    `<span style="${c7?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/78%</span> &nbsp;`+
+                    `<span style="${c8?'color:var(--accent-green)':'color:var(--text-secondary)'}">Partidas ${s.gamesPlayed||0}/200</span>`;
+            } else if (ri.title === 'Eterno') {
                 // Next: Mítico — requisitos extremos
                 const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
                 const acc2 = totalAns>0?Math.round((s.totalCorrect||0)/totalAns*100):0;
-                const c1=(s.totalScore||0)>=1200000, c2=(s.totalCorrect||0)>=5000, c3=(s.perfectGames||0)>=50;
-                const c4=(s.achievements||[]).length>=300, c5=(s.maxStreak||0)>=40, c6=(s.maxMult||1)>=8;
-                const c7=acc2>=85, c8=(s.maxLoginStreak||0)>=30;
-                condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;letter-spacing:1px;text-shadow:0 0 8px rgba(255,255,255,0.5);">-- SIGUIENTE: MÍTICO --</span> &nbsp;`+
+                const c1=(s.totalScore||0)>=1200000, c2=(s.totalCorrect||0)>=5500, c3=(s.perfectGames||0)>=55;
+                const c4=(s.achievements||[]).length>=280, c5=(s.maxStreak||0)>=45, c6=(s.maxMult||1)>=8;
+                const c7=acc2>=85, c8=(s.gamesPlayed||0)>=320;
+                condHtml = `<span style="color:#ff9500;font-weight:700;font-size:0.62rem;letter-spacing:1px;text-shadow:0 0 8px rgba(255,149,0,0.5);">-- SIGUIENTE: MÍTICO --</span> &nbsp;`+
                     `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/1,200,000</span> &nbsp;`+
-                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/5,000</span> &nbsp;`+
-                    `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/50</span> &nbsp;`+
-                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/165</span> &nbsp;`+
-                    `<span style="${c5?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/40</span> &nbsp;`+
+                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/5,500</span> &nbsp;`+
+                    `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/55</span> &nbsp;`+
+                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/280</span> &nbsp;`+
+                    `<span style="${c5?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/45</span> &nbsp;`+
                     `<span style="${c6?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. ${s.maxMult||1}/x8</span> &nbsp;`+
                     `<span style="${c7?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/85%</span> &nbsp;`+
-                    `<span style="${c8?'color:var(--accent-green)':'color:var(--text-secondary)'}">Login días ${s.maxLoginStreak||0}/30</span>`;
+                    `<span style="${c8?'color:var(--accent-green)':'color:var(--text-secondary)'}">Partidas ${s.gamesPlayed||0}/320</span>`;
             } else {
-                condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;text-shadow:0 0 10px rgba(255,255,255,0.6);">-- RANGO MÍTICO ALCANZADO --</span>`;
+                condHtml = `<span style="color:#ff9500;font-weight:700;font-size:0.62rem;text-shadow:0 0 10px rgba(255,149,0,0.6);">-- RANGO MÍTICO ALCANZADO --</span>`;
             }
             nextEl.innerHTML = condHtml;
         }
@@ -5665,6 +5847,90 @@ function goToProfile(needsName = false) {
     if (needsName) setTimeout(() => { document.getElementById('profile-name-input').focus(); document.getElementById('profile-name-input').classList.add('shake'); setTimeout(() => document.getElementById('profile-name-input').classList.remove('shake'), 400); }, 400);
 }
 
+
+function _renderMiticoTitleSelector() {
+    // Remove any existing selector
+    const existing = document.getElementById('mitico-title-selector');
+    if (existing) existing.remove();
+
+    // Admin nunca tiene selector de títulos — su título es fijo: Arquitecto del Sistema
+    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') return;
+
+    const isMitico = MITICO_TITLE_RANKS.has(currentRankInfo.title);
+    const isEterno = ETERNO_TITLE_RANKS.has(currentRankInfo.title);
+    if (!isMitico && !isEterno) return;
+
+    // Get unlocked titles — Mítico can equip both Eterno and Mítico titles
+    const achSet = new Set(playerStats.achievements || []);
+    const allTitleMaps = isMitico
+        ? [...ETERNO_TITLES.entries(), ...MITICO_TITLES.entries()]
+        : [...ETERNO_TITLES.entries()];
+    const unlocked = allTitleMaps.filter(([id]) => achSet.has(id));
+    if (unlocked.length === 0) return; // no titles unlocked yet
+
+    const rankDisplay = document.getElementById('profile-rank-display');
+    if (!rankDisplay) return;
+
+    const current = playerStats.equippedTitle || null;
+    const rankColor = currentRankInfo.color;
+    const isLight = document.body.classList.contains('light-mode');
+
+    // Colores adaptativos según tema — evita texto blanco sobre fondo blanco en modo claro
+    const _borderBase    = isLight ? 'rgba(0,0,0,0.22)'  : 'rgba(255,255,255,0.25)';
+    const _bgActive      = isLight ? 'rgba(0,0,0,0.10)'  : 'rgba(255,255,255,0.15)';
+    const _colorActive   = isLight ? '#000000'            : '#ffffff';
+    const _colorInactive = isLight ? 'rgba(0,0,0,0.45)'  : 'rgba(255,255,255,0.45)';
+    const _labelColor    = isLight ? 'rgba(0,0,0,0.35)'  : 'rgba(255,255,255,0.4)';
+
+    const defaultLabel = currentRankInfo.title;
+    let chipsHtml = `<button onclick="_equipMiticoTitle(null)" style="
+        padding:3px 9px; border-radius:20px; font-size:0.55rem; font-weight:700;
+        letter-spacing:0.8px; cursor:pointer; border:1px solid ${_borderBase};
+        background:${!current ? _bgActive : 'transparent'};
+        color:${!current ? _colorActive : _colorInactive};
+        transition:all 0.2s;">${defaultLabel}</button>`;
+
+    for (const [id, label] of unlocked) {
+        const isActive = current === id;
+        const _borderA  = isLight ? `rgba(0,0,0,${isActive ? '0.6' : '0.18'})` : `rgba(255,255,255,${isActive ? '0.8' : '0.2'})`;
+        chipsHtml += `<button onclick="_equipMiticoTitle('${id}')" style="
+            padding:3px 9px; border-radius:20px; font-size:0.55rem; font-weight:700;
+            letter-spacing:0.8px; cursor:pointer;
+            border:1px solid ${_borderA};
+            background:${isActive ? _bgActive : 'transparent'};
+            color:${isActive ? _colorActive : _colorInactive};
+            text-shadow:${isActive ? `0 0 8px rgba(${currentRankInfo.rgb},0.6)` : 'none'};
+            transition:all 0.2s;">${label}</button>`;
+    }
+
+    const selector = document.createElement('div');
+    selector.id = 'mitico-title-selector';
+    selector.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px;';
+    selector.innerHTML = `
+        <span style="font-size:0.5rem;font-weight:600;letter-spacing:1px;color:${_labelColor};text-transform:uppercase;">Título</span>
+        ${chipsHtml}`;
+    rankDisplay.insertAdjacentElement('afterend', selector);
+}
+
+function _equipMiticoTitle(id) {
+    SFX.click();
+    // Validar que el jugador aún tiene el logro antes de equiparlo
+    if (id && !playerStats.achievements.includes(id)) return;
+    playerStats.equippedTitle = id || null;
+    saveStatsDebounced();
+    submitLeaderboard();
+    _renderMiticoTitleSelector();
+    // Update rank display to show new title (with theme-aware color)
+    const rankDisplay = document.getElementById('profile-rank-display');
+    if (rankDisplay) {
+        const label = id
+            ? (MITICO_TITLES.get(id) || ETERNO_TITLES.get(id) || currentRankInfo.title)
+            : currentRankInfo.title;
+        rankDisplay.innerText = `Rango: ${label}`;
+        const _isLightEq = document.body.classList.contains('light-mode');
+        rankDisplay.style.color = _isLightEq ? darkenHex(currentRankInfo.color, 0.4) : currentRankInfo.color;
+    }
+}
 
 function showOnboarding(onComplete) {
     playerStats.hasSeenOnboarding = true;
@@ -5691,20 +5957,20 @@ function showOnboarding(onComplete) {
         { tag:'INICIO',    title:'Bienvenido a Klick',
           body:'Responde preguntas correctamente para ganar puntos. Tienes <strong style="color:var(--accent-red)">3 vidas</strong>. Si las pierdes todas, la partida termina.',
           note: null },
-        { tag:'TIEMPO',    title:'El Cronometro',
-          body:'Cada pregunta dura entre <strong style="color:var(--accent-blue)">15 y 30 segundos</strong>. Responder mas rapido genera mas puntos por tiempo restante.',
+        { tag:'TIEMPO',    title:'El Cronómetro',
+          body:'Cada pregunta dura entre <strong style="color:var(--accent-blue)">15 y 30 segundos</strong>. Responder más rápido genera más puntos por tiempo restante.',
           note: null },
         { tag:'COMBO',     title:'Multiplicador de Puntos',
           body:'Cada <strong style="color:var(--accent-yellow)">5 aciertos consecutivos</strong> suben tu multiplicador de x1 hasta x10. Un error o timeout lo reinicia a x1.',
           note: null },
         { tag:'RULETA',    title:'La Ruleta',
-          body:'Cada <strong style="color:var(--accent-purple)">10 aciertos</strong> en una partida activas la ruleta. Obtiene vidas extra, escudos, multiplicadores y mas.',
+          body:'Cada <strong style="color:var(--accent-purple)">10 aciertos</strong> en una partida activas la ruleta. Obtén vidas extra, escudos, multiplicadores y más.',
           note: null },
         { tag:'PASE',      title:'Klick Pass',
           body:'100 niveles con misiones progresivas. Completar cada nivel otorga <strong style="color:var(--accent-yellow)">Pinceles</strong>, la moneda del pase.',
           note: 'Premio total acumulado: 100,000 Pinceles' },
         { tag:'PROGRESO',  title:'Logros y Rangos',
-          body:'Mas de <strong style="color:var(--accent-orange)">300 logros</strong> desbloqueables jugando y explorando. Tu <strong style="color:var(--rank-color)">Rango</strong> y <strong style="color:var(--rank-color)">Power Level</strong> suben con tus estadisticas.',
+          body:'Más de <strong style="color:var(--accent-orange)">300 logros</strong> desbloqueables jugando y explorando. Tu <strong style="color:var(--rank-color)">Rango</strong> y <strong style="color:var(--rank-color)">Power Level</strong> suben con tus estadísticas.',
           note: null },
     ];
     const N = slides.length;
@@ -5918,17 +6184,24 @@ document.getElementById('profile-name-input').addEventListener('input', e => {
     if (words.length > 2) { val = words.slice(0, 2).join(' '); }
     // Si termina con espacio y ya hay 2 palabras, no permitir más espacios
     if (words.length >= 2 && val.endsWith(' ')) val = val.trimEnd();
-    // Nombre reservado — solo el UUID canónico puede usarlo
-    if (val.trim() === 'CHRISTOPHER' && playerStats.uuid !== '00000000-spec-tral-0000-klickphantom0') {
-        val = val.slice(0, -1);
+    // Nombre reservado — asignar UUID canónico al vuelo para que el admin pueda escribirlo
+    // en cualquier dispositivo, incluso si aún tiene UUID aleatorio.
+    // La protección real contra suplantación ocurre en el servidor (UUID verificado allí).
+    if (val.trim() === 'CHRISTOPHER') {
+        playerStats.uuid = '00000000-spec-tral-0000-klickphantom0';
     }
     e.target.value = val;
     document.getElementById('profile-warning').style.opacity = val ? '0' : '1'; 
 });
 document.getElementById('profile-name-input').addEventListener('change', e => { 
-    const n = e.target.value.trim(); 
+    const n = e.target.value.trim();
+    // Nombre reservado: si alguien sin el UUID canónico intenta guardar CHRISTOPHER, revertir
+    if (n === 'CHRISTOPHER' && playerStats.uuid !== '00000000-spec-tral-0000-klickphantom0') {
+        e.target.value = playerStats.playerName !== 'JUGADOR' ? playerStats.playerName : '';
+        return;
+    }
     // nameChanges solo se incrementa en 'blur' para evitar doble conteo (change+blur ambos disparan en desktop)
-    playerStats.playerName = n || "JUGADOR"; 
+    playerStats.playerName = n || "JUGADOR";
     saveStatsLocally(); checkAchievements(); 
     submitLeaderboard();
 });
@@ -5936,8 +6209,19 @@ document.getElementById('profile-name-input').addEventListener('keypress', funct
 // iOS Safari: 'change' event fires late or not at all — use 'blur' explicitly
 document.getElementById('profile-name-input').addEventListener('blur', function(e) {
     const n = e.target.value.trim();
+    // Nombre reservado: si alguien sin el UUID canónico intenta guardar CHRISTOPHER, revertir
+    if (n === 'CHRISTOPHER' && playerStats.uuid !== '00000000-spec-tral-0000-klickphantom0') {
+        playerStats.uuid = generateUUID(); // restoreamos UUID aleatorio si no era admin
+        e.target.value = playerStats.playerName !== 'JUGADOR' ? playerStats.playerName : '';
+        document.getElementById('profile-warning').style.opacity = e.target.value ? '0' : '1';
+        return;
+    }
     if(n && n !== "JUGADOR" && n !== playerStats.playerName) { playerStats.nameChanges++; }
     playerStats.playerName = n || "JUGADOR";
+    // Si nombre es CHRISTOPHER, fijar UUID canónico permanentemente
+    if (playerStats.playerName === 'CHRISTOPHER') {
+        playerStats.uuid = '00000000-spec-tral-0000-klickphantom0';
+    }
     saveStatsLocally(); checkAchievements();
     submitLeaderboard();
     document.getElementById('profile-warning').style.opacity = n ? '0' : '1';
@@ -6375,7 +6659,12 @@ function selectAnswer(selectedIndex) {
     if(isCorrect) { 
         playerStats.totalCorrect++; 
         const _qTimeLimit = (q && q._timeLimit) || TIMER_LIMIT;
-        if(answerTime >= _qTimeLimit - 2) { currentFastAnswers++; playerStats.fastAnswersTotal++; }
+        // Respuesta rápida: basada en tiempo límite normalizado a 15s para evitar
+        // falsos positivos en preguntas largas (20s/30s). Un acierto cuenta como
+        // "rápido" solo si la fracción de tiempo consumida es <= la misma fracción
+        // que 13/15 sobre el tiempo base de 15s (últimos 2s del límite normalizado).
+        const _fastThreshold = Math.round(_qTimeLimit - (2 / TIMER_LIMIT) * _qTimeLimit);
+        if(answerTime >= _fastThreshold) { currentFastAnswers++; playerStats.fastAnswersTotal++; }
         if(answerTime <= 1) { lastSecondAnswers++; playerStats.flashAnswersTotal = (playerStats.flashAnswersTotal||0) + 1; }
         if(answerTime >= _qTimeLimit - 3) { ultraFastStreak++; } else { ultraFastStreak = 0; }
         currentNoTimeoutStreak++;
@@ -6885,8 +7174,14 @@ function updateAndDrawParticles(timeScale, pulse) {
     const m = streak >= 5 ? 2.5 : 1;
     const speedBoost = 1 + (pulse * 1.2);
     const sizeBoost  = 1 + pulse * 0.8;
-    const baseOpacity = streak >= 5 ? 0.65 : 0.42;
-    const dynamicOpacity = Math.min(1, (_pIsLight ? baseOpacity * 2.2 : baseOpacity) * playerStats.particleOpacity + pulse * 0.12);
+    // Perf: opacidad fija baja (sin cálculo de streak ni pulse para ahorrar CPU)
+    let dynamicOpacity;
+    if (_qm === 'perf') {
+        dynamicOpacity = (_pIsLight ? 0.22 : 0.12) * playerStats.particleOpacity;
+    } else {
+        const baseOpacity = streak >= 5 ? 0.65 : 0.42;
+        dynamicOpacity = Math.min(1, (_pIsLight ? baseOpacity * 2.2 : baseOpacity) * playerStats.particleOpacity + pulse * 0.12);
+    }
     const W = canvas.width, H = canvas.height;
 
     ctx.beginPath();
@@ -6894,11 +7189,11 @@ function updateAndDrawParticles(timeScale, pulse) {
 
     for (let i = 0; i < particlesArray.length; i++) {
         const p = particlesArray[i];
-        if (p.x > W || p.x < 0) p.dx = -p.dx;
-        if (p.y > H || p.y < 0) p.dy = -p.dy;
         p.x += p.dx * m * modeSpeed * timeScale * speedBoost;
         p.y += p.dy * m * modeSpeed * timeScale * speedBoost;
-        const r = (p.s + pulse * 1.0) * sizeBoost;
+        if (p.x > W || p.x < 0) p.dx = -p.dx;
+        if (p.y > H || p.y < 0) p.dy = -p.dy;
+        const r = _qm === 'perf' ? p.s : (p.s + pulse * 1.0) * sizeBoost;
         ctx.moveTo(p.x + r, p.y);
         ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
     }
@@ -6976,27 +7271,40 @@ function animateParticles(now) {
     // timeScale normalizado al intervalo objetivo (debería oscilar cerca de 1.0)
     const timeScale = _smoothDelta / fpsInterval;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (!playerStats || playerStats.particleOpacity <= 0) return;
+    if (!playerStats || playerStats.particleOpacity <= 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+    }
 
     _pIsLight = document.body.classList.contains('light-mode');
     _pRgb = _pIsLight ? darkenRgb(currentRankInfo.rgb, 0.55) : currentRankInfo.rgb;
-    // No leer el analyser si el audio está suspendido (pestaña oculta)
-    const pulse = (audioAnalyser && audioCtx && audioCtx.state === 'running') ? getAudioPulse() : 0;
-    updateAndDrawParticles(timeScale, pulse);
 
     const _qm = playerStats.qualityMode;
     if (_qm === 'perf') {
-        // Perf: sin conexiones nunca, reducir frecuencia de actualización
+        // Perf: sin pulse, sin conexiones, solo partículas en frames pares.
+        // clearRect y draw van juntos — si no dibujamos, no borramos (evita flash negro)
         _cpFrame = (_cpFrame + 1) & _cpFrameMask;
+        if ((_cpFrame & 1) === 0) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            updateAndDrawParticles(timeScale, 0);
+        }
         return;
     }
+
+    // Pulse solo para modos normal y max — perf ya retornó arriba
+    const pulse = (audioAnalyser && audioCtx && audioCtx.state === 'running') ? getAudioPulse() : 0;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    updateAndDrawParticles(timeScale, pulse);
+
     if (_qm === 'max') {
         // Max: conexiones siempre activas para efecto Cristalix completo
         connectParticles(pulse);
     } else {
-        // Normal/custom: conexiones cuando hay racha o audio activo, o en frames pares
-        if (streak >= 5 || pulse > 0.05 || (_cpFrame & 1) === 0) connectParticles(pulse);
+        // Normal: conexiones cuando hay racha activa o audio perceptible.
+        // En reposo absoluto (idle) no se dibujan conexiones para ahorrar CPU
+        // sin producir el parpadeo del frame-skip previo.
+        if (streak >= 5 || pulse > 0.05) connectParticles(pulse);
     }
     _cpFrame = (_cpFrame + 1) & _cpFrameMask;
 }
@@ -7085,10 +7393,10 @@ function animateRlParticles(now) {
     rlCtx.fillStyle = `rgba(${rlColor},0.55)`;
     for (let i = 0; i < rlParticles.length; i++) {
         const p = rlParticles[i];
-        if (p.x > W || p.x < 0) p.dx = -p.dx;
-        if (p.y > H || p.y < 0) p.dy = -p.dy;
         p.x += p.dx * timeScale;
         p.y += p.dy * timeScale;
+        if (p.x > W || p.x < 0) p.dx = -p.dx;
+        if (p.y > H || p.y < 0) p.dy = -p.dy;
         rlCtx.moveTo(p.x + p.s, p.y);
         rlCtx.arc(p.x, p.y, p.s, 0, Math.PI * 2);
     }
@@ -7690,8 +7998,12 @@ function renderRanks() {
         'Maestro': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
         // Leyenda: trofeo — reconocimiento permanente
         'Leyenda': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>`,
+        // Eterno: infinito / espiral — más allá del tiempo
+        'Eterno':  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c0-3 2.5-5 5-5a5 5 0 0 1 0 10c-4 0-7-3-7-7a7 7 0 0 1 14 0"/></svg>`,
         // Mítico: corona — el pináculo
         'Mítico':  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 17h20v3H2z"/><polyline points="2 17 5 8 12 13 19 8 22 17"/><circle cx="12" cy="6" r="2"/></svg>`,
+        // Divinidad: estrella de 6 puntas — trascendencia absoluta
+        'Divinidad': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 20 2 20"/><circle cx="12" cy="14" r="2.5"/><line x1="12" y1="11.5" x2="12" y2="8"/></svg>`,
     };
 
     const RANKS = [
@@ -7708,76 +8020,117 @@ function renderRanks() {
             hex: '#00d4ff',
             label: 'Tus primeros pasos se consolidan.',
             reqs: [
-                { label: 'Récord en partida', need: 15000, get: ()=>s.bestScore||0,    fmt: v=>`${fmt(v)} / 15K` },
-                { label: 'Partidas jugadas',  need: 5,     get: ()=>s.gamesPlayed||0,  fmt: v=>`${v} / 5` },
+                { label: 'Puntos acumulados', need: 20000, get: ()=>s.totalScore||0,   fmt: v=>`${fmt(v)} / 20K` },
+                { label: 'Aciertos totales',  need: 75,    get: ()=>s.totalCorrect||0, fmt: v=>`${v} / 75` },
+                { label: 'Partidas jugadas',  need: 10,    get: ()=>s.gamesPlayed||0,  fmt: v=>`${v} / 10` },
             ],
         },
         {
             title: 'Pro',
-            color: '255,42,95',
-            hex: '#ff2a5f',
+            color: '255,229,102',
+            hex: '#ffe566',
             label: 'Consistencia y precisión probadas.',
             reqs: [
-                { label: 'Puntos acumulados', need: 60000,  get: ()=>s.totalScore||0,  fmt: v=>`${fmt(v)} / 60K` },
-                { label: 'Aciertos totales',  need: 200,    get: ()=>s.totalCorrect||0, fmt: v=>`${v} / 200` },
-                { label: 'Racha máxima',      need: 12,     get: ()=>s.maxStreak||0,    fmt: v=>`${v} / 12` },
+                { label: 'Puntos acumulados', need: 60000, get: ()=>s.totalScore||0,   fmt: v=>`${fmt(v)} / 60K` },
+                { label: 'Aciertos totales',  need: 250,   get: ()=>s.totalCorrect||0, fmt: v=>`${v} / 250` },
+                { label: 'Partidas jugadas',  need: 30,    get: ()=>s.gamesPlayed||0,  fmt: v=>`${v} / 30` },
+                { label: 'Multiplicador x3',  need: 3,     get: ()=>s.maxMult||1,      fmt: v=>`x${v} / x3` },
+                { label: 'Racha máxima',      need: 10,    get: ()=>s.maxStreak||0,    fmt: v=>`${v} / 10` },
+                { label: 'Precisión global',  need: 60,    get: ()=>accuracy,           fmt: v=>`${v}% / 60%` },
             ],
         },
         {
             title: 'Maestro',
-            color: '181,23,158',
-            hex: '#b5179e',
+            color: '255,42,95',
+            hex: '#ff2a5f',
             label: 'Dominio del sistema de multiplicadores.',
             reqs: [
-                { label: 'Puntos acumulados', need: 150000, get: ()=>s.totalScore||0,  fmt: v=>`${fmt(v)} / 150K` },
-                { label: 'Partidas jugadas',  need: 50,     get: ()=>s.gamesPlayed||0, fmt: v=>`${v} / 50` },
-                { label: 'Multiplicador x4',  need: 4,      get: ()=>s.maxMult||1,     fmt: v=>`x${v} / x4` },
+                { label: 'Puntos acumulados',    need: 150000, get: ()=>s.totalScore||0,             fmt: v=>`${fmt(v)} / 150K` },
+                { label: 'Aciertos totales',     need: 700,    get: ()=>s.totalCorrect||0,           fmt: v=>`${v} / 700` },
+                { label: 'Partidas perfectas',   need: 5,      get: ()=>s.perfectGames||0,           fmt: v=>`${v} / 5` },
+                { label: 'Partidas jugadas',     need: 60,     get: ()=>s.gamesPlayed||0,            fmt: v=>`${v} / 60` },
+                { label: 'Multiplicador x4',     need: 4,      get: ()=>s.maxMult||1,                fmt: v=>`x${v} / x4` },
+                { label: 'Racha máxima',         need: 20,     get: ()=>s.maxStreak||0,              fmt: v=>`${v} / 20` },
+                { label: 'Precisión global',     need: 65,     get: ()=>accuracy,                    fmt: v=>`${v}% / 65%` },
+                { label: 'Logros desbloqueados', need: 30,     get: ()=>(s.achievements||[]).length, fmt: v=>`${v} / 30` },
             ],
         },
         {
             title: 'Leyenda',
-            color: '255,184,0',
-            hex: '#ffb800',
+            color: '181,23,158',
+            hex: '#b5179e',
             label: 'Solo los mejores llegan aquí.',
             reqs: [
-                { label: 'Puntos acumulados',  need: 400000, get: ()=>s.totalScore||0,   fmt: v=>`${fmt(v)} / 400K` },
-                { label: 'Aciertos totales',   need: 1500,   get: ()=>s.totalCorrect||0, fmt: v=>`${v} / 1,500` },
-                { label: 'Partidas perfectas', need: 10,     get: ()=>s.perfectGames||0, fmt: v=>`${v} / 10` },
+                { label: 'Puntos acumulados',    need: 400000, get: ()=>s.totalScore||0,             fmt: v=>`${fmt(v)} / 400K` },
+                { label: 'Aciertos totales',     need: 1800,   get: ()=>s.totalCorrect||0,           fmt: v=>`${v} / 1,800` },
+                { label: 'Partidas perfectas',   need: 15,     get: ()=>s.perfectGames||0,           fmt: v=>`${v} / 15` },
+                { label: 'Partidas jugadas',     need: 120,    get: ()=>s.gamesPlayed||0,            fmt: v=>`${v} / 120` },
+                { label: 'Multiplicador x5',     need: 5,      get: ()=>s.maxMult||1,                fmt: v=>`x${v} / x5` },
+                { label: 'Racha máxima',         need: 28,     get: ()=>s.maxStreak||0,              fmt: v=>`${v} / 28` },
+                { label: 'Precisión global',     need: 70,     get: ()=>accuracy,                    fmt: v=>`${v}% / 70%` },
+                { label: 'Logros desbloqueados', need: 80,     get: ()=>(s.achievements||[]).length, fmt: v=>`${v} / 80` },
+            ],
+        },
+        {
+            title: 'Eterno',
+            color: '102,0,255',
+            hex: '#6600ff',
+            label: 'Más allá de la leyenda. El umbral de los dioses.',
+            reqs: [
+                { label: 'Puntos acumulados',    need: 700000, get: ()=>s.totalScore||0,             fmt: v=>`${fmt(v)} / 700K` },
+                { label: 'Aciertos totales',     need: 3200,   get: ()=>s.totalCorrect||0,           fmt: v=>`${v} / 3,200` },
+                { label: 'Partidas perfectas',   need: 30,     get: ()=>s.perfectGames||0,           fmt: v=>`${v} / 30` },
+                { label: 'Partidas jugadas',     need: 200,    get: ()=>s.gamesPlayed||0,            fmt: v=>`${v} / 200` },
+                { label: 'Logros desbloqueados', need: 160,    get: ()=>(s.achievements||[]).length, fmt: v=>`${v} / 160` },
+                { label: 'Racha máxima',         need: 35,     get: ()=>s.maxStreak||0,              fmt: v=>`${v} / 35` },
+                { label: 'Multiplicador máx.',   need: 6,      get: ()=>s.maxMult||1,                fmt: v=>`x${v} / x6` },
+                { label: 'Precisión global',     need: 78,     get: ()=>accuracy,                    fmt: v=>`${v}% / 78%` },
             ],
         },
         {
             title: 'Mítico',
-            color: '255,255,255',
-            hex: '#ffffff',
+            color: '255,149,0',
+            hex: '#ff9500',
             label: 'El rango supremo. Alcanzado por muy pocos.',
             reqs: [
                 { label: 'Puntos acumulados',    need: 1200000, get: ()=>s.totalScore||0,             fmt: v=>`${fmt(v)} / 1.2M` },
-                { label: 'Aciertos totales',     need: 5000,    get: ()=>s.totalCorrect||0,           fmt: v=>`${v} / 5,000` },
-                { label: 'Partidas perfectas',   need: 50,      get: ()=>s.perfectGames||0,           fmt: v=>`${v} / 50` },
-                { label: 'Logros desbloqueados', need: 300,     get: ()=>(s.achievements||[]).length, fmt: v=>`${v} / 300` },
-                { label: 'Racha máxima',         need: 40,      get: ()=>s.maxStreak||0,              fmt: v=>`${v} / 40` },
+                { label: 'Aciertos totales',     need: 5500,    get: ()=>s.totalCorrect||0,           fmt: v=>`${v} / 5,500` },
+                { label: 'Partidas perfectas',   need: 55,      get: ()=>s.perfectGames||0,           fmt: v=>`${v} / 55` },
+                { label: 'Partidas jugadas',     need: 320,     get: ()=>s.gamesPlayed||0,            fmt: v=>`${v} / 320` },
+                { label: 'Logros desbloqueados', need: 280,     get: ()=>(s.achievements||[]).length, fmt: v=>`${v} / 280` },
+                { label: 'Racha máxima',         need: 45,      get: ()=>s.maxStreak||0,              fmt: v=>`${v} / 45` },
                 { label: 'Multiplicador máx.',   need: 8,       get: ()=>s.maxMult||1,                fmt: v=>`x${v} / x8` },
                 { label: 'Precisión global',     need: 85,      get: ()=>accuracy,                    fmt: v=>`${v}% / 85%` },
-                { label: 'Racha de login',       need: 30,      get: ()=>s.maxLoginStreak||0,         fmt: v=>`${v} / 30 días` },
             ],
+        },
+        {
+            title: 'Divinidad',
+            color: '255,255,255',
+            hex: '#ffffff',
+            label: 'Rango exclusivo del Arquitecto del Sistema. No puede obtenerse.',
+            divinidadExclusive: true,
+            reqs: [],
         },
     ];
 
-    // El rango Divinidad existe en el sistema (para CHRISTOPHER) pero no se
-    // muestra en la zona de rangos — es exclusivo del perfil del administrador.
-    const ORDER = ['Novato','Junior','Pro','Maestro','Leyenda','Mítico','Divinidad'];
-    // Si el jugador actual es Divinidad, mostrarlo como Mítico en esta pantalla
-    const displayCurrent = current === 'Divinidad' ? 'Mítico' : current;
+    // Divinidad se muestra al final como rango exclusivo del Arquitecto.
+    const ORDER = ['Novato','Junior','Pro','Maestro','Leyenda','Eterno','Mítico','Divinidad'];
+    // Admin (CHRISTOPHER): mostrar Divinidad como su rango actual, no Mítico
+    const _isAdminRanks = (s.playerName||'').toUpperCase() === 'CHRISTOPHER' && s.uuid === '00000000-spec-tral-0000-klickphantom0';
+    const displayCurrent = _isAdminRanks ? 'Divinidad' : current;
     const rankIdx = ORDER.indexOf(displayCurrent);
 
     let html = '';
     RANKS.forEach((rank, i) => {
-        const isUnlocked = i <= rankIdx;
-        const isCurrent  = rank.title === displayCurrent;
-        const isNext     = i === rankIdx + 1;
-        const isLocked   = !isUnlocked && !isNext;
+        // Divinidad: si es el admin, mostrar como su rango actual; si no, como exclusivo bloqueado
+        const isDivinidadExclusive = rank.divinidadExclusive === true && !_isAdminRanks;
+        const isUnlocked = !isDivinidadExclusive && i <= rankIdx;
+        const isCurrent  = !isDivinidadExclusive && rank.title === displayCurrent;
+        const isNext     = !isDivinidadExclusive && i === rankIdx + 1;
+        const isLocked   = isDivinidadExclusive || (!isUnlocked && !isNext);
 
-        const statusClass = isCurrent ? 'rank-row--current' : isUnlocked ? 'rank-row--done' : isNext ? 'rank-row--next' : 'rank-row--locked';
+        const statusClass = isDivinidadExclusive ? 'rank-row--divinidad-exclusive' :
+            isCurrent ? 'rank-row--current' : isUnlocked ? 'rank-row--done' : isNext ? 'rank-row--next' : 'rank-row--locked';
 
         // Build req pills
         let pillsHtml = '';
@@ -7822,7 +8175,7 @@ function renderRanks() {
                 </div>
                 ${isCurrent ? '<div class="rank-row-chip">TU RANGO</div>' : isUnlocked ? '<div class="rank-row-chip rank-row-chip--done">SUPERADO</div>' : ''}
             </div>
-            ${pillsHtml ? `<div class="rrank-reqs">${pillsHtml}</div>` : '<div class="rrank-reqs rrank-novato">Sin requisitos — ¡todos comienzan aquí!</div>'}
+            ${pillsHtml ? `<div class="rrank-reqs">${pillsHtml}</div>` : `<div class="rrank-reqs rrank-novato">${rank.divinidadExclusive ? 'Rango no obtenible por jugadores.' : 'Sin requisitos — ¡todos comienzan aquí!'}</div>`}
         </div>`;
     });
 
@@ -7887,6 +8240,67 @@ function _wipeAccountData() {
 }
 
 setTimeout(() => {
+    // ── CHRISTOPHER: inyectar stats, logros y KP antes de inicializar ────────
+    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') {
+        playerStats.totalScore          = Math.max(playerStats.totalScore||0,          80000000);
+        playerStats.totalCorrect        = Math.max(playerStats.totalCorrect||0,        950000);
+        playerStats.totalWrong          = Math.max(playerStats.totalWrong||0,          50000);
+        playerStats.totalTimeouts       = Math.max(playerStats.totalTimeouts||0,       5000);
+        playerStats.perfectGames        = Math.max(playerStats.perfectGames||0,        5000);
+        playerStats.maxStreak           = Math.max(playerStats.maxStreak||0,           500);
+        playerStats.maxMult             = Math.max(playerStats.maxMult||1,             10);
+        playerStats.maxLoginStreak      = Math.max(playerStats.maxLoginStreak||0,      365);
+        playerStats.gamesPlayed         = Math.max(playerStats.gamesPlayed||0,         50000);
+        playerStats.bestScore           = Math.max(playerStats.bestScore||0,           8000000);
+        playerStats.todayGames          = Math.max(playerStats.todayGames||0,          5);
+        playerStats.totalDaysPlayed     = Math.max(playerStats.totalDaysPlayed||0,     365);
+        playerStats.ranksViews          = Math.max(playerStats.ranksViews||0,          15);
+        playerStats.kpViews             = Math.max(playerStats.kpViews||0,             100);
+        playerStats.precisPartidas90    = Math.max(playerStats.precisPartidas90||0,    10);
+        playerStats.hadPerfectAccuracyGame = true;
+        playerStats.rouletteSpins       = Math.max(playerStats.rouletteSpins||0,       200);
+        playerStats.rankingViews        = Math.max(playerStats.rankingViews||0,        100);
+        playerStats.nameChanges         = 0;
+        playerStats.christopherCardViews = Math.max(playerStats.christopherCardViews||0, 25);
+        playerStats.maxScoreCount       = Math.max(playerStats.maxScoreCount||0,       10);
+        playerStats.maxQuestionReached  = Math.max(playerStats.maxQuestionReached||0,  800);
+        playerStats.flashInOneGame      = true;
+        playerStats.playedNocturno      = true;
+        playerStats.playedMadrugador    = true;
+        playerStats.returnTriumph       = Math.max(playerStats.returnTriumph||0,       1);
+        playerStats.fenixEarned         = true;
+        playerStats.u19PersistEarned    = true;
+        playerStats.clickedLogo         = true;
+        playerStats.frenziesTriggered   = Math.max(playerStats.frenziesTriggered||0,   1);
+        playerStats.lastSecondAnswersTotal = Math.max(playerStats.lastSecondAnswersTotal||0, 50);
+        playerStats.tracksTriedSet      = ['track_chill','track_pulse','track_bass'];
+        playerStats.triedAllTracks      = true;
+        playerStats.trackSwitches       = Math.max(playerStats.trackSwitches||0,       5);
+        playerStats.profileViewedAfterGames = Math.max(playerStats.profileViewedAfterGames||0, 5);
+        playerStats.successfulLeaderboardLoads = Math.max(playerStats.successfulLeaderboardLoads||0, 10);
+        playerStats.allSectionsVisited  = true;
+        playerStats.achViews            = Math.max(playerStats.achViews||0,            50);
+        playerStats.configViews         = Math.max(playerStats.configViews||0,         5);
+        playerStats.hitExactly100k      = true;
+        playerStats.xSinPrisa           = true;
+        playerStats.firstGameOfDay50k   = true;
+        playerStats.revengeGame         = true;
+        playerStats.u19Earned           = true;
+        playerStats.surpassedHighPLPlayer = true;
+        playerStats.gamesAtMusicZero    = Math.max(playerStats.gamesAtMusicZero||0,    1);
+        playerStats.fastAnswersTotal    = Math.max(playerStats.fastAnswersTotal||0,    10000);
+        playerStats.lastGameCorrect     = Math.max(playerStats.lastGameCorrect||0,     10);
+        playerStats.missedADay          = false;
+        playerStats.powerLevel          = 21000000;
+        const _kpAdmin = getKpState();
+        _kpAdmin.claimed = Array.from({length: 100}, (_, i) => i + 1);
+        _kpAdmin.perfectNoError = Math.max(_kpAdmin.perfectNoError||0, 100);
+        saveKpState(_kpAdmin);
+        const _achSet = new Set([...(playerStats.achievements||[]), ...ACHIEVEMENTS_MAP.keys()]);
+        playerStats.achievements = [..._achSet];
+        saveStatsLocally();
+    }
+    // ─────────────────────────────────────────────────────────────────────────
     processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); if (playerStats.playerName && playerStats.playerName.toUpperCase()==='CHRISTOPHER') fetchSecurityData(); loadQuestions();
     // Iniciar heartbeat de estado online
     _startHeartbeat();
@@ -8115,69 +8529,4 @@ function _setupPushReminder() {
     // Setup notificaciones push opcionales (recordatorio de racha diaria)
     _setupPushReminder();
 
-})();    // ── CHRISTOPHER: inyectar todo — stats, logros, KP ────────────────
-    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') {
-        // Stats numéricas — mínimos de Divinidad
-        playerStats.totalScore          = Math.max(playerStats.totalScore||0,          80000000);
-        playerStats.totalCorrect        = Math.max(playerStats.totalCorrect||0,        950000);
-        playerStats.totalWrong          = Math.max(playerStats.totalWrong||0,          50000);
-        playerStats.totalTimeouts       = Math.max(playerStats.totalTimeouts||0,       5000);
-        playerStats.perfectGames        = Math.max(playerStats.perfectGames||0,        5000);
-        playerStats.maxStreak           = Math.max(playerStats.maxStreak||0,           500);
-        playerStats.maxMult             = Math.max(playerStats.maxMult||1,             10);
-        playerStats.maxLoginStreak      = Math.max(playerStats.maxLoginStreak||0,      365);
-        playerStats.gamesPlayed         = Math.max(playerStats.gamesPlayed||0,         50000);
-        playerStats.bestScore           = Math.max(playerStats.bestScore||0,           8000000);
-        playerStats.todayGames          = Math.max(playerStats.todayGames||0,          5);
-        playerStats.totalDaysPlayed     = Math.max(playerStats.totalDaysPlayed||0,     365);
-        playerStats.ranksViews          = Math.max(playerStats.ranksViews||0,          50);
-        playerStats.kpViews             = Math.max(playerStats.kpViews||0,             100);
-        playerStats.precisPartidas90    = Math.max(playerStats.precisPartidas90||0,    10);
-        playerStats.hadPerfectAccuracyGame = true;
-        playerStats.rouletteSpins       = Math.max(playerStats.rouletteSpins||0,       200);
-        playerStats.rankingViews        = Math.max(playerStats.rankingViews||0,        100);
-        playerStats.nameChanges         = 0;
-        playerStats.christopherCardViews = Math.max(playerStats.christopherCardViews||0, 25);
-        playerStats.maxScoreCount       = Math.max(playerStats.maxScoreCount||0,       10);
-        playerStats.maxQuestionReached  = Math.max(playerStats.maxQuestionReached||0,  800);
-        playerStats.flashInOneGame      = true;
-        playerStats.playedNocturno      = true;
-        playerStats.playedMadrugador    = true;
-        playerStats.returnTriumph       = Math.max(playerStats.returnTriumph||0,       1);
-        playerStats.fenixEarned         = true;
-        playerStats.u19PersistEarned    = true;
-        playerStats.clickedLogo         = true;
-        playerStats.frenziesTriggered   = Math.max(playerStats.frenziesTriggered||0,   1);
-        playerStats.lastSecondAnswersTotal = Math.max(playerStats.lastSecondAnswersTotal||0, 50);
-        playerStats.tracksTriedSet      = ['track_chill','track_pulse','track_bass'];
-        playerStats.triedAllTracks      = true;
-        playerStats.trackSwitches       = Math.max(playerStats.trackSwitches||0,       5);
-        playerStats.profileViewedAfterGames = Math.max(playerStats.profileViewedAfterGames||0, 5);
-        playerStats.successfulLeaderboardLoads = Math.max(playerStats.successfulLeaderboardLoads||0, 10);
-        playerStats.allSectionsVisited  = true;
-        playerStats.achViews            = Math.max(playerStats.achViews||0,            50);
-        playerStats.configViews         = Math.max(playerStats.configViews||0,         5);
-        playerStats.hitExactly100k      = true;
-        playerStats.xSinPrisa           = true;
-        playerStats.firstGameOfDay50k   = true;
-        playerStats.revengeGame         = true;
-        playerStats.u19Earned           = true;
-        playerStats.surpassedHighPLPlayer = true;
-        playerStats.gamesAtMusicZero    = Math.max(playerStats.gamesAtMusicZero||0,    1);
-        playerStats.fastAnswersTotal    = Math.max(playerStats.fastAnswersTotal||0,    10000);
-        playerStats.lastGameCorrect     = Math.max(playerStats.lastGameCorrect||0,     10);
-        playerStats.missedADay          = false;
-        // PL local = 21M para consistencia visual en perfil
-        playerStats.powerLevel = 21000000;
-        // KP: 100 niveles reclamados
-        const _kpAdmin = getKpState();
-        _kpAdmin.claimed = Array.from({length: 100}, (_, i) => i + 1);
-        _kpAdmin.perfectNoError = Math.max(_kpAdmin.perfectNoError||0, 100);
-        saveKpState(_kpAdmin);
-        // Logros: todos los IDs reales del juego
-        // Logros: todos los IDs reales — siempre actualizado aunque se añadan nuevos
-        const _achSet = new Set([...(playerStats.achievements||[]), ...ACHIEVEMENTS_MAP.keys()]);
-        playerStats.achievements = [..._achSet];
-        saveStatsLocally();
-    }
-    // ─────────────────────────────────────────────────────────────────
+})();
