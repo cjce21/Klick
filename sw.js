@@ -12,7 +12,7 @@
 //  • Garantizado: siempre hay clientes cuando activate corre.
 // ══════════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'klick-cache-v3';
+const CACHE_NAME = 'klick-cache-v6';
 
 const PRECACHE = [
     './',
@@ -20,6 +20,7 @@ const PRECACHE = [
     './styles.css',
     './script.js',
     './anti-flash.js',
+    './changelog.js',
     './preguntas.json',
 ];
 
@@ -64,7 +65,7 @@ self.addEventListener('fetch', event => {
     if (url.pathname.endsWith('sw.js')) return;
 
     const isGameFile = ['/index.html', '/styles.css', '/script.js',
-                        '/anti-flash.js', '/preguntas.json', '/']
+                        '/anti-flash.js', '/changelog.js', '/preguntas.json', '/']
         .some(p => url.pathname === p || url.pathname.endsWith(p));
 
     if (isGameFile) {
