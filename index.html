@@ -18,6 +18,8 @@
     <!-- Estilos -->
     <link rel="stylesheet" href="styles.css">
 
+    <!-- Changelog/Novedades: datos independientes del juego -->
+    <script src="changelog.js"></script>
     <!-- Anti-flash: DEBE ir en <head> para aplicar color de rango antes del primer render -->
     <script src="anti-flash.js"></script>
 </head>
@@ -29,12 +31,26 @@
 
     <div id="start-screen" class="screen active content-fit">
         <div class="top-btn-container">
-            <button class="top-btn" onclick="goToRanking()" title="Clasificación Global">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"></rect><rect x="10" y="8" width="4" height="13"></rect><rect x="2" y="13" width="4" height="8"></rect></svg>
-            </button>
-            <button class="top-btn" onclick="openSettings()" title="Configuración">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-            </button>
+            <!-- Grupo izquierdo: Seguridad (en construcción) + Ranking -->
+            <div class="top-btn-group top-btn-group-left">
+                <button class="top-btn" id="security-nav-btn" onclick="goToSecurity()" title="Seguridad y Revisión" style="position:relative;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <span id="security-new-dot" class="new-dot" style="display:none;"></span>
+                </button>
+                <button class="top-btn" onclick="goToRanking()" title="Clasificación Global">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"></rect><rect x="10" y="8" width="4" height="13"></rect><rect x="2" y="13" width="4" height="8"></rect></svg>
+                </button>
+            </div>
+            <!-- Grupo derecho: Novedades + Configuración (alineados a la derecha, juntos) -->
+            <div class="top-btn-group top-btn-group-right">
+                <button class="top-btn" id="changelog-btn" onclick="goToChangelog()" title="Novedades y Actualizaciones">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    <span class="changelog-dot" id="changelog-new-dot" style="display:none;"></span>
+                </button>
+                <button class="top-btn" onclick="openSettings()" title="Configuración">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+            </div>
         </div>
 
         <div class="logo-container" id="logo-title" onclick="onLogoClick()" style="cursor:pointer;">KLICK<span class="logo-dot">.</span></div>
@@ -200,7 +216,11 @@
     <div id="ranking-screen" class="screen nav-screen">
         <div class="top-nav">
             <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
-            <div class="nav-title">CLASIFICACIÓN</div><div class="nav-spacer"></div>
+            <div class="nav-title">CLASIFICACIÓN</div>
+            <div class="rank-online-badge" id="rank-online-badge" style="display:none;">
+                <span class="rank-online-pulse"></span>
+                <span id="rank-online-count" class="rank-online-text"></span>
+            </div>
         </div>
         <div class="content-scroll no-scrollbar">
             <div class="ranking-wrapper">
@@ -220,11 +240,30 @@
         </div>
     </div>
 
+    <!-- ZONA DE NOVEDADES Y CHANGELOG -->
+    <div id="changelog-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
+            <div class="nav-title">NOVEDADES</div><div class="nav-spacer"></div>
+        </div>
+        <!-- Cabecera con versión actual -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 15px 4px;flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:var(--rank-color);box-shadow:0 0 8px rgba(var(--rank-rgb),0.7);flex-shrink:0;"></div>
+                <span id="cl-current-version" style="font-size:0.65rem;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--text-primary);"></span>
+            </div>
+            <span style="font-size:0.58rem;color:var(--text-secondary);font-weight:500;">Registro de actualizaciones</span>
+        </div>
+        <div class="content-scroll no-scrollbar" style="padding-top:8px;">
+            <div id="changelog-list" style="padding:0 15px 40px;display:flex;flex-direction:column;gap:0;"></div>
+        </div>
+    </div>
+
 
     <div id="profile-screen" class="screen nav-screen">
         <div class="top-nav">
-            <button class="btn-back" onclick="goToMainMenu()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
-            <div class="nav-title">PERFIL</div><div class="nav-spacer"></div>
+            <button class="btn-back" onclick="profileGoBack()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Regresar</span></button>
+            <div class="nav-title" id="profile-nav-title">PERFIL</div><div class="nav-spacer"></div>
         </div>
         <div class="content-scroll no-scrollbar" style="align-items:stretch;">
             <div class="profile-dashboard" style="padding-bottom:30px;">
@@ -556,6 +595,23 @@
             </div>
 
             <button class="pcard-close" onclick="closePlayerCard()">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- ZONA DE SEGURIDAD — Pantalla personal del jugador -->
+    <div id="security-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                <span>Regresar</span>
+            </button>
+            <div class="nav-title">MI SEGURIDAD</div>
+            <div class="nav-spacer"></div>
+        </div>
+        <div class="content-scroll no-scrollbar">
+            <div class="ks-personal-layout" id="ks-personal-layout">
+                <!-- Generado dinámicamente por renderSecurityStatus() -->
+            </div>
         </div>
     </div>
 
