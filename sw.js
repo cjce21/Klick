@@ -12,7 +12,7 @@
 //  • Garantizado: siempre hay clientes cuando activate corre.
 // ══════════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'klick-cache-v6';
+const CACHE_NAME = 'klick-cache-v7';
 
 const PRECACHE = [
     './',
@@ -93,6 +93,26 @@ self.addEventListener('fetch', event => {
                 caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
                 return response;
             }).catch(() => cached);
+        })
+    );
+});
+
+// ── Notificación push: avisar a la página si está activa durante el juego ──
+// Cuando llega una notificación push, notificamos a todos los clientes para
+// que Klick Shield pueda registrar la interrupción si hay partida activa.
+self.addEventListener('push', event => {
+    // Mostrar la notificación normalmente
+    const data = event.data ? event.data.json().catch(() => ({})) : Promise.resolve({});
+    event.waitUntil(
+        data.then(payload => {
+            const title   = (payload && payload.title)   || 'Klick';
+            const options = (payload && payload.options) || {};
+            return Promise.all([
+                self.registration.showNotification(title, options),
+                self.clients.matchAll({ includeUncontrolled: true, type: 'window' }).then(clients => {
+                    clients.forEach(client => client.postMessage({ type: 'PUSH_RECEIVED' }));
+                })
+            ]);
         })
     );
 });
