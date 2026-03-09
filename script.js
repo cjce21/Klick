@@ -3022,6 +3022,232 @@ function _pcardRankVars(title) {
 }
 
 // ── Canvas de partículas exclusivo de la tarjeta ──────────────────
+// ══════════════════════════════════════════════════════════════════
+//  PARTÍCULAS DEL PERFIL ADMIN — sistema exclusivo del Arquitecto
+//  Reemplaza completamente el fondo estándar mientras está activo.
+//  Tres capas: puntos orbitales, fragmentos geométricos y halo central.
+// ══════════════════════════════════════════════════════════════════
+const _ap = {
+    canvas: null, ctx: null,
+    dots: [], frags: [], raf: null, then: 0, active: false, t: 0
+};
+
+function _apRgb() {
+    return document.body.classList.contains('light-mode') ? '13,17,23' : '255,255,255';
+}
+
+function _apInit() {
+    const W = window.innerWidth, H = window.innerHeight;
+
+    let cv = document.getElementById('admin-profile-canvas');
+    if (!cv) {
+        cv = document.createElement('canvas');
+        cv.id = 'admin-profile-canvas';
+        // Posición fija cubriendo toda la pantalla — igual que el canvas global
+        cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;';
+        document.body.appendChild(cv);
+    }
+    cv.width  = W;
+    cv.height = H;
+    _ap.canvas = cv;
+    _ap.ctx    = cv.getContext('2d', { alpha: true });
+
+    // Ocultar el canvas de partículas global para que no se solapen
+    const globalCv = document.getElementById('particle-canvas');
+    if (globalCv) globalCv.style.opacity = '0';
+
+    _ap.dots  = [];
+    _ap.frags = [];
+    const isPerf = playerStats && playerStats.qualityMode === 'perf';
+
+    // ── Capa 1: puntos flotantes (muchos, pequeños, dispersos) ──
+    const nDots = isPerf ? 40 : 90;
+    for (let i = 0; i < nDots; i++) {
+        _ap.dots.push({
+            x:  Math.random() * W,
+            y:  Math.random() * H,
+            dx: (Math.random() - 0.5) * 0.5,
+            dy: (Math.random() - 0.5) * 0.5,
+            s:  Math.random() * 1.8 + 0.6,
+            phase: Math.random() * Math.PI * 2,
+            pulseF: Math.random() * 0.8 + 0.4,
+        });
+    }
+
+    // ── Capa 2: fragmentos geométricos (medianos, rotantes, orbitales) ──
+    const nFrags = isPerf ? 12 : 28;
+    for (let i = 0; i < nFrags; i++) {
+        const minR = Math.min(W, H) * 0.06;
+        const maxR = Math.min(W, H) * 0.44;
+        _ap.frags.push({
+            cx:    W * (0.2 + Math.random() * 0.6),
+            cy:    H * (0.2 + Math.random() * 0.6),
+            r:     minR + Math.random() * (maxR - minR),
+            angle: Math.random() * Math.PI * 2,
+            speed: (Math.random() * 0.005 + 0.002) * (Math.random() < 0.5 ? 1 : -1),
+            size:  Math.random() * 5 + 2.5,
+            rot:   Math.random() * Math.PI * 2,
+            rotSpd:(Math.random() * 0.05 + 0.015) * (Math.random() < 0.5 ? 1 : -1),
+            sides: [3, 4, 6][Math.floor(Math.random() * 3)],
+            phase: Math.random() * Math.PI * 2,
+            pulseF:Math.random() * 0.5 + 0.2,
+        });
+    }
+}
+
+function _apDraw(now) {
+    if (!_ap.active) return;
+    _ap.raf = requestAnimationFrame(_apDraw);
+    const isPerf = playerStats && playerStats.qualityMode === 'perf';
+    const fps = isPerf ? 24 : 50;
+    if (now - _ap.then < 1000 / fps) return;
+    _ap.then = now;
+    _ap.t   += 0.018;
+
+    const c = _ap.ctx;
+    if (!c || !_ap.canvas) return;
+    const W = _ap.canvas.width, H = _ap.canvas.height;
+    const rgb = _apRgb();
+    const opScale = playerStats.particleOpacity !== undefined ? playerStats.particleOpacity : 1;
+
+    c.clearRect(0, 0, W, H);
+
+    // ── Halo central muy suave ──
+    if (!isPerf) {
+        const cx = W / 2, cy = H * 0.38;
+        const grad = c.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * 0.38);
+        const isLight = document.body.classList.contains('light-mode');
+        grad.addColorStop(0,   isLight ? 'rgba(13,17,23,0.07)'  : 'rgba(255,255,255,0.07)');
+        grad.addColorStop(0.5, isLight ? 'rgba(13,17,23,0.025)' : 'rgba(255,255,255,0.025)');
+        grad.addColorStop(1,   'rgba(0,0,0,0)');
+        c.fillStyle = grad;
+        c.fillRect(0, 0, W, H);
+    }
+
+    // ── Capa 1: puntos ──
+    const dots = _ap.dots;
+    c.beginPath();
+    for (let i = 0; i < dots.length; i++) {
+        const d = dots[i];
+        d.x += d.dx; d.y += d.dy;
+        if (d.x < 0) d.x = W; if (d.x > W) d.x = 0;
+        if (d.y < 0) d.y = H; if (d.y > H) d.y = 0;
+        const pulse = (Math.sin(_ap.t * d.pulseF + d.phase) + 1) / 2;
+        // Opacidad más alta: 0.25 – 0.65
+        const op = (0.25 + pulse * 0.40) * opScale;
+        c.globalAlpha = op;
+        c.fillStyle = `rgb(${rgb})`;
+        c.moveTo(d.x + d.s, d.y);
+        c.arc(d.x, d.y, d.s, 0, Math.PI * 2);
+    }
+    c.globalAlpha = 1;
+    c.fill();
+
+    // ── Conexiones entre puntos cercanos ──
+    if (!isPerf) {
+        const maxD = Math.min(W, H) * 0.14;
+        const maxD2 = maxD * maxD;
+        for (let a = 0; a < dots.length; a++) {
+            for (let b = a + 1; b < dots.length; b++) {
+                const dx2 = dots[a].x - dots[b].x, dy2 = dots[a].y - dots[b].y;
+                const d2 = dx2*dx2 + dy2*dy2;
+                if (d2 < maxD2) {
+                    // Opacidad líneas: 0.08 – 0.28
+                    const alpha = ((1 - d2 / maxD2) * 0.28 * opScale).toFixed(3);
+                    c.strokeStyle = `rgba(${rgb},${alpha})`;
+                    c.lineWidth = 0.7;
+                    c.beginPath();
+                    c.moveTo(dots[a].x, dots[a].y);
+                    c.lineTo(dots[b].x, dots[b].y);
+                    c.stroke();
+                }
+            }
+        }
+    }
+
+    // ── Capa 2: fragmentos geométricos ──
+    const frags = _ap.frags;
+    for (let i = 0; i < frags.length; i++) {
+        const p = frags[i];
+        p.angle += p.speed;
+        p.rot   += p.rotSpd;
+        const x = p.cx + Math.cos(p.angle) * p.r;
+        const y = p.cy + Math.sin(p.angle) * p.r;
+
+        const pulse = (Math.sin(_ap.t * p.pulseF + p.phase) + 1) / 2;
+        // Opacidad fragmentos: 0.30 – 0.72
+        const strokeOp = (0.30 + pulse * 0.42) * opScale;
+        const fillOp   = strokeOp * 0.28;
+
+        c.save();
+        c.translate(x, y);
+        c.rotate(p.rot);
+        c.beginPath();
+        const sz = p.size;
+        for (let s = 0; s < p.sides; s++) {
+            const a = (s / p.sides) * Math.PI * 2 - Math.PI / 2;
+            s === 0 ? c.moveTo(Math.cos(a) * sz, Math.sin(a) * sz)
+                    : c.lineTo(Math.cos(a) * sz, Math.sin(a) * sz);
+        }
+        c.closePath();
+        c.fillStyle   = `rgba(${rgb},${fillOp.toFixed(3)})`;
+        c.strokeStyle = `rgba(${rgb},${strokeOp.toFixed(3)})`;
+        c.lineWidth   = 1.1;
+        c.fill();
+        c.stroke();
+        c.restore();
+    }
+
+    // ── Conexiones fragmento ↔ punto más cercano ──
+    if (!isPerf) {
+        const maxFD = Math.min(W, H) * 0.18;
+        const maxFD2 = maxFD * maxFD;
+        for (let i = 0; i < frags.length; i++) {
+            const fx = frags[i].cx + Math.cos(frags[i].angle) * frags[i].r;
+            const fy = frags[i].cy + Math.sin(frags[i].angle) * frags[i].r;
+            let bestD2 = Infinity, bx = 0, by = 0;
+            for (let j = 0; j < dots.length; j++) {
+                const dx2 = fx - dots[j].x, dy2 = fy - dots[j].y;
+                const d2 = dx2*dx2 + dy2*dy2;
+                if (d2 < bestD2) { bestD2 = d2; bx = dots[j].x; by = dots[j].y; }
+            }
+            if (bestD2 < maxFD2) {
+                const alpha = ((1 - bestD2 / maxFD2) * 0.22 * opScale).toFixed(3);
+                c.strokeStyle = `rgba(${rgb},${alpha})`;
+                c.lineWidth = 0.5;
+                c.beginPath();
+                c.moveTo(fx, fy);
+                c.lineTo(bx, by);
+                c.stroke();
+            }
+        }
+    }
+}
+
+function _apStart() {
+    _apInit();
+    if (!_ap.canvas) return;
+    _ap.active = true;
+    _ap.then   = performance.now();
+    _ap.t      = 0;
+    if (_ap.raf) cancelAnimationFrame(_ap.raf);
+    _ap.raf = requestAnimationFrame(_apDraw);
+}
+
+function _apStop() {
+    _ap.active = false;
+    if (_ap.raf) { cancelAnimationFrame(_ap.raf); _ap.raf = null; }
+    if (_ap.ctx && _ap.canvas) {
+        _ap.ctx.clearRect(0, 0, _ap.canvas.width, _ap.canvas.height);
+        // Eliminar el canvas para que no quede residuo
+        _ap.canvas.remove();
+        _ap.canvas = null; _ap.ctx = null;
+    }
+    // Restaurar el canvas global
+    const globalCv = document.getElementById('particle-canvas');
+    if (globalCv) globalCv.style.opacity = '';
+}
+
 const _pc = {
     canvas: null, ctx: null,
     particles: [], rgb: '0,255,102',
@@ -3396,6 +3622,7 @@ function openPlayerProfileFromRank(index) {
             // Partículas del Arquitecto en el fondo del profile-screen
             const ps = document.getElementById('profile-screen');
             if (ps) ps.classList.add('architect-profile-active');
+            _apStart();
         } catch(e) {}
     }
 
@@ -3440,9 +3667,10 @@ function _restoreOwnProfileOnLeave() {
             }
         } catch(e) {}
     }
-    // Quitar clase del perfil del Arquitecto
+    // Quitar clase del perfil del Arquitecto y detener partículas especiales
     const ps = document.getElementById('profile-screen');
     if (ps) ps.classList.remove('architect-profile-active');
+    _apStop();
 
     // Restaurar CSS vars propias
     currentRankInfo = getRankInfo(playerStats);
@@ -4398,11 +4626,13 @@ function _checkAchievementsImpl() {
 }
 
 function togglePin(achId) {
-
-    if (!playerStats.achievements.includes(achId)) return; SFX.click(); const index = playerStats.pinnedAchievements.indexOf(achId);
+    const _isAdminPin = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+    // Admin puede fijar cualquier logro del banco; el resto solo puede fijar logros desbloqueados
+    if (!_isAdminPin && !playerStats.achievements.includes(achId)) return;
+    SFX.click(); const index = playerStats.pinnedAchievements.indexOf(achId);
     if (index > -1) { playerStats.pinnedAchievements.splice(index, 1); showToast('Quitado del perfil', 'Ya no aparecerá destacado.', 'var(--text-secondary)', SVG_PIN); } 
     else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); playerStats.totalPins = (playerStats.totalPins||0) + 1; const ach_data = ACHIEVEMENTS_MAP.get(achId); showToast('Fijado en Perfil', ach_data ? ach_data.title : achId, ach_data ? ach_data.color : '', ach_data ? ach_data.icon : ''); }
-    saveStatsLocally(); checkAchievements(); renderAchievements();
+    saveStatsLocally(); checkAchievements(); renderAchievements(); submitLeaderboard();
 }
 
 // togglePin y revokeInvalidAchievements usan el virtual scroller automáticamente
@@ -4417,7 +4647,11 @@ function getAutoProfileAchs() {
     const isAdmin = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
     playerStats.pinnedAchievements
         
-        .forEach(id => { if (result.length < 3 && playerStats.achievements.includes(id)) result.push(id); });
+        .forEach(id => {
+            // Admin: mostrar cualquier logro fijado aunque no esté en achievements[]
+            // Resto: solo mostrar fijados que estén desbloqueados
+            if (result.length < 3 && (isAdmin || playerStats.achievements.includes(id))) result.push(id);
+        });
     if (result.length < 3) {
         const rest = playerStats.achievements
             .filter(id => !result.includes(id))
