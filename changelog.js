@@ -184,7 +184,15 @@ const KLICK_CHANGELOG = [
         title: 'Corrección: selector de títulos aparecía en perfiles ajenos',
         detail: 'El selector de títulos exclusivos (disponible para jugadores Eterno y Mítico) aparecía también al visitar el perfil de otro jugador desde la Clasificación, cuando debería estar restringido únicamente al perfil propio. Ahora el selector solo se muestra cuando estás viendo tu propio perfil.',
     },
-    // ── Próximas Implementaciones ────────────────────────────────────
+    // ── Próximas Implementaciones
+    {
+        id: 'cs-shop',
+        type: 'coming',
+        date: null,
+        title: 'Tienda de Personalización',
+        detail: 'Pronto podrás personalizar tus partículas, elegir entre docenas de formas, colores, efectos animados y comportamientos de movimiento. También podrás equipar un título personalizado que aparece en tu perfil. Todo gratuito durante la fase inicial.',
+    },
+ ────────────────────────────────────
     {
         id: 'cs-blitz',
         type: 'coming',
