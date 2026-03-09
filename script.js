@@ -5472,7 +5472,7 @@ function updateRewardIndicator() {
     else if (extraTimeActive > 0) { label = `+${extraTimeActive}s de tiempo`; icon = '+t'; color = extraTimeActive >= 8 ? '#00ffcc' : '#00ff66'; }
     else if (streakShieldActive) { label = 'Racha protegida'; icon = 'R+'; color = '#aaaaff'; }
     if (label) {
-        iconEl.textContent = icon;
+        iconEl.innerHTML = icon;
         textEl.textContent = label;
         textEl.style.color = color;
         bar.style.display = 'flex';
@@ -7136,6 +7136,8 @@ function showFeedback(isCorrect, isTimeout = false) {
         // Shield protection from roulette
         if (shieldActive) {
             shieldActive = false;
+            activeBoostNextQ = null; // boost lost on failed attempt
+            if (streakShieldActive) { streakShieldActive = false; } // consume streak shield too if stacked
             playerStats.rouletteShieldUsed = true;
             saveStatsDebounced();
             updateRewardIndicator();
@@ -7155,17 +7157,7 @@ function showFeedback(isCorrect, isTimeout = false) {
             SFX.incorrect(); 
             if (isTimeout) { scr.className = 'screen timeout'; icon.innerHTML = SVG_TIMEOUT; title.innerText = "TIEMPO"; } 
             else { scr.className = 'screen incorrect'; icon.innerHTML = SVG_INCORRECT; title.innerText = "INCORRECTO"; }
-            // Show the correct answer
-            if (correctAnswerEl && _currentQuestion) {
-                // Lee del DOM: currentCorrectIndex apunta al botón correcto ya mezclado
-                const _ci = _currentQuestion.currentCorrectIndex;
-                const _ansSpan = (_gAns && _gAns[_ci]) ? _gAns[_ci] : document.getElementById('ans-' + _ci);
-                const correctText = (_ansSpan ? _ansSpan.innerText : '') || '';
-                if (correctText) {
-                    correctAnswerEl.textContent = 'Respuesta: ' + correctText;
-                    correctAnswerEl.style.display = 'block';
-                }
-            }
+            // Correct answer is NOT revealed on wrong/timeout
             // Streak shield from roulette: protect racha on one mistake
             if (streakShieldActive) {
                 streakShieldActive = false;
