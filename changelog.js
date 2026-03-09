@@ -184,6 +184,35 @@ const KLICK_CHANGELOG = [
         title: 'Corrección: selector de títulos aparecía en perfiles ajenos',
         detail: 'El selector de títulos exclusivos (disponible para jugadores Eterno y Mítico) aparecía también al visitar el perfil de otro jugador desde la Clasificación, cuando debería estar restringido únicamente al perfil propio. Ahora el selector solo se muestra cuando estás viendo tu propio perfil.',
     },
+    // ── 2026-03-09 ───────────────────────────────────────────────────
+    {
+        id: 'v130-shield-icon-fix',
+        type: 'fix',
+        date: '2026-03-09',
+        title: 'Corrección: Escudo de la ruleta mostraba código en la barra de recompensa',
+        detail: 'Al obtener el Escudo en la ruleta, la barra de recompensa activa mostraba el código fuente SVG en texto plano en lugar del ícono del escudo. El bug era que el contenido del ícono se asignaba con textContent en lugar de innerHTML, impidiendo que el SVG se interpretase como HTML. Ahora el ícono se renderiza correctamente.',
+    },
+    {
+        id: 'v130-no-reveal-answer',
+        type: 'improve',
+        date: '2026-03-09',
+        title: 'La respuesta correcta ya no se revela al fallar o agotar el tiempo',
+        detail: 'Al responder incorrectamente o dejar pasar el tiempo, la pantalla de feedback ya no muestra cuál era la respuesta correcta. Esto mantiene la integridad del juego y evita que los jugadores memoricen las respuestas durante la partida.',
+    },
+    {
+        id: 'v130-boost-lost-on-shield',
+        type: 'fix',
+        date: '2026-03-09',
+        title: 'Corrección: el multiplicador de ruleta se conservaba indebidamente tras usar el Escudo',
+        detail: 'Si tenías activo un multiplicador de puntos (x2, x3 o x4) de la ruleta y fallabas una pregunta protegida por el Escudo, el multiplicador permanecía activo para la siguiente pregunta como si no hubiera ocurrido nada. Los multiplicadores solo deben aplicarse a preguntas respondidas correctamente, por lo que ahora se consumen al fallar incluso cuando el Escudo absorbe la penalización de vida.',
+    },
+    {
+        id: 'v130-stacked-shields-fix',
+        type: 'fix',
+        date: '2026-03-09',
+        title: 'Corrección: el Escudo de Racha no se consumía si el Escudo de Vida también estaba activo',
+        detail: 'Cuando ambos escudos (Escudo de Vida y Escudo de Racha) estaban activos al mismo tiempo y se fallaba una pregunta, el Escudo de Vida se consumía correctamente pero el Escudo de Racha quedaba intacto. Esto permitía que en la siguiente pregunta el Escudo de Racha se activase de nuevo de forma inmerecida. Ahora ambos escudos se consumen en el mismo fallo.',
+    },
     // ── Próximas Implementaciones ────────────────────────────────────
     {
         id: 'cs-blitz',
