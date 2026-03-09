@@ -2568,6 +2568,7 @@ const SFX = {
 // --- UI Modal y Configuracion ---
 const FPS_VALUES = [15, 30, 60, 120, 240];
 function openSettings() {
+    if (_screenTransitioning) return; // anti-glitch
     initAudio(); SFX.click();
     playerStats.configViews = (playerStats.configViews||0) + 1;
     trackSectionVisit('settings');
@@ -2653,6 +2654,11 @@ document.getElementById('op-fps').addEventListener('input', (e) => {
 function showToast(title, message, color, icon, duration) {
     const container = document.getElementById('toast-container');
     if (!container) return;
+    // Anti-glitch: evitar toasts duplicados del mismo título en < 800ms
+    const _now = Date.now();
+    if (!showToast._lastTs) showToast._lastTs = {};
+    if (showToast._lastTs[title] && _now - showToast._lastTs[title] < 800) return;
+    showToast._lastTs[title] = _now;
     const ms = duration || 3500;
     const toast = document.createElement('div'); 
     toast.className = 'toast-item'; 
@@ -3357,6 +3363,7 @@ let _isViewingOtherProfile = false;
 let _profileReturnScreen = 'start-screen'; // pantalla a la que volver al salir
 
 function profileGoBack() {
+    if (_screenTransitioning) return; // anti-glitch
     try { SFX.click(); } catch(e) {}
     const target = _profileReturnScreen || 'start-screen';
     _restoreOwnProfileOnLeave();
@@ -3695,7 +3702,11 @@ function _restoreOwnProfileOnLeave() {
 }
 
 // ── Abrir tarjeta ─────────────────────────────────────────────────
+let _pcardOpening = false; // anti-glitch flag
 function openPlayerCard(index) {
+    if (_pcardOpening) return; // anti-glitch: evitar doble apertura
+    const overlay = document.getElementById('pcard-overlay');
+    if (overlay && overlay.classList.contains('active')) return; // ya está abierta
     const data = window._leaderboardData;
     if (!data || !data[index]) return;
     const p   = data[index];
@@ -3829,13 +3840,16 @@ function openPlayerCard(index) {
     }
 
     // Mostrar overlay
+    _pcardOpening = true;
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
+    setTimeout(() => { _pcardOpening = false; }, 300); // liberar lock tras animación
 }
 
 // ── Cerrar tarjeta ────────────────────────────────────────────────
 function closePlayerCard() {
     const overlay = document.getElementById('pcard-overlay');
+    if (!overlay || !overlay.classList.contains('active')) return; // anti-glitch: ya cerrada
     overlay.classList.remove('active');
     document.body.style.overflow = '';
     _pcStop();
@@ -4893,7 +4907,26 @@ function renderAchievements() {
 let isAchievementsInitialized = true; // siempre true, setup es lazy
 const achCardElements = {};           // mantenido vacío para compatibilidad con código existente
 let _currentScreen = null;
+// ── Anti-glitch: protección contra aperturas/cierres rápidos de pantallas ──
+let _screenTransitioning = false;
+let _screenTransitionTimer = null;
+const _SCREEN_TRANSITION_LOCK_MS = 120; // ms mínimos entre transiciones
+
+function _releaseScreenLock() {
+    _screenTransitioning = false;
+    _screenTransitionTimer = null;
+}
+
 function switchScreen(id) {
+    // Anti-glitch: ignorar si hay transición en curso hacia la MISMA pantalla
+    if (_currentScreen && _currentScreen.id === id) return;
+
+    // Anti-glitch: si hay un timer pendiente de transición, cancelarlo y ejecutar directamente
+    if (_screenTransitionTimer) {
+        clearTimeout(_screenTransitionTimer);
+        _screenTransitionTimer = null;
+    }
+
     // Parar el poll del ranking si salimos de él
     if (id !== 'ranking-screen') _stopRankingPoll();
     if (_currentScreen) {
@@ -4906,7 +4939,14 @@ function switchScreen(id) {
     const next = document.getElementById(id);
     // Slightly longer delay on iOS to allow Safari layout to settle
     const delay = /iPad|iPhone|iPod/.test(navigator.userAgent) ? 60 : 16;
-    setTimeout(() => { if(next) { next.classList.add('active'); _currentScreen = next; } }, delay);
+
+    _screenTransitioning = true;
+    _screenTransitionTimer = setTimeout(() => {
+        if (next) { next.classList.add('active'); _currentScreen = next; }
+        // Liberar lock tras completar la transición
+        setTimeout(_releaseScreenLock, _SCREEN_TRANSITION_LOCK_MS);
+        _screenTransitionTimer = null;
+    }, delay);
 }
 // Initialize current screen
 _currentScreen = document.querySelector('.screen.active');
@@ -5240,6 +5280,7 @@ function darkenHex(hex, factor) {
 
 function showRoulette() {
     if (rouletteActive) return;
+    if (_screenTransitioning) return; // anti-glitch: bloquear si hay transición en curso
     const overlay = document.getElementById('roulette-overlay');
     if (!overlay) return; // DOM not ready guard
     rouletteActive = true;
@@ -5482,6 +5523,7 @@ function updateRewardIndicator() {
 }
 
 function closeRoulette() {
+    if (!rouletteActive) return; // anti-glitch: evitar doble cierre
     const overlay = document.getElementById('roulette-overlay');
     overlay.classList.remove('active');
     rouletteActive = false;
@@ -5519,6 +5561,7 @@ window.addEventListener('popstate', function(e) {
 });
 
 function goToMainMenu() { 
+    if (_screenTransitioning) return; // anti-glitch
     SFX.click();
     // Restaurar perfil propio si se estaba viendo el de otro jugador
     _restoreOwnProfileOnLeave();
@@ -5771,6 +5814,7 @@ function _ksStartBanTicker() {
 }
 
 async function goToSecurity() {
+    if (_screenTransitioning) return; // anti-glitch
     try { initAudio(); SFX.click(); } catch(e) {}
     try {
         localStorage.setItem('klick_security_seen', KLICK_VERSION);
@@ -5792,6 +5836,7 @@ async function goToSecurity() {
 }
 
 function goToChangelog() {
+    if (_screenTransitioning) return; // anti-glitch
     try { initAudio(); SFX.click(); } catch(e) {}
     // Marcar como visto (ocultar punto de novedad)
     try {
@@ -5838,9 +5883,10 @@ function trackSectionVisit(section) {
     }
 }
 
-function goToAchievements() { initAudio(); SFX.click(); playerStats.achViews++; trackSectionVisit('achievements'); saveStatsLocally(); checkAchievements(); renderAchievements(); switchScreen('achievements-screen'); const sc = document.getElementById('vscroll-container'); if(sc) sc.scrollTop = 0; }
+function goToAchievements() { if (_screenTransitioning) return; initAudio(); SFX.click(); playerStats.achViews++; trackSectionVisit('achievements'); saveStatsLocally(); checkAchievements(); renderAchievements(); switchScreen('achievements-screen'); const sc = document.getElementById('vscroll-container'); if(sc) sc.scrollTop = 0; }
 
 function goToRanking() { 
+    if (_screenTransitioning) return; // anti-glitch
     initAudio(); SFX.click();
     playerStats.rankingViews = (playerStats.rankingViews||0) + 1;
     trackSectionVisit('ranking');
@@ -5852,6 +5898,7 @@ function goToRanking() {
 
 
 function goToProfile(needsName = false) {
+    if (_screenTransitioning && !needsName) return; // anti-glitch (no bloquear si se necesita nombre)
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
     SFX.click();
     // Si no se llegó desde el ranking, el back button vuelve al menú principal.
@@ -6325,7 +6372,11 @@ function showOnboarding(onComplete) {
         render();
     });
 }
+let _startGameCheckPending = false; // anti-glitch: evitar doble tap en Jugar
 async function startGameCheck() {
+    if (_startGameCheckPending) return; // anti-glitch
+    _startGameCheckPending = true;
+    setTimeout(() => { _startGameCheckPending = false; }, 1200); // liberar tras 1.2s
     // iOS/Safari: AudioContext MUST be resumed synchronously inside a user gesture handler
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
     if (!playerStats.playerName || playerStats.playerName === "JUGADOR") { 
@@ -8138,6 +8189,7 @@ function renderKpPath() {
     }, 280);
 }
 function goToKlickPass() {
+    if (_screenTransitioning) return; // anti-glitch
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e){}
     SFX.click();
     playerStats.kpViews = (playerStats.kpViews||0) + 1;
@@ -8193,6 +8245,7 @@ _kpUpdateMenuBadge();
 // ════════════════════════════ RANGOS ══════════════════════════════════
 
 function goToRanks() {
+    if (_screenTransitioning) return; // anti-glitch
     initAudio(); SFX.click();
     playerStats.ranksViews = (playerStats.ranksViews || 0) + 1;
     trackSectionVisit('ranks');
