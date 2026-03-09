@@ -2569,6 +2569,7 @@ const SFX = {
 const FPS_VALUES = [15, 30, 60, 120, 240];
 function openSettings() {
     if (_screenTransitioning) return; // anti-glitch
+    _lockUserNav();
     initAudio(); SFX.click();
     playerStats.configViews = (playerStats.configViews||0) + 1;
     trackSectionVisit('settings');
@@ -3364,6 +3365,7 @@ let _profileReturnScreen = 'start-screen'; // pantalla a la que volver al salir
 
 function profileGoBack() {
     if (_screenTransitioning) return; // anti-glitch
+    _lockUserNav();
     try { SFX.click(); } catch(e) {}
     const target = _profileReturnScreen || 'start-screen';
     _restoreOwnProfileOnLeave();
@@ -3736,7 +3738,6 @@ function openPlayerCard(index) {
     if (!isChristopherCard && pos <= 3 && (baseRank === 'Leyenda' || baseRank === 'Eterno' || baseRank === 'Mítico' || baseRank === 'Divinidad')) displayTitle = podiumTitles[pos];
 
     // CSS vars en el overlay para el gradiente de fondo
-    const overlay = document.getElementById('pcard-overlay');
     overlay.style.setProperty('--pcard-color', color);
     overlay.style.setProperty('--pcard-rgb', rgb);
 
@@ -4917,15 +4918,16 @@ function _releaseScreenLock() {
     _screenTransitionTimer = null;
 }
 
-function switchScreen(id) {
-    // Anti-glitch: ignorar si hay transición en curso hacia la MISMA pantalla
-    if (_currentScreen && _currentScreen.id === id) return;
+// ── Helper: activar lock de transición para navegación iniciada por usuario ──
+function _lockUserNav() {
+    _screenTransitioning = true;
+    if (_screenTransitionTimer) clearTimeout(_screenTransitionTimer);
+    _screenTransitionTimer = setTimeout(_releaseScreenLock, 350);
+}
 
-    // Anti-glitch: si hay un timer pendiente de transición, cancelarlo y ejecutar directamente
-    if (_screenTransitionTimer) {
-        clearTimeout(_screenTransitionTimer);
-        _screenTransitionTimer = null;
-    }
+function switchScreen(id) {
+    // Anti-glitch: ignorar si ya estamos en esa pantalla
+    if (_currentScreen && _currentScreen.id === id) return;
 
     // Parar el poll del ranking si salimos de él
     if (id !== 'ranking-screen') _stopRankingPoll();
@@ -4940,11 +4942,8 @@ function switchScreen(id) {
     // Slightly longer delay on iOS to allow Safari layout to settle
     const delay = /iPad|iPhone|iPod/.test(navigator.userAgent) ? 60 : 16;
 
-    _screenTransitioning = true;
     _screenTransitionTimer = setTimeout(() => {
         if (next) { next.classList.add('active'); _currentScreen = next; }
-        // Liberar lock tras completar la transición
-        setTimeout(_releaseScreenLock, _SCREEN_TRANSITION_LOCK_MS);
         _screenTransitionTimer = null;
     }, delay);
 }
@@ -5562,6 +5561,7 @@ window.addEventListener('popstate', function(e) {
 
 function goToMainMenu() { 
     if (_screenTransitioning) return; // anti-glitch
+    _lockUserNav();
     SFX.click();
     // Restaurar perfil propio si se estaba viendo el de otro jugador
     _restoreOwnProfileOnLeave();
@@ -5815,6 +5815,7 @@ function _ksStartBanTicker() {
 
 async function goToSecurity() {
     if (_screenTransitioning) return; // anti-glitch
+    _lockUserNav();
     try { initAudio(); SFX.click(); } catch(e) {}
     try {
         localStorage.setItem('klick_security_seen', KLICK_VERSION);
@@ -5837,6 +5838,7 @@ async function goToSecurity() {
 
 function goToChangelog() {
     if (_screenTransitioning) return; // anti-glitch
+    _lockUserNav();
     try { initAudio(); SFX.click(); } catch(e) {}
     // Marcar como visto (ocultar punto de novedad)
     try {
@@ -5883,10 +5885,11 @@ function trackSectionVisit(section) {
     }
 }
 
-function goToAchievements() { if (_screenTransitioning) return; initAudio(); SFX.click(); playerStats.achViews++; trackSectionVisit('achievements'); saveStatsLocally(); checkAchievements(); renderAchievements(); switchScreen('achievements-screen'); const sc = document.getElementById('vscroll-container'); if(sc) sc.scrollTop = 0; }
+function goToAchievements() { if (_screenTransitioning) return; _lockUserNav(); initAudio(); SFX.click(); playerStats.achViews++; trackSectionVisit('achievements'); saveStatsLocally(); checkAchievements(); renderAchievements(); switchScreen('achievements-screen'); const sc = document.getElementById('vscroll-container'); if(sc) sc.scrollTop = 0; }
 
 function goToRanking() { 
     if (_screenTransitioning) return; // anti-glitch
+    _lockUserNav();
     initAudio(); SFX.click();
     playerStats.rankingViews = (playerStats.rankingViews||0) + 1;
     trackSectionVisit('ranking');
@@ -5899,6 +5902,7 @@ function goToRanking() {
 
 function goToProfile(needsName = false) {
     if (_screenTransitioning && !needsName) return; // anti-glitch (no bloquear si se necesita nombre)
+    _lockUserNav();
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
     SFX.click();
     // Si no se llegó desde el ranking, el back button vuelve al menú principal.
@@ -8190,6 +8194,7 @@ function renderKpPath() {
 }
 function goToKlickPass() {
     if (_screenTransitioning) return; // anti-glitch
+    _lockUserNav();
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e){}
     SFX.click();
     playerStats.kpViews = (playerStats.kpViews||0) + 1;
@@ -8246,6 +8251,7 @@ _kpUpdateMenuBadge();
 
 function goToRanks() {
     if (_screenTransitioning) return; // anti-glitch
+    _lockUserNav();
     initAudio(); SFX.click();
     playerStats.ranksViews = (playerStats.ranksViews || 0) + 1;
     trackSectionVisit('ranks');
