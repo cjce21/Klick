@@ -299,9 +299,17 @@ function renderChangelog() {
         coming:   { label: 'Próximo',          color: '#ffb800' },
     };
 
-    const coming  = _versionedLog.filter(function(e) { return e.type === 'coming'; });
-    // Solo los cambios del dia de hoy (no historico)
-    const todayEntries = _versionedLog.filter(function(e) { return e.type !== 'coming' && e.date === TODAY; }).reverse();
+    const coming   = _versionedLog.filter(function(e) { return e.type === 'coming'; });
+    const allDated = _versionedLog.filter(function(e) { return e.type !== 'coming' && e.date; });
+
+    // Agrupar todos los cambios por versión manteniendo orden de aparición
+    const versionOrder = [];
+    const byVersion = {};
+    for (const e of allDated) {
+        if (!byVersion[e.version]) { byVersion[e.version] = []; versionOrder.push(e.version); }
+        byVersion[e.version].push(e);
+    }
+    versionOrder.reverse(); // más reciente primero
 
     let html = '';
 
@@ -317,35 +325,22 @@ function renderChangelog() {
         }
     }
 
-    // ── Cambios de hoy ──────────────────────────────────────────────
-    html += '<div class="cl-section-header cl-section-history"><span class="cl-section-dot cl-dot-history"></span><span>Actualizaciones de hoy</span></div>';
+    // ── Historial completo ──────────────────────────────────────────
+    html += '<div class="cl-section-header cl-section-history"><span class="cl-section-dot cl-dot-history"></span><span>Historial de actualizaciones</span></div>';
 
-    // Si no hay cambios hoy, buscar la última fecha disponible y mostrar esos cambios
-    let displayEntries = todayEntries;
-    let displayLabel = 'Actualizaciones de hoy';
-    if (todayEntries.length === 0) {
-        const nonComing = _versionedLog.filter(function(e) { return e.type !== 'coming'; });
-        if (nonComing.length > 0) {
-            const lastDate = nonComing[nonComing.length - 1].date;
-            displayEntries = nonComing.filter(function(e) { return e.date === lastDate; }).reverse();
-            displayLabel = 'Última actualización (' + lastDate + ')';
-        }
-        // Reemplazar encabezado ya escrito
-        html = html.replace('>Actualizaciones de hoy<', '>' + displayLabel + '<');
-    }
-
-    if (displayEntries.length === 0) {
+    if (versionOrder.length === 0) {
         html += '<div style="padding:20px 0;text-align:center;font-size:0.72rem;color:var(--text-secondary);">Sin cambios registrados.</div>';
     } else {
-        // Agrupar por version
-        const byVersion = {};
-        for (const e of displayEntries) {
-            if (!byVersion[e.version]) byVersion[e.version] = [];
-            byVersion[e.version].push(e);
-        }
-        for (const ver in byVersion) {
-            const entries = byVersion[ver];
-            html += '<div class="cl-version-group"><div class="cl-version-header"><span class="cl-version-tag">' + ver + '</span></div>';
+        for (const ver of versionOrder) {
+            const entries = byVersion[ver].slice().reverse();
+            const groupDate = entries[0].date;
+            const isToday = groupDate === TODAY;
+            html += '<div class="cl-version-group">' +
+                '<div class="cl-version-header">' +
+                '<span class="cl-version-tag">' + ver + '</span>' +
+                '<span class="cl-version-date"' + (isToday ? ' style="color:var(--accent-green,#00e85a)"' : '') + '>' +
+                (isToday ? 'Hoy' : groupDate) + '</span>' +
+                '</div>';
             for (const e of entries) {
                 const cfg = typeConfig[e.type] || typeConfig.add;
                 html += '<div class="cl-entry' + (e.type === 'revoke' ? ' cl-revoke' : '') + '">' +
@@ -381,6 +376,7 @@ function renderChangelog() {
         '.cl-version-group { margin-bottom: 6px; }',
         '.cl-version-header { display:flex;align-items:center;gap:10px;padding:10px 0 6px; }',
         '.cl-version-tag { font-size:0.65rem;font-weight:900;letter-spacing:1.5px;color:var(--text-primary);text-transform:uppercase; }',
+        '.cl-version-date { font-size:0.6rem;font-weight:600;letter-spacing:0.5px;color:var(--text-secondary);margin-left:auto; }',
 
         '.cl-entry {',
         '    display:flex;gap:12px;align-items:flex-start;',
