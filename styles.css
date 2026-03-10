@@ -2025,11 +2025,6 @@ body.quality-perf .glass-panel   { background:rgba(17,17,17,0.97)!important; box
 body.quality-perf .top-nav       { background:rgba(5,5,5,0.99)!important; box-shadow:none!important; }
 body.quality-perf .top-bar       { background:rgba(5,5,5,0.99)!important; }
 body.quality-perf .answer-btn    { background-color:rgba(12,12,12,0.99)!important; box-shadow:none!important; border-color:rgba(255,255,255,0.12)!important; }
-/* PERF: mantener acento de color inferior en las respuestas (igual que modo normal) */
-body.quality-perf .answer-btn.color-red    { border-bottom: 2px solid var(--accent-red) !important; }
-body.quality-perf .answer-btn.color-blue   { border-bottom: 2px solid var(--accent-blue) !important; }
-body.quality-perf .answer-btn.color-yellow { border-bottom: 2px solid var(--accent-yellow) !important; }
-body.quality-perf .answer-btn.color-green  { border-bottom: 2px solid var(--accent-green) !important; }
 body.quality-perf .question-text { background:rgba(8,8,8,0.99)!important; }
 body.quality-perf .pcard-panel   { background:rgba(10,10,10,0.99)!important; box-shadow:none!important; }
 body.quality-perf .toast-item    { background:rgba(17,17,17,0.99)!important; box-shadow:none!important; }
@@ -2092,10 +2087,6 @@ body.quality-perf .quality-btn { transition-duration:0.05s!important; }
 body.quality-perf.light-mode .glass-panel   { background:rgba(242,244,247,0.99)!important; }
 body.quality-perf.light-mode .top-nav       { background:rgba(235,237,242,0.99)!important; }
 body.quality-perf.light-mode .answer-btn    { background-color:rgba(244,245,248,0.99)!important; }
-body.quality-perf.light-mode .answer-btn.color-red    { border-bottom-color: var(--accent-red) !important; border-bottom-width: 3px; }
-body.quality-perf.light-mode .answer-btn.color-blue   { border-bottom-color: var(--accent-blue) !important; border-bottom-width: 3px; }
-body.quality-perf.light-mode .answer-btn.color-yellow { border-bottom-color: var(--accent-yellow) !important; border-bottom-width: 3px; }
-body.quality-perf.light-mode .answer-btn.color-green  { border-bottom-color: var(--accent-green) !important; border-bottom-width: 3px; }
 body.quality-perf.light-mode .question-text { background:rgba(230,233,240,0.99)!important; }
 body.quality-perf .kp-header { background:rgba(5,5,5,0.99)!important; }
 body.quality-perf.light-mode .kp-header { background:rgba(242,244,247,0.99)!important; }
@@ -2908,7 +2899,6 @@ body.light-mode   .architect-rune { color: rgba(0,150,135,0.30); }
     pointer-events: none; z-index: 0; opacity: 0.13;
 }
 .ks-so-glow-yellow { background: #ffb800; }
-.ks-so-glow-orange { background: #ff8c00; }
 .ks-so-glow-red    { background: #ff2a2a; }
 
 /* ══ Card central — siempre vertical, centrada ═══════════════════════════ */
