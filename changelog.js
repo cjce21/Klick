@@ -213,6 +213,35 @@ const KLICK_CHANGELOG = [
         title: 'Corrección: el Escudo de Racha no se consumía si el Escudo de Vida también estaba activo',
         detail: 'Cuando ambos escudos (Escudo de Vida y Escudo de Racha) estaban activos al mismo tiempo y se fallaba una pregunta, el Escudo de Vida se consumía correctamente pero el Escudo de Racha quedaba intacto. Esto permitía que en la siguiente pregunta el Escudo de Racha se activase de nuevo de forma inmerecida. Ahora ambos escudos se consumen en el mismo fallo.',
     },
+    // ── 2026-03-10 ───────────────────────────────────────────────────
+    {
+        id: 'v140-ks-review-warning-split',
+        type: 'security',
+        date: '2026-03-10',
+        title: 'Klick Shield — Revisión y advertencia ahora son estados separados',
+        detail: 'Estar "bajo revisión" y recibir una "advertencia formal" son ahora dos cosas distintas. Antes, la primera advertencia del sistema activaba la pantalla de advertencia y sumaba al contador de 3. Ahora, la revisión preventiva (cuando el sistema detecta actividad inusual por primera vez, o cuando se acumulan 3 sesiones leves en 7 días) tiene su propia pantalla informativa sin consecuencias y sin contar como advertencia. Solo los eventos de mayor peso activan una advertencia formal y suman al contador 1/3, 2/3, 3/3. Las revisiones no bloquean el juego ni reducen el Nivel de Poder.',
+    },
+    {
+        id: 'v140-ks-false-positive-reduction',
+        type: 'security',
+        date: '2026-03-10',
+        title: 'Klick Shield — Reducción de falsos positivos',
+        detail: 'Se ajustaron varios pesos del sistema de detección para ser menos agresivos en situaciones cotidianas. Las señales de pérdida de foco (blur) ahora solo se registran si ya hay al menos 3 respuestas dadas en la sesión, evitando que notificaciones del sistema al abrir el juego contaminen el análisis. El tiempo mínimo fuera de foco que activa una señal subió de 12 a 20 segundos. El retraso para detectar cambios de ventana rápidos (Alt+Tab) se extendió de 180 ms a 400 ms, filtrando mejor las notificaciones transitorias del sistema operativo.',
+    },
+    {
+        id: 'v140-sw-aggressive-update',
+        type: 'improve',
+        date: '2026-03-10',
+        title: 'Actualizaciones automáticas más rápidas y fiables',
+        detail: 'El detector de actualizaciones ahora es significativamente más activo. Durante el primer minuto tras abrir el juego comprueba cada 45 segundos si hay una versión nueva; luego pasa a 90 segundos. Además, cada vez que vuelves a la pestaña después de haberla dejado en segundo plano, el sistema comprueba inmediatamente si hay una actualización pendiente. Un nuevo mecanismo basado en ETag detecta cambios en el servidor aunque el Service Worker no los haya procesado aún, forzando una comprobación adicional. En conjunto, en la mayoría de los casos la actualización ocurrirá sin necesidad de limpiar la caché manualmente.',
+    },
+    {
+        id: 'v140-perf-mode-answer-accent',
+        type: 'improve',
+        date: '2026-03-10',
+        title: 'Modo rendimiento: acento de color en botones de respuesta',
+        detail: 'Los botones de respuesta en Modo Rendimiento ahora muestran el acento de color inferior (rojo, azul, amarillo o verde) igual que en el modo normal. Antes, este detalle visual estaba ausente en rendimiento aunque sí aparecía en los otros modos. El único modo que permanece exento es el Máximo, donde el Cristalyx tiene sus propios efectos visuales que lo reemplazan.',
+    },
     // ── Próximas Implementaciones ────────────────────────────────────
     {
         id: 'cs-blitz',
