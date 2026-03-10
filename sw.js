@@ -12,7 +12,7 @@
 //  • Garantizado: siempre hay clientes cuando activate corre.
 // ══════════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'klick-cache-v7';
+const CACHE_NAME = 'klick-cache-v8';
 
 const PRECACHE = [
     './',
