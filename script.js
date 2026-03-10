@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-//  KLICK SHIELD v2 — Sistema de Detección y Sanción
+//  KLICK SHIELD v4 — Sistema de Detección y Sanción
 //
 //  Principio: ningún evento aislado genera sanción. El sistema recolecta
 //  señales durante la partida, las pondera, aplica atenuantes al terminar,
@@ -8,10 +8,10 @@
 //  Fases:
 //   1. Recolección silenciosa de señales (durante partida)
 //   2. Análisis post-partida con atenuantes (nunca interrumpe el juego)
-//   3. Escalada de sanciones por infracciones acumuladas (máx. 24 h)
+//   3. Escalada de sanciones por infracciones acumuladas (máx. 72 h)
 //
 //  Protecciones especiales para iPad/Safari: blur y poll ponderados a la
-//  mitad; resize ignorado en tablet; poll cada 10 s en lugar de 3 s.
+//  mitad; resize ignorado en tablet; poll cada 5 s en lugar de 3 s.
 // ═══════════════════════════════════════════════════════════════════════════
 
 document.addEventListener('contextmenu', (e) => {
@@ -148,6 +148,15 @@ function _ksReset() {
     _ksWinOW = window.outerWidth; _ksWinOH = window.outerHeight;
     _ksSplitActive = false; _ksSplitEnterTs = 0; _ksSplitInteractTs = 0;
     _ksTtsWasIdle = true;
+    // iOS: limpiar timestamps para que no contaminen la partida siguiente
+    _ksIosHiddenTs = 0; _ksIosMultitaskTs = 0; _ksIosBlurOnlyTs = 0;
+    // visualViewport: sincronizar con el estado real actual
+    _ksVvLastScale = (window.visualViewport ? window.visualViewport.scale : 1);
+    _ksVvLastW     = (window.visualViewport ? window.visualViewport.width : window.innerWidth);
+    // Cooldown del alert in-game: reset para que la primera señal fuerte siempre sea visible
+    _ksAlertCooldownTs = 0;
+    // Cancelar cualquier resize pendiente de la partida anterior
+    clearTimeout(_ksResizeTimer); _ksResizeTimer = null;
     // NO resetear _ksGameActive aquí — se gestiona en _start/_stopAntiCheatPoll
 }
 
@@ -1364,8 +1373,8 @@ const defaultStats = {
     kpViews: 0, kpClaimDays: [], kpSessionClaims: 0,
     equippedTitle: null,
     qualityMode: 'normal',
-    seenChristopher: false, christopherCardViews: 0, christopherSeenCount: 0,
-    // KLICK SHIELD v2
+    christopherCardViews: 0,
+    // KLICK SHIELD v4
     ksInfractions: [],      // infracciones confirmadas con timestamp
     ksBanUntil: null,       // ISO string del fin del ban activo
     ksInfractionLvl: 0,     // nivel más alto alcanzado
@@ -5695,7 +5704,7 @@ function renderSecurityStatus() {
             const bh  = inf.banHours || BAN_HOURS[lvl] || 0;
             const isLast = i === 0;
             return `<div class="ks-inf-row${isLast ? ' ks-inf-latest' : ''}">
-                <div class="ks-inf-level" style="color:${lvl>=6?'#ff2a5f':lvl>=4?'#ff8c00':lvl>=2?'#ffb800':'var(--text-secondary)'}">Nv.${lvl}</div>
+                <div class="ks-inf-level" style="color:${lvl>=6?'#ff2a5f':lvl>=4?'#ff8c00':lvl>=2?'#ffb800':'#7ec8a0'}">Nv.${lvl}</div>
                 <div class="ks-inf-detail">
                     <div class="ks-inf-title">Infracción #${infList.length - i}</div>
                     <div class="ks-inf-meta">${dt}${bh > 0 ? ` · ${bh}h suspensión` : ' · Sin suspensión'}</div>
@@ -8709,7 +8718,7 @@ function _setupPushReminder() {
         t.id = toastId;
         t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9990;background:var(--bg-elevated);border:1.5px solid rgba(255,255,255,0.12);border-radius:16px;padding:14px 18px;max-width:320px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,0.4);display:flex;flex-direction:column;gap:10px;';
         t.innerHTML = `<div style="font-size:0.8rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;">Recordatorio de racha</div>
-            <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.5;">Activa las notificaciones para recibir un aviso cuando tu racha diaria este en peligro.</div>
+            <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.5;">Activa las notificaciones para recibir un aviso cuando tu racha diaria esté en peligro.</div>
             <div style="display:flex;gap:8px;">
                 <button onclick="document.getElementById('push-invite-toast').remove();playerStats.pushAsked=true;saveStatsLocally();" style="flex:1;padding:8px;background:transparent;border:1px solid rgba(255,255,255,0.2);color:var(--text-secondary);border-radius:10px;font-size:0.75rem;font-weight:700;cursor:pointer;">Ahora no</button>
                 <button id="push-accept-btn" style="flex:1;padding:8px;background:rgba(var(--rank-rgb),0.15);border:1px solid rgba(var(--rank-rgb),0.4);color:var(--rank-color);border-radius:10px;font-size:0.75rem;font-weight:700;cursor:pointer;">Activar</button>
@@ -8721,7 +8730,7 @@ function _setupPushReminder() {
             saveStatsLocally();
             Notification.requestPermission().then(perm => {
                 if (perm === 'granted') {
-                    showToast('Notificaciones activadas', 'Te avisaremos cuando tu racha este en peligro.', 'var(--rank-color)', null);
+                    showToast('Notificaciones activadas', 'Te avisaremos cuando tu racha esté en peligro.', 'var(--rank-color)', null);
                 }
             });
         });
