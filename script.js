@@ -579,12 +579,13 @@ function _ksAnalyzeSession(sessionAbandoned) {
     let weight = _ksWeight;
     if (weight <= 0) { _ksReset(); return; }
 
-    const infractions  = playerStats.ksInfractions || [];
     const gamesPlayed  = playerStats.gamesPlayed || 0;
     const bestScore    = playerStats.bestScore    || 0;
     const sessionScore = _ksSessionScore || 0;
-    const hasAnyFail   = _ksRespTimings.some(r => !r.correct) || (playerStats.totalWrong > 0);
-    const hasTimeout   = playerStats.totalTimeouts > 0;
+    // Usar solo los timings de esta sesión — totalWrong/totalTimeouts son de carrera
+    // y siempre serían > 0 para cualquier jugador con historial, dando un falso reductor
+    const hasAnyFail   = _ksRespTimings.some(r => !r.correct);
+    const hasTimeout   = _ksRespTimings.length > 0 && _ksRespTimings.some(r => r.ms >= 14500);
 
     if (gamesPlayed <= 3)         weight *= 0.50;  // cuenta muy nueva
     if (gamesPlayed >= 30)        weight *= 0.80;
@@ -641,7 +642,6 @@ function _ksOpenReview(date, weight, signals) {
     // Solo abrir revisión si no hay estado más grave ya activo
     if (playerStats.ksReviewStatus === 'warned' || playerStats.ksReviewStatus === 'sanctioned') return;
     playerStats.ksReviewStatus = 'under_review';
-    playerStats.ksReviewDate   = date;
     // Guardar señal en ksSuspicious (no en ksWarnings — revisión no es advertencia)
     const sus = playerStats.ksSuspicious || [];
     sus.push({ date, weight, signals, type: 'review' });
@@ -753,6 +753,19 @@ function _ksShowPostGameFeedback(type, weight) {
 function _ksCheckBanOnStart() {
     const isAdmin = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
     if (isAdmin) return false;
+
+    // Auto-limpiar el estado de revisión si ya no hay advertencias activas (últimos 30 días)
+    const review = playerStats.ksReviewStatus;
+    if (review === 'under_review' || review === 'warned') {
+        const thirtyDays = Date.now() - 30 * 24 * 3600 * 1000;
+        const activeWarnings = (playerStats.ksWarnings || []).filter(w => new Date(w.date).getTime() > thirtyDays);
+        if (activeWarnings.length === 0) {
+            playerStats.ksReviewStatus = null;
+            playerStats.ksWarnings = [];
+            saveStatsLocally();
+        }
+    }
+
     const banUntil = playerStats.ksBanUntil;
     if (!banUntil) return false;
     const remaining = new Date(banUntil).getTime() - Date.now();
@@ -914,10 +927,10 @@ function _ksShowWarningScreen(warnCount) {
     const remaining = 3 - warnCount;
     const el = document.createElement('div');
     el.id = 'ks-screen-overlay';
-    el.className = 'ks-screen-overlay ks-so-review';
+    el.className = 'ks-screen-overlay ks-so-warning';
     el.innerHTML = `
         <canvas class="ks-so-canvas" id="ks-so-canvas"></canvas>
-        <div class="ks-so-glow ks-so-glow-yellow"></div>
+        <div class="ks-so-glow ks-so-glow-orange"></div>
         <div class="ks-so-content">
             <div class="ks-so-icon ks-so-icon-warning">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
@@ -959,14 +972,14 @@ function _ksShowWarningScreen(warnCount) {
         el.classList.add('ks-so-visible');
         const cv = document.getElementById('ks-so-canvas');
         if (cv) _ksSpawnScreenParticles(cv, 255, 140, 0);
-        _ksPlayOverlayMusic('review');
+        _ksPlayOverlayMusic('warning');
     }, 30);
 }
 
 // ── Pantalla: Infracción / Suspensión ─────────────────────────────────────
 function _ksShowSanctionScreen(level, banHours, plPct) {
     _ksRemoveScreenOverlay();
-    const levelLabels = {1:'SUSPENSIÓN LEVE',2:'SUSPENSIÓN CORTA',3:'SUSPENSIÓN SEVERA',4:'SUSPENSIÓN GRAVE',5:'ACCESO REVOCADO'};
+    const levelLabels = {1:'AVISO LEVE',2:'SUSPENSIÓN CORTA',3:'SUSPENSIÓN MODERADA',4:'SUSPENSIÓN SEVERA',5:'SUSPENSIÓN GRAVE',6:'SUSPENSIÓN EXTENDIDA',7:'SUSPENSIÓN CRÍTICA',8:'ACCESO REVOCADO'};
     const banText = banHours > 0
         ? `Tu acceso ha sido suspendido por <strong>${banHours} hora${banHours>1?'s':''}</strong>.`
         : 'No hay suspensión de tiempo activa.';
@@ -999,7 +1012,7 @@ function _ksShowSanctionScreen(level, banHours, plPct) {
             </div>
             <div class="ks-so-chips">
                 <div class="ks-so-chip ks-chip-red">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Nivel ${level}/5
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Nivel ${level}/8
                 </div>
                 <div class="ks-so-chip ks-chip-red">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Infracción #${infraN}
@@ -1008,7 +1021,7 @@ function _ksShowSanctionScreen(level, banHours, plPct) {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>${banHours}h suspendido
                 </div>` : ''}
             </div>
-            <div class="ks-so-meta">Klick Shield · ${dt} · Nivel ${level}/5 · Infracción #${infraN}</div>
+            <div class="ks-so-meta">Klick Shield · ${dt} · Nivel ${level}/8 · Infracción #${infraN}</div>
             <div class="ks-so-btn-row">
                 <button class="ks-so-btn ks-so-btn-sanction" onclick="_ksRemoveScreenOverlay()">Acepto las consecuencias</button>
             </div>
@@ -1061,7 +1074,7 @@ function _ksShowBanScreen() {
             </div>
             <div class="ks-so-chips">
                 <div class="ks-so-chip ks-chip-red">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Nivel ${lastInf.level||'?'}/5
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Nivel ${lastInf.level||'?'}/8
                 </div>
                 <div class="ks-so-chip ks-chip-red">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>${lastInf.banHours||0}h suspensión
@@ -1357,8 +1370,7 @@ const defaultStats = {
     ksBanUntil: null,       // ISO string del fin del ban activo
     ksInfractionLvl: 0,     // nivel más alto alcanzado
     ksReviewStatus: null,   // null | 'under_review' | 'warned' | 'sanctioned'
-    ksReviewDate: null,     // fecha de la última apertura de revisión
-    ksSuspicious: [],       // sesiones sospechosas internas (peso 8-12)
+    ksSuspicious: [],       // sesiones sospechosas internas (peso 7-11)
     ksWarnings: [],         // advertencias formales (máx 3 antes de sancionar)
 };
 
