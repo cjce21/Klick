@@ -8775,6 +8775,8 @@ function _setupPushReminder() {
     }
 
     // ── Registro y detección de actualizaciones ───────────────────
+    const _hadController = !!navigator.serviceWorker.controller;
+
     navigator.serviceWorker.register('./sw.js').then(reg => {
 
         // Caso A: Ya hay un SW nuevo esperando al cargar la página
@@ -8806,6 +8808,7 @@ function _setupPushReminder() {
     // Usar un pequeño debounce para evitar doble disparo en Chrome
     let _ccTimer = null;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!_hadController) return;
         clearTimeout(_ccTimer);
         _ccTimer = setTimeout(() => _showUpdateBanner(), 80);
     });
