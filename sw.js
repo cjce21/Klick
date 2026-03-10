@@ -32,7 +32,7 @@ self.addEventListener('message', event => {
 });
 
 // ── Instalación ───────────────────────────────────────────────────
-// NO llamamos skipWaiting() aqui - lo hara el cliente.
+// NO llamamos skipWaiting() aquí - lo hara el cliente.
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -41,7 +41,7 @@ self.addEventListener('install', event => {
     );
 });
 
-// ── Activacion ────────────────────────────────────────────────────
+// ── Activación ────────────────────────────────────────────────────
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys()
