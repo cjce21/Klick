@@ -285,6 +285,20 @@ const KLICK_CHANGELOG = [
         detail: 'El mensaje del aviso de notificaciones push decía "racha diaria este en peligro" (dos veces). Corregido a "esté" con tilde.',
     },
     {
+        id: 'v142-sw-cache-v9',
+        type: 'fix',
+        date: '2026-03-10',
+        title: 'Corrección: juego bloqueado en dispositivos con caché antiguo',
+        detail: 'En algunos dispositivos el juego no iniciaba ni respondía al abrirse. La causa era un Service Worker de una versión anterior que había tomado el control antes de que hubiera clientes activos, quedando en un estado roto que servía archivos obsoletos del caché. La actualización al caché v9 fuerza que el nuevo Service Worker invalide y reemplace el caché antiguo automáticamente en la próxima visita, desbloqueando esos dispositivos sin intervención manual.',
+    },
+    {
+        id: 'v142-sw-first-install-reload',
+        type: 'fix',
+        date: '2026-03-10',
+        title: 'Corrección: recarga fantasma en la primera visita',
+        detail: 'En la primera apertura del juego (sin Service Worker previo), el evento controllerchange se disparaba al activarse el SW por primera vez, lo que la lógica de actualización interpretaba incorrectamente como una nueva versión disponible y recargaba la página en silencio. En dispositivos lentos o con red mala esto dejaba el juego en un estado intermedio bloqueado. Ahora se detecta si ya había un SW controlando antes del registro, y el evento solo activa la notificación de actualización cuando es una actualización real.',
+    },
+    {
         id: 'cs-blitz',
         type: 'coming',
         date: null,
