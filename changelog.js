@@ -226,7 +226,21 @@ const KLICK_CHANGELOG = [
         type: 'security',
         date: '2026-03-10',
         title: 'Klick Shield — Reducción de falsos positivos',
-        detail: 'Se ajustaron varios pesos del sistema de detección para ser menos agresivos en situaciones cotidianas. Las señales de pérdida de foco (blur) ahora solo se registran si ya hay al menos 3 respuestas dadas en la sesión, evitando que notificaciones del sistema al abrir el juego contaminen el análisis. El tiempo mínimo fuera de foco que activa una señal subió de 12 a 20 segundos. El retraso para detectar cambios de ventana rápidos (Alt+Tab) se extendió de 180 ms a 400 ms, filtrando mejor las notificaciones transitorias del sistema operativo.',
+        detail: 'Se ajustaron varios pesos del sistema de detección para ser menos agresivos en situaciones cotidianas. Las señales de pérdida de foco ahora solo se registran si ya hay al menos 3 respuestas dadas en la sesión, evitando que notificaciones del sistema al abrir el juego contaminen el análisis. El tiempo mínimo fuera de foco que activa una señal subió de 12 a 20 segundos. El retraso para detectar cambios de ventana rápidos se extendió de 180 ms a 400 ms. Además, los reductores de peso por fallos y timeouts ahora se calculan solo con los datos de la sesión actual, no con el historial completo de la cuenta.',
+    },
+    {
+        id: 'v140-ks-review-status-cleanup',
+        type: 'security',
+        date: '2026-03-10',
+        title: 'Klick Shield — Estado de revisión expira con las advertencias',
+        detail: 'El estado "bajo revisión" y "advertencia activa" ahora se limpian automáticamente cuando las advertencias formales asociadas vencen (30 días sin nuevas infracciones). Antes, el estado podía quedar marcado indefinidamente aunque ya no hubiera ninguna advertencia activa en el registro.',
+    },
+    {
+        id: 'v140-ks-8levels-display',
+        type: 'fix',
+        date: '2026-03-10',
+        title: 'Corrección: pantalla de sanción mostraba niveles sobre 5 en lugar de 8',
+        detail: 'La pantalla de infracción y la pantalla de ban activo mostraban el nivel como "Nivel X/5" aunque el sistema tiene 8 niveles de escalada. Ahora se muestra correctamente "Nivel X/8". Además, los niveles 6, 7 y 8 ya tienen etiquetas propias: Suspensión Extendida, Suspensión Crítica y Acceso Revocado respectivamente, en lugar de mostrar el texto genérico "SANCIÓN".',
     },
     {
         id: 'v140-sw-aggressive-update',
