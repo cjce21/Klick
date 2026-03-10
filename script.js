@@ -225,22 +225,29 @@ window.addEventListener('blur', () => {
     const now = Date.now();
     _ksLastBlurTs = now;
     if (_ksFocusLostTs === 0) _ksFocusLostTs = now;
-    _ksAddSignal('blur', _KS_IS_IPAD ? 0.6 : 3);
+    // Solo añadir señal de blur si ya hay al menos 3 respuestas registradas (evita falsos positivos al cargar)
+    if (_ksRespTimings.length >= 3) {
+        _ksAddSignal('blur', _KS_IS_IPAD ? 0.6 : 2);
+    }
     // Desktop: blur sin visibilitychange inmediato = minimizar ventana o Alt+Tab rápido
+    // Aumentado a 400ms para evitar falsos positivos con notificaciones del sistema
     if (!_KS_IS_IPAD && window.screen.width > 480) {
         setTimeout(() => {
             if (_ksFocusLostTs > 0 && document.visibilityState === 'visible' && !document.hasFocus()) {
                 // Sigue visible pero sin foco = otra ventana en primer plano (Alt+Tab / minimizar)
-                _ksAddSignal('window_minimized_or_alttab', 5);
+                // Solo sumar si hay partida activa con suficientes respuestas
+                if (_ksRespTimings.length >= 3) {
+                    _ksAddSignal('window_minimized_or_alttab', 4);
+                }
             }
-        }, 180);
+        }, 400);
     }
     // iOS: blur sin visibility→hidden = Control Center / Siri lateral
     if (_KS_IS_IPAD && isAnsweringAllowed) {
         _ksIosBlurOnlyTs = now;
         setTimeout(() => {
             if (_ksIosBlurOnlyTs > 0 && document.visibilityState === 'visible' && isAnsweringAllowed)
-                _ksAddSignal('ios_control_center', 4);
+                _ksAddSignal('ios_control_center', 3);
             _ksIosBlurOnlyTs = 0;
         }, 280);
     }
@@ -344,9 +351,9 @@ function _startAntiCheatPoll() {
         if (!_KS_IS_IPAD && window.screen.width > 480) {
             if ((Date.now() - _ksLastPtrTs) > 35000) _ksAddSignal('pointer_absent', 5);
         }
-        // Tiempo total fuera de foco en la sesión > 12s = sospechoso
-        if (_ksNoFocusSecs > 12 && isAnsweringAllowed) {
-            _ksAddSignal('extended_nofocus', Math.min(Math.floor(_ksNoFocusSecs / 8), 6));
+        // Tiempo total fuera de foco en la sesión > 20s = sospechoso
+        if (_ksNoFocusSecs > 20 && isAnsweringAllowed) {
+            _ksAddSignal('extended_nofocus', Math.min(Math.floor(_ksNoFocusSecs / 10), 5));
             _ksNoFocusSecs = 0; // reset para no duplicar
         }
     }, interval);
@@ -606,11 +613,13 @@ function _ksAnalyzeSession(sessionAbandoned) {
         if (sus.length > 20) sus.splice(0, sus.length - 20);
         playerStats.ksSuspicious = sus;
         const sevenDays = Date.now() - 7 * 24 * 3600 * 1000;
-        const recentSus = sus.filter(x => new Date(x.date).getTime() > sevenDays);
+        // Solo contar las sesiones sospechosas normales (no revisiones ya abiertas)
+        const recentSus = sus.filter(x => new Date(x.date).getTime() > sevenDays && !x.type);
         if (recentSus.length >= 3) {
-            // Acumuló 3 sesiones sospechosas → escalar a advertencia
-            playerStats.ksSuspicious = [];
-            _ksApplyWarning(now, capturedWeight, signals);
+            // Acumuló 3 sesiones sospechosas → abrir revisión (NO advertencia formal)
+            // Limpiar solo las sospechosas normales, conservar marcas de review
+            playerStats.ksSuspicious = sus.filter(x => x.type);
+            _ksOpenReview(now, capturedWeight, signals);
         } else {
             _ksShowPostGameFeedback('watch', capturedWeight);
         }
@@ -627,34 +636,42 @@ function _ksAnalyzeSession(sessionAbandoned) {
     _ksApplySanctionOrWarn(now, capturedWeight, signals);
 }
 
+// Abre monitoreo preventivo sin contar como advertencia formal
+function _ksOpenReview(date, weight, signals) {
+    // Solo abrir revisión si no hay estado más grave ya activo
+    if (playerStats.ksReviewStatus === 'warned' || playerStats.ksReviewStatus === 'sanctioned') return;
+    playerStats.ksReviewStatus = 'under_review';
+    playerStats.ksReviewDate   = date;
+    // Guardar señal en ksSuspicious (no en ksWarnings — revisión no es advertencia)
+    const sus = playerStats.ksSuspicious || [];
+    sus.push({ date, weight, signals, type: 'review' });
+    if (sus.length > 20) sus.splice(0, sus.length - 20);
+    playerStats.ksSuspicious = sus;
+    saveStatsLocally(); submitLeaderboard();
+    setTimeout(() => { try { _ksShowReviewScreen(); } catch(e) {} }, 2800);
+}
+
 // Aplica una advertencia formal sin penalización (hasta 3 antes de sancionar)
+// Solo se llama cuando weight es medio-alto o ya hubo revisión previa
 function _ksApplyWarning(date, weight, signals) {
     const thirtyDays = Date.now() - 30 * 24 * 3600 * 1000;
     const warnings   = (playerStats.ksWarnings || []).filter(w => new Date(w.date).getTime() > thirtyDays);
     warnings.push({ date, weight, signals });
     playerStats.ksWarnings = warnings;
-    // Solo marcar revisión (no sanción, no reducción PL)
-    // Progresión: 1ª advertencia=under_review, 2ª+='warned'
-    if (warnings.length === 1) {
-        playerStats.ksReviewStatus = 'under_review';
-        playerStats.ksReviewDate   = date;
-    } else {
-        playerStats.ksReviewStatus = 'warned';
-    }
+    playerStats.ksReviewStatus = 'warned';
     saveStatsLocally(); submitLeaderboard();
     // Retrasar el overlay visual para que no tape la pantalla de fin de partida
     const _warnCount = warnings.length;
     setTimeout(() => { try { _ksShowWarningScreen(_warnCount); } catch(e) {} }, 2800);
 }
 
-// Sanción real — solo si ya tiene 3+ advertencias activas, si no, da advertencia
+// Sanción real — solo si ya tiene 3+ advertencias activas, si no, da advertencia formal
 function _ksApplySanctionOrWarn(date, weight, signals) {
     const thirtyDays    = Date.now() - 30 * 24 * 3600 * 1000;
     const activeWarnings= (playerStats.ksWarnings || []).filter(w => new Date(w.date).getTime() > thirtyDays);
 
     if (activeWarnings.length < 3) {
-        // Aún no llega a 3 advertencias — dar advertencia sin sancionar
-        // _ksApplyWarning ya llama saveStatsLocally y submitLeaderboard internamente
+        // Aún no llega a 3 advertencias formales — dar advertencia sin sancionar
         _ksApplyWarning(date, weight, signals);
         return;
     }
@@ -8759,13 +8776,37 @@ function _setupPushReminder() {
     }
 
     // ── Activa el SW en espera y muestra el banner ────────────────
-    // Se llama una sola vez sin importar cuántos eventos disparan.
     let _skipSent = false;
     function _activatePendingSW(sw) {
         if (_skipSent) return;
         _skipSent = true;
         sw.postMessage({ type: 'SKIP_WAITING' });
         // El banner se muestra al recibir controllerchange (señal más fiable)
+    }
+
+    // ── Comprobación de nueva versión por ETag/Last-Modified ─────
+    // Detecta cambios aunque el SW no haya podido auto-actualizarse
+    let _lastEtag = null;
+    async function _checkVersionViaHttp() {
+        try {
+            const res = await fetch('./sw.js', {
+                method: 'HEAD',
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+            });
+            const etag = res.headers.get('etag') || res.headers.get('last-modified') || res.headers.get('x-sw-version');
+            if (etag) {
+                if (_lastEtag && _lastEtag !== etag) {
+                    // El SW en servidor cambió — forzar comprobación del registro
+                    _lastEtag = etag;
+                    navigator.serviceWorker.getRegistration().then(reg => {
+                        if (reg) reg.update();
+                    });
+                } else {
+                    _lastEtag = etag;
+                }
+            }
+        } catch (_) {}
     }
 
     // ── Registro y detección de actualizaciones ───────────────────
@@ -8791,13 +8832,21 @@ function _setupPushReminder() {
             });
         });
 
-        // Verificar actualizaciones cada 3 minutos (si el juego queda abierto)
-        setInterval(() => reg.update(), 3 * 60 * 1000);
+        // Polling agresivo: 45s en primer minuto, luego 90s
+        // Detecta actualizaciones mucho antes que el intervalo largo anterior
+        let _pollCount = 0;
+        function _pollUpdate() {
+            _pollCount++;
+            if (reg) reg.update();
+            _checkVersionViaHttp();
+            const next = _pollCount < 4 ? 45000 : 90000;
+            setTimeout(_pollUpdate, next);
+        }
+        setTimeout(_pollUpdate, 45000);
 
     }).catch(() => {}); // silencioso en file:// o sin HTTPS
 
     // Caso C: El SW cambió de controlador → señal más fiable de versión nueva activa
-    // Usar un pequeño debounce para evitar doble disparo en Chrome
     let _ccTimer = null;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
         clearTimeout(_ccTimer);
@@ -8808,6 +8857,24 @@ function _setupPushReminder() {
     navigator.serviceWorker.addEventListener('message', event => {
         if (event.data && event.data.type === 'SW_UPDATED') {
             _showUpdateBanner();
+        }
+    });
+
+    // Caso E: Visibilidad recuperada (usuario vuelve a la pestaña) → chequear inmediato
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            navigator.serviceWorker.getRegistration().then(reg => {
+                if (reg) {
+                    // Si ya hay un SW esperando, activarlo
+                    if (reg.waiting) {
+                        _activatePendingSW(reg.waiting);
+                    } else {
+                        // Forzar comprobación de actualización
+                        reg.update();
+                        _checkVersionViaHttp();
+                    }
+                }
+            }).catch(() => {});
         }
     });
 
