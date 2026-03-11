@@ -15,6 +15,157 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ff66' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'%3E%3C/polygon%3E%3C/svg%3E">
 
+    <!-- Detección de compatibilidad: DEBE ir antes que cualquier otro recurso -->
+    <script>
+    (function() {
+        var reasons = [];
+
+        // 1. localStorage
+        try { localStorage.setItem('_klick_test','1'); localStorage.removeItem('_klick_test'); }
+        catch(e) { reasons.push({ icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z', text: 'Almacenamiento bloqueado', sub: 'Desactiva el modo privado o permite el almacenamiento local en tu navegador.' }); }
+
+        // 2. fetch / Promise
+        if (typeof fetch === 'undefined' || typeof Promise === 'undefined')
+            reasons.push({ icon: 'M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0', text: 'Navegador sin soporte de red moderna', sub: 'Tu navegador no soporta fetch/Promise. Actualiza Chrome, Safari o Firefox.' });
+
+        // 3. Canvas 2D
+        try { var _cv = document.createElement('canvas'); if (!_cv.getContext('2d')) throw 1; }
+        catch(e) { reasons.push({ icon: 'M2 13.5V19a2 2 0 002 2h16a2 2 0 002-2v-5.5M2 10.5V5a2 2 0 012-2h16a2 2 0 012 2v5.5', text: 'Gráficos no disponibles', sub: 'Canvas 2D está bloqueado o desactivado. Comprueba la configuración de tu navegador.' }); }
+
+        // 4. Web Audio API
+        if (typeof AudioContext === 'undefined' && typeof webkitAudioContext === 'undefined')
+            reasons.push({ icon: 'M9 18V5l12-2v13M6 21a3 3 0 100-6 3 3 0 000 6zm12-2a3 3 0 100-6 3 3 0 000 6z', text: 'Audio no soportado', sub: 'Web Audio API no está disponible. Actualiza tu navegador o desbloquea el audio.' });
+
+        // 5. CSS custom properties
+        if (typeof CSS === 'undefined' || !CSS.supports || !CSS.supports('color','var(--x)'))
+            reasons.push({ icon: 'M4 6h16M4 12h16M4 18h7', text: 'CSS moderno no soportado', sub: 'Tu navegador no soporta variables CSS. Actualiza a una versión reciente.' });
+
+        // 6. Pantalla mínima
+        if (window.screen.width < 260 || window.screen.height < 400)
+            reasons.push({ icon: 'M12 2a10 10 0 110 20A10 10 0 0112 2zm0 6v4m0 4h.01', text: 'Pantalla demasiado pequeña', sub: 'Resolución detectada: ' + window.screen.width + '×' + window.screen.height + ' px. Se requieren al menos 260×400 px.' });
+
+        // 7. ES6
+        try { eval('"use strict"; const _t = () => `ok`;'); }
+        catch(e) { reasons.push({ icon: 'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z', text: 'Navegador demasiado antiguo', sub: 'No se soporta JavaScript moderno (ES6). Usa Chrome, Safari o Firefox actuales.' }); }
+
+        if (reasons.length === 0) return;
+
+        // — Inyectar estilos propios de la pantalla de incompatibilidad —
+        var style = document.createElement('style');
+        style.textContent = [
+            '@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap");',
+            '#ki{position:fixed;inset:0;z-index:99999;background:#050505;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;box-sizing:border-box;font-family:"Inter",system-ui,sans-serif;color:#fff;overflow:hidden;}',
+            '#ki canvas{position:absolute;inset:0;pointer-events:none;}',
+            '#ki-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;max-width:420px;width:100%;}',
+            '#ki .ki-logo{font-size:clamp(2.4rem,8vw,4rem);font-weight:900;font-style:italic;letter-spacing:-2px;margin-bottom:6px;color:#fff;}',
+            '#ki .ki-logo span{color:#ff2a5f;font-style:normal;}',
+            '#ki .ki-eyebrow{font-size:0.6rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#ff2a5f;margin-bottom:22px;}',
+            '#ki .ki-card{background:rgba(17,17,17,0.92);border:1px solid rgba(255,42,95,0.18);border-radius:20px;padding:20px;width:100%;margin-bottom:20px;display:flex;flex-direction:column;gap:14px;}',
+            '#ki .ki-card-header{font-size:0.58rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.2);padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.05);}',
+            '#ki .ki-reason{display:flex;align-items:flex-start;gap:12px;}',
+            '#ki .ki-reason-icon{flex-shrink:0;width:32px;height:32px;border-radius:10px;background:rgba(255,42,95,0.1);border:1px solid rgba(255,42,95,0.2);display:flex;align-items:center;justify-content:center;}',
+            '#ki .ki-reason-icon svg{width:15px;height:15px;stroke:#ff2a5f;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}',
+            '#ki .ki-reason-body{display:flex;flex-direction:column;gap:2px;}',
+            '#ki .ki-reason-title{font-size:0.8rem;font-weight:800;color:#fff;letter-spacing:0.2px;}',
+            '#ki .ki-reason-sub{font-size:0.68rem;color:#666;line-height:1.5;font-weight:500;}',
+            '#ki .ki-footer{font-size:0.65rem;color:#333;text-align:center;line-height:1.7;max-width:320px;}',
+            '#ki .ki-footer strong{color:#555;font-weight:700;}',
+            '#ki-inner{opacity:0;transform:translateY(18px);transition:opacity 0.55s cubic-bezier(0.16,1,0.3,1),transform 0.55s cubic-bezier(0.16,1,0.3,1);}',
+            '#ki-inner.ki-visible{opacity:1;transform:translateY(0);}',
+        ].join('');
+        document.head.appendChild(style);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var app = document.getElementById('app');
+            if (app) app.style.display = 'none';
+
+            var wrap = document.createElement('div');
+            wrap.id = 'ki';
+
+            // Canvas de partículas
+            var canvas = document.createElement('canvas');
+            canvas.id = 'ki-canvas';
+            wrap.appendChild(canvas);
+
+            // Contenido interior
+            var inner = document.createElement('div');
+            inner.id = 'ki-inner';
+
+            var reasonsHtml = reasons.map(function(r) {
+                return [
+                    '<div class="ki-reason">',
+                      '<div class="ki-reason-icon"><svg viewBox="0 0 24 24"><path d="' + r.icon + '"/></svg></div>',
+                      '<div class="ki-reason-body">',
+                        '<div class="ki-reason-title">' + r.text + '</div>',
+                        '<div class="ki-reason-sub">' + r.sub + '</div>',
+                      '</div>',
+                    '</div>',
+                ].join('');
+            }).join('');
+
+            var plural = reasons.length > 1 ? 'S DETECTADOS' : ' DETECTADO';
+            inner.innerHTML = [
+                '<div class="ki-logo">KLICK<span>.</span></div>',
+                '<div class="ki-eyebrow">Dispositivo no compatible</div>',
+                '<div class="ki-card">',
+                  '<div class="ki-card-header">Motivo' + plural + '</div>',
+                  reasonsHtml,
+                '</div>',
+                '<div class="ki-footer">Para jugar, abre Klick en <strong>Chrome, Safari o Firefox</strong><br>en un teléfono, tablet u ordenador moderno.</div>',
+            ].join('');
+
+            wrap.appendChild(inner);
+            document.body.appendChild(wrap);
+
+            // Animar entrada
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() { inner.classList.add('ki-visible'); });
+            });
+
+            // Partículas rojas de fondo
+            var ctx = canvas.getContext('2d');
+            var W, H, particles = [];
+            function resize() {
+                W = canvas.width  = window.innerWidth;
+                H = canvas.height = window.innerHeight;
+            }
+            resize();
+            window.addEventListener('resize', resize);
+            for (var i = 0; i < 38; i++) {
+                particles.push({
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight,
+                    r: Math.random() * 1.6 + 0.4,
+                    vx: (Math.random() - 0.5) * 0.35,
+                    vy: (Math.random() - 0.5) * 0.35,
+                    a: Math.random() * 0.4 + 0.05,
+                });
+            }
+            (function tick() {
+                requestAnimationFrame(tick);
+                ctx.clearRect(0, 0, W, H);
+                for (var j = 0; j < particles.length; j++) {
+                    var p = particles[j];
+                    p.x += p.vx; p.y += p.vy;
+                    if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+                    if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255,42,95,' + p.a + ')';
+                    ctx.fill();
+                }
+            })();
+        });
+
+        // Evitar que script.js intente ejecutarse en browsers sin fetch/Promise
+        if (typeof fetch === 'undefined' || typeof Promise === 'undefined') {
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('script[src]').forEach(function(s) { s.type = 'text/plain'; });
+            });
+        }
+    })();
+    </script>
+
     <!-- Estilos -->
     <link rel="stylesheet" href="styles.css">
 
