@@ -211,7 +211,7 @@ document.addEventListener('visibilitychange', () => {
         if (_ksFocusLostTs > 0) { _ksNoFocusSecs += (Date.now() - _ksFocusLostTs) / 1000; _ksFocusLostTs = 0; }
         if (isAnsweringAllowed) {
             const hiddenMs = Date.now() - _ksIosHiddenTs;
-            if (_ksIosHiddenTs > 0 && hiddenMs > 0 && hiddenMs < 180)
+            if (_ksIosHiddenTs > 0 && hiddenMs > 0 && hiddenMs < 80)
                 _ksAddSignal('ios_screenshot_flash', 7);
             if (_ksIosMultitaskTs > 0 && hiddenMs >= 300 && hiddenMs <= 1200)
                 _ksAddSignal('ios_quick_app_switch', 5);
@@ -340,13 +340,13 @@ function _startAntiCheatPoll() {
             // Recuperó foco: acumular tiempo perdido
             if (_ksFocusLostTs > 0) { _ksNoFocusSecs += (Date.now() - _ksFocusLostTs) / 1000; _ksFocusLostTs = 0; }
         }
-        // Puntero ausente >35s en desktop = bot o app externa
-        if (!_KS_IS_IPAD && window.screen.width > 480) {
-            if ((Date.now() - _ksLastPtrTs) > 35000) _ksAddSignal('pointer_absent', 5);
+        // Puntero ausente >60s en desktop = bot o app externa (solo desktop con ratón real)
+        if (!_KS_IS_IPAD && window.screen.width > 480 && navigator.maxTouchPoints === 0) {
+            if ((Date.now() - _ksLastPtrTs) > 60000) _ksAddSignal('pointer_absent', 5);
         }
-        // Tiempo total fuera de foco en la sesión > 12s = sospechoso
-        if (_ksNoFocusSecs > 20 && isAnsweringAllowed) {
-            _ksAddSignal('extended_nofocus', Math.min(Math.floor(_ksNoFocusSecs / 8), 6));
+        // Tiempo total fuera de foco en la sesión > 45s = sospechoso
+        if (_ksNoFocusSecs > 45 && isAnsweringAllowed) {
+            _ksAddSignal('extended_nofocus', Math.min(Math.floor(_ksNoFocusSecs / 15), 6));
             _ksNoFocusSecs = 0; // reset para no duplicar
         }
     }, interval);
@@ -477,8 +477,8 @@ if (window.visualViewport) {
         const nx = window.screenX || 0, ny = window.screenY || 0;
         const nw = window.outerWidth, nh = window.outerHeight;
         if (!_KS_IS_IPAD) {
-            if (Math.abs(nx - _ksWinX) > 100 || Math.abs(ny - _ksWinY) > 100) _ksAddSignal('window_moved',  4);
-            if (nw < _ksWinOW * 0.62 || nh < _ksWinOH * 0.58)                 _ksAddSignal('window_shrunk', 6);
+            if (Math.abs(nx - _ksWinX) > 220 || Math.abs(ny - _ksWinY) > 220) _ksAddSignal('window_moved',  4);
+            if (nw < _ksWinOW * 0.42 || nh < _ksWinOH * 0.35)                 _ksAddSignal('window_shrunk', 6);
         }
         _ksWinX = nx; _ksWinY = ny; _ksWinOW = nw; _ksWinOH = nh;
     }, 2200);
@@ -2871,8 +2871,11 @@ async function fetchLeaderboard() {
     if(GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") return;
     try {
         const _isAdminFetch = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         const fetchURL = _isAdminFetch ? GAS_URL + '?admin=1' : GAS_URL;
-        const res = await fetch(fetchURL);
+        const res = await fetch(fetchURL, { signal: controller.signal });
+        clearTimeout(timeoutId);
         const topPlayers = await res.json();
         const isLight = document.body.classList.contains('light-mode');
         
@@ -3919,7 +3922,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayerC
 let quizDataPool = [];
 async function loadQuestions() {
     try {
-        const response = await fetch('preguntas.json');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+        const response = await fetch('preguntas.json', { signal: controller.signal });
+        clearTimeout(timeoutId);
         if (!response.ok) throw new Error('No se pudo cargar el archivo');
         quizDataPool = await response.json();
     } catch (error) {
@@ -8499,6 +8505,8 @@ async function _checkBanStatus() {
     if (!playerStats.uuid || playerStats.uuid === generateUUID().slice(0,8) || GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") return;
     if (!navigator.onLine) return;
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
         const payload = JSON.stringify({
             action: 'check-ban',
             uuid: playerStats.uuid,
@@ -8508,7 +8516,9 @@ async function _checkBanStatus() {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
             body: payload,
+            signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         const data = await res.json();
         if (data && data.banned === true) {
             _ksShowPermanentBanScreen();
