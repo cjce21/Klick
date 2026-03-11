@@ -1877,6 +1877,11 @@ function revokeInvalidAchievements() {
     check('extra1', (s.maxFrenziesInGame||0) >= 2);
     check('extra2', !!s.hadPerfectAccuracyGame);
     check('extra4', (s.gamesAtMusicZero||0) >= 5);
+    // u24 Extremis: extremisCount se auto-corrige si el logro ya fue ganado legítimamente
+    // (el bug anterior nunca incrementaba extremisCount, así que lo reparamos aquí)
+    if (has('u24') && (s.extremisCount||0) < 1) {
+        s.extremisCount = 1; // el logro existe → hubo al menos una partida válida
+    }
     check('u24',  (s.extremisCount||0) >= 1);
     check('ui5',  (s.profileViewedAfterGames||0) >= 5);
     check('nm5',  (s.consecutiveRankUpDays||0) >= 3);
@@ -7202,7 +7207,12 @@ function showFeedback(isCorrect, isTimeout = false) {
         // x11: El Último Chance — acierta en última vida
         if(lives === 1) inGameUnlock('x11','El Último Chance', colors.orange, SVG_SHIELD);
         // u24: Extremis — 3 aciertos de 1 seg en una partida
-        if(lastSecondAnswers >= 3) inGameUnlock('u24','Extremis', colors.red, SVG_SHIELD);
+        if(lastSecondAnswers >= 3) {
+            if(!playerStats.achievements.includes('u24')) {
+                playerStats.extremisCount = (playerStats.extremisCount||0) + 1;
+            }
+            inGameUnlock('u24','Extremis', colors.red, SVG_SHIELD);
+        }
         // x19: Espectacular — 5 respuestas Flash <1 seg en partida
         if(lastSecondAnswers >= 5) { playerStats.flashInOneGame = true; inGameUnlock('x19','Espectacular', colors.yellow, SVG_BOLT); }
         // np3: Sin Límites — partida >60 preguntas
@@ -7351,7 +7361,8 @@ function saveGameStats() {
     const prevGameCorrect = (playerStats.lastGameCorrect||0);
     if(prevGameCorrect === 0 && currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers >= 10) playerStats.revengeGame = true;
     // x8: Sin Prisa — termina partida con <5 respuestas rápidas
-    playerStats.xSinPrisa = (currentFastAnswers < 5 && currentQuestionIndex >= 5);
+    // Solo marcar true; nunca sobrescribir a false si ya fue ganado legítimamente
+    if (currentFastAnswers < 5 && currentQuestionIndex >= 5) playerStats.xSinPrisa = true;
     // extra2 Precisionista: partida con 100% de precisión (min 10 respuestas)
     const gameCorrect = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
     if (currentWrongAnswers === 0 && currentTimeoutAnswers === 0 && gameCorrect >= 10) {
