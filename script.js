@@ -88,8 +88,15 @@ function _isIpadSafari() {
     const mtp = navigator.maxTouchPoints || 0;
     const sw  = window.screen.width;
     if (/iPad/.test(ua)) return true;
-    if (navigator.platform === 'MacIntel' && mtp > 1) return true; // iPadOS 13+
-    if (mtp >= 2 && sw >= 768 && /Safari/.test(ua) && !/Chrome/.test(ua)) return true;
+    // Chrome en iPad reporta CriOS en el UA y también incluye "iPad"
+    // pero por si acaso, también cubrir por tamaño + touch
+    if (/CriOS/.test(ua) && mtp >= 2 && sw >= 768) return true;
+    // iPadOS 13+ se identifica como MacIntel con touch points
+    if (navigator.platform === 'MacIntel' && mtp > 1) return true;
+    // iPadOS 17+ puede reportar platform vacío o 'iPhone' en algunos casos
+    if (/Safari/.test(ua) && !/Chrome/.test(ua) && mtp >= 2 && sw >= 768) return true;
+    // Fallback: cualquier tablet-size touch device con Safari
+    if (mtp >= 2 && sw >= 768 && window.screen.height >= 1024) return true;
     return false;
 }
 const _KS_IS_IPAD = _isIpadSafari();
@@ -471,7 +478,7 @@ if (window.visualViewport) {
 
 // ── Stage Manager / ventana flotante (desktop) ────────────────────────────
 (function _watchWindowGeometry() {
-    if (window.screen.width <= 480) return;
+    if (_KS_IS_IPAD || window.screen.width <= 480) return;
     setInterval(() => {
         if (!isAnsweringAllowed || isGamePaused) return;
         const nx = window.screenX || 0, ny = window.screenY || 0;
@@ -1967,6 +1974,7 @@ const SCHED_AHEAD = 0.12;   // schedule this far ahead
 const SCHED_INTERVAL = 25;  // scheduler polling interval ms
 
 function initAudio() {
+    try {
     if (!audioCtx) {
         audioCtx = new AudioContext();
         // Master music gain (lower so it doesn't overpower SFX)
@@ -1994,7 +2002,8 @@ function initAudio() {
         masterLimiter.connect(audioCtx.destination);
         startMusicEngine();
     }
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    } catch(e) { /* Safari/iPad: AudioContext puede fallar sin gesto directo */ }
 }
 
 function updateVolumes() {
@@ -6421,33 +6430,40 @@ async function startGameCheck() {
 
     // ── KLICK SHIELD: verificaciones pre-partida ──────────────────────────
     const _ksE = (msg) => { showToast('No se puede iniciar', msg, 'var(--accent-red)', SVG_LOCK); };
-    const _sm  = window.screen.width <= 430;
+    const _sm  = window.screen.width <= 430 || _KS_IS_IPAD;
     if (document.visibilityState === 'hidden' || document.hidden)
         { _ksE('La ventana no está activa.'); return; }
     // hasFocus check omitido: poco fiable en móvil y tablets al pulsar botones
     if (document.pictureInPictureElement ||
         (typeof documentPictureInPicture !== 'undefined' && documentPictureInPicture.window))
         { _ksE('Desactiva Picture-in-Picture.'); return; }
-    if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending))
-        { _ksE('Desactiva el lector de voz del sistema.'); return; }
+    if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
+        // Safari/iPadOS tiene un bug: speechSynthesis.speaking puede ser true por defecto.
+        // Cancelamos primero y re-comprobamos tras un tick para evitar falsos positivos.
+        if (!_KS_IS_IPAD) {
+            window.speechSynthesis.cancel();
+            if (window.speechSynthesis.speaking || window.speechSynthesis.pending)
+                { _ksE('Desactiva el lector de voz del sistema.'); return; }
+        }
+    }
     if ((window._ksActiveMicTracks||[]).some(t => t.readyState === 'live'))
         { _ksE('Desactiva el micrófono antes de jugar.'); return; }
-    if (!_sm) {
+    if (!_sm && !_KS_IS_IPAD) {
         const _wR = window.innerWidth  / window.screen.width;
         const _hR = window.innerHeight / window.screen.height;
         if (_wR < 0.28) { _ksE('Maximiza la ventana para jugar.'); return; }
         if (_hR < 0.25) { _ksE('Maximiza la ventana para jugar.'); return; }
-        if (!_KS_IS_IPAD) {
-            const _sx = window.screenX || window.screenLeft || 0;
-            const _sy = window.screenY || window.screenTop  || 0;
-            if (_sx > window.screen.width  * 0.72) { _ksE('Ventana en posición no permitida.'); return; }
-            if (_sy > window.screen.height * 0.65) { _ksE('Ventana en posición no permitida.'); return; }
-        }
+        const _sx = window.screenX || window.screenLeft || 0;
+        const _sy = window.screenY || window.screenTop  || 0;
+        if (_sx > window.screen.width  * 0.72) { _ksE('Ventana en posición no permitida.'); return; }
+        if (_sy > window.screen.height * 0.65) { _ksE('Ventana en posición no permitida.'); return; }
     }
     if (window.visualViewport) {
-        if (window.visualViewport.scale > 3.0)
+        // En iPad el zoom de accesibilidad puede estar activo por política escolar — no bloquear
+        if (!_KS_IS_IPAD && window.visualViewport.scale > 3.0)
             { _ksE('Desactiva el zoom de pantalla.'); return; }
-        if (window.visualViewport.width < window.innerWidth * 0.38)
+        // En iPad el visualViewport puede ser más estrecho por teclado flotante o sidebar de Safari — no bloquear
+        if (!_KS_IS_IPAD && window.visualViewport.width < window.innerWidth * 0.38)
             { _ksE('Cierra el panel lateral antes de jugar.'); return; }
     }
     if (!_sm && !_KS_IS_IPAD &&
@@ -8764,7 +8780,11 @@ function _setupPushReminder() {
     }
 
     // Recarga automática si NO hay partida activa
+    // IMPORTANTE: solo recargar si había un SW previo controlando la página.
+    // En primera instalación (_hadController=false) Safari puede disparar
+    // controllerchange igualmente — sin este guard causaría bucle de recarga.
     function _scheduleAutoReload() {
+        if (!_hadController) return; // primera instalación — nunca recargar
         const check = () => {
             const qs = document.getElementById('question-screen');
             const inGame = qs && qs.classList.contains('active')
@@ -8776,8 +8796,8 @@ function _setupPushReminder() {
                 setTimeout(check, 5000);
             }
         };
-        // Esperar 800 ms para no interrumpir animaciones de carga
-        setTimeout(check, 800);
+        // Esperar 1500 ms — más margen para Safari que es más lento activando el SW
+        setTimeout(check, 1500);
     }
 
     // ── Activa el SW en espera y muestra el banner ────────────────
