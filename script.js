@@ -2890,6 +2890,12 @@ async function fetchLeaderboard() {
         const fetchURL = _isAdminFetch ? GAS_URL + '?admin=1' : GAS_URL;
         const res = await fetch(fetchURL, { signal: controller.signal });
         clearTimeout(timeoutId);
+        // Aprovechar el Date header de esta respuesta como ancla de tiempo confiable
+        const _lbDateHdr = res.headers.get('date');
+        if (_lbDateHdr) {
+            const _lbD = new Date(_lbDateHdr);
+            if (!isNaN(_lbD.getTime())) { _serverDateStr = _lbD.toISOString().split('T')[0]; _serverDateMs = performance.now(); }
+        }
         const topPlayers = await res.json();
         const isLight = document.body.classList.contains('light-mode');
         
@@ -4320,15 +4326,91 @@ const MITICO_TITLES = new Map([
 // Rangos que permiten equipar títulos Mítico
 const MITICO_TITLE_RANKS = new Set(['Mítico','Divinidad']);
 
-function processDailyLogin() {
-    const now = new Date(); const todayStr = now.toISOString().split('T')[0];
+// ── Validación de fecha contra servidor ──────────────────────────────────────
+// Guarda la última fecha confiable obtenida del Date header del servidor.
+// Se actualiza en cada fetch exitoso a GAS_URL y en fetchLeaderboard.
+// Impide que cambiar el reloj del dispositivo avance los contadores de días.
+let _serverDateStr = null;          // 'YYYY-MM-DD' según el servidor
+let _serverDateMs  = null;          // performance.now() cuando se recibió esa fecha
+const _SERVER_DATE_TTL = 20 * 60 * 1000; // 20 min: fecha sigue siendo confiable
+
+// Obtiene la fecha del servidor haciendo un HEAD liviano a GAS_URL.
+// Si falla (offline, etc.) devuelve null y el sistema cae a la fecha local.
+async function _fetchServerDate() {
+    if (GAS_URL === 'URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI') return null;
+    try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(GAS_URL, { method: 'HEAD', mode: 'cors', signal: controller.signal });
+        clearTimeout(tid);
+        const dateHeader = res.headers.get('date');
+        if (dateHeader) {
+            const d = new Date(dateHeader);
+            if (!isNaN(d.getTime())) {
+                _serverDateStr = d.toISOString().split('T')[0];
+                _serverDateMs  = performance.now();
+                return _serverDateStr;
+            }
+        }
+    } catch(_) {}
+    return null;
+}
+
+// Devuelve la fecha más confiable disponible:
+// 1. Fecha de servidor (si fue obtenida hace menos de TTL ms).
+// 2. Fecha de servidor + tiempo transcurrido en sesión (si fue obtenida antes del TTL).
+// 3. Fecha local como último recurso.
+// También valida que el reloj local no haya saltado más de 26 h respecto al
+// último ancla confiable — si lo hizo, bloquea el avance de racha.
+function _getTrustedDateStr() {
+    if (_serverDateStr && _serverDateMs != null) {
+        const elapsedMs = performance.now() - _serverDateMs;
+        // Proyectar la fecha del servidor hacia adelante con el tiempo de sesión
+        const projected = new Date(
+            new Date(_serverDateStr + 'T12:00:00Z').getTime() + elapsedMs
+        );
+        return projected.toISOString().split('T')[0];
+    }
+    return new Date().toISOString().split('T')[0];
+}
+
+// Detecta si la fecha local fue manipulada hacia adelante.
+// Compara la fecha local con el ancla del servidor; si el local va más de
+// 26 h por delante del ancla proyectada, se considera manipulación.
+function _isClockTamperedForward() {
+    if (!_serverDateStr || _serverDateMs == null) return false;
+    const elapsedMs = performance.now() - _serverDateMs;
+    const anchorMs  = new Date(_serverDateStr + 'T12:00:00Z').getTime() + elapsedMs;
+    const localMs   = Date.now();
+    return (localMs - anchorMs) > 26 * 3600 * 1000; // más de 26 h adelante
+}
+
+async function processDailyLogin() {
+    // Intentar obtener fecha del servidor (no bloqueante — si falla, cae a local)
+    await _fetchServerDate();
+
+    if (_isClockTamperedForward()) {
+        // Reloj local adelantado respecto al servidor: no procesar racha.
+        // No se penaliza ni se resetea — simplemente se ignora este "día".
+        return;
+    }
+
+    const todayStr = _getTrustedDateStr();
+
     if (playerStats.lastLoginDate !== todayStr) {
-        const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1); const yesterdayStr = yesterday.toISOString().split('T')[0];
-        if (playerStats.lastLoginDate === yesterdayStr) { playerStats.currentLoginStreak++; playerStats.maxLoginStreak = Math.max(playerStats.maxLoginStreak, playerStats.currentLoginStreak); } 
-        else { 
-            playerStats.currentLoginStreak = 1; if(playerStats.maxLoginStreak === 0) playerStats.maxLoginStreak = 1;
+        // Calcular ayer desde la fecha confiable
+        const anchorDate = new Date(todayStr + 'T12:00:00Z');
+        const yesterdayDate = new Date(anchorDate); yesterdayDate.setUTCDate(anchorDate.getUTCDate() - 1);
+        const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+
+        if (playerStats.lastLoginDate === yesterdayStr) {
+            playerStats.currentLoginStreak++;
+            playerStats.maxLoginStreak = Math.max(playerStats.maxLoginStreak, playerStats.currentLoginStreak);
+        } else {
+            playerStats.currentLoginStreak = 1;
+            if (playerStats.maxLoginStreak === 0) playerStats.maxLoginStreak = 1;
             // Player missed at least one day — mark for x16 Regreso Triunfal
-            if(playerStats.lastLoginDate) playerStats.missedADay = true;
+            if (playerStats.lastLoginDate) playerStats.missedADay = true;
         }
         playerStats.lastLoginDate = todayStr;
         playerStats.todayGames = 0;
@@ -6622,7 +6704,10 @@ function startGame() {
     // Guardamos la hora de inicio para validarla al terminar la partida (evitar falsos positivos)
     _gameStartHour = hora;
     
-    const todayStr2 = new Date().toISOString().split('T')[0];
+    const todayStr2 = _getTrustedDateStr();
+    if (_isClockTamperedForward()) {
+        // Reloj manipulado: no contar este día ni avanzar totalDaysPlayed
+    } else {
     if(!playerStats.totalDaysPlayed) playerStats.totalDaysPlayed = 0;
     if(!playerStats.lastPlayedDay || playerStats.lastPlayedDay !== todayStr2) {
         // Day changed — reset daily counters before assigning new date
@@ -6634,6 +6719,7 @@ function startGame() {
         }
         playerStats.lastPlayedDay = todayStr2;
         playerStats.totalDaysPlayed++;
+    }
     }
     
     document.getElementById('player-name-display').innerText = playerStats.playerName; 
@@ -8635,7 +8721,7 @@ setTimeout(() => {
         saveStatsLocally();
     }
     // ─────────────────────────────────────────────────────────────────────────
-    processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); if (playerStats.playerName && playerStats.playerName.toUpperCase()==='CHRISTOPHER') fetchSecurityData(); loadQuestions();
+    processDailyLogin().then(() => { currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); }); submitLeaderboard(); fetchLeaderboard(); if (playerStats.playerName && playerStats.playerName.toUpperCase()==='CHRISTOPHER') fetchSecurityData(); loadQuestions();
     // Iniciar heartbeat de estado online
     _startHeartbeat();
     _checkBanStatus().catch(() => {});
