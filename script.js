@@ -270,10 +270,10 @@ window.addEventListener('resize', () => {
     clearTimeout(_ksResizeTimer);
     _ksResizeTimer = setTimeout(() => {
         if (!isAnsweringAllowed && !isGamePaused) return;
-        const shrunkW = window.innerWidth  < _gameWindowW * 0.60;
-        const shrunkH = window.innerHeight < _gameWindowH * 0.58;
-        const splitW  = (window.innerWidth  / window.screen.width)  < 0.52;
-        const splitH  = (window.innerHeight / window.screen.height) < 0.42;
+        const shrunkW = window.innerWidth  < _gameWindowW * 0.35;
+        const shrunkH = window.innerHeight < _gameWindowH * 0.30;
+        const splitW  = (window.innerWidth  / window.screen.width)  < 0.28;
+        const splitH  = (window.innerHeight / window.screen.height) < 0.25;
         const isSplit = shrunkW || shrunkH || splitW || splitH;
         if (isSplit) {
             if (!_ksSplitActive) {
@@ -414,7 +414,7 @@ setInterval(() => {
     if (_KS_IS_IPAD || window.screen.width <= 480) return;
     setInterval(() => {
         if (!isAnsweringAllowed || isGamePaused) return;
-        if ((window.outerWidth - window.innerWidth) > 200 || (window.outerHeight - window.innerHeight) > 200)
+        if ((window.outerWidth - window.innerWidth) > 400 || (window.outerHeight - window.innerHeight) > 400)
             _ksAddSignal('devtools_open', 5);
     }, 3200);
 })();
@@ -428,9 +428,9 @@ if (window.visualViewport) {
             if (!isAnsweringAllowed && !isGamePaused) return;
             const sc = window.visualViewport.scale;
             const w  = window.visualViewport.width;
-            if (sc > _ksVvLastScale * 1.3 && sc > 1.4)         _ksAddSignal('vv_zoom_in',  5);
-            if (w  < _ksVvLastW * 0.72)                        _ksAddSignal('vv_shrink',   7);
-            if (_KS_IS_IPAD && sc > 1.9 && sc > _ksVvLastScale * 1.6) _ksAddSignal('ios_a11y_zoom', 7);
+            if (sc > _ksVvLastScale * 1.3 && sc > 2.8)         _ksAddSignal('vv_zoom_in',  5);
+            if (w  < _ksVvLastW * 0.38)                        _ksAddSignal('vv_shrink',   7);
+            if (_KS_IS_IPAD && sc > 3.5 && sc > _ksVvLastScale * 1.6) _ksAddSignal('ios_a11y_zoom', 7);
             _ksVvLastScale = sc; _ksVvLastW = w;
         }, 450);
     });
@@ -2894,11 +2894,18 @@ async function fetchLeaderboard() {
         let html = "";
         let onlineCount = 0;
         let realPos = 0;
+        // Mostrar solo Top 10 (excluyendo el admin Christopher)
+        const MAX_VISIBLE = 10;
+        let visibleCount = 0;
         topPlayers.forEach((p, index) => {
             const isChristopher  = p.uuid === '00000000-spec-tral-0000-klickphantom0';
             if (!isChristopher) realPos++;
             const pos   = isChristopher ? 0 : realPos;
             const isMe  = p.uuid === playerStats.uuid;
+
+            // Solo renderizar top 10 jugadores reales (+ siempre mostrar al jugador actual)
+            if (!isChristopher && !isMe && visibleCount >= MAX_VISIBLE) return;
+            if (!isChristopher) visibleCount++;
 
             if(isMe) {
                 const prevPos = playerStats.rankingPosition || 999;
@@ -6411,8 +6418,7 @@ async function startGameCheck() {
     const _sm  = window.screen.width <= 430;
     if (document.visibilityState === 'hidden' || document.hidden)
         { _ksE('La ventana no está activa.'); return; }
-    if (!document.hasFocus())
-        { _ksE('La ventana no tiene el foco.'); return; }
+    // hasFocus check omitido: poco fiable en móvil y tablets al pulsar botones
     if (document.pictureInPictureElement ||
         (typeof documentPictureInPicture !== 'undefined' && documentPictureInPicture.window))
         { _ksE('Desactiva Picture-in-Picture.'); return; }
@@ -6423,23 +6429,23 @@ async function startGameCheck() {
     if (!_sm) {
         const _wR = window.innerWidth  / window.screen.width;
         const _hR = window.innerHeight / window.screen.height;
-        if (_wR < 0.52) { _ksE('Maximiza la ventana para jugar.'); return; }
-        if (_hR < 0.42) { _ksE('Maximiza la ventana para jugar.'); return; }
+        if (_wR < 0.28) { _ksE('Maximiza la ventana para jugar.'); return; }
+        if (_hR < 0.25) { _ksE('Maximiza la ventana para jugar.'); return; }
         if (!_KS_IS_IPAD) {
             const _sx = window.screenX || window.screenLeft || 0;
             const _sy = window.screenY || window.screenTop  || 0;
-            if (_sx > window.screen.width  * 0.42) { _ksE('Ventana en posición no permitida.'); return; }
-            if (_sy > window.screen.height * 0.38) { _ksE('Ventana en posición no permitida.'); return; }
+            if (_sx > window.screen.width  * 0.72) { _ksE('Ventana en posición no permitida.'); return; }
+            if (_sy > window.screen.height * 0.65) { _ksE('Ventana en posición no permitida.'); return; }
         }
     }
     if (window.visualViewport) {
-        if (window.visualViewport.scale > 1.5)
+        if (window.visualViewport.scale > 3.0)
             { _ksE('Desactiva el zoom de pantalla.'); return; }
-        if (window.visualViewport.width < window.innerWidth * 0.68)
+        if (window.visualViewport.width < window.innerWidth * 0.38)
             { _ksE('Cierra el panel lateral antes de jugar.'); return; }
     }
     if (!_sm && !_KS_IS_IPAD &&
-        ((window.outerWidth - window.innerWidth) > 200 || (window.outerHeight - window.innerHeight) > 200))
+        ((window.outerWidth - window.innerWidth) > 400 || (window.outerHeight - window.innerHeight) > 400))
         { _ksE('Cierra las herramientas del desarrollador.'); return; }
     // 3-point overlay check
     (function() {
