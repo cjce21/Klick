@@ -1639,6 +1639,52 @@ if (playerStats.cheatCount !== undefined) delete playerStats.cheatCount;
     saveStatsLocally();
 })();
 
+// ── REVOCACIÓN SEMANAL DE LOGROS DE RANGO ─────────────────────────────────
+// Se ejecuta una vez por semana (no diario). Verifica u_mitico y u_eterno
+// contra sus requisitos actuales. Si el jugador no los cumple, los revoca.
+// Clave: revocationWeekId — si coincide con la semana actual, no re-ejecuta.
+(function weeklyRankRevocation() {
+    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') return;
+    const currentWeek = playerStats.seasonWeekId || getWeekId();
+    if (playerStats.revocationWeekId === currentWeek) return; // ya ejecutado esta semana
+
+    const s = playerStats;
+    const normalAchs = (s.achievements || []).filter(function(id) {
+        return ACHIEVEMENTS_MAP && ACHIEVEMENTS_MAP.has(id);
+    }).length;
+    const totalAnswers = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
+    const accuracy = totalAnswers > 0 ? Math.round((s.totalCorrect||0)/totalAnswers*100) : 0;
+    const toRevoke = [];
+
+    if (s.achievements.includes('u_mitico')) {
+        const ok = (s.totalScore||0)>=1200000 && (s.totalCorrect||0)>=5500 &&
+            (s.perfectGames||0)>=55 && normalAchs>=280 && (s.maxStreak||0)>=45 &&
+            (s.maxMult||1)>=8 && accuracy>=85 && (s.gamesPlayed||0)>=320;
+        if (!ok) {
+            toRevoke.push('u_mitico');
+            ['mit1','mit2','mit3'].forEach(function(id){ if(s.achievements.includes(id)) toRevoke.push(id); });
+            if (s.equippedTitle && ['mit1','mit2','mit3'].includes(s.equippedTitle)) s.equippedTitle = null;
+        }
+    }
+    if (s.achievements.includes('u_eterno')) {
+        const ok2 = (s.totalScore||0)>=700000 && (s.totalCorrect||0)>=3200 &&
+            (s.perfectGames||0)>=30 && normalAchs>=160 && (s.maxStreak||0)>=35 &&
+            (s.maxMult||1)>=6 && accuracy>=78 && (s.gamesPlayed||0)>=200;
+        if (!ok2) {
+            toRevoke.push('u_eterno');
+            ['et1','et2','et3'].forEach(function(id){ if(s.achievements.includes(id)) toRevoke.push(id); });
+            if (s.equippedTitle && ['et1','et2','et3'].includes(s.equippedTitle)) s.equippedTitle = null;
+        }
+    }
+
+    if (toRevoke.length > 0) {
+        s.achievements = s.achievements.filter(function(id){ return !toRevoke.includes(id); });
+        s.pinnedAchievements = (s.pinnedAchievements||[]).filter(function(id){ return !toRevoke.includes(id); });
+    }
+    playerStats.revocationWeekId = currentWeek;
+    saveStatsLocally();
+})();
+
 // ── MIGRACIÓN tracks: remapea IDs de pistas viejas ──
 // ── MIGRACIÓN kpRewards: acredita recompensas del Klick Pass que nunca se sumaron a totalScore ──
 // Se ejecuta UNA vez. Los claims anteriores al fix no sumaban su recompensa a playerStats.totalScore.
@@ -3047,6 +3093,8 @@ async function submitLeaderboard() {
             pinnedAchievements: playerStats.pinnedAchievements || [],
             achievementCount:   (playerStats.achievements || []).filter(id => ACHIEVEMENTS_MAP && ACHIEVEMENTS_MAP.has(id)).length,
             equippedTitle:     playerStats.equippedTitle || null,
+            // Pinceles KP acumulados (auditoría, nunca se resetean)
+            kpPincelesTotal: playerStats.kpPincelesTotal || 0,
             // KS — solo el estado visible público (no historial ni señales)
             ksStatus: (() => {
                 const ban = playerStats.ksBanUntil;
@@ -3319,7 +3367,7 @@ async function fetchLeaderboard() {
             }
             const ksShieldColor = { ban:'#ff2a5f', sanctioned:'#ff4040', warned:'#ff8c00', review:'#ffb800' }[ksStatus] || null;
             const _ksTip = { ban:'Suspendido', sanctioned:'Sancionado', warned:'Advertido', review:'En revisión' }[ksStatus] || 'Klick Shield';
-            const ksShieldHtml = ksShieldColor ? `<span class="rc-ks-shield" title="${_ksTip}" style="color:${ksShieldColor}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>` : '';
+            const ksShieldHtml = ksShieldColor ? `<span class="rc-ks-shield" title="${_ksTip}" style="color:${ksShieldColor};display:inline-flex;align-items:center;flex-shrink:0;margin-left:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${ksShieldColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;overflow:visible;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>` : '';
 
             html += `<div class="rank-card ${meClass} ${divinidadClass} ${leyendaClass} ${eternoClass} ${miticoClass} ${christopherClass}" onclick="openPlayerProfileFromRank(${index})" title="Ver perfil completo">
                 <div class="rc-pos">${displayPos}</div>
@@ -4834,16 +4882,16 @@ function getRankInfo(stats) {
     }
     // ── Mítico ───────────────────────────────────────────────────────
     if (stats.totalScore >= 1200000 && stats.totalCorrect >= 5500 && stats.perfectGames >= 55 &&
-        (stats.achievements||[]).length >= 280 && stats.maxStreak >= 45 && (stats.maxMult||1) >= 8 &&
+        (stats.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length >= 280 && stats.maxStreak >= 45 && (stats.maxMult||1) >= 8 &&
         accuracy >= 85 && stats.gamesPlayed >= 320)
         return { title: "Mítico", color: "#ff9500", rgb: "255,149,0", mitico: true };
     // ── Eterno ───────────────────────────────────────────────────────
     if (stats.totalScore >= 700000 && stats.totalCorrect >= 3200 && stats.perfectGames >= 30 &&
-        (stats.achievements||[]).length >= 160 && stats.maxStreak >= 35 && (stats.maxMult||1) >= 6 &&
+        (stats.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length >= 160 && stats.maxStreak >= 35 && (stats.maxMult||1) >= 6 &&
         accuracy >= 78 && stats.gamesPlayed >= 200)
         return { title: "Eterno", color: "#6600ff", rgb: "102,0,255" };
-    if (stats.totalScore >= 400000 && stats.totalCorrect >= 1800 && stats.perfectGames >= 15 && stats.gamesPlayed >= 120 && (stats.maxMult||1) >= 5 && stats.maxStreak >= 28 && accuracy >= 70 && (stats.achievements||[]).length >= 80) return { title: "Leyenda", color: "#b5179e", rgb: "181,23,158" };
-    if (stats.totalScore >= 150000 && stats.totalCorrect >= 700 && stats.perfectGames >= 5 && stats.gamesPlayed >= 60 && (stats.maxMult||1) >= 4 && stats.maxStreak >= 20 && accuracy >= 65 && (stats.achievements||[]).length >= 30) return { title: "Maestro", color: "#ff2a5f", rgb: "255,42,95" };
+    if (stats.totalScore >= 400000 && stats.totalCorrect >= 1800 && stats.perfectGames >= 15 && stats.gamesPlayed >= 120 && (stats.maxMult||1) >= 5 && stats.maxStreak >= 28 && accuracy >= 70 && (stats.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length >= 80) return { title: "Leyenda", color: "#b5179e", rgb: "181,23,158" };
+    if (stats.totalScore >= 150000 && stats.totalCorrect >= 700 && stats.perfectGames >= 5 && stats.gamesPlayed >= 60 && (stats.maxMult||1) >= 4 && stats.maxStreak >= 20 && accuracy >= 65 && (stats.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length >= 30) return { title: "Maestro", color: "#ff2a5f", rgb: "255,42,95" };
     if (stats.totalScore >= 60000 && stats.totalCorrect >= 250 && stats.gamesPlayed >= 30 && (stats.maxMult||1) >= 3 && stats.maxStreak >= 10 && accuracy >= 60) return { title: "Pro", color: "#ffe566", rgb: "255,229,102" };
     if (stats.totalScore >= 20000 && stats.totalCorrect >= 75 && stats.gamesPlayed >= 10) return { title: "Junior", color: "#00d4ff", rgb: "0,212,255" };
     return { title: "Novato", color: "#00ff66", rgb: "0,255,102" };
@@ -6496,7 +6544,7 @@ function goToProfile(needsName = false) {
         const plBest   = Math.floor((s.bestScore||0)*1.5);
         const plStreak = (s.maxStreak||0)*200;
         const plPerf   = (s.perfectGames||0)*1000;
-        const plAchs   = (s.achievements||[]).length*300;
+        const plAchs   = (s.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length*300;
         const plAcc    = s.gamesPlayed>0 ? Math.floor(((s.totalCorrect||0)/(s.gamesPlayed*20))*5000) : 0;
         const avgScore = s.gamesPlayed>0 ? Math.floor((s.totalScore||0)/s.gamesPlayed) : 0;
         const plEfficiency = Math.min(Math.floor(avgScore * 0.3), 15000);
@@ -6638,7 +6686,7 @@ function goToProfile(needsName = false) {
                 const acc2 = totalAns>0?Math.round((s.totalCorrect||0)/totalAns*100):0;
                 const c1=(s.totalScore||0)>=150000, c2=(s.totalCorrect||0)>=700, c3=(s.perfectGames||0)>=5;
                 const c4=(s.gamesPlayed||0)>=60, c5=(s.maxMult||1)>=4, c6=(s.maxStreak||0)>=20;
-                const c7=acc2>=65, c8=(s.achievements||[]).length>=30;
+                const c7=acc2>=65, c8=(s.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length>=30;
                 condHtml = `<span style="color:#ff2a5f;font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: MAESTRO</span> &nbsp;`+
                     `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/150,000</span> &nbsp;`+
                     `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/700</span> &nbsp;`+
@@ -6647,14 +6695,14 @@ function goToProfile(needsName = false) {
                     `<span style="${c5?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. ${s.maxMult||1}/x4</span> &nbsp;`+
                     `<span style="${c6?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/20</span> &nbsp;`+
                     `<span style="${c7?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/65%</span> &nbsp;`+
-                    `<span style="${c8?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/30</span>`;
+                    `<span style="${c8?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length}/30</span>`;
             } else if (ri.title === 'Maestro') {
                 // Next: Leyenda
                 const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
                 const acc2 = totalAns>0?Math.round((s.totalCorrect||0)/totalAns*100):0;
                 const c1=(s.totalScore||0)>=400000, c2=(s.totalCorrect||0)>=1800, c3=(s.perfectGames||0)>=15;
                 const c4=(s.gamesPlayed||0)>=120, c5=(s.maxMult||1)>=5, c6=(s.maxStreak||0)>=28;
-                const c7=acc2>=70, c8=(s.achievements||[]).length>=80;
+                const c7=acc2>=70, c8=(s.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length>=80;
                 condHtml = `<span style="color:#b5179e;font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: LEYENDA</span> &nbsp;`+
                     `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/400,000</span> &nbsp;`+
                     `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/1,800</span> &nbsp;`+
@@ -6663,19 +6711,19 @@ function goToProfile(needsName = false) {
                     `<span style="${c5?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. ${s.maxMult||1}/x5</span> &nbsp;`+
                     `<span style="${c6?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/28</span> &nbsp;`+
                     `<span style="${c7?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/70%</span> &nbsp;`+
-                    `<span style="${c8?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/80</span>`;
+                    `<span style="${c8?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length}/80</span>`;
             } else if (ri.title === 'Leyenda') {
                 // Next: Eterno
                 const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
                 const acc2 = totalAns>0?Math.round((s.totalCorrect||0)/totalAns*100):0;
                 const c1=(s.totalScore||0)>=700000, c2=(s.totalCorrect||0)>=3200, c3=(s.perfectGames||0)>=30;
-                const c4=(s.achievements||[]).length>=160, c5=(s.maxStreak||0)>=35, c6=(s.maxMult||1)>=6;
+                const c4=(s.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length>=160, c5=(s.maxStreak||0)>=35, c6=(s.maxMult||1)>=6;
                 const c7=acc2>=78, c8=(s.gamesPlayed||0)>=200;
                 condHtml = `<span style="color:#6600ff;font-weight:700;font-size:0.62rem;letter-spacing:1px;text-shadow:0 0 8px rgba(102,0,255,0.5);">-- SIGUIENTE: ETERNO --</span> &nbsp;`+
                     `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/700,000</span> &nbsp;`+
                     `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/3,200</span> &nbsp;`+
                     `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/30</span> &nbsp;`+
-                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/160</span> &nbsp;`+
+                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length}/160</span> &nbsp;`+
                     `<span style="${c5?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/35</span> &nbsp;`+
                     `<span style="${c6?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. ${s.maxMult||1}/x6</span> &nbsp;`+
                     `<span style="${c7?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/78%</span> &nbsp;`+
@@ -6685,13 +6733,13 @@ function goToProfile(needsName = false) {
                 const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
                 const acc2 = totalAns>0?Math.round((s.totalCorrect||0)/totalAns*100):0;
                 const c1=(s.totalScore||0)>=1200000, c2=(s.totalCorrect||0)>=5500, c3=(s.perfectGames||0)>=55;
-                const c4=(s.achievements||[]).length>=280, c5=(s.maxStreak||0)>=45, c6=(s.maxMult||1)>=8;
+                const c4=(s.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length>=280, c5=(s.maxStreak||0)>=45, c6=(s.maxMult||1)>=8;
                 const c7=acc2>=85, c8=(s.gamesPlayed||0)>=320;
                 condHtml = `<span style="color:#ff9500;font-weight:700;font-size:0.62rem;letter-spacing:1px;text-shadow:0 0 8px rgba(255,149,0,0.5);">-- SIGUIENTE: MÍTICO --</span> &nbsp;`+
                     `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/1,200,000</span> &nbsp;`+
                     `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/5,500</span> &nbsp;`+
                     `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/55</span> &nbsp;`+
-                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/280</span> &nbsp;`+
+                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length}/280</span> &nbsp;`+
                     `<span style="${c5?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/45</span> &nbsp;`+
                     `<span style="${c6?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. ${s.maxMult||1}/x8</span> &nbsp;`+
                     `<span style="${c7?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/85%</span> &nbsp;`+
@@ -8735,17 +8783,19 @@ function kp3Claim(lv) {
 
     const lvData  = KP3_LEVELS[idx];
     const reward  = KP3_REWARDS[idx];
-    // Acreditar pinceles al totalScore
-    playerStats.totalScore = (playerStats.totalScore || 0) + reward;
+    // Acreditar pinceles al totalScore y al acumulado de auditoría (nunca se resetea)
+    playerStats.totalScore    = (playerStats.totalScore    || 0) + reward;
+    playerStats.kpPincelesTotal = (playerStats.kpPincelesTotal || 0) + reward;
     currentRankInfo = getRankInfo(playerStats);
     updateLogoDots();
     saveStatsLocally();
     checkAchievements();
+    submitLeaderboard(); // sincronizar kpPincelesTotal al servidor
 
     try { initAudio(); } catch(e) {}
     SFX.achievement();
     showToast(
-        `${lvData.icon} Nivel ${lv} — ${lvData.title}`,
+        `Nivel ${lv} — ${lvData.title}`,
         `+${reward.toLocaleString()} ℙ reclamados`,
         'var(--accent-yellow)',
         `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><polyline points="20 6 9 17 4 12"/></svg>`
@@ -8814,7 +8864,7 @@ function renderKp3Pass() {
         headerEl.style.cssText = "display:block;width:100%;box-sizing:border-box;";
         headerEl.innerHTML =
             '<div style="width:100%;box-sizing:border-box;">' +
-                '<div style="font-size:0.46rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;">Klick Pass — Temporada activa</div>' +
+                '<div style="font-size:0.46rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;">Klick Pass — ' + getCurrentSeasonInfo().name + '</div>' +
                 '<div style="width:100%;display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:10px;">' +
                     '<div style="flex:1;min-width:0;">' +
                         '<div style="font-size:0.5rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">XP acumulado</div>' +
@@ -9376,7 +9426,7 @@ function renderRanks() {
                 { label: 'Multiplicador x4',     need: 4,      get: ()=>s.maxMult||1,                fmt: v=>`x${v} / x4` },
                 { label: 'Racha máxima',         need: 20,     get: ()=>s.maxStreak||0,              fmt: v=>`${v} / 20` },
                 { label: 'Precisión global',     need: 65,     get: ()=>accuracy,                    fmt: v=>`${v}% / 65%` },
-                { label: 'Logros desbloqueados', need: 30,     get: ()=>(s.achievements||[]).length, fmt: v=>`${v} / 30` },
+                { label: 'Logros desbloqueados', need: 30,     get: ()=>(s.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length, fmt: v=>`${v} / 30` },
             ],
         },
         {
@@ -9392,7 +9442,7 @@ function renderRanks() {
                 { label: 'Multiplicador x5',     need: 5,      get: ()=>s.maxMult||1,                fmt: v=>`x${v} / x5` },
                 { label: 'Racha máxima',         need: 28,     get: ()=>s.maxStreak||0,              fmt: v=>`${v} / 28` },
                 { label: 'Precisión global',     need: 70,     get: ()=>accuracy,                    fmt: v=>`${v}% / 70%` },
-                { label: 'Logros desbloqueados', need: 80,     get: ()=>(s.achievements||[]).length, fmt: v=>`${v} / 80` },
+                { label: 'Logros desbloqueados', need: 80,     get: ()=>(s.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length, fmt: v=>`${v} / 80` },
             ],
         },
         {
@@ -9405,7 +9455,7 @@ function renderRanks() {
                 { label: 'Aciertos totales',     need: 3200,   get: ()=>s.totalCorrect||0,           fmt: v=>`${v} / 3,200` },
                 { label: 'Partidas perfectas',   need: 30,     get: ()=>s.perfectGames||0,           fmt: v=>`${v} / 30` },
                 { label: 'Partidas jugadas',     need: 200,    get: ()=>s.gamesPlayed||0,            fmt: v=>`${v} / 200` },
-                { label: 'Logros desbloqueados', need: 160,    get: ()=>(s.achievements||[]).length, fmt: v=>`${v} / 160` },
+                { label: 'Logros desbloqueados', need: 160,    get: ()=>(s.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length, fmt: v=>`${v} / 160` },
                 { label: 'Racha máxima',         need: 35,     get: ()=>s.maxStreak||0,              fmt: v=>`${v} / 35` },
                 { label: 'Multiplicador máx.',   need: 6,      get: ()=>s.maxMult||1,                fmt: v=>`x${v} / x6` },
                 { label: 'Precisión global',     need: 78,     get: ()=>accuracy,                    fmt: v=>`${v}% / 78%` },
@@ -9421,7 +9471,7 @@ function renderRanks() {
                 { label: 'Aciertos totales',     need: 5500,    get: ()=>s.totalCorrect||0,           fmt: v=>`${v} / 5,500` },
                 { label: 'Partidas perfectas',   need: 55,      get: ()=>s.perfectGames||0,           fmt: v=>`${v} / 55` },
                 { label: 'Partidas jugadas',     need: 320,     get: ()=>s.gamesPlayed||0,            fmt: v=>`${v} / 320` },
-                { label: 'Logros desbloqueados', need: 280,     get: ()=>(s.achievements||[]).length, fmt: v=>`${v} / 280` },
+                { label: 'Logros desbloqueados', need: 280,     get: ()=>(s.achievements||[]).filter(function(id){return ACHIEVEMENTS_MAP&&ACHIEVEMENTS_MAP.has(id);}).length, fmt: v=>`${v} / 280` },
                 { label: 'Racha máxima',         need: 45,      get: ()=>s.maxStreak||0,              fmt: v=>`${v} / 45` },
                 { label: 'Multiplicador máx.',   need: 8,       get: ()=>s.maxMult||1,                fmt: v=>`x${v} / x8` },
                 { label: 'Precisión global',     need: 85,      get: ()=>accuracy,                    fmt: v=>`${v}% / 85%` },
@@ -9708,13 +9758,17 @@ setTimeout(() => {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    margin-left: 3px;
-    opacity: 0.9;
+    margin-left: 4px;
+    opacity: 1;
+    vertical-align: middle;
+    line-height: 1;
 }
 .rc-ks-shield svg {
-    width: 11px;
-    height: 11px;
+    width: 12px;
+    height: 12px;
     display: block;
+    stroke: currentColor;
+    overflow: visible;
 }
 
 /* ── Klick Pass v3 — 7 niveles + misiones diarias ───────────────── */
