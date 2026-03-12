@@ -8813,17 +8813,17 @@ function renderKp3Pass() {
     if (headerEl) {
         headerEl.innerHTML =
             '<div style="font-size:0.46rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;">Klick Pass — Temporada activa</div>' +
-            '<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:10px;">' +
-                '<div>' +
-                    '<div style="font-size:0.52rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:3px;">XP acumulado</div>' +
-                    '<div style="display:flex;align-items:baseline;gap:5px;">' +
-                        '<span style="font-size:1.6rem;font-weight:900;color:var(--accent-yellow);font-variant-numeric:tabular-nums;line-height:1;">' + totalXP.toLocaleString() + '</span>' +
-                        '<span style="font-size:0.6rem;color:var(--text-secondary);font-weight:600;">/ ' + totalXPPossible.toLocaleString() + ' XP</span>' +
+            '<div style="width:100%;display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:10px;">' +
+                '<div style="flex:1;min-width:0;">' +
+                    '<div style="font-size:0.5rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">XP acumulado</div>' +
+                    '<div style="display:flex;align-items:baseline;gap:4px;">' +
+                        '<span style="font-size:1.5rem;font-weight:900;color:var(--accent-yellow);font-variant-numeric:tabular-nums;line-height:1;">' + totalXP.toLocaleString() + '</span>' +
+                        '<span style="font-size:0.58rem;color:var(--text-secondary);font-weight:600;white-space:nowrap;">/ ' + totalXPPossible.toLocaleString() + ' XP</span>' +
                     '</div>' +
                 '</div>' +
-                '<div style="text-align:right;">' +
-                    '<div style="font-size:0.52rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:3px;">Niveles reclamados</div>' +
-                    '<div style="font-size:1.6rem;font-weight:900;color:var(--text-primary);line-height:1;">' + claimedCount + '<span style="font-size:0.8rem;color:var(--text-secondary);font-weight:600;"> / ' + KP3_TOTAL + '</span></div>' +
+                '<div style="flex-shrink:0;text-align:right;padding-left:12px;">' +
+                    '<div style="font-size:0.5rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;">Niveles</div>' +
+                    '<div style="font-size:1.5rem;font-weight:900;color:var(--text-primary);line-height:1;font-variant-numeric:tabular-nums;">' + claimedCount + '<span style="font-size:0.75rem;color:var(--text-secondary);font-weight:600;"> / ' + KP3_TOTAL + '</span></div>' +
                 '</div>' +
             '</div>' +
             '<div style="height:4px;border-radius:10px;background:rgba(255,229,102,0.1);overflow:hidden;margin-bottom:8px;">' +
