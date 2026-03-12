@@ -87,6 +87,9 @@ function _isIpadSafari() {
     const ua  = navigator.userAgent || '';
     const mtp = navigator.maxTouchPoints || 0;
     const sw  = window.screen.width;
+    const sh  = window.screen.height;
+
+    // ── Apple iPad (cualquier browser) ──────────────────────────────────
     if (/iPad/.test(ua)) return true;
     // Chrome en iPad reporta CriOS en el UA y también incluye "iPad"
     // pero por si acaso, también cubrir por tamaño + touch
@@ -95,8 +98,19 @@ function _isIpadSafari() {
     if (navigator.platform === 'MacIntel' && mtp > 1) return true;
     // iPadOS 17+ puede reportar platform vacío o 'iPhone' en algunos casos
     if (/Safari/.test(ua) && !/Chrome/.test(ua) && mtp >= 2 && sw >= 768) return true;
-    // Fallback: cualquier tablet-size touch device con Safari
-    if (mtp >= 2 && sw >= 768 && window.screen.height >= 1024) return true;
+
+    // ── Android tablet ───────────────────────────────────────────────────
+    // Sin "Mobile" en el UA = tablet Android (Samsung, Lenovo, Huawei, etc.)
+    if (/Android/.test(ua) && !/Mobile/.test(ua)) return true;
+    // Android con UA ambiguo pero dimensiones y touch de tablet
+    if (/Android/.test(ua) && mtp >= 2 && sw >= 768) return true;
+
+    // ── Windows tablet / Surface ─────────────────────────────────────────
+    if (/Windows NT/.test(ua) && mtp >= 2 && sw >= 768) return true;
+
+    // ── Fallback genérico: pantalla táctil con tamaño de tablet ──────────
+    if (mtp >= 2 && sw >= 768 && sh >= 1024) return true;
+
     return false;
 }
 const _KS_IS_IPAD = _isIpadSafari();
@@ -6517,7 +6531,8 @@ async function startGameCheck() {
 
     // ── KLICK SHIELD: verificaciones pre-partida ──────────────────────────
     const _ksE = (msg) => { showToast('No se puede iniciar', msg, 'var(--accent-red)', SVG_LOCK); };
-    const _sm  = window.screen.width <= 430 || _KS_IS_IPAD;
+    const _sm  = window.screen.width <= 430 || _KS_IS_IPAD
+                 || (navigator.maxTouchPoints >= 2 && window.screen.width >= 768);
     if (document.visibilityState === 'hidden' || document.hidden)
         { _ksE('La ventana no está activa.'); return; }
     // hasFocus check omitido: poco fiable en móvil y tablets al pulsar botones
@@ -6536,8 +6551,12 @@ async function startGameCheck() {
     if ((window._ksActiveMicTracks||[]).some(t => t.readyState === 'live'))
         { _ksE('Desactiva el micrófono antes de jugar.'); return; }
     if (!_sm && !_KS_IS_IPAD) {
-        const _wR = window.innerWidth  / window.screen.width;
-        const _hR = window.innerHeight / window.screen.height;
+        // Corregir por DPR: en tablets Android/Surface con densidad ≥2x,
+        // innerWidth/Height es CSS pixels mientras screen.width/height es física.
+        // Sin corrección, el ratio cae falsamente por debajo del umbral.
+        const dpr = window.devicePixelRatio || 1;
+        const _wR = (window.innerWidth  * dpr) / window.screen.width;
+        const _hR = (window.innerHeight * dpr) / window.screen.height;
         if (_wR < 0.28) { _ksE('Maximiza la ventana para jugar.'); return; }
         if (_hR < 0.25) { _ksE('Maximiza la ventana para jugar.'); return; }
         const _sx = window.screenX || window.screenLeft || 0;
@@ -6741,9 +6760,11 @@ function startGame() {
     // Reset roulette state for new game
     totalCorrectThisGame = 0; nextRouletteTrigger = 10;
     // Capturar tamaño de ventana al inicio (para detectar resize a pantalla dividida mid-game)
-    _gameWindowW = window.innerWidth;
+    // Se usa visualViewport cuando está disponible: más fiable en móvil/tablet porque
+    // ya descuenta barras del sistema, teclado flotante y zoom de accesibilidad.
     _ksReset(); // KLICK SHIELD: reset acumulador al iniciar partida
-    _gameWindowH = window.innerHeight;
+    _gameWindowW = (window.visualViewport ? window.visualViewport.width  : window.innerWidth);
+    _gameWindowH = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
     // Arrancar polling anti-trampa
     _startAntiCheatPoll();
     activeBoostNextQ = null; shieldActive = false; hintActive = false; extraTimeActive = 0; streakShieldActive = false;
