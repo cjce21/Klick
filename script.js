@@ -2997,15 +2997,21 @@ async function fetchLeaderboard() {
             // Mostrar PL con ∞ para admin
             const plDisplay = isChristopher ? '∞' : p.powerLevel.toLocaleString();
 
-            // KS shield — visible para todos, solo si el jugador tiene estado activo
+            // KS shield — monitoreo (color) para estados activos; verificado (verde tenue + ✓) para veteranos limpios
             const ksStatus = p.ksStatus || (p.isBanned ? 'ban' : null);
+            const _veteranRanks = ['Maestro','Leyenda','Eterno','Mítico','Divinidad'];
+            const _isVeteranClean = !ksStatus && _veteranRanks.includes(p.rankTitle);
             const ksShieldColor = {
                 ban:       '#ff2a5f',
                 sanctioned:'#ff4040',
                 warned:    '#ff8c00',
                 review:    '#ffb800',
             }[ksStatus] || null;
-            const ksShieldHtml = ksShieldColor ? `<span class="rc-ks-shield" title="Bajo monitoreo de Klick Shield" style="color:${ksShieldColor}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>` : '';
+            const ksShieldTitle = ksShieldColor ? 'Bajo monitoreo de Klick Shield' : 'Cuenta verificada por Klick Shield';
+            const ksShieldStyle = ksShieldColor ? `color:${ksShieldColor}` : 'color:rgba(0,255,102,0.55)';
+            const ksShieldHtml = (ksShieldColor || _isVeteranClean)
+                ? `<span class="rc-ks-shield" title="${ksShieldTitle}" style="${ksShieldStyle}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>${_isVeteranClean ? '<polyline points="9 12 11 14 15 10"/>' : ''}</svg></span>`
+                : '';
 
             html += `<div class="rank-card ${meClass} ${divinidadClass} ${leyendaClass} ${eternoClass} ${miticoClass} ${christopherClass}" onclick="openPlayerProfileFromRank(${index})" title="Ver perfil completo">
                 <div class="rc-pos">${displayPos}</div>
