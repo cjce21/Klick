@@ -320,6 +320,27 @@ const KLICK_CHANGELOG = [
         title: 'Reset de temporada validado en el servidor',
         detail: 'El reinicio semanal del Nivel de Poder ocurre tanto en el cliente como en el servidor. Un trigger automático en el servidor resetea el PL de todos los jugadores cada lunes a medianoche, independientemente de si el jugador abre el juego o no. El servidor también verifica el Season ID en cada envío: si detecta que el jugador pertenece a una semana anterior, aplica el reset antes de registrar el nuevo PL.',
     },
+    {
+        id: 'v210-kpass-v3',
+        type: 'add',
+        date: '2026-03-13',
+        title: 'Klick Pass v3 — 7 niveles semanales con misiones diarias',
+        detail: 'El Klick Pass ha sido completamente rediseñado. Ahora tiene 7 niveles que se desbloquean acumulando XP, y la única forma de ganar XP es completar las 3 misiones diarias que se renuevan cada medianoche. El pase es semanal (se reinicia con la temporada) y el premio máximo es de 25,000 Pinceles repartidos en los 7 niveles.',
+    },
+    {
+        id: 'v210-season-header',
+        type: 'improve',
+        date: '2026-03-13',
+        title: 'Zona de temporada mejorada en la clasificación',
+        detail: 'El encabezado de temporada en la pantalla de clasificación ahora muestra una barra de progreso de la semana, el tiempo restante destacado y un diseño más visual para saber de un vistazo en qué punto de la temporada te encuentras.',
+    },
+    {
+        id: 'v210-ks-shield-fix',
+        type: 'fix',
+        date: '2026-03-13',
+        title: 'Corrección de escudos de Klick Shield en el ranking',
+        detail: 'Los iconos de escudo de seguridad (ban, sancionado, advertido, en revisión) no se mostraban en las tarjetas del ranking. Faltaba el CSS que define el tamaño del SVG. Corregido.',
+    },
 ];
 
 // ── Motor de versionado por fecha ─────────────────────────────────
