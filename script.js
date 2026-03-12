@@ -4781,6 +4781,7 @@ function togglePin(achId) {
     SFX.click(); const index = playerStats.pinnedAchievements.indexOf(achId);
     if (index > -1) { playerStats.pinnedAchievements.splice(index, 1); showToast('Quitado del perfil', 'Ya no aparecerá destacado.', 'var(--text-secondary)', SVG_PIN); } 
     else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); playerStats.totalPins = (playerStats.totalPins||0) + 1; const ach_data = ACHIEVEMENTS_MAP.get(achId); showToast('Fijado en Perfil', ach_data ? ach_data.title : achId, ach_data ? ach_data.color : '', ach_data ? ach_data.icon : ''); }
+    if (_isAdminPin) playerStats.adminPinnedBackup = [...playerStats.pinnedAchievements];
     saveStatsLocally(); checkAchievements(); renderAchievements(); submitLeaderboard();
 }
 
@@ -8744,6 +8745,15 @@ setTimeout(() => {
         saveKpState(_kpAdmin);
         const _achSet = new Set([...(playerStats.achievements||[]), ...ACHIEVEMENTS_MAP.keys()]);
         playerStats.achievements = [..._achSet];
+        // Restaurar logros fijados desde la copia de respaldo si pinnedAchievements está vacío.
+        // Protege contra reinicios de localStorage (modo privado, nuevo dispositivo, etc.)
+        if ((playerStats.pinnedAchievements||[]).length === 0 && (playerStats.adminPinnedBackup||[]).length > 0) {
+            playerStats.pinnedAchievements = [...playerStats.adminPinnedBackup];
+        }
+        // Mantener la copia de respaldo sincronizada
+        if ((playerStats.pinnedAchievements||[]).length > 0) {
+            playerStats.adminPinnedBackup = [...playerStats.pinnedAchievements];
+        }
         saveStatsLocally();
     }
     // ─────────────────────────────────────────────────────────────────────────
