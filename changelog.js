@@ -298,33 +298,27 @@ const KLICK_CHANGELOG = [
         title: 'Corrección: recarga fantasma en la primera visita',
         detail: 'En la primera apertura del juego (sin Service Worker previo), el evento controllerchange se disparaba al activarse el SW por primera vez, lo que la lógica de actualización interpretaba incorrectamente como una nueva versión disponible y recargaba la página en silencio. En dispositivos lentos o con red mala esto dejaba el juego en un estado intermedio bloqueado. Ahora se detecta si ya había un SW controlando antes del registro, y el evento solo activa la notificación de actualización cuando es una actualización real.',
     },
+    // ── 2026-03-12 — Sistema de Temporadas ─────────────────────────
     {
-        id: 'cs-blitz',
-        type: 'coming',
-        date: null,
-        title: 'Modo Blitz',
-        detail: 'Empieza con 60 segundos en el reloj. Cada respuesta correcta suma tiempo extra; los fallos y los timeouts lo reducen. La partida termina cuando el cronómetro llega a cero. Pensado para quienes buscan velocidad, presión y reacción instantánea.',
+        id: 'v200-seasons',
+        type: 'add',
+        date: '2026-03-12',
+        title: 'Sistema de Temporadas Semanales',
+        detail: 'El ranking global ahora funciona por temporadas semanales. Cada lunes a medianoche el Nivel de Poder de todos los jugadores se reinicia a 0 y comienza una nueva temporada con nombre propio. Los nombres de temporada son parte del lore del universo Klick y escalan en intensidad: desde "Año Cero" y "Primera Señal" hasta "El Absoluto", "Dios Klick", "Cristalix" y más allá. El ranking muestra el nombre de la temporada activa y el tiempo que queda para el reinicio.',
     },
     {
-        id: 'cs-sudden',
-        type: 'coming',
-        date: null,
-        title: 'Modo Muerte Súbita',
-        detail: 'Una única vida. El primer error termina la partida sin posibilidad de continuar. Sin red de seguridad, sin multiplicadores de recuperación. Solo para los jugadores que exigen la perfección absoluta en cada respuesta.',
+        id: 'v200-season-pl',
+        type: 'improve',
+        date: '2026-03-12',
+        title: 'Nuevo cálculo de Nivel de Poder — basado en la semana',
+        detail: 'El Nivel de Poder ya no refleja el historial acumulado de toda la carrera: ahora mide el rendimiento de la semana activa. La fórmula combina el récord de la semana (×1.5), la racha máxima encadenada (×200 por acierto), las partidas perfectas (×1,000 cada una), la precisión acumulada en la semana (hasta 3,000 PL) y la eficiencia promedio por partida (hasta 12,000 PL). Cada temporada es una pizarra en blanco para todos.',
     },
     {
-        id: 'cs-select',
-        type: 'coming',
-        date: null,
-        title: 'Modo Selección de Materia',
-        detail: 'Antes de iniciar la partida podrás elegir la categoría de preguntas: Lengua Española, Ciencias Sociales, Ciencias Naturales o Matemáticas. Domina tu materia o pon a prueba tus puntos débiles.',
-    },
-    {
-        id: 'cs-shop',
-        type: 'coming',
-        date: null,
-        title: 'Tienda de Personalización',
-        detail: 'Pronto podrás personalizar tus partículas, elegir entre docenas de formas, colores, efectos animados y comportamientos de movimiento. También podrás equipar un título personalizado que aparece en tu perfil.',
+        id: 'v200-season-server-reset',
+        type: 'security',
+        date: '2026-03-12',
+        title: 'Reset de temporada validado en el servidor',
+        detail: 'El reinicio semanal del Nivel de Poder ocurre tanto en el cliente como en el servidor. Un trigger automático en el servidor resetea el PL de todos los jugadores cada lunes a medianoche, independientemente de si el jugador abre el juego o no. El servidor también verifica el Season ID en cada envío: si detecta que el jugador pertenece a una semana anterior, aplica el reset antes de registrar el nuevo PL.',
     },
 ];
 
@@ -383,7 +377,7 @@ function renderChangelog() {
         coming:   { label: 'Próximo',          color: '#ffb800' },
     };
 
-    const coming   = _versionedLog.filter(function(e) { return e.type === 'coming'; });
+    const coming   = []; // sin próximas implementaciones activas
     const allDated = _versionedLog.filter(function(e) { return e.type !== 'coming' && e.date; });
 
     // Agrupar todos los cambios por versión manteniendo orden de aparición
