@@ -1354,7 +1354,14 @@ const defaultStats = {
     seasonWeekId: '',       // ISO week ID de la temporada activa, ej: '2025-W12'
     seasonPL: 0,            // PL acumulado esta temporada (se envía como powerLevel al servidor)
     seasonBestPL: 0,        // mejor PL histórico en una sola temporada (para logros nm8/nm9/nm10)
-    seasonResetCount: 0,    // cuántas temporadas completadas (reinicios totales)
+    seasonResetCount: 0,    // temporadas completadas (reinicios)
+    weekBestScoreAllTime: 0,// mejor récord semanal histórico
+    weekPerfectsBest: 0,    // más perfectas en una sola temporada
+    weekBestAccuracy: 0,    // mejor precisión semanal registrada (%)
+    weekAccuracyMin10: false,// alguna vez 75%+ con ≥10 respuestas
+    weekAccuracyMin20: false,// alguna vez 90%+ con ≥20 respuestas
+    playedWeekIds: [],      // IDs de semanas en las que se jugó (para logros narrativos)
+    weekGamesPerSeason: {}, // { weekId: gamesPlayed } para sn6
     weekBestScore: 0,       // mejor partida esta semana
     weekStreak: 0,          // racha máxima esta semana
     weekPerfects: 0,        // partidas perfectas esta semana
@@ -2925,42 +2932,28 @@ function checkSeasonReset() {
 
     // Guardar mejor PL histórico antes de resetear
     const currentPL = playerStats.seasonPL || 0;
-    if (currentPL > (playerStats.seasonBestPL || 0)) {
-        playerStats.seasonBestPL = currentPL;
-    }
-    // Guardar mejores stats semanales históricas (para logros de temporada)
+    if (currentPL > (playerStats.seasonBestPL || 0)) playerStats.seasonBestPL = currentPL;
+
     if (!isFirstEver && playerStats.seasonWeekId) {
         // Mejor récord semanal ever
         const _wBs = playerStats.weekBestScore || 0;
         if (_wBs > (playerStats.weekBestScoreAllTime || 0)) playerStats.weekBestScoreAllTime = _wBs;
-        // Mejores perfectas en una sola temporada
+        // Más perfectas en una sola temporada
         const _wPf = playerStats.weekPerfects || 0;
         if (_wPf > (playerStats.weekPerfectsBest || 0)) playerStats.weekPerfectsBest = _wPf;
         // Mejor precisión semanal
-        const _wAns = (playerStats.weekCorrect||0) + (playerStats.weekWrong||0) + (playerStats.weekTimeouts||0);
+        const _wAns = (playerStats.weekCorrect||0)+(playerStats.weekWrong||0)+(playerStats.weekTimeouts||0);
         if (_wAns >= 10) {
-            const _wAcc = Math.round((playerStats.weekCorrect||0) / _wAns * 100);
-            if (_wAcc > (playerStats.weekBestAccuracy || 0)) playerStats.weekBestAccuracy = _wAcc;
+            const _wAcc = Math.round((playerStats.weekCorrect||0)/_wAns*100);
+            if (_wAcc > (playerStats.weekBestAccuracy||0)) playerStats.weekBestAccuracy = _wAcc;
             if (_wAcc >= 75) playerStats.weekAccuracyMin10 = true;
         }
-        if (_wAns >= 20) {
-            const _wAcc20 = Math.round((playerStats.weekCorrect||0) / _wAns * 100);
-            if (_wAcc20 >= 90) playerStats.weekAccuracyMin20 = true;
-        }
-        // Registrar semana jugada (para logros narrativos)
+        if (_wAns >= 20 && Math.round((playerStats.weekCorrect||0)/_wAns*100) >= 90) playerStats.weekAccuracyMin20 = true;
+        // Registrar semana como jugada (logros narrativos)
         const _pw = playerStats.playedWeekIds || [];
-        if (!_pw.includes(playerStats.seasonWeekId)) {
-            _pw.push(playerStats.seasonWeekId);
-            playerStats.playedWeekIds = _pw;
-        }
-    }
-    // Registrar semana actual como jugada (si tuvo actividad)
-    if (playerStats.weekGamesPlayed > 0) {
-        const _pw2 = playerStats.playedWeekIds || [];
-        if (playerStats.seasonWeekId && !_pw2.includes(playerStats.seasonWeekId)) {
-            _pw2.push(playerStats.seasonWeekId);
-            playerStats.playedWeekIds = _pw2;
-        }
+        if (!_pw.includes(playerStats.seasonWeekId)) { _pw.push(playerStats.seasonWeekId); playerStats.playedWeekIds = _pw; }
+        // Incrementar contador de temporadas
+        playerStats.seasonResetCount = (playerStats.seasonResetCount || 0) + 1;
     }
 
     // Reset de stats semanales
@@ -2974,9 +2967,6 @@ function checkSeasonReset() {
     playerStats.weekWrong        = 0;
     playerStats.weekTimeouts     = 0;
     playerStats.weekTotalScore   = 0;
-    if (!isFirstEver) {
-        playerStats.seasonResetCount = (playerStats.seasonResetCount || 0) + 1;
-    }
 
     saveStatsLocally();
 
@@ -3307,34 +3297,29 @@ async function fetchLeaderboard() {
             // Mostrar PL con ∞ para admin
             const plDisplay = isChristopher ? '∞' : p.powerLevel.toLocaleString();
 
-            // KS shield — visible para todos, solo si el jugador tiene estado activo
-            // Fuente primaria: ksStatus del payload del servidor (enviado en submitLeaderboard)
-            // Fuente secundaria: isBanned del servidor, ksStatus local del jugador actual
-            let ksStatus = p.ksStatus || null;
-            // Si el servidor no envía ksStatus pero sí isBanned, inferir 'ban'
-            if (!ksStatus && p.isBanned) ksStatus = 'ban';
-            // Para el jugador actual: también verificar estado local por si el servidor aún no actualizó
-            if (isMe && !ksStatus) {
-                const _localBan = playerStats.ksBanUntil && new Date(playerStats.ksBanUntil).getTime() > Date.now();
-                const _localRev = playerStats.ksReviewStatus;
-                if (_localBan) ksStatus = 'ban';
-                else if (_localRev === 'sanctioned')  ksStatus = 'sanctioned';
-                else if (_localRev === 'warned')      ksStatus = 'warned';
-                else if (_localRev === 'under_review') ksStatus = 'review';
+            // KS shield — 3 fuentes: servidor, isBanned, caché local por uuid
+            // El GAS puede no devolver ksStatus si no lo persiste → usamos caché local
+            let ksStatus = p.ksStatus || (p.isBanned ? 'ban' : null);
+            // Caché local: guardamos el último ksStatus conocido por uuid
+            if (!ksStatus && p.uuid) {
+                try { ksStatus = JSON.parse(localStorage.getItem('klick_ks_cache')||'{}')[p.uuid] || null; } catch(_) {}
             }
-            const ksShieldColor = {
-                ban:       '#ff2a5f',
-                sanctioned:'#ff4040',
-                warned:    '#ff8c00',
-                review:    '#ffb800',
-            }[ksStatus] || null;
-            const _ksTitle = {
-                ban: 'Suspendido por Klick Shield',
-                sanctioned: 'Sancionado por Klick Shield',
-                warned: 'Advertido por Klick Shield',
-                review: 'Bajo revisión de Klick Shield',
-            }[ksStatus] || 'Bajo monitoreo de Klick Shield';
-            const ksShieldHtml = ksShieldColor ? `<span class="rc-ks-shield" title="${_ksTitle}" style="color:${ksShieldColor}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>` : '';
+            // Para el jugador actual: también leer estado local
+            if (isMe && !ksStatus) {
+                const _lb = playerStats.ksBanUntil && new Date(playerStats.ksBanUntil).getTime() > Date.now();
+                const _lr = playerStats.ksReviewStatus;
+                if (_lb) ksStatus = 'ban';
+                else if (_lr === 'sanctioned') ksStatus = 'sanctioned';
+                else if (_lr === 'warned')     ksStatus = 'warned';
+                else if (_lr === 'under_review') ksStatus = 'review';
+            }
+            // Persistir en caché si se obtuvo del servidor
+            if ((p.ksStatus || p.isBanned) && p.uuid) {
+                try { const _c=JSON.parse(localStorage.getItem('klick_ks_cache')||'{}'); if(ksStatus)_c[p.uuid]=ksStatus; else delete _c[p.uuid]; localStorage.setItem('klick_ks_cache',JSON.stringify(_c)); } catch(_) {}
+            }
+            const ksShieldColor = { ban:'#ff2a5f', sanctioned:'#ff4040', warned:'#ff8c00', review:'#ffb800' }[ksStatus] || null;
+            const _ksTip = { ban:'Suspendido', sanctioned:'Sancionado', warned:'Advertido', review:'En revisión' }[ksStatus] || 'Klick Shield';
+            const ksShieldHtml = ksShieldColor ? `<span class="rc-ks-shield" title="${_ksTip}" style="color:${ksShieldColor}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>` : '';
 
             html += `<div class="rank-card ${meClass} ${divinidadClass} ${leyendaClass} ${eternoClass} ${miticoClass} ${christopherClass}" onclick="openPlayerProfileFromRank(${index})" title="Ver perfil completo">
                 <div class="rc-pos">${displayPos}</div>
@@ -3361,26 +3346,15 @@ async function fetchLeaderboard() {
         }
         document.getElementById('ranking-list').innerHTML = html;
 
-        // Cabecera de temporada sobre el ranking
+        // Cabecera de temporada — compacta con nombre destacado y contador de reinicios
         const _seasonHeaderEl = document.getElementById('ranking-season-header');
         if (_seasonHeaderEl) {
             const _si = getCurrentSeasonInfo();
-            const _rCount = playerStats.seasonResetCount || 0;
-            const _resetBadge = _rCount > 0
-                ? `<span class="rs-reset-badge" title="Temporadas completadas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="11" height="11"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>${_rCount}</span>`
-                : '';
+            const _rc = playerStats.seasonResetCount || 0;
+            const _rcHtml = _rc > 0 ? `<span class="rs-reset-badge">↺${_rc}</span>` : '';
             _seasonHeaderEl.innerHTML =
-                `<div class="rs-season-left">` +
-                    `<span class="rs-season-eyebrow">TEMPORADA ACTIVA</span>` +
-                    `<div class="rs-season-name-row">` +
-                        `<span class="rs-season-name">${_si.name}</span>` +
-                        _resetBadge +
-                    `</div>` +
-                `</div>` +
-                `<div class="rs-season-right">` +
-                    `<span class="rs-season-time-label">Reinicia en</span>` +
-                    `<span class="rs-season-time">${getSeasonTimeLeft()}</span>` +
-                `</div>`;
+                `<div class="rs-season-left"><span class="rs-label">TEMPORADA</span><span class="rs-season-name">${_si.name}${_rcHtml}</span></div>` +
+                `<span class="rs-season-time">${getSeasonTimeLeft()}</span>`;
         }
 
         // Online badge — incluye admin, siempre visible si hay al menos 1
@@ -4679,37 +4653,39 @@ addAchs([
     { id: 'cx4', title: 'El Elegido',          desc: 'Consulta la tarjeta del Arquitecto del Sistema 25 veces.',                     color: 'var(--divinity-color-static)', icon: SVG_STAR },
 ]);
 
-// ─── 25. TEMPORADAS — logros ligados al sistema de temporadas semanales ──
+// ─── 25. TEMPORADAS — sistema semanal de PL ───────────────────────────────
 addAchs([
-    // Participación en temporadas
-    { id: 'sn1',  title: 'Primera Temporada',     desc: 'Completa tu primera temporada semanal.',                                               color: colors.blue,   icon: SVG_CLOCK },
-    { id: 'sn2',  title: 'Veterano de Temporada', desc: 'Completa 3 temporadas semanales distintas.',                                           color: colors.green,  icon: SVG_CLOCK },
-    { id: 'sn3',  title: 'Constante',             desc: 'Completa 7 temporadas semanales distintas.',                                           color: colors.purple, icon: SVG_CLOCK },
-    { id: 'sn4',  title: 'Incombustible',         desc: 'Completa 15 temporadas semanales distintas.',                                          color: colors.orange, icon: SVG_FIRE  },
-    { id: 'sn5',  title: 'Eterno Clasificado',    desc: 'Completa 30 temporadas semanales distintas.',                                          color: '#6600ff',     icon: SVG_STAR  },
+    // Participación
+    { id: 'sn1', title: 'Primera Temporada',     desc: 'Completa tu primera temporada semanal.',                                      color: colors.blue,   icon: SVG_CLOCK },
+    { id: 'sn2', title: 'Veterano Semanal',      desc: 'Completa 3 temporadas semanales.',                                            color: colors.green,  icon: SVG_CLOCK },
+    { id: 'sn3', title: 'Constante',             desc: 'Completa 7 temporadas semanales.',                                            color: colors.purple, icon: SVG_CLOCK },
+    { id: 'sn4', title: 'Incombustible',         desc: 'Completa 15 temporadas semanales.',                                           color: colors.orange, icon: SVG_FIRE  },
+    { id: 'sn5', title: 'Eterno Clasificado',    desc: 'Completa 30 temporadas semanales.',                                           color: '#6600ff',     icon: SVG_STAR  },
     // PL acumulado en una temporada
-    { id: 'sp1',  title: 'Señal Inicial',         desc: 'Alcanza 1,000 PL en una temporada.',                                                   color: colors.green,  icon: SVG_BOLT  },
-    { id: 'sp2',  title: 'Pulso Activo',          desc: 'Alcanza 5,000 PL en una temporada.',                                                   color: colors.blue,   icon: SVG_BOLT  },
-    { id: 'sp3',  title: 'Nodo en Ascenso',       desc: 'Alcanza 15,000 PL en una temporada.',                                                  color: colors.yellow, icon: SVG_BOLT  },
-    { id: 'sp4',  title: 'Protocolo Activo',      desc: 'Alcanza 40,000 PL en una temporada.',                                                  color: colors.orange, icon: SVG_BOLT  },
-    { id: 'sp5',  title: 'Señal Máxima',          desc: 'Alcanza 100,000 PL en una temporada.',                                                 color: colors.red,    icon: SVG_BOLT  },
+    { id: 'sp1', title: 'Señal Inicial',         desc: 'Alcanza 1,000 PL en una temporada.',                                          color: colors.green,  icon: SVG_BOLT  },
+    { id: 'sp2', title: 'Pulso Activo',          desc: 'Alcanza 5,000 PL en una temporada.',                                          color: colors.blue,   icon: SVG_BOLT  },
+    { id: 'sp3', title: 'Nodo en Ascenso',       desc: 'Alcanza 15,000 PL en una temporada.',                                         color: colors.yellow, icon: SVG_BOLT  },
+    { id: 'sp4', title: 'Protocolo Activo',      desc: 'Alcanza 40,000 PL en una temporada.',                                         color: colors.orange, icon: SVG_BOLT  },
+    { id: 'sp5', title: 'Señal Máxima',          desc: 'Alcanza 100,000 PL en una temporada.',                                        color: colors.red,    icon: SVG_BOLT  },
     // Récord semanal
-    { id: 'sw1',  title: 'Semana Prometedora',    desc: 'Logra un récord de 30,000 puntos en una semana.',                                      color: colors.green,  icon: SVG_TROPHY },
-    { id: 'sw2',  title: 'Semana Fuerte',         desc: 'Logra un récord de 60,000 puntos en una semana.',                                      color: colors.blue,   icon: SVG_TROPHY },
-    { id: 'sw3',  title: 'Semana de Élite',       desc: 'Logra un récord de 100,000 puntos en una semana.',                                     color: colors.yellow, icon: SVG_TROPHY },
-    // Partidas perfectas en una temporada
-    { id: 'sq1',  title: 'Perfecto Semanal',      desc: 'Logra al menos 1 partida perfecta en una temporada.',                                  color: colors.green,  icon: SVG_STAR  },
-    { id: 'sq2',  title: 'Racha Perfecta',        desc: 'Logra al menos 3 partidas perfectas en una temporada.',                                color: colors.yellow, icon: SVG_STAR  },
-    { id: 'sq3',  title: 'Semana Impecable',      desc: 'Logra 5 partidas perfectas en una misma temporada.',                                   color: '#ff9500',     icon: SVG_STAR  },
+    { id: 'sw1', title: 'Semana Prometedora',    desc: 'Logra un récord de 30,000 puntos en una semana.',                             color: colors.green,  icon: SVG_TROPHY},
+    { id: 'sw2', title: 'Semana Fuerte',         desc: 'Logra un récord de 60,000 puntos en una semana.',                             color: colors.blue,   icon: SVG_TROPHY},
+    { id: 'sw3', title: 'Semana de Élite',       desc: 'Logra un récord de 100,000 puntos en una semana.',                            color: colors.yellow, icon: SVG_TROPHY},
+    // Perfectas en una temporada
+    { id: 'sq1', title: 'Perfecto Semanal',      desc: 'Logra al menos 1 partida perfecta en una temporada.',                         color: colors.green,  icon: SVG_STAR  },
+    { id: 'sq2', title: 'Racha Perfecta',        desc: 'Logra 3 partidas perfectas en una temporada.',                                color: colors.yellow, icon: SVG_STAR  },
+    { id: 'sq3', title: 'Semana Impecable',      desc: 'Logra 5 partidas perfectas en una misma temporada.',                          color: '#ff9500',     icon: SVG_STAR  },
     // Precisión semanal
-    { id: 'sa1',  title: 'Afinado',               desc: 'Termina una temporada con 75% de precisión semanal (mín. 10 respuestas).',             color: colors.blue,   icon: SVG_TARGET },
-    { id: 'sa2',  title: 'Quirúrgico Semanal',    desc: 'Termina una temporada con 90% de precisión semanal (mín. 20 respuestas).',             color: colors.purple, icon: SVG_TARGET },
-    // Nombre de temporada especial — logros narrativos por jugar en temporadas con lore
-    { id: 'sl1',  title: 'Año Cero',              desc: 'Participaste en la temporada "Año Cero" (2025-W01).',                                  color: colors.dark,   icon: SVG_CLOCK },
-    { id: 'sl2',  title: 'Nueva Era',             desc: 'Participaste en la temporada "Nueva Era" (2026-W01).',                                 color: colors.blue,   icon: SVG_CLOCK },
-    { id: 'sl3',  title: 'El Gran Frenesí',       desc: 'Participaste en la temporada "El Gran Frenesí" (2026-W29).',                           color: '#ff2a5f',     icon: SVG_FIRE  },
-    { id: 'sl4',  title: 'Ciclo Mítico',          desc: 'Participaste en la temporada "Ciclo Mítico" (2026-W25).',                              color: '#ff9500',     icon: SVG_STAR  },
-    { id: 'sl5',  title: 'La Divinidad',          desc: 'Participaste en la temporada "La Divinidad" (2026-W26).',                              color: 'var(--divinity-color-static)', icon: SVG_STAR },
+    { id: 'sa1', title: 'Afinado',               desc: 'Termina una temporada con 75%+ de precisión (mín. 10 respuestas).',           color: colors.blue,   icon: SVG_TARGET},
+    { id: 'sa2', title: 'Quirúrgico Semanal',    desc: 'Termina una temporada con 90%+ de precisión (mín. 20 respuestas).',           color: colors.purple, icon: SVG_TARGET},
+    // Logros narrativos por temporadas específicas
+    { id: 'sl1', title: 'Año Cero',              desc: 'Jugaste durante la temporada "Año Cero" (2025-W01).',                         color: colors.dark,   icon: SVG_CLOCK },
+    { id: 'sl2', title: 'Nueva Era',             desc: 'Jugaste durante la temporada "Nueva Era" (2026-W01).',                        color: colors.blue,   icon: SVG_CLOCK },
+    { id: 'sl3', title: 'El Gran Frenesí',       desc: 'Jugaste durante la temporada "El Gran Frenesí" (2026-W29).',                  color: '#ff2a5f',     icon: SVG_FIRE  },
+    { id: 'sl4', title: 'Ciclo Mítico',          desc: 'Jugaste durante la temporada "Ciclo Mítico" (2026-W25).',                     color: '#ff9500',     icon: SVG_STAR  },
+    { id: 'sl5', title: 'La Divinidad',          desc: 'Jugaste durante la temporada "La Divinidad" (2026-W26).',                     color: 'var(--divinity-color-static)', icon: SVG_STAR },
+    // Logro adicional: supervivencia de temporada
+    { id: 'sn6', title: 'Sin Rendirse',          desc: 'Juega al menos 5 partidas en cada una de 3 temporadas distintas.',            color: colors.orange, icon: SVG_SHIELD},
 ]);
 
 
@@ -5136,46 +5112,33 @@ function _checkAchievementsImpl() {
     if (_cxv >= 10) unlock('cx3');
     if (_cxv >= 25) unlock('cx4');
 
-    // ─── TEMPORADAS — logros del sistema semanal ──────────────────────────
+    // ─── TEMPORADAS ──────────────────────────────────────────────────────────
     const _src = playerStats.seasonResetCount || 0;
-    // Temporadas completadas
-    if (_src >= 1)  unlock('sn1');
-    if (_src >= 3)  unlock('sn2');
-    if (_src >= 7)  unlock('sn3');
-    if (_src >= 15) unlock('sn4');
-    if (_src >= 30) unlock('sn5');
-    // PL de temporada (mejor histórico o actual)
+    if(_src>=1) unlock('sn1'); if(_src>=3) unlock('sn2'); if(_src>=7) unlock('sn3');
+    if(_src>=15) unlock('sn4'); if(_src>=30) unlock('sn5');
+    // sn6: al menos 5 partidas en 3 temporadas distintas
+    { const _wgps = playerStats.weekGamesPerSeason || {};
+      const _sn6count = Object.values(_wgps).filter(g => g >= 5).length;
+      if (_sn6count >= 3) unlock('sn6'); }
+    // PL de temporada
     const _plBest = Math.max(playerStats.seasonBestPL||0, playerStats.seasonPL||0);
-    if (_plBest >= 1000)   unlock('sp1');
-    if (_plBest >= 5000)   unlock('sp2');
-    if (_plBest >= 15000)  unlock('sp3');
-    if (_plBest >= 40000)  unlock('sp4');
-    if (_plBest >= 100000) unlock('sp5');
+    if(_plBest>=1000)  unlock('sp1'); if(_plBest>=5000)   unlock('sp2');
+    if(_plBest>=15000) unlock('sp3'); if(_plBest>=40000)  unlock('sp4');
+    if(_plBest>=100000)unlock('sp5');
     // Récord semanal
-    const _wBestAll = Math.max(playerStats.weekBestScore||0, playerStats.weekBestScoreAllTime||0);
-    if (_wBestAll >= 30000)  unlock('sw1');
-    if (_wBestAll >= 60000)  unlock('sw2');
-    if (_wBestAll >= 100000) unlock('sw3');
-    // Perfectas en una temporada (mejor registrado)
-    const _wPerfBest = Math.max(playerStats.weekPerfects||0, playerStats.weekPerfectsBest||0);
-    if (_wPerfBest >= 1) unlock('sq1');
-    if (_wPerfBest >= 3) unlock('sq2');
-    if (_wPerfBest >= 5) unlock('sq3');
+    const _wBestAll = Math.max(playerStats.weekBestScoreAllTime||0, playerStats.weekBestScore||0);
+    if(_wBestAll>=30000) unlock('sw1'); if(_wBestAll>=60000) unlock('sw2'); if(_wBestAll>=100000) unlock('sw3');
+    // Perfectas en una temporada
+    const _wPerfBest = Math.max(playerStats.weekPerfectsBest||0, playerStats.weekPerfects||0);
+    if(_wPerfBest>=1) unlock('sq1'); if(_wPerfBest>=3) unlock('sq2'); if(_wPerfBest>=5) unlock('sq3');
     // Precisión semanal
-    const _wAnsTotal = (playerStats.weekCorrect||0) + (playerStats.weekWrong||0) + (playerStats.weekTimeouts||0);
-    const _wAccNow = _wAnsTotal >= 10 ? Math.round((playerStats.weekCorrect||0) / _wAnsTotal * 100) : 0;
-    const _wAccBest = Math.max(_wAccNow, playerStats.weekBestAccuracy||0);
-    if (_wAccBest >= 75 && (playerStats.weekAccuracyMin10||false)) unlock('sa1');
-    if (_wAccBest >= 90 && (playerStats.weekAccuracyMin20||false)) unlock('sa2');
-    // Logros narrativos por temporada específica participada
-    const _currentWid = playerStats.seasonWeekId || '';
-    const _playedWeeks = playerStats.playedWeekIds || [];
-    const _allPlayedWeeks = new Set([..._playedWeeks, _currentWid].filter(Boolean));
-    if (_allPlayedWeeks.has('2025-W01')) unlock('sl1');
-    if (_allPlayedWeeks.has('2026-W01')) unlock('sl2');
-    if (_allPlayedWeeks.has('2026-W29')) unlock('sl3');
-    if (_allPlayedWeeks.has('2026-W25')) unlock('sl4');
-    if (_allPlayedWeeks.has('2026-W26')) unlock('sl5');
+    if(playerStats.weekAccuracyMin10) unlock('sa1');
+    if(playerStats.weekAccuracyMin20) unlock('sa2');
+    // Logros narrativos por semana específica
+    const _allPW = new Set([...(playerStats.playedWeekIds||[]), playerStats.seasonWeekId||''].filter(Boolean));
+    if(_allPW.has('2025-W01')) unlock('sl1'); if(_allPW.has('2026-W01')) unlock('sl2');
+    if(_allPW.has('2026-W29')) unlock('sl3'); if(_allPW.has('2026-W25')) unlock('sl4');
+    if(_allPW.has('2026-W26')) unlock('sl5');
 
     if (newlyUnlocked.length > 0) { 
         // Track daily achievement unlocks para da1-da5 y extra5 "Día Épico"
@@ -6536,28 +6499,17 @@ function goToProfile(needsName = false) {
         // Ranking pos
         const posEl=document.getElementById('pl-ranking-pos');
         if(posEl) posEl.innerText = _isAdminPL ? '∞' : (s.rankingPosition&&s.rankingPosition<999?`#${s.rankingPosition}`:'#—');
-        // Nombre y tiempo de temporada — insertar DOM si no existe
-        let seasonNameEl = document.getElementById('pl-season-name');
-        let seasonTimeEl = document.getElementById('pl-season-time');
-        if (!seasonNameEl && panel) {
-            seasonNameEl = document.createElement('div');
-            seasonNameEl.id = 'pl-season-name';
-            panel.insertBefore(seasonNameEl, panel.firstChild);
-            seasonTimeEl = document.createElement('div');
-            seasonTimeEl.id = 'pl-season-time';
-            panel.insertBefore(seasonTimeEl, panel.children[1] || null);
-        }
-        if (!_isAdminPL) {
-            const _si = getCurrentSeasonInfo();
-            const _rCount = s.seasonResetCount || 0;
-            const _resetTxt = _rCount > 0 ? `<span class="pl-season-reset-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="10" height="10"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>${_rCount} reinicio${_rCount !== 1 ? 's' : ''}</span>` : '';
-            if (seasonNameEl) {
-                seasonNameEl.innerHTML = `<span class="pl-season-eyebrow">TEMPORADA</span><div class="pl-season-name-row"><span class="pl-season-title" style="color:${currentRankInfo.color};">${_si.name}</span>${_resetTxt}</div>`;
+        // Nombre de temporada — inyectar en el label "Desglose del cálculo" ya existente
+        const _plDesgloseLabelEl = document.getElementById('pl-desglose-label');
+        if (_plDesgloseLabelEl) {
+            if (!_isAdminPL) {
+                const _si = getCurrentSeasonInfo();
+                const _rc = s.seasonResetCount || 0;
+                const _rcTxt = _rc > 0 ? ` <span style="opacity:0.5;font-size:0.5rem;">↺${_rc}</span>` : '';
+                _plDesgloseLabelEl.innerHTML = `<span style="color:${currentRankInfo.color};font-weight:900;font-size:0.65rem;letter-spacing:1px;text-transform:uppercase;">${_si.name}${_rcTxt}</span> <span style="color:var(--text-secondary);opacity:0.5;font-size:0.5rem;font-weight:600;">· reinicia en ${getSeasonTimeLeft()}</span>`;
+            } else {
+                _plDesgloseLabelEl.innerHTML = `<span style="opacity:0.4;font-size:0.55rem;letter-spacing:2px;text-transform:uppercase;">Desglose del cálculo</span>`;
             }
-            if (seasonTimeEl) { seasonTimeEl.innerText = '⏱ Reinicia en ' + getSeasonTimeLeft(); }
-        } else {
-            if (seasonNameEl) { seasonNameEl.innerHTML = '<span class="pl-season-eyebrow">TEMPORADA</span><div class="pl-season-name-row"><span class="pl-season-title">Sistema Activo</span></div>'; }
-            if (seasonTimeEl) { seasonTimeEl.innerText = ''; }
         }
         // Build rows
         const rowsEl=document.getElementById('pl-rows');
@@ -6612,12 +6564,7 @@ function goToProfile(needsName = false) {
             { label:'Precisión semana',   raw:`${_wAcc}%`,                   factor:'× 3,000',          result:_wAccPL,   color:colors[5] },
             { label:'Eficiencia semana',  raw:`${fmt(_wAvg)} prom/p`,        factor:'× 0.3 (máx 12k)', result:_wEffPL,   color:colors[0] },
         ];
-        // Nota explicativa del nuevo sistema PL semanal
-        const _plInfoNote = `<div class="pl-system-note">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>El PL se calcula con tus stats de la semana activa. Se reinicia cada lunes. Tu historial de rango y logros es permanente.</span>
-        </div>`;
-        rowsEl.innerHTML = _plInfoNote + rows.map((r,i)=>`
+        rowsEl.innerHTML = rows.map((r,i)=>`
             <div class="pl-calc-row">
                 <span class="pl-calc-label" style="color:${r.color};">${r.label}</span>
                 <span class="pl-calc-val">${r.raw}</span>
@@ -7995,25 +7942,17 @@ function saveGameStats() {
     if (playerStats.seasonPL > (playerStats.seasonBestPL || 0)) {
         playerStats.seasonBestPL = playerStats.seasonPL;
     }
-    // Actualizar best stats semanales en tiempo real (para logros sin esperar reinicio)
-    if (score > (playerStats.weekBestScoreAllTime || 0)) playerStats.weekBestScoreAllTime = score;
-    if ((playerStats.weekPerfects||0) > (playerStats.weekPerfectsBest || 0)) playerStats.weekPerfectsBest = playerStats.weekPerfects;
-    // Precisión semanal en tiempo real
-    const _wAnsTR = (playerStats.weekCorrect||0) + (playerStats.weekWrong||0) + (playerStats.weekTimeouts||0);
-    if (_wAnsTR >= 10) {
-        const _wAccTR = Math.round((playerStats.weekCorrect||0) / _wAnsTR * 100);
-        if (_wAccTR > (playerStats.weekBestAccuracy || 0)) playerStats.weekBestAccuracy = _wAccTR;
-        if (_wAccTR >= 75) playerStats.weekAccuracyMin10 = true;
-    }
-    if (_wAnsTR >= 20) {
-        const _wAcc20TR = Math.round((playerStats.weekCorrect||0) / _wAnsTR * 100);
-        if (_wAcc20TR >= 90) playerStats.weekAccuracyMin20 = true;
-    }
-    // Registrar semana activa como jugada (para logros narrativos)
-    { const _pw3 = playerStats.playedWeekIds || [];
-      if (playerStats.seasonWeekId && !_pw3.includes(playerStats.seasonWeekId)) {
-          _pw3.push(playerStats.seasonWeekId); playerStats.playedWeekIds = _pw3;
-      }
+    // Actualizar bests semanales históricos en tiempo real (para logros de temporada)
+    if (score > (playerStats.weekBestScoreAllTime||0)) playerStats.weekBestScoreAllTime = score;
+    if ((playerStats.weekPerfects||0) > (playerStats.weekPerfectsBest||0)) playerStats.weekPerfectsBest = playerStats.weekPerfects;
+    { const _wAnsTR=(playerStats.weekCorrect||0)+(playerStats.weekWrong||0)+(playerStats.weekTimeouts||0);
+      if(_wAnsTR>=10){const _acc=Math.round((playerStats.weekCorrect||0)/_wAnsTR*100);if(_acc>(playerStats.weekBestAccuracy||0))playerStats.weekBestAccuracy=_acc;if(_acc>=75)playerStats.weekAccuracyMin10=true;}
+      if(_wAnsTR>=20&&Math.round((playerStats.weekCorrect||0)/_wAnsTR*100)>=90)playerStats.weekAccuracyMin20=true; }
+    // Registrar semana activa como jugada
+    { const _pw3=playerStats.playedWeekIds||[];
+      if(playerStats.seasonWeekId&&!_pw3.includes(playerStats.seasonWeekId)){_pw3.push(playerStats.seasonWeekId);playerStats.playedWeekIds=_pw3;}
+      // Rastrear partidas por temporada para sn6
+      if(playerStats.seasonWeekId){const _wgps=playerStats.weekGamesPerSeason||{};_wgps[playerStats.seasonWeekId]=(_wgps[playerStats.seasonWeekId]||0)+1;playerStats.weekGamesPerSeason=_wgps;}
     }
 
     // x4: Doble Victoria — supera 75k dos partidas seguidas (check before overwriting previousGameScore)
@@ -9280,152 +9219,45 @@ setTimeout(() => {
     const _seasonStyle = document.createElement('style');
     _seasonStyle.id = 'klick-season-styles';
     _seasonStyle.textContent = `
-/* ── Season Header en el Ranking — versión llamativa ──────────────────── */
+/* ── Season Header en el Ranking ──────────────────────────────── */
 #ranking-season-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px 8px;
-    margin-bottom: 6px;
-    border-bottom: 1px solid rgba(255,229,102,0.12);
-    background: linear-gradient(90deg, rgba(255,229,102,0.04) 0%, transparent 70%);
+    padding: 7px 14px 6px;
+    margin-bottom: 4px;
+    background: linear-gradient(to right, rgba(255,229,102,0.07) 0%, transparent 75%);
+    border-bottom: 1px solid transparent;
+    -webkit-mask-image: none;
 }
-.rs-season-left {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-.rs-season-right {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 1px;
-}
-.rs-season-eyebrow {
-    font-size: 0.5rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: rgba(255,229,102,0.55);
-    text-transform: uppercase;
-}
-.rs-season-name-row {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-}
+.rs-season-left { display:flex; flex-direction:column; gap:1px; }
+.rs-label { font-size:0.46rem; font-weight:700; letter-spacing:2px; color:rgba(255,229,102,0.5); text-transform:uppercase; }
 .rs-season-name {
-    font-size: 0.82rem;
+    font-size: 0.76rem;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 1.5px;
     color: var(--accent-yellow);
-    text-shadow: 0 0 14px rgba(255,229,102,0.35);
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 .rs-reset-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 0.5rem;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-    color: var(--accent-yellow);
-    opacity: 0.65;
-    background: rgba(255,229,102,0.1);
-    border-radius: 20px;
-    padding: 2px 5px;
-    border: 1px solid rgba(255,229,102,0.2);
-}
-.rs-season-time-label {
     font-size: 0.48rem;
-    font-weight: 600;
-    letter-spacing: 1px;
-    color: var(--text-secondary);
-    opacity: 0.6;
-    text-transform: uppercase;
+    font-weight: 800;
+    color: var(--accent-yellow);
+    opacity: 0.55;
+    background: rgba(255,229,102,0.12);
+    border-radius: 20px;
+    padding: 1px 5px;
+    letter-spacing: 0;
 }
 .rs-season-time {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     color: var(--text-secondary);
     font-weight: 700;
-    opacity: 0.85;
+    opacity: 0.75;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.5px;
-}
-/* ── Season info en el Panel PL — versión mejorada ────────────────────── */
-#pl-season-name {
-    display: block;
-    padding: 12px 24px 0;
-}
-#pl-season-time {
-    font-size: 0.54rem;
-    color: var(--text-secondary);
-    font-weight: 600;
-    opacity: 0.75;
-    display: block;
-    padding: 0 24px 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    margin-bottom: 4px;
-    letter-spacing: 0.5px;
-}
-.pl-season-eyebrow {
-    display: block;
-    font-size: 0.48rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: var(--text-secondary);
-    opacity: 0.5;
-    text-transform: uppercase;
-    margin-bottom: 2px;
-}
-.pl-season-name-row {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    flex-wrap: wrap;
-}
-.pl-season-title {
-    font-size: 0.78rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    text-shadow: 0 0 12px rgba(var(--rank-rgb),0.3);
-}
-.pl-season-reset-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 0.46rem;
-    font-weight: 700;
-    color: var(--text-secondary);
-    opacity: 0.6;
-    background: rgba(255,255,255,0.06);
-    border-radius: 20px;
-    padding: 2px 5px;
-    border: 1px solid rgba(255,255,255,0.1);
-    letter-spacing: 0.3px;
-}
-/* ── Nota explicativa del sistema PL ──────────────────────────────────── */
-.pl-system-note {
-    display: flex;
-    align-items: flex-start;
-    gap: 5px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 6px;
-    padding: 7px 9px;
-    margin-bottom: 8px;
-    color: var(--text-secondary);
-}
-.pl-system-note svg {
-    flex-shrink: 0;
-    margin-top: 1px;
-    opacity: 0.7;
-}
-.pl-system-note span {
-    font-size: 0.52rem;
-    font-weight: 500;
-    line-height: 1.5;
-    opacity: 0.75;
 }
 `;
     document.head.appendChild(_seasonStyle);
