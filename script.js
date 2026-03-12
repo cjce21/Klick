@@ -1730,7 +1730,7 @@ function revokeInvalidAchievements() {
     const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
     const accuracy = totalAns > 0 ? Math.round((s.totalCorrect||0)/totalAns*100) : 0;
     const normalAchs = s.achievements.filter(id => ACHIEVEMENTS_MAP.has(id)).length;
-    const kpClaimed  = (getKpState().claimed||[]).length;
+    const kpClaimed  = (getKp3State().claimed||[]).length;
 
     // ── 1. ESCALAS NUMÉRICAS — verifica cada tier contra el stat real ────────
 
@@ -3346,15 +3346,33 @@ async function fetchLeaderboard() {
         }
         document.getElementById('ranking-list').innerHTML = html;
 
-        // Cabecera de temporada — compacta con nombre destacado y contador de reinicios
+        // Cabecera de temporada — visual con nombre, contador de reinicios y barra de progreso
         const _seasonHeaderEl = document.getElementById('ranking-season-header');
         if (_seasonHeaderEl) {
             const _si = getCurrentSeasonInfo();
             const _rc = playerStats.seasonResetCount || 0;
             const _rcHtml = _rc > 0 ? `<span class="rs-reset-badge">↺${_rc}</span>` : '';
+            // Calcular progreso de la semana (0-1)
+            const _now2 = Date.now();
+            const _weekPct = Math.min(1, Math.max(0, (_now2 - _si.start.getTime()) / (_si.end.getTime() - _si.start.getTime())));
+            const _timeLeft = getSeasonTimeLeft();
             _seasonHeaderEl.innerHTML =
-                `<div class="rs-season-left"><span class="rs-label">TEMPORADA</span><span class="rs-season-name">${_si.name}${_rcHtml}</span></div>` +
-                `<span class="rs-season-time">${getSeasonTimeLeft()}</span>`;
+                `<div class="rs-season-left"><span class="rs-label">TEMPORADA ACTIVA</span><span class="rs-season-name">${_si.name}${_rcHtml}</span></div>` +
+                `<div class="rs-season-right"><span class="rs-season-sublabel">Termina en</span><span class="rs-season-time">${_timeLeft}</span></div>`;
+            // Añadir barra de progreso de la semana si no existe
+            let _barWrap = _seasonHeaderEl.querySelector('.rs-season-bar-wrap');
+            if (!_barWrap) {
+                _barWrap = document.createElement('div');
+                _barWrap.className = 'rs-season-bar-wrap';
+                _barWrap.style.cssText = 'grid-column:1/-1;width:100%;margin-top:8px;';
+                const _barFill = document.createElement('div');
+                _barFill.className = 'rs-season-bar-fill';
+                _barWrap.appendChild(_barFill);
+                _seasonHeaderEl.style.flexWrap = 'wrap';
+                _seasonHeaderEl.appendChild(_barWrap);
+            }
+            const _fill = _seasonHeaderEl.querySelector('.rs-season-bar-fill');
+            if (_fill) setTimeout(() => { _fill.style.width = Math.round(_weekPct * 100) + '%'; }, 80);
         }
 
         // Online badge — incluye admin, siempre visible si hay al menos 1
@@ -4808,7 +4826,7 @@ function shuffleArray(array) { let current = array.length, random; while (curren
 function getRankInfo(stats) {
     const totalAnswers = (stats.totalCorrect||0)+(stats.totalWrong||0)+(stats.totalTimeouts||0);
     const accuracy = totalAnswers>0 ? Math.round((stats.totalCorrect||0)/totalAnswers*100) : 0;
-    const kpClaimed = (getKpState().claimed || []).length;
+    const kpClaimed = (getKp3State().claimed || []).length;
     // ── Divinidad — rango exclusivo del Arquitecto del Sistema ─────
     if ((stats.playerName||''). toUpperCase() === 'CHRISTOPHER' && stats.uuid === '00000000-spec-tral-0000-klickphantom0') {
         const light = typeof document !== 'undefined' && document.body && document.body.classList.contains('light-mode');
@@ -4876,7 +4894,7 @@ function _checkAchievementsImpl() {
     if((playerStats.totalScore||0)>=2000000) unlock('div1');
     if((playerStats.totalCorrect||0)>=8000)  unlock('div2');
     if((playerStats.perfectGames||0)>=75)    unlock('div3');
-    const kpClaimedChk = (getKpState().claimed||[]).length;
+    const kpClaimedChk = (getKp3State().claimed||[]).length;
 
     // DÍAS (Consecutivos vs Totales)
     const days = playerStats.maxLoginStreak; 
@@ -4949,7 +4967,7 @@ function _checkAchievementsImpl() {
     if(playerStats.rouletteComboSpecial) unlock('rl10');
 
     // KLICK PASS
-    const kpClaimed = (getKpState().claimed || []).length;
+    const kpClaimed = (getKp3State().claimed || []).length;
     if ((playerStats.kpViews||0) >= 1)                          unlock('kpa6');
     if (kpClaimed >= 1)                                          unlock('kpa1');
     if ((playerStats.kpClaimDays||[]).length >= 3)              unlock('kpa7');
@@ -7683,11 +7701,8 @@ function showFeedback(isCorrect, isTimeout = false) {
             if (totalCorrectThisGame >= 10) {
                 _perfectThisGame = true;
                 playerStats.perfectGames = (playerStats.perfectGames || 0) + 1;
-                const _kpStPf = getKpState();
-                _kpStPf.perfectNoError = (_kpStPf.perfectNoError || 0) + 1;
-                saveKpState(_kpStPf);
                 saveStatsDebounced();
-                setTimeout(_kpUpdateMenuBadge, 200);
+                setTimeout(_kp3UpdateMenuBadge, 200);
             }
         }
         // u19: Resurrección — pierde 2 vidas seguidas y encadena 10 aciertos consecutivos
@@ -7974,6 +7989,18 @@ function saveGameStats() {
     currentRankInfo = getRankInfo(playerStats); updateLogoDots(); 
     saveStatsLocally(); // guardar inmediatamente al final de partida (datos críticos)
     checkAchievements();
+
+    // ── Klick Pass v3: actualizar datos diarios y evaluar misiones ──────────
+    try {
+        const _gameCorrectKp  = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
+        const _gameTotalKp    = currentQuestionIndex;
+        const _gameAccKp      = _gameTotalKp > 0 ? Math.round(_gameCorrectKp / _gameTotalKp * 100) : 0;
+        const _isPerfectKp    = (currentWrongAnswers === 0 && currentTimeoutAnswers === 0 && _gameCorrectKp >= 5);
+        const _noDmgKp        = (currentWrongAnswers === 0 && currentTimeoutAnswers === 0);
+        kp3UpdateDailyData(score, currentMaxStreak, _gameAccKp, _currentGameMaxMult||1, _isPerfectKp, _noDmgKp);
+        setTimeout(() => kp3EvalMissions(), 300);
+    } catch(_kp3Err) {}
+
     submitLeaderboard(); 
 }
 
@@ -8504,8 +8531,394 @@ const KP_LEVELS = _KP_MISSIONS.map((m, i) => ({ ...m, reward: _KP_REWARDS[i] }))
 const KP_TOTAL  = 100;
 
 // ── Storage (permanente, no por ciclo) ───────────────────────────────
-const KP_KEY = 'klickpass_v2';
+// ═══════════════════════════════════════════════════════════════════════
+//  KLICK PASS v3 — 7 niveles semanales, desbloqueados día a día con XP
+//
+//  Sistema:
+//  · Cada día hay 3 MISIONES DIARIAS que otorgan XP al completarse.
+//  · Hay 7 niveles del pase (uno por día de la semana).
+//  · Cada nivel se desbloquea cuando acumulas suficiente XP (la única vía).
+//  · Los niveles se pueden RECLAMAR en orden una vez desbloqueados.
+//  · Premio máximo: 25,000 Pinceles repartidos en los 7 niveles.
+//  · El pase es SEMANAL y se resetea con la temporada (cada lunes).
+//  · Las misiones diarias se renuevan cada medianoche.
+// ═══════════════════════════════════════════════════════════════════════
 
+const KP3_KEY      = 'klickpass_v3';
+const KP3_TOTAL    = 7;  // 7 niveles, uno por día
+
+// XP requerido acumulado por nivel (aumenta progresivamente)
+const KP3_XP_REQUIRED = [150, 350, 600, 900, 1250, 1650, 2100];
+
+// Recompensas por nivel (suma = 25,000 ℙ)
+const KP3_REWARDS  = [1500, 2000, 2500, 3000, 4000, 5000, 7000];
+
+// Nombres y descripciones de los 7 niveles
+const KP3_LEVELS = [
+    { lv:1, title:'Primer Impulso',   desc:'Completa el día 1 del pase.',   icon:'⚡' },
+    { lv:2, title:'En Movimiento',    desc:'Completa el día 2 del pase.',   icon:'🔥' },
+    { lv:3, title:'Constancia',       desc:'Completa el día 3 del pase.',   icon:'🎯' },
+    { lv:4, title:'Punto Medio',      desc:'¡Llevas 4 días seguidos!',      icon:'💫' },
+    { lv:5, title:'Disciplina',       desc:'Completa el día 5 del pase.',   icon:'⭐' },
+    { lv:6, title:'Casi Completo',    desc:'Solo falta un día más.',         icon:'🏆' },
+    { lv:7, title:'Semana Perfecta',  desc:'¡Completaste el Klick Pass!',  icon:'💎' },
+];
+
+// ── Misiones diarias — 3 por día, rotan por tipo ─────────────────────
+// Las misiones usan el día de la semana (0=dom, 1=lun…6=sáb) para elegir
+// qué conjunto de misiones mostrar. Dentro del día, son las mismas para todos.
+const KP3_DAILY_SETS = [
+    // Domingo
+    [
+        { id:'d0m1', name:'Jugador de Domingo', desc:'Completa 2 partidas hoy.',          xp:50,  chk:(ps,d)=>(d.gamesToday||0)>=2 },
+        { id:'d0m2', name:'Precisión Dominical',desc:'10 aciertos consecutivos.',         xp:60,  chk:(ps,d)=>(d.streakToday||0)>=10 },
+        { id:'d0m3', name:'Aperitivo',          desc:'Consigue 10,000 pts en una partida.',xp:40, chk:(ps,d)=>(d.bestToday||0)>=10000 },
+    ],
+    // Lunes
+    [
+        { id:'d1m1', name:'Arranque Semanal',   desc:'Completa 2 partidas hoy.',           xp:50,  chk:(ps,d)=>(d.gamesToday||0)>=2 },
+        { id:'d1m2', name:'Sin Fallos',         desc:'Termina una partida sin errores.',    xp:80,  chk:(ps,d)=>(d.perfectToday||0)>=1 },
+        { id:'d1m3', name:'Acumulador',         desc:'Consigue 15,000 pts en una partida.',xp:60,  chk:(ps,d)=>(d.bestToday||0)>=15000 },
+    ],
+    // Martes
+    [
+        { id:'d2m1', name:'Martes Activo',      desc:'Completa 3 partidas hoy.',           xp:60,  chk:(ps,d)=>(d.gamesToday||0)>=3 },
+        { id:'d2m2', name:'Racha de Fuego',     desc:'Logra una racha de 8 hoy.',          xp:55,  chk:(ps,d)=>(d.streakToday||0)>=8 },
+        { id:'d2m3', name:'Doble Precisión',    desc:'80% de precisión en una partida.',   xp:75,  chk:(ps,d)=>(d.accToday||0)>=80 },
+    ],
+    // Miércoles
+    [
+        { id:'d3m1', name:'Mitad de Semana',    desc:'Completa 2 partidas hoy.',           xp:50,  chk:(ps,d)=>(d.gamesToday||0)>=2 },
+        { id:'d3m2', name:'Multiplicador',      desc:'Llega al x3 en una partida.',        xp:70,  chk:(ps,d)=>(d.multToday||1)>=3 },
+        { id:'d3m3', name:'Maestro del Día',    desc:'20,000 pts en una partida.',         xp:80,  chk:(ps,d)=>(d.bestToday||0)>=20000 },
+    ],
+    // Jueves
+    [
+        { id:'d4m1', name:'Impulso Jueves',     desc:'Completa 2 partidas hoy.',           xp:50,  chk:(ps,d)=>(d.gamesToday||0)>=2 },
+        { id:'d4m2', name:'Concentración',      desc:'Sin perder vidas en una partida.',   xp:70,  chk:(ps,d)=>(d.noDmgToday||false) },
+        { id:'d4m3', name:'Puntazo',            desc:'12,000 pts en una partida.',         xp:55,  chk:(ps,d)=>(d.bestToday||0)>=12000 },
+    ],
+    // Viernes
+    [
+        { id:'d5m1', name:'TGIF Klick',         desc:'Completa 3 partidas hoy.',           xp:60,  chk:(ps,d)=>(d.gamesToday||0)>=3 },
+        { id:'d5m2', name:'Racha Viernes',      desc:'Logra una racha de 12 hoy.',         xp:80,  chk:(ps,d)=>(d.streakToday||0)>=12 },
+        { id:'d5m3', name:'Récord Semanal',     desc:'25,000 pts en una partida.',         xp:90,  chk:(ps,d)=>(d.bestToday||0)>=25000 },
+    ],
+    // Sábado
+    [
+        { id:'d6m1', name:'Sábado de Klick',    desc:'Completa 3 partidas hoy.',           xp:60,  chk:(ps,d)=>(d.gamesToday||0)>=3 },
+        { id:'d6m2', name:'Doble Perfecta',     desc:'2 partidas perfectas hoy.',          xp:100, chk:(ps,d)=>(d.perfectToday||0)>=2 },
+        { id:'d6m3', name:'Sniper',             desc:'30,000 pts en una partida.',         xp:90,  chk:(ps,d)=>(d.bestToday||0)>=30000 },
+    ],
+];
+
+// ── Storage ─────────────────────────────────────────────────────────
+function getKp3State() {
+    try {
+        const raw = localStorage.getItem(KP3_KEY);
+        const today = new Date().toISOString().split('T')[0];
+        const weekId = playerStats.seasonWeekId || getWeekId();
+        if (raw) {
+            const s = JSON.parse(raw);
+            // Reset si cambió la semana
+            if (s.weekId && s.weekId !== weekId) {
+                return _kp3Fresh(weekId, today);
+            }
+            // Reset diario de misiones si cambió el día
+            if (s.today !== today) {
+                s.today        = today;
+                s.dailyXP      = 0;
+                s.completedMissions = [];
+                s.dailyData    = _kp3DailyDataFresh();
+                saveKp3State(s);
+            }
+            if (!Array.isArray(s.claimed))             s.claimed = [];
+            if (!Array.isArray(s.completedMissions))   s.completedMissions = [];
+            if (typeof s.totalXP !== 'number')         s.totalXP = 0;
+            if (typeof s.dailyXP !== 'number')         s.dailyXP = 0;
+            if (!s.dailyData)                          s.dailyData = _kp3DailyDataFresh();
+            return s;
+        }
+    } catch(e) {}
+    const weekId = playerStats.seasonWeekId || getWeekId();
+    return _kp3Fresh(weekId, new Date().toISOString().split('T')[0]);
+}
+
+function _kp3Fresh(weekId, today) {
+    return { weekId, today, totalXP:0, dailyXP:0, claimed:[], completedMissions:[], dailyData: _kp3DailyDataFresh() };
+}
+
+function _kp3DailyDataFresh() {
+    return { gamesToday:0, streakToday:0, bestToday:0, accToday:0, multToday:1, perfectToday:0, noDmgToday:false };
+}
+
+function saveKp3State(s) {
+    try { localStorage.setItem(KP3_KEY, JSON.stringify(s)); } catch(e) {}
+}
+
+// ── Evaluar y otorgar XP de misiones diarias ──────────────────────────
+// Se llama al final de cada partida (desde saveGameStats)
+function kp3EvalMissions() {
+    const state = getKp3State();
+    const dayOfWeek = new Date().getDay(); // 0=dom
+    const missions  = KP3_DAILY_SETS[dayOfWeek];
+    let xpGained = 0;
+    missions.forEach(m => {
+        if (state.completedMissions.includes(m.id)) return; // ya completa
+        if (m.chk(playerStats, state.dailyData)) {
+            state.completedMissions.push(m.id);
+            state.dailyXP  = (state.dailyXP  || 0) + m.xp;
+            state.totalXP  = (state.totalXP  || 0) + m.xp;
+            xpGained += m.xp;
+            // Toast de misión completada
+            setTimeout(() => {
+                showToast(
+                    `Misión completada — ${m.name}`,
+                    `+${m.xp} XP para el Klick Pass`,
+                    'var(--accent-yellow)',
+                    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><polyline points="20 6 9 17 4 12"/></svg>`
+                );
+            }, 800 + missions.indexOf(m) * 500);
+        }
+    });
+    if (xpGained > 0) {
+        saveKp3State(state);
+        // Comprobar si algún nivel se desbloqueó
+        _kp3CheckUnlocks(state, true);
+        _kp3UpdateMenuBadge();
+    }
+}
+
+// Actualizar dailyData con los resultados de la partida
+// Se llama desde saveGameStats justo antes de kp3EvalMissions
+function kp3UpdateDailyData(score, maxStreak, accuracy, maxMult, isPerfect, noDmg) {
+    const state = getKp3State();
+    const d = state.dailyData || _kp3DailyDataFresh();
+    d.gamesToday   = (d.gamesToday  || 0) + 1;
+    if (maxStreak  > (d.streakToday  || 0)) d.streakToday  = maxStreak;
+    if (score      > (d.bestToday    || 0)) d.bestToday    = score;
+    if (accuracy   > (d.accToday     || 0)) d.accToday     = accuracy;
+    if (maxMult    > (d.multToday    || 1)) d.multToday    = maxMult;
+    if (isPerfect)  d.perfectToday  = (d.perfectToday  || 0) + 1;
+    if (noDmg)      d.noDmgToday    = true;
+    state.dailyData = d;
+    saveKp3State(state);
+}
+
+// ── Comprobar desbloqueos ────────────────────────────────────────────
+function _kp3CheckUnlocks(state, showToastOnNew) {
+    let anyNew = false;
+    for (let i = 0; i < KP3_TOTAL; i++) {
+        const lv = i + 1;
+        if (state.claimed.includes(lv)) continue; // ya reclamado
+        const xpRequired = KP3_XP_REQUIRED[i];
+        const wasLocked  = (state.totalXP || 0) < xpRequired;
+        if (!wasLocked && showToastOnNew && i > 0) anyNew = true;
+    }
+    return anyNew;
+}
+
+// ── Reclamar nivel ───────────────────────────────────────────────────
+let _kp3ClaimLock = false;
+function kp3Claim(lv) {
+    if (_kp3ClaimLock) return;
+    const state = getKp3State();
+    if (state.claimed.includes(lv)) return;
+    const idx = lv - 1;
+    const xpRequired = KP3_XP_REQUIRED[idx];
+    if ((state.totalXP || 0) < xpRequired) { showToast('Nivel bloqueado', `Necesitas ${xpRequired} XP (tienes ${state.totalXP||0})`, 'var(--accent-red)'); return; }
+    // Bloqueo secuencial: el anterior debe estar reclamado (excepto lv 1)
+    if (lv > 1 && !state.claimed.includes(lv - 1)) { showToast('Nivel bloqueado', 'Reclama el nivel anterior primero.', 'var(--accent-red)'); return; }
+
+    _kp3ClaimLock = true;
+    setTimeout(() => { _kp3ClaimLock = false; }, 600);
+
+    state.claimed.push(lv);
+    saveKp3State(state);
+
+    const lvData  = KP3_LEVELS[idx];
+    const reward  = KP3_REWARDS[idx];
+    // Acreditar pinceles al totalScore
+    playerStats.totalScore = (playerStats.totalScore || 0) + reward;
+    currentRankInfo = getRankInfo(playerStats);
+    updateLogoDots();
+    saveStatsLocally();
+    checkAchievements();
+
+    try { initAudio(); } catch(e) {}
+    SFX.achievement();
+    showToast(
+        `${lvData.icon} Nivel ${lv} — ${lvData.title}`,
+        `+${reward.toLocaleString()} ℙ reclamados`,
+        'var(--accent-yellow)',
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><polyline points="20 6 9 17 4 12"/></svg>`
+    );
+    if (lv === KP3_TOTAL) {
+        setTimeout(() => {
+            showToast('🎉 KLICK PASS COMPLETADO', '¡Has reclamado los 25,000 ℙ del pase semanal!', 'var(--rank-color)',
+                `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`);
+        }, 700);
+    }
+    renderKp3Pass();
+    _kp3UpdateMenuBadge();
+}
+
+// ── Tiempo hasta medianoche ──────────────────────────────────────────
+function _kp3MidnightCountdown() {
+    const now  = new Date();
+    const next = new Date(now); next.setHours(24,0,0,0);
+    const diff = next - now;
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    return `${h}h ${m}m`;
+}
+
+// ── Badge del menú ───────────────────────────────────────────────────
+function _kp3UpdateMenuBadge() {
+    const state = getKp3State();
+    // Hay badge si algún nivel está desbloqueado y no reclamado
+    let count = 0;
+    for (let i = 0; i < KP3_TOTAL; i++) {
+        const lv = i + 1;
+        if (state.claimed.includes(lv)) continue;
+        if (lv > 1 && !state.claimed.includes(lv - 1)) continue; // bloqueo secuencial
+        if ((state.totalXP || 0) >= KP3_XP_REQUIRED[i]) count++;
+    }
+    // También badge si hay misiones del día incompletas
+    const dayOfWeek = new Date().getDay();
+    const missions  = KP3_DAILY_SETS[dayOfWeek];
+    const pendingMissions = missions.filter(m => !state.completedMissions.includes(m.id)).length;
+    if (pendingMissions > 0) count = Math.max(count, 1); // al menos 1 para indicar misiones pendientes
+
+    const badge = document.getElementById('kpass-menu-badge');
+    if (!badge) return;
+    if (count > 0) { badge.style.display = 'inline-block'; badge.textContent = count; }
+    else             badge.style.display = 'none';
+}
+function updateKpassMenuBadge() { _kp3UpdateMenuBadge(); }
+
+// ── Render completo del Klick Pass ───────────────────────────────────
+function renderKp3Pass() {
+    const container = document.getElementById('kp-path-container');
+    const headerEl  = document.getElementById('kp-header');
+    if (!container) return;
+
+    const state     = getKp3State();
+    const totalXP   = state.totalXP || 0;
+    const dayOfWeek = new Date().getDay();
+    const missions  = KP3_DAILY_SETS[dayOfWeek];
+    const totalXPPossible = KP3_XP_REQUIRED[KP3_TOTAL - 1]; // 2100
+
+    // ── Header ─────────────────────────────────────────────────────
+    if (headerEl) {
+        const claimedCount = state.claimed.length;
+        const xpPct = Math.min(100, Math.round((totalXP / totalXPPossible) * 100));
+        const rewardClaimed = state.claimed.reduce((s, lv) => s + (KP3_REWARDS[lv-1]||0), 0);
+        headerEl.innerHTML = `
+            <div class="kp-cycle-label">KLICK PASS SEMANAL</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+                <div>
+                    <div style="font-size:0.55rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:2px;">XP del Pase</div>
+                    <div style="display:flex;align-items:baseline;gap:5px;">
+                        <span style="font-size:1.4rem;font-weight:900;color:var(--accent-yellow);font-variant-numeric:tabular-nums;">${totalXP.toLocaleString()}</span>
+                        <span style="font-size:0.6rem;color:var(--text-secondary);">/ ${totalXPPossible.toLocaleString()} XP</span>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:0.55rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:2px;">Niveles</div>
+                    <div style="font-size:1.4rem;font-weight:900;color:#ffffff;">${claimedCount}<span style="font-size:0.7rem;color:var(--text-secondary);font-weight:600;"> / ${KP3_TOTAL}</span></div>
+                </div>
+            </div>
+            <div style="height:5px;border-radius:10px;background:rgba(255,229,102,0.12);overflow:hidden;margin:10px 0 8px;">
+                <div style="height:100%;border-radius:10px;background:var(--accent-yellow);width:${xpPct}%;transition:width 0.8s ease;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.6rem;color:var(--text-secondary);">${rewardClaimed > 0 ? rewardClaimed.toLocaleString() + ' ℙ reclamados de 25,000' : 'Sin recompensas reclamadas aún'}</span>
+                <span style="font-size:0.6rem;color:var(--accent-yellow);font-weight:700;">Máx. 25,000 ℙ</span>
+            </div>
+            <div style="margin-top:6px;font-size:0.6rem;color:var(--text-secondary);opacity:0.6;line-height:1.4;">Completa misiones diarias para ganar XP y desbloquear los 7 niveles. El pase se reinicia cada semana.</div>
+        `;
+    }
+
+    // ── Misiones del día ────────────────────────────────────────────
+    let html = `<div class="kp2-missions-wrap">
+        <div class="kp2-mission-header">
+            <span class="kp2-mission-title">🎯 Misiones de Hoy</span>
+            <span class="kp2-mission-reset">Renuevan en ${_kp3MidnightCountdown()}</span>
+        </div>`;
+
+    missions.forEach(m => {
+        const done    = state.completedMissions.includes(m.id);
+        const partial = !done ? m.chk(playerStats, state.dailyData || {}) : false;
+        const cardCls = done ? 'completed' : (partial ? 'active' : '');
+        html += `<div class="kp2-mission-card ${cardCls}">
+            <div class="kp2-mission-icon">${done ? '✅' : '🎮'}</div>
+            <div class="kp2-mission-body">
+                <div class="kp2-mission-name">${m.name}</div>
+                <div class="kp2-mission-desc">${m.desc}</div>
+            </div>
+            ${done
+                ? `<div class="kp2-mission-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div><span class="kp2-mission-xp">+${m.xp} XP</span>`
+                : `<span class="kp2-mission-xp" style="color:var(--text-secondary);">+${m.xp} XP</span>`
+            }
+        </div>`;
+    });
+    html += `</div>`;
+
+    // ── Niveles ─────────────────────────────────────────────────────
+    html += `<div class="kp2-levels-section">
+        <div class="kp2-section-title">
+            <span>7 Niveles del Pase</span>
+            <span class="kp2-xp-total">${totalXP.toLocaleString()} XP acumulados</span>
+        </div>`;
+
+    KP3_LEVELS.forEach((lvData, i) => {
+        const lv         = lvData.lv;
+        const xpReq      = KP3_XP_REQUIRED[i];
+        const isClaimed  = state.claimed.includes(lv);
+        const isUnlocked = !isClaimed && totalXP >= xpReq && (lv === 1 || state.claimed.includes(lv - 1));
+        const isLocked   = !isClaimed && !isUnlocked;
+        const progress   = isLocked ? Math.min(1, totalXP / xpReq) : 1;
+        const reward     = KP3_REWARDS[i];
+        let cardCls      = isClaimed ? 'claimed' : (isUnlocked ? 'unlocked' : 'locked');
+
+        let rightEl = '';
+        if (isClaimed) {
+            rightEl = `<div class="kp2-claimed-badge">✓ Reclamado</div>`;
+        } else if (isUnlocked) {
+            rightEl = `<button class="kp2-claim-btn" onclick="kp3Claim(${lv})">RECLAMAR</button>`;
+        } else {
+            rightEl = `<div class="kp2-locked-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>${xpReq} XP</div>`;
+        }
+
+        html += `<div class="kp2-level-card ${cardCls}">
+            <div class="kp2-level-num">${lvData.icon}<span class="kp2-level-sub">Día ${lv}</span></div>
+            <div class="kp2-level-body">
+                <div class="kp2-level-title">${lvData.title}</div>
+                <div class="kp2-level-req">${isLocked ? `${totalXP}/${xpReq} XP — ${Math.round(progress*100)}% completado` : isUnlocked ? '¡Listo para reclamar!' : 'Nivel completado'}</div>
+                <div class="kp2-level-xp-bar-wrap">
+                    <div class="kp2-level-xp-bar-fill" style="width:${Math.round(progress*100)}%"></div>
+                </div>
+            </div>
+            <div class="kp2-level-right">
+                <div>
+                    <div class="kp2-level-reward">${reward.toLocaleString()} ℙ</div>
+                    <div class="kp2-level-day">Día ${lv}/7</div>
+                </div>
+                ${rightEl}
+            </div>
+        </div>`;
+    });
+    html += `</div>`;
+
+    container.innerHTML = html;
+}
+
+// alias para compatibilidad con código existente
+function renderKpPath()  { renderKp3Pass(); }
+function renderKpHeader() { renderKp3Pass(); }
+
+// ── Legacy KP v2 state (mantenido para compatibilidad con logros) ─────
 function getKpState() {
     try {
         const raw = localStorage.getItem(KP_KEY);
@@ -8513,10 +8926,6 @@ function getKpState() {
             const s = JSON.parse(raw);
             if (!Array.isArray(s.claimed)) s.claimed = [];
             if (typeof s.perfectNoError !== 'number') s.perfectNoError = 0;
-            // Sync perfectNoError desde perfectGames SOLO si kpState está en 0
-            // (primera vez o datos migrados sin kpState). No sobreescribir si ya hay un
-            // valor guardado — perfectGames usa umbral ≥10 preguntas y podría ser menor
-            // que el valor real de perfectNoError que usa umbral ≥5 preguntas.
             if (s.perfectNoError === 0) {
                 const psPerf = playerStats ? (playerStats.perfectGames||0) : 0;
                 if (psPerf > 0) s.perfectNoError = psPerf;
@@ -8822,8 +9231,8 @@ function goToKlickPass() {
     playerStats.kpViews = (playerStats.kpViews||0) + 1;
     trackSectionVisit('klickpass');
     saveStatsLocally(); checkAchievements();
-    renderKpPath();
-    _kpUpdateMenuBadge();
+    renderKp3Pass();
+    _kp3UpdateMenuBadge();
     switchScreen('klickpass-screen');
 }
 
@@ -8887,7 +9296,7 @@ function renderRanks() {
     const container = document.getElementById('ranks-container');
     if (!container) return;
     const s = playerStats;
-    const kpClaimed = (getKpState().claimed || []).length;
+    const kpClaimed = (getKp3State().claimed || []).length;
     const current = getRankInfo(s).title;
     const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
     const accuracy = totalAns > 0 ? Math.round((s.totalCorrect||0)/totalAns*100) : 0;
@@ -9224,16 +9633,17 @@ setTimeout(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 7px 14px 6px;
-    margin-bottom: 4px;
-    background: linear-gradient(to right, rgba(255,229,102,0.07) 0%, transparent 75%);
-    border-bottom: 1px solid transparent;
-    -webkit-mask-image: none;
+    padding: 10px 14px 9px;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, rgba(255,229,102,0.09) 0%, rgba(255,229,102,0.03) 60%, transparent 100%);
+    border: 1px solid rgba(255,229,102,0.12);
+    border-radius: 10px;
+    margin: 0 0 8px 0;
 }
-.rs-season-left { display:flex; flex-direction:column; gap:1px; }
+.rs-season-left { display:flex; flex-direction:column; gap:2px; }
 .rs-label { font-size:0.46rem; font-weight:700; letter-spacing:2px; color:rgba(255,229,102,0.5); text-transform:uppercase; }
 .rs-season-name {
-    font-size: 0.76rem;
+    font-size: 0.78rem;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 1.5px;
@@ -9252,13 +9662,318 @@ setTimeout(() => {
     padding: 1px 5px;
     letter-spacing: 0;
 }
+.rs-season-right { display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
 .rs-season-time {
-    font-size: 0.6rem;
-    color: var(--text-secondary);
-    font-weight: 700;
-    opacity: 0.75;
+    font-size: 0.7rem;
+    color: var(--accent-yellow);
+    font-weight: 800;
     font-variant-numeric: tabular-nums;
+    opacity: 0.9;
 }
+.rs-season-sublabel {
+    font-size: 0.46rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.6;
+}
+.rs-season-bar-wrap {
+    width: 100%;
+    height: 2px;
+    background: rgba(255,229,102,0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+.rs-season-bar-fill {
+    height: 100%;
+    background: var(--accent-yellow);
+    border-radius: 10px;
+    transition: width 0.6s ease;
+    opacity: 0.7;
+}
+
+/* ── KS Shield en ranking cards ──────────────────────────────────── */
+.rc-ks-shield {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-left: 3px;
+    opacity: 0.9;
+}
+.rc-ks-shield svg {
+    width: 11px;
+    height: 11px;
+    display: block;
+}
+
+/* ── Klick Pass v2 — 7 niveles diarios ───────────────────────────── */
+.kp2-missions-wrap {
+    padding: 0 15px 16px;
+}
+.kp2-mission-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 10px;
+}
+.kp2-mission-title {
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+.kp2-mission-reset {
+    font-size: 0.55rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    opacity: 0.65;
+}
+.kp2-mission-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 11px 13px;
+    margin-bottom: 7px;
+    transition: border-color 0.25s;
+}
+.kp2-mission-card.completed {
+    border-color: rgba(0,232,90,0.2);
+    background: rgba(0,232,90,0.03);
+}
+.kp2-mission-card.active {
+    border-color: rgba(var(--rank-rgb),0.25);
+    background: rgba(var(--rank-rgb),0.04);
+}
+.kp2-mission-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+.kp2-mission-card.completed .kp2-mission-icon {
+    background: rgba(0,232,90,0.1);
+}
+.kp2-mission-body { flex: 1; min-width: 0; }
+.kp2-mission-name {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.kp2-mission-desc {
+    font-size: 0.62rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+.kp2-mission-prog-wrap {
+    margin-top: 5px;
+    height: 3px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.kp2-mission-prog-fill {
+    height: 100%;
+    border-radius: 10px;
+    background: var(--rank-color);
+    transition: width 0.5s ease;
+}
+.kp2-mission-xp {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--accent-yellow);
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-width: 40px;
+    text-align: right;
+}
+.kp2-mission-check {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(0,232,90,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.kp2-mission-check svg { width: 10px; height: 10px; stroke: #00e85a; }
+
+/* Niveles del pass */
+.kp2-levels-section { padding: 0 15px 40px; }
+.kp2-section-title {
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    padding: 12px 0 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.kp2-xp-total {
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: var(--accent-yellow);
+}
+.kp2-level-card {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 8px;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+}
+.kp2-level-card.unlocked {
+    border-color: rgba(var(--rank-rgb),0.3);
+    background: rgba(var(--rank-rgb),0.05);
+}
+.kp2-level-card.claimed {
+    border-color: rgba(0,232,90,0.15);
+    background: rgba(0,232,90,0.025);
+    opacity: 0.75;
+}
+.kp2-level-card.locked {
+    opacity: 0.5;
+}
+.kp2-level-num {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1rem;
+    font-weight: 900;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-secondary);
+    line-height: 1;
+}
+.kp2-level-card.unlocked .kp2-level-num {
+    background: rgba(var(--rank-rgb),0.15);
+    color: var(--rank-color);
+}
+.kp2-level-card.claimed .kp2-level-num {
+    background: rgba(0,232,90,0.12);
+    color: #00e85a;
+}
+.kp2-level-sub {
+    font-size: 0.45rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    opacity: 0.6;
+    text-transform: uppercase;
+}
+.kp2-level-body { flex: 1; min-width: 0; }
+.kp2-level-title {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+.kp2-level-req {
+    font-size: 0.62rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+.kp2-level-xp-bar-wrap {
+    height: 4px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.kp2-level-xp-bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    background: var(--rank-color);
+    transition: width 0.6s ease;
+}
+.kp2-level-right { display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between; flex-shrink:0; }
+.kp2-level-reward {
+    font-size: 0.78rem;
+    font-weight: 900;
+    color: var(--accent-yellow);
+    white-space: nowrap;
+}
+.kp2-level-day {
+    font-size: 0.52rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    opacity: 0.6;
+}
+.kp2-claim-btn {
+    margin-top: 6px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    background: var(--rank-color);
+    color: #000;
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.kp2-claim-btn:active { opacity: 0.75; }
+.kp2-claimed-badge {
+    margin-top: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(0,232,90,0.1);
+    color: #00e85a;
+    font-size: 0.55rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: 1px solid rgba(0,232,90,0.2);
+}
+.kp2-locked-badge {
+    margin-top: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary);
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.kp2-locked-badge svg { width: 9px; height: 9px; opacity: 0.7; }
 `;
     document.head.appendChild(_seasonStyle);
 })();
