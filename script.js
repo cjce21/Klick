@@ -3346,8 +3346,11 @@ async function fetchLeaderboard() {
             const plDisplay = isChristopher ? '∞' : p.powerLevel.toLocaleString();
 
             // KS shield — 3 fuentes: servidor, isBanned, caché local por uuid
+            // El admin (Christopher) está exento de todos los escudos KS
+            let ksStatus = null;
+            if (!isChristopher) {
             // El GAS puede no devolver ksStatus si no lo persiste → usamos caché local
-            let ksStatus = p.ksStatus || (p.isBanned ? 'ban' : null);
+            ksStatus = p.ksStatus || (p.isBanned ? 'ban' : null);
             // Caché local: guardamos el último ksStatus conocido por uuid
             if (!ksStatus && p.uuid) {
                 try { ksStatus = JSON.parse(localStorage.getItem('klick_ks_cache')||'{}')[p.uuid] || null; } catch(_) {}
@@ -3362,19 +3365,23 @@ async function fetchLeaderboard() {
                 else if (_lr === 'under_review') ksStatus = 'review';
             }
             // Persistir en caché si se obtuvo del servidor
-            if ((p.ksStatus || p.isBanned) && p.uuid) {
+            if (!isChristopher && (p.ksStatus || p.isBanned) && p.uuid) {
                 try { const _c=JSON.parse(localStorage.getItem('klick_ks_cache')||'{}'); if(ksStatus)_c[p.uuid]=ksStatus; else delete _c[p.uuid]; localStorage.setItem('klick_ks_cache',JSON.stringify(_c)); } catch(_) {}
             }
-            const ksShieldColor = { ban:'#ff2a5f', sanctioned:'#ff4040', warned:'#ff8c00', review:'#ffb800' }[ksStatus] || null;
-            const _ksTip = { ban:'Suspendido', sanctioned:'Sancionado', warned:'Advertido', review:'En revisión' }[ksStatus] || 'Cuenta verificada';
-            const _shieldColor = ksShieldColor || '#00c853';
-            const _shieldStroke = ksShieldColor ? '2.5' : '2';
-            const _shieldOpacity = ksShieldColor ? '1' : '0.55';
-            // Escudo verde con checkmark para cuentas limpias; escudo de color para sanciones
-            const _shieldPath = ksShieldColor
-                ? `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`
-                : `<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
-            const ksShieldHtml = `<span class="rc-ks-shield" title="${_ksTip}" style="color:${_shieldColor};display:inline-flex;align-items:center;flex-shrink:0;margin-left:4px;opacity:${_shieldOpacity};"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${_shieldColor}" stroke-width="${_shieldStroke}" stroke-linecap="round" stroke-linejoin="round" style="display:block;overflow:visible;">${_shieldPath}</svg></span>`;
+            } // end if (!isChristopher)
+            // Admin exento de todos los escudos KS
+            const ksShieldHtml = (() => {
+                if (isChristopher) return '';
+                const _sc = { ban:'#ff2a5f', sanctioned:'#ff4040', warned:'#ff8c00', review:'#ffb800' }[ksStatus] || null;
+                const _tip = { ban:'Suspendido', sanctioned:'Sancionado', warned:'Advertido', review:'En revisión' }[ksStatus] || 'Cuenta verificada';
+                const _col = _sc || '#00c853';
+                const _sw  = _sc ? '2.5' : '2';
+                const _op  = _sc ? '1' : '0.55';
+                const _inner = _sc
+                    ? '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'
+                    : '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+                return `<span class="rc-ks-shield" title="${_tip}" style="color:${_col};display:inline-flex;align-items:center;flex-shrink:0;margin-left:4px;opacity:${_op};"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${_col}" stroke-width="${_sw}" stroke-linecap="round" stroke-linejoin="round" style="display:block;overflow:visible;">${_inner}</svg></span>`;
+            })();
 
             html += `<div class="rank-card ${meClass} ${divinidadClass} ${leyendaClass} ${eternoClass} ${miticoClass} ${christopherClass}" onclick="openPlayerProfileFromRank(${index})" title="Ver perfil completo">
                 <div class="rc-pos">${displayPos}</div>
