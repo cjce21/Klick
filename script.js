@@ -2999,7 +2999,7 @@ async function fetchLeaderboard() {
 
             // KS shield — monitoreo (color) para estados activos; verificado (verde tenue + ✓) para todas las cuentas limpias
             const ksStatus = p.ksStatus || (p.isBanned ? 'ban' : null);
-            const _isVeteranClean = !ksStatus;
+            const _isVeteranClean = !ksStatus && !isChristopher;
             const ksShieldColor = {
                 ban:       '#ff2a5f',
                 sanctioned:'#ff4040',
