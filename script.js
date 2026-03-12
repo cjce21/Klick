@@ -2997,10 +2997,9 @@ async function fetchLeaderboard() {
             // Mostrar PL con ∞ para admin
             const plDisplay = isChristopher ? '∞' : p.powerLevel.toLocaleString();
 
-            // KS shield — monitoreo (color) para estados activos; verificado (verde tenue + ✓) para veteranos limpios
+            // KS shield — monitoreo (color) para estados activos; verificado (verde tenue + ✓) para todas las cuentas limpias
             const ksStatus = p.ksStatus || (p.isBanned ? 'ban' : null);
-            const _veteranRanks = ['Maestro','Leyenda','Eterno','Mítico','Divinidad'];
-            const _isVeteranClean = !ksStatus && _veteranRanks.includes(p.rankTitle);
+            const _isVeteranClean = !ksStatus;
             const ksShieldColor = {
                 ban:       '#ff2a5f',
                 sanctioned:'#ff4040',
