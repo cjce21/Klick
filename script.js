@@ -2974,7 +2974,7 @@ function checkSeasonReset() {
         // Toast de nueva temporada (ligero, no bloqueante)
         setTimeout(() => {
             showToast(
-                `⚡ Nueva Temporada`,
+                `Nueva Temporada`,
                 `${name} — ¡Los puntos de poder se han reiniciado!`,
                 'var(--accent-yellow)',
                 SVG_BOLT
@@ -7996,8 +7996,7 @@ function saveGameStats() {
         const _gameTotalKp    = currentQuestionIndex;
         const _gameAccKp      = _gameTotalKp > 0 ? Math.round(_gameCorrectKp / _gameTotalKp * 100) : 0;
         const _isPerfectKp    = (currentWrongAnswers === 0 && currentTimeoutAnswers === 0 && _gameCorrectKp >= 5);
-        const _noDmgKp        = (currentWrongAnswers === 0 && currentTimeoutAnswers === 0);
-        kp3UpdateDailyData(score, currentMaxStreak, _gameAccKp, _currentGameMaxMult||1, _isPerfectKp, _noDmgKp);
+        kp3UpdateDailyData(score, currentMaxStreak, _gameAccKp, _currentGameMaxMult||1, _isPerfectKp);
         setTimeout(() => kp3EvalMissions(), 300);
     } catch(_kp3Err) {}
 
@@ -8555,61 +8554,62 @@ const KP3_REWARDS  = [1500, 2000, 2500, 3000, 4000, 5000, 7000];
 
 // Nombres y descripciones de los 7 niveles
 const KP3_LEVELS = [
-    { lv:1, title:'Primer Impulso',   desc:'Completa el día 1 del pase.',   icon:'⚡' },
-    { lv:2, title:'En Movimiento',    desc:'Completa el día 2 del pase.',   icon:'🔥' },
-    { lv:3, title:'Constancia',       desc:'Completa el día 3 del pase.',   icon:'🎯' },
-    { lv:4, title:'Punto Medio',      desc:'¡Llevas 4 días seguidos!',      icon:'💫' },
-    { lv:5, title:'Disciplina',       desc:'Completa el día 5 del pase.',   icon:'⭐' },
-    { lv:6, title:'Casi Completo',    desc:'Solo falta un día más.',         icon:'🏆' },
-    { lv:7, title:'Semana Perfecta',  desc:'¡Completaste el Klick Pass!',  icon:'💎' },
+    { lv:1, title:'Primer Impulso'  },
+    { lv:2, title:'En Movimiento'   },
+    { lv:3, title:'Constancia'      },
+    { lv:4, title:'Punto Medio'     },
+    { lv:5, title:'Disciplina'      },
+    { lv:6, title:'Casi Completo'   },
+    { lv:7, title:'Semana Perfecta' },
 ];
 
-// ── Misiones diarias — 3 por día, rotan por tipo ─────────────────────
-// Las misiones usan el día de la semana (0=dom, 1=lun…6=sáb) para elegir
-// qué conjunto de misiones mostrar. Dentro del día, son las mismas para todos.
+// ── Misiones diarias — 3 por día, lógica simple sin condiciones de vidas ──
+// Usan solo: gamesToday, streakToday, bestToday, accToday, multToday, perfectToday
 const KP3_DAILY_SETS = [
     // Domingo
     [
-        { id:'d0m1', name:'Jugador de Domingo', desc:'Completa 2 partidas hoy.',          xp:50,  chk:(ps,d)=>(d.gamesToday||0)>=2 },
-        { id:'d0m2', name:'Precisión Dominical',desc:'10 aciertos consecutivos.',         xp:60,  chk:(ps,d)=>(d.streakToday||0)>=10 },
-        { id:'d0m3', name:'Aperitivo',          desc:'Consigue 10,000 pts en una partida.',xp:40, chk:(ps,d)=>(d.bestToday||0)>=10000 },
+        { id:'d0m1', name:'Partidas del día',   desc:'Completa 2 partidas hoy.',                    xp:50, chk:(ps,d)=>(d.gamesToday||0)>=2 },
+        { id:'d0m2', name:'Racha consecutiva',  desc:'Logra una racha de 8 aciertos seguidos.',     xp:55, chk:(ps,d)=>(d.streakToday||0)>=8 },
+        { id:'d0m3', name:'Puntaje del día',    desc:'Consigue 10,000 puntos en una partida.',      xp:45, chk:(ps,d)=>(d.bestToday||0)>=10000 },
     ],
     // Lunes
     [
-        { id:'d1m1', name:'Arranque Semanal',   desc:'Completa 2 partidas hoy.',           xp:50,  chk:(ps,d)=>(d.gamesToday||0)>=2 },
-        { id:'d1m2', name:'Sin Fallos',         desc:'Termina una partida sin errores.',    xp:80,  chk:(ps,d)=>(d.perfectToday||0)>=1 },
-        { id:'d1m3', name:'Acumulador',         desc:'Consigue 15,000 pts en una partida.',xp:60,  chk:(ps,d)=>(d.bestToday||0)>=15000 },
+        { id:'d1m1', name:'Arranque semanal',   desc:'Completa 2 partidas hoy.',                    xp:50, chk:(ps,d)=>(d.gamesToday||0)>=2 },
+        { id:'d1m2', name:'Partida limpia',     desc:'Termina una partida sin ningún error.',       xp:80, chk:(ps,d)=>(d.perfectToday||0)>=1 },
+        { id:'d1m3', name:'Marca de lunes',     desc:'Consigue 15,000 puntos en una partida.',      xp:60, chk:(ps,d)=>(d.bestToday||0)>=15000 },
     ],
     // Martes
     [
-        { id:'d2m1', name:'Martes Activo',      desc:'Completa 3 partidas hoy.',           xp:60,  chk:(ps,d)=>(d.gamesToday||0)>=3 },
-        { id:'d2m2', name:'Racha de Fuego',     desc:'Logra una racha de 8 hoy.',          xp:55,  chk:(ps,d)=>(d.streakToday||0)>=8 },
-        { id:'d2m3', name:'Doble Precisión',    desc:'80% de precisión en una partida.',   xp:75,  chk:(ps,d)=>(d.accToday||0)>=80 },
+        { id:'d2m1', name:'Tres partidas',      desc:'Completa 3 partidas hoy.',                    xp:60, chk:(ps,d)=>(d.gamesToday||0)>=3 },
+        { id:'d2m2', name:'Racha de martes',    desc:'Logra una racha de 10 aciertos seguidos.',    xp:60, chk:(ps,d)=>(d.streakToday||0)>=10 },
+        { id:'d2m3', name:'Precisión alta',     desc:'Consigue 80% de precisión en una partida.',   xp:70, chk:(ps,d)=>(d.accToday||0)>=80 },
     ],
     // Miércoles
     [
-        { id:'d3m1', name:'Mitad de Semana',    desc:'Completa 2 partidas hoy.',           xp:50,  chk:(ps,d)=>(d.gamesToday||0)>=2 },
-        { id:'d3m2', name:'Multiplicador',      desc:'Llega al x3 en una partida.',        xp:70,  chk:(ps,d)=>(d.multToday||1)>=3 },
-        { id:'d3m3', name:'Maestro del Día',    desc:'20,000 pts en una partida.',         xp:80,  chk:(ps,d)=>(d.bestToday||0)>=20000 },
+        { id:'d3m1', name:'Mitad de semana',    desc:'Completa 2 partidas hoy.',                    xp:50, chk:(ps,d)=>(d.gamesToday||0)>=2 },
+        { id:'d3m2', name:'Multiplicador x3',   desc:'Alcanza el multiplicador x3 en una partida.', xp:70, chk:(ps,d)=>(d.multToday||1)>=3 },
+        { id:'d3m3', name:'Marca de miércoles', desc:'Consigue 20,000 puntos en una partida.',      xp:75, chk:(ps,d)=>(d.bestToday||0)>=20000 },
     ],
     // Jueves
     [
-        { id:'d4m1', name:'Impulso Jueves',     desc:'Completa 2 partidas hoy.',           xp:50,  chk:(ps,d)=>(d.gamesToday||0)>=2 },
-        { id:'d4m2', name:'Concentración',      desc:'Sin perder vidas en una partida.',   xp:70,  chk:(ps,d)=>(d.noDmgToday||false) },
-        { id:'d4m3', name:'Puntazo',            desc:'12,000 pts en una partida.',         xp:55,  chk:(ps,d)=>(d.bestToday||0)>=12000 },
+        { id:'d4m1', name:'Partidas de jueves', desc:'Completa 2 partidas hoy.',                    xp:50, chk:(ps,d)=>(d.gamesToday||0)>=2 },
+        { id:'d4m2', name:'Racha de jueves',    desc:'Logra una racha de 12 aciertos seguidos.',    xp:70, chk:(ps,d)=>(d.streakToday||0)>=12 },
+        { id:'d4m3', name:'Puntaje de jueves',  desc:'Consigue 12,000 puntos en una partida.',      xp:50, chk:(ps,d)=>(d.bestToday||0)>=12000 },
     ],
     // Viernes
     [
-        { id:'d5m1', name:'TGIF Klick',         desc:'Completa 3 partidas hoy.',           xp:60,  chk:(ps,d)=>(d.gamesToday||0)>=3 },
-        { id:'d5m2', name:'Racha Viernes',      desc:'Logra una racha de 12 hoy.',         xp:80,  chk:(ps,d)=>(d.streakToday||0)>=12 },
-        { id:'d5m3', name:'Récord Semanal',     desc:'25,000 pts en una partida.',         xp:90,  chk:(ps,d)=>(d.bestToday||0)>=25000 },
+        { id:'d5m1', name:'Tres partidas',      desc:'Completa 3 partidas hoy.',                    xp:60, chk:(ps,d)=>(d.gamesToday||0)>=3 },
+        { id:'d5m2', name:'Racha de viernes',   desc:'Logra una racha de 15 aciertos seguidos.',    xp:80, chk:(ps,d)=>(d.streakToday||0)>=15 },
+        { id:'d5m3', name:'Gran puntaje',       desc:'Consigue 25,000 puntos en una partida.',      xp:90, chk:(ps,d)=>(d.bestToday||0)>=25000 },
     ],
     // Sábado
     [
-        { id:'d6m1', name:'Sábado de Klick',    desc:'Completa 3 partidas hoy.',           xp:60,  chk:(ps,d)=>(d.gamesToday||0)>=3 },
-        { id:'d6m2', name:'Doble Perfecta',     desc:'2 partidas perfectas hoy.',          xp:100, chk:(ps,d)=>(d.perfectToday||0)>=2 },
-        { id:'d6m3', name:'Sniper',             desc:'30,000 pts en una partida.',         xp:90,  chk:(ps,d)=>(d.bestToday||0)>=30000 },
+        { id:'d6m1', name:'Tres partidas',      desc:'Completa 3 partidas hoy.',                    xp:60, chk:(ps,d)=>(d.gamesToday||0)>=3 },
+        { id:'d6m2', name:'Doble limpia',       desc:'Termina 2 partidas sin ningún error.',        xp:100,chk:(ps,d)=>(d.perfectToday||0)>=2 },
+        { id:'d6m3', name:'Puntaje del fin',    desc:'Consigue 30,000 puntos en una partida.',      xp:90, chk:(ps,d)=>(d.bestToday||0)>=30000 },
     ],
+];
+
 ];
 
 // ── Storage ─────────────────────────────────────────────────────────
@@ -8649,7 +8649,7 @@ function _kp3Fresh(weekId, today) {
 }
 
 function _kp3DailyDataFresh() {
-    return { gamesToday:0, streakToday:0, bestToday:0, accToday:0, multToday:1, perfectToday:0, noDmgToday:false };
+    return { gamesToday:0, streakToday:0, bestToday:0, accToday:0, multToday:1, perfectToday:0 };
 }
 
 function saveKp3State(s) {
@@ -8691,16 +8691,15 @@ function kp3EvalMissions() {
 
 // Actualizar dailyData con los resultados de la partida
 // Se llama desde saveGameStats justo antes de kp3EvalMissions
-function kp3UpdateDailyData(score, maxStreak, accuracy, maxMult, isPerfect, noDmg) {
+function kp3UpdateDailyData(score, maxStreak, accuracy, maxMult, isPerfect) {
     const state = getKp3State();
     const d = state.dailyData || _kp3DailyDataFresh();
-    d.gamesToday   = (d.gamesToday  || 0) + 1;
-    if (maxStreak  > (d.streakToday  || 0)) d.streakToday  = maxStreak;
-    if (score      > (d.bestToday    || 0)) d.bestToday    = score;
-    if (accuracy   > (d.accToday     || 0)) d.accToday     = accuracy;
-    if (maxMult    > (d.multToday    || 1)) d.multToday    = maxMult;
-    if (isPerfect)  d.perfectToday  = (d.perfectToday  || 0) + 1;
-    if (noDmg)      d.noDmgToday    = true;
+    d.gamesToday  = (d.gamesToday  || 0) + 1;
+    if (maxStreak > (d.streakToday || 0)) d.streakToday = maxStreak;
+    if (score     > (d.bestToday   || 0)) d.bestToday   = score;
+    if (accuracy  > (d.accToday    || 0)) d.accToday    = accuracy;
+    if (maxMult   > (d.multToday   || 1)) d.multToday   = maxMult;
+    if (isPerfect) d.perfectToday = (d.perfectToday || 0) + 1;
     state.dailyData = d;
     saveKp3State(state);
 }
@@ -8755,7 +8754,7 @@ function kp3Claim(lv) {
     );
     if (lv === KP3_TOTAL) {
         setTimeout(() => {
-            showToast('🎉 KLICK PASS COMPLETADO', '¡Has reclamado los 25,000 ℙ del pase semanal!', 'var(--rank-color)',
+            showToast('KLICK PASS COMPLETADO', '¡Has reclamado los 25,000 ℙ del pase semanal!', 'var(--rank-color)',
                 `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`);
         }, 700);
     }
@@ -8803,113 +8802,120 @@ function renderKp3Pass() {
     const headerEl  = document.getElementById('kp-header');
     if (!container) return;
 
-    const state     = getKp3State();
-    const totalXP   = state.totalXP || 0;
-    const dayOfWeek = new Date().getDay();
-    const missions  = KP3_DAILY_SETS[dayOfWeek];
+    const state           = getKp3State();
+    const totalXP         = state.totalXP || 0;
+    const dayOfWeek       = new Date().getDay();
+    const missions        = KP3_DAILY_SETS[dayOfWeek];
     const totalXPPossible = KP3_XP_REQUIRED[KP3_TOTAL - 1]; // 2100
+    const claimedCount    = state.claimed.length;
+    const xpPct           = Math.min(100, Math.round((totalXP / totalXPPossible) * 100));
+    const rewardClaimed   = state.claimed.reduce((s, lv) => s + (KP3_REWARDS[lv - 1] || 0), 0);
 
-    // ── Header ─────────────────────────────────────────────────────
+    // ── Header fijo (vive en #kp-header, fuera del scroll) ─────────
     if (headerEl) {
-        const claimedCount = state.claimed.length;
-        const xpPct = Math.min(100, Math.round((totalXP / totalXPPossible) * 100));
-        const rewardClaimed = state.claimed.reduce((s, lv) => s + (KP3_REWARDS[lv-1]||0), 0);
-        headerEl.innerHTML = `
-            <div class="kp-cycle-label">KLICK PASS SEMANAL</div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
-                <div>
-                    <div style="font-size:0.55rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:2px;">XP del Pase</div>
-                    <div style="display:flex;align-items:baseline;gap:5px;">
-                        <span style="font-size:1.4rem;font-weight:900;color:var(--accent-yellow);font-variant-numeric:tabular-nums;">${totalXP.toLocaleString()}</span>
-                        <span style="font-size:0.6rem;color:var(--text-secondary);">/ ${totalXPPossible.toLocaleString()} XP</span>
-                    </div>
-                </div>
-                <div style="text-align:right;">
-                    <div style="font-size:0.55rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:2px;">Niveles</div>
-                    <div style="font-size:1.4rem;font-weight:900;color:#ffffff;">${claimedCount}<span style="font-size:0.7rem;color:var(--text-secondary);font-weight:600;"> / ${KP3_TOTAL}</span></div>
-                </div>
-            </div>
-            <div style="height:5px;border-radius:10px;background:rgba(255,229,102,0.12);overflow:hidden;margin:10px 0 8px;">
-                <div style="height:100%;border-radius:10px;background:var(--accent-yellow);width:${xpPct}%;transition:width 0.8s ease;"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:0.6rem;color:var(--text-secondary);">${rewardClaimed > 0 ? rewardClaimed.toLocaleString() + ' ℙ reclamados de 25,000' : 'Sin recompensas reclamadas aún'}</span>
-                <span style="font-size:0.6rem;color:var(--accent-yellow);font-weight:700;">Máx. 25,000 ℙ</span>
-            </div>
-            <div style="margin-top:6px;font-size:0.6rem;color:var(--text-secondary);opacity:0.6;line-height:1.4;">Completa misiones diarias para ganar XP y desbloquear los 7 niveles. El pase se reinicia cada semana.</div>
-        `;
+        headerEl.innerHTML =
+            '<div style="font-size:0.46rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;">Klick Pass — Temporada activa</div>' +
+            '<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:10px;">' +
+                '<div>' +
+                    '<div style="font-size:0.52rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:3px;">XP acumulado</div>' +
+                    '<div style="display:flex;align-items:baseline;gap:5px;">' +
+                        '<span style="font-size:1.6rem;font-weight:900;color:var(--accent-yellow);font-variant-numeric:tabular-nums;line-height:1;">' + totalXP.toLocaleString() + '</span>' +
+                        '<span style="font-size:0.6rem;color:var(--text-secondary);font-weight:600;">/ ' + totalXPPossible.toLocaleString() + ' XP</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div style="text-align:right;">' +
+                    '<div style="font-size:0.52rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:3px;">Niveles reclamados</div>' +
+                    '<div style="font-size:1.6rem;font-weight:900;color:var(--text-primary);line-height:1;">' + claimedCount + '<span style="font-size:0.8rem;color:var(--text-secondary);font-weight:600;"> / ' + KP3_TOTAL + '</span></div>' +
+                '</div>' +
+            '</div>' +
+            '<div style="height:4px;border-radius:10px;background:rgba(255,229,102,0.1);overflow:hidden;margin-bottom:8px;">' +
+                '<div style="height:100%;border-radius:10px;background:var(--accent-yellow);width:' + xpPct + '%;transition:width 0.8s ease;"></div>' +
+            '</div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<span style="font-size:0.58rem;color:var(--text-secondary);">' + (rewardClaimed > 0 ? rewardClaimed.toLocaleString() + ' ℙ reclamados' : 'Sin recompensas aún') + '</span>' +
+                '<span style="font-size:0.58rem;color:var(--accent-yellow);font-weight:700;">Máx. 25,000 ℙ</span>' +
+            '</div>';
     }
 
-    // ── Misiones del día ────────────────────────────────────────────
-    let html = `<div class="kp2-missions-wrap">
-        <div class="kp2-mission-header">
-            <span class="kp2-mission-title">🎯 Misiones de Hoy</span>
-            <span class="kp2-mission-reset">Renuevan en ${_kp3MidnightCountdown()}</span>
-        </div>`;
+    // ── Contenido del scroll: misiones + niveles ────────────────────
+    let html = '';
 
-    missions.forEach(m => {
+    // — Sección misiones —
+    html += '<div class="kp3-section">' +
+        '<div class="kp3-section-hd">' +
+            '<span class="kp3-section-hd-label">Misiones de hoy</span>' +
+            '<span class="kp3-section-hd-sub">Renuevan en ' + _kp3MidnightCountdown() + '</span>' +
+        '</div>';
+
+    missions.forEach(function(m) {
         const done    = state.completedMissions.includes(m.id);
-        const partial = !done ? m.chk(playerStats, state.dailyData || {}) : false;
-        const cardCls = done ? 'completed' : (partial ? 'active' : '');
-        html += `<div class="kp2-mission-card ${cardCls}">
-            <div class="kp2-mission-icon">${done ? '✅' : '🎮'}</div>
-            <div class="kp2-mission-body">
-                <div class="kp2-mission-name">${m.name}</div>
-                <div class="kp2-mission-desc">${m.desc}</div>
-            </div>
-            ${done
-                ? `<div class="kp2-mission-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div><span class="kp2-mission-xp">+${m.xp} XP</span>`
-                : `<span class="kp2-mission-xp" style="color:var(--text-secondary);">+${m.xp} XP</span>`
-            }
-        </div>`;
+        const cardCls = done ? 'kp3-mission done' : 'kp3-mission';
+        html += '<div class="' + cardCls + '">' +
+            '<div class="kp3-mission-left">' +
+                '<div class="kp3-mission-status">' +
+                    (done
+                        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+                        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>'
+                    ) +
+                '</div>' +
+            '</div>' +
+            '<div class="kp3-mission-body">' +
+                '<div class="kp3-mission-name">' + m.name + '</div>' +
+                '<div class="kp3-mission-desc">' + m.desc + '</div>' +
+            '</div>' +
+            '<div class="kp3-mission-xp' + (done ? ' done' : '') + '">+' + m.xp + ' XP</div>' +
+        '</div>';
     });
-    html += `</div>`;
+    html += '</div>';
 
-    // ── Niveles ─────────────────────────────────────────────────────
-    html += `<div class="kp2-levels-section">
-        <div class="kp2-section-title">
-            <span>7 Niveles del Pase</span>
-            <span class="kp2-xp-total">${totalXP.toLocaleString()} XP acumulados</span>
-        </div>`;
+    // — Separador —
+    html += '<div class="kp3-divider"></div>';
 
-    KP3_LEVELS.forEach((lvData, i) => {
+    // — Sección niveles —
+    html += '<div class="kp3-section">' +
+        '<div class="kp3-section-hd">' +
+            '<span class="kp3-section-hd-label">Niveles del pase</span>' +
+            '<span class="kp3-section-hd-sub">' + totalXP.toLocaleString() + ' XP acumulados</span>' +
+        '</div>';
+
+    KP3_LEVELS.forEach(function(lvData, i) {
         const lv         = lvData.lv;
         const xpReq      = KP3_XP_REQUIRED[i];
         const isClaimed  = state.claimed.includes(lv);
         const isUnlocked = !isClaimed && totalXP >= xpReq && (lv === 1 || state.claimed.includes(lv - 1));
         const isLocked   = !isClaimed && !isUnlocked;
-        const progress   = isLocked ? Math.min(1, totalXP / xpReq) : 1;
+        const progress   = isClaimed ? 1 : Math.min(1, totalXP / xpReq);
         const reward     = KP3_REWARDS[i];
-        let cardCls      = isClaimed ? 'claimed' : (isUnlocked ? 'unlocked' : 'locked');
+        const cardCls    = 'kp3-level' + (isClaimed ? ' claimed' : isUnlocked ? ' unlocked' : ' locked');
 
-        let rightEl = '';
+        let statusEl = '';
         if (isClaimed) {
-            rightEl = `<div class="kp2-claimed-badge">✓ Reclamado</div>`;
+            statusEl = '<div class="kp3-level-status claimed-badge">Reclamado</div>';
         } else if (isUnlocked) {
-            rightEl = `<button class="kp2-claim-btn" onclick="kp3Claim(${lv})">RECLAMAR</button>`;
+            statusEl = '<button class="kp3-level-status claim-btn" onclick="kp3Claim(' + lv + ')">RECLAMAR</button>';
         } else {
-            rightEl = `<div class="kp2-locked-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>${xpReq} XP</div>`;
+            statusEl = '<div class="kp3-level-status locked-badge">' + xpReq.toLocaleString() + ' XP</div>';
         }
 
-        html += `<div class="kp2-level-card ${cardCls}">
-            <div class="kp2-level-num">${lvData.icon}<span class="kp2-level-sub">Día ${lv}</span></div>
-            <div class="kp2-level-body">
-                <div class="kp2-level-title">${lvData.title}</div>
-                <div class="kp2-level-req">${isLocked ? `${totalXP}/${xpReq} XP — ${Math.round(progress*100)}% completado` : isUnlocked ? '¡Listo para reclamar!' : 'Nivel completado'}</div>
-                <div class="kp2-level-xp-bar-wrap">
-                    <div class="kp2-level-xp-bar-fill" style="width:${Math.round(progress*100)}%"></div>
-                </div>
-            </div>
-            <div class="kp2-level-right">
-                <div>
-                    <div class="kp2-level-reward">${reward.toLocaleString()} ℙ</div>
-                    <div class="kp2-level-day">Día ${lv}/7</div>
-                </div>
-                ${rightEl}
-            </div>
-        </div>`;
+        const reqText = isClaimed ? 'Completado' : isUnlocked ? 'Disponible para reclamar' : (totalXP.toLocaleString() + ' / ' + xpReq.toLocaleString() + ' XP');
+
+        html += '<div class="' + cardCls + '">' +
+            '<div class="kp3-level-head">' +
+                '<div class="kp3-level-num">Día ' + lv + '</div>' +
+                '<div class="kp3-level-title">' + lvData.title + '</div>' +
+                '<div class="kp3-level-reward">' + reward.toLocaleString() + ' ℙ</div>' +
+            '</div>' +
+            '<div class="kp3-level-bar-row">' +
+                '<div class="kp3-level-bar-wrap">' +
+                    '<div class="kp3-level-bar-fill" style="width:' + Math.round(progress * 100) + '%"></div>' +
+                '</div>' +
+                '<div class="kp3-level-req">' + reqText + '</div>' +
+            '</div>' +
+            '<div class="kp3-level-foot">' + statusEl + '</div>' +
+        '</div>';
     });
-    html += `</div>`;
+
+    html += '</div><div style="height:40px;"></div>';
 
     container.innerHTML = html;
 }
@@ -9709,67 +9715,77 @@ setTimeout(() => {
     display: block;
 }
 
-/* ── Klick Pass v2 — 7 niveles diarios ───────────────────────────── */
-.kp2-missions-wrap {
-    padding: 0 15px 16px;
+/* ── Klick Pass v3 — 7 niveles + misiones diarias ───────────────── */
+.kp3-section {
+    padding: 0 15px;
+    margin-bottom: 0;
 }
-.kp2-mission-header {
+.kp3-section-hd {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: space-between;
-    padding: 10px 0 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 14px 0 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
     margin-bottom: 10px;
 }
-.kp2-mission-title {
+.kp3-section-hd-label {
     font-size: 0.58rem;
     font-weight: 800;
-    letter-spacing: 2.5px;
+    letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--text-secondary);
 }
-.kp2-mission-reset {
-    font-size: 0.55rem;
+.kp3-section-hd-sub {
+    font-size: 0.56rem;
     font-weight: 600;
     color: var(--text-secondary);
+    opacity: 0.55;
     font-variant-numeric: tabular-nums;
-    opacity: 0.65;
 }
-.kp2-mission-card {
+.kp3-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.05);
+    margin: 6px 15px 0;
+}
+
+/* Misión */
+.kp3-mission {
     display: flex;
     align-items: center;
     gap: 12px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.06);
+    padding: 11px 12px;
     border-radius: 10px;
-    padding: 11px 13px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.025);
     margin-bottom: 7px;
-    transition: border-color 0.25s;
 }
-.kp2-mission-card.completed {
-    border-color: rgba(0,232,90,0.2);
+.kp3-mission.done {
+    border-color: rgba(0,232,90,0.18);
     background: rgba(0,232,90,0.03);
 }
-.kp2-mission-card.active {
-    border-color: rgba(var(--rank-rgb),0.25);
-    background: rgba(var(--rank-rgb),0.04);
-}
-.kp2-mission-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: rgba(255,255,255,0.05);
+.kp3-mission-left { flex-shrink: 0; }
+.kp3-mission-status {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.15);
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-    font-size: 1rem;
 }
-.kp2-mission-card.completed .kp2-mission-icon {
-    background: rgba(0,232,90,0.1);
+.kp3-mission.done .kp3-mission-status {
+    border-color: #00e85a;
+    background: rgba(0,232,90,0.12);
 }
-.kp2-mission-body { flex: 1; min-width: 0; }
-.kp2-mission-name {
+.kp3-mission-status svg {
+    width: 12px;
+    height: 12px;
+    stroke: rgba(255,255,255,0.3);
+    display: block;
+}
+.kp3-mission.done .kp3-mission-status svg { stroke: #00e85a; }
+.kp3-mission-body { flex: 1; min-width: 0; }
+.kp3-mission-name {
     font-size: 0.78rem;
     font-weight: 800;
     color: var(--text-primary);
@@ -9778,202 +9794,129 @@ setTimeout(() => {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.kp2-mission-desc {
+.kp3-mission-desc {
     font-size: 0.62rem;
     color: var(--text-secondary);
     line-height: 1.4;
 }
-.kp2-mission-prog-wrap {
-    margin-top: 5px;
-    height: 3px;
-    background: rgba(255,255,255,0.07);
-    border-radius: 10px;
-    overflow: hidden;
-}
-.kp2-mission-prog-fill {
-    height: 100%;
-    border-radius: 10px;
-    background: var(--rank-color);
-    transition: width 0.5s ease;
-}
-.kp2-mission-xp {
-    font-size: 0.65rem;
-    font-weight: 800;
-    color: var(--accent-yellow);
+.kp3-mission-xp {
     flex-shrink: 0;
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--text-secondary);
     white-space: nowrap;
-    min-width: 40px;
+    min-width: 44px;
     text-align: right;
 }
-.kp2-mission-check {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: rgba(0,232,90,0.15);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-.kp2-mission-check svg { width: 10px; height: 10px; stroke: #00e85a; }
+.kp3-mission-xp.done { color: var(--accent-yellow); }
 
-/* Niveles del pass */
-.kp2-levels-section { padding: 0 15px 40px; }
-.kp2-section-title {
-    font-size: 0.56rem;
-    font-weight: 800;
-    letter-spacing: 2.5px;
-    text-transform: uppercase;
-    color: var(--text-secondary);
-    padding: 12px 0 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-.kp2-xp-total {
-    font-size: 0.65rem;
-    font-weight: 900;
-    color: var(--accent-yellow);
-}
-.kp2-level-card {
-    display: flex;
-    align-items: stretch;
-    gap: 12px;
-    background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(255,255,255,0.06);
+/* Nivel */
+.kp3-level {
     border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.025);
     padding: 14px;
     margin-bottom: 8px;
-    transition: all 0.25s;
-    position: relative;
-    overflow: hidden;
+    transition: border-color 0.25s, background 0.25s;
 }
-.kp2-level-card.unlocked {
-    border-color: rgba(var(--rank-rgb),0.3);
-    background: rgba(var(--rank-rgb),0.05);
+.kp3-level.unlocked {
+    border-color: rgba(var(--rank-rgb), 0.3);
+    background: rgba(var(--rank-rgb), 0.05);
 }
-.kp2-level-card.claimed {
+.kp3-level.claimed {
     border-color: rgba(0,232,90,0.15);
     background: rgba(0,232,90,0.025);
-    opacity: 0.75;
+    opacity: 0.72;
 }
-.kp2-level-card.locked {
-    opacity: 0.5;
-}
-.kp2-level-num {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+.kp3-level.locked { opacity: 0.5; }
+.kp3-level-head {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: 1rem;
-    font-weight: 900;
-    background: rgba(255,255,255,0.06);
-    color: var(--text-secondary);
-    line-height: 1;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
 }
-.kp2-level-card.unlocked .kp2-level-num {
-    background: rgba(var(--rank-rgb),0.15);
-    color: var(--rank-color);
-}
-.kp2-level-card.claimed .kp2-level-num {
-    background: rgba(0,232,90,0.12);
-    color: #00e85a;
-}
-.kp2-level-sub {
-    font-size: 0.45rem;
+.kp3-level-num {
+    font-size: 0.5rem;
     font-weight: 700;
-    letter-spacing: 1px;
-    opacity: 0.6;
+    letter-spacing: 2px;
     text-transform: uppercase;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    min-width: 36px;
 }
-.kp2-level-body { flex: 1; min-width: 0; }
-.kp2-level-title {
+.kp3-level-title {
     font-size: 0.82rem;
     font-weight: 800;
     color: var(--text-primary);
-    margin-bottom: 2px;
+    flex: 1;
 }
-.kp2-level-req {
-    font-size: 0.62rem;
-    color: var(--text-secondary);
-    margin-bottom: 6px;
-    line-height: 1.4;
+.kp3-level-reward {
+    font-size: 0.78rem;
+    font-weight: 900;
+    color: var(--accent-yellow);
+    flex-shrink: 0;
+    white-space: nowrap;
 }
-.kp2-level-xp-bar-wrap {
-    height: 4px;
-    background: rgba(255,255,255,0.07);
+.kp3-level-bar-row {
+    margin-bottom: 10px;
+}
+.kp3-level-bar-wrap {
+    height: 3px;
     border-radius: 10px;
+    background: rgba(255,255,255,0.08);
     overflow: hidden;
+    margin-bottom: 5px;
 }
-.kp2-level-xp-bar-fill {
+.kp3-level-bar-fill {
     height: 100%;
     border-radius: 10px;
     background: var(--rank-color);
     transition: width 0.6s ease;
 }
-.kp2-level-right { display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between; flex-shrink:0; }
-.kp2-level-reward {
-    font-size: 0.78rem;
-    font-weight: 900;
-    color: var(--accent-yellow);
-    white-space: nowrap;
-}
-.kp2-level-day {
-    font-size: 0.52rem;
-    font-weight: 700;
-    letter-spacing: 1px;
+.kp3-level.claimed .kp3-level-bar-fill { background: #00e85a; }
+.kp3-level-req {
+    font-size: 0.58rem;
     color: var(--text-secondary);
-    text-transform: uppercase;
-    opacity: 0.6;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
 }
-.kp2-claim-btn {
-    margin-top: 6px;
-    padding: 5px 14px;
+.kp3-level-foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+.kp3-level-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    padding: 0 14px;
     border-radius: 20px;
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: default;
+}
+.kp3-level-status.claimed-badge {
+    background: rgba(0,232,90,0.1);
+    color: #00e85a;
+    border: 1px solid rgba(0,232,90,0.2);
+}
+.kp3-level-status.claim-btn {
     background: var(--rank-color);
     color: #000;
-    font-size: 0.6rem;
-    font-weight: 900;
-    letter-spacing: 1px;
-    text-transform: uppercase;
     border: none;
     cursor: pointer;
     transition: opacity 0.2s;
 }
-.kp2-claim-btn:active { opacity: 0.75; }
-.kp2-claimed-badge {
-    margin-top: 6px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    background: rgba(0,232,90,0.1);
-    color: #00e85a;
-    font-size: 0.55rem;
-    font-weight: 800;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    border: 1px solid rgba(0,232,90,0.2);
-}
-.kp2-locked-badge {
-    margin-top: 6px;
-    padding: 4px 10px;
-    border-radius: 20px;
+.kp3-level-status.claim-btn:active { opacity: 0.75; }
+.kp3-level-status.locked-badge {
     background: rgba(255,255,255,0.05);
     color: var(--text-secondary);
-    font-size: 0.55rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    border: 1px solid rgba(255,255,255,0.08);
 }
-.kp2-locked-badge svg { width: 9px; height: 9px; opacity: 0.7; }
 `;
     document.head.appendChild(_seasonStyle);
 })();
