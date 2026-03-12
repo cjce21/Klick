@@ -8610,8 +8610,6 @@ const KP3_DAILY_SETS = [
     ],
 ];
 
-];
-
 // ── Storage ─────────────────────────────────────────────────────────
 function getKp3State() {
     try {
