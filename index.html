@@ -419,26 +419,27 @@
         <div class="content-scroll no-scrollbar" style="align-items:stretch;">
             <div class="profile-dashboard" style="padding-bottom:30px;">
 
-                <!-- Hero: nombre + rango -->
-                <div class="profile-hero glass-panel" style="border-color:rgba(var(--rank-rgb),0.18);">
-                    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 0% 50%,rgba(var(--rank-rgb),0.07) 0%,transparent 60%);pointer-events:none;"></div>
-                    <div class="profile-hero-left">
-                        <div class="profile-rank" id="profile-rank-display">Rango: Novato</div>
-                        <input type="text" id="profile-name-input" class="profile-name-input" placeholder="TU NOMBRE" autocomplete="off" maxlength="12">
-                        <div id="profile-warning" class="profile-warning">Se requiere un nombre</div>
-                    </div>
-                    <div class="profile-hero-right">
-                        <div style="font-size:0.58rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;">Nivel de Poder</div>
-                        <div style="display:flex;align-items:baseline;gap:5px;">
-                            <span id="pl-hero-total" style="font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:900;color:var(--rank-color);line-height:1;font-variant-numeric:tabular-nums;transition:color 0.5s;">0</span>
-                            <span style="font-size:0.6rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;">PL</span>
+                <!-- Hero compacto: nombre + rango + PL en una sola fila -->
+                <div class="profile-hero glass-panel" style="border-color:rgba(var(--rank-rgb),0.18);padding:14px 18px;">
+                    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 0% 50%,rgba(var(--rank-rgb),0.06) 0%,transparent 60%);pointer-events:none;"></div>
+                    <div style="display:flex;align-items:center;gap:14px;width:100%;position:relative;">
+                        <div style="flex:1;min-width:0;">
+                            <div class="profile-rank" id="profile-rank-display" style="margin-bottom:6px;">Rango: Novato</div>
+                            <input type="text" id="profile-name-input" class="profile-name-input" placeholder="TU NOMBRE" autocomplete="off" maxlength="12">
+                            <div id="profile-warning" class="profile-warning">Se requiere un nombre</div>
+                        </div>
+                        <div style="flex-shrink:0;text-align:right;border-left:1px solid rgba(255,255,255,0.06);padding-left:14px;">
+                            <div style="font-size:0.46rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:3px;">Nivel de Poder</div>
+                            <div style="display:flex;align-items:baseline;gap:4px;justify-content:flex-end;">
+                                <span id="pl-hero-total" style="font-size:1.8rem;font-weight:900;color:var(--rank-color);line-height:1;font-variant-numeric:tabular-nums;transition:color 0.5s;">0</span>
+                                <span style="font-size:0.55rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;">PL</span>
+                            </div>
+                            <div id="pl-ranking-pos" style="font-size:0.68rem;font-weight:800;color:rgba(255,255,255,0.5);margin-top:2px;">#—</div>
                         </div>
                     </div>
                 </div>
 
-
-
-                <!-- Stats 4 columnas -->
+                <!-- Stats 4 columnas compactas -->
                 <div class="stats-grid">
                     <div class="stat-card glass-panel"><div class="stat-value" id="stat-score">0</div><div class="stat-label">Récord</div></div>
                     <div class="stat-card glass-panel"><div class="stat-value" id="stat-games">0</div><div class="stat-label">Partidas</div></div>
@@ -447,56 +448,51 @@
                 </div>
 
                 <!-- PL Panel + Logros en dos columnas -->
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;align-items:stretch;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;align-items:start;">
 
-                    <!-- Panel PL -->
+                    <!-- Panel PL compacto -->
                     <div class="glass-panel" id="pl-panel" style="border-radius:var(--radius-lg);border-color:rgba(var(--rank-rgb),0.22);overflow:hidden;position:relative;">
-                        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 100% 0%,rgba(var(--rank-rgb),0.07) 0%,transparent 55%);pointer-events:none;"></div>
+                        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 100% 0%,rgba(var(--rank-rgb),0.06) 0%,transparent 55%);pointer-events:none;"></div>
 
-                        <!-- Cabecera: total PL + posición -->
-                        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <!-- Cabecera compacta: PL total + posición -->
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,0.05);">
                             <div>
-                                <div style="font-size:0.55rem;font-weight:700;letter-spacing:3px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">Nivel de Poder</div>
-                                <div style="display:flex;align-items:baseline;gap:6px;">
-                                    <span id="pl-total" style="font-size:clamp(1.8rem,3vw,2.4rem);font-weight:900;color:var(--rank-color);line-height:1;font-variant-numeric:tabular-nums;transition:color 0.5s;">0</span>
-                                    <span style="font-size:0.6rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;">PL</span>
+                                <div style="font-size:0.46rem;font-weight:700;letter-spacing:2.5px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:3px;">Nivel de Poder</div>
+                                <div style="display:flex;align-items:baseline;gap:4px;">
+                                    <span id="pl-total" style="font-size:1.6rem;font-weight:900;color:var(--rank-color);line-height:1;font-variant-numeric:tabular-nums;transition:color 0.5s;">0</span>
+                                    <span style="font-size:0.5rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;">PL</span>
                                 </div>
                             </div>
-                            <div style="text-align:right;">
-                                <div style="font-size:0.55rem;font-weight:700;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">Ranking Global</div>
-                                <div id="pl-ranking-pos" style="font-size:clamp(1.4rem,2.5vw,1.9rem);font-weight:900;color:#ffffff;line-height:1;">#—</div>
-                            </div>
                         </div>
 
-                        <!-- Tabla de cálculo -->
-                        <div style="padding:16px 24px 8px;">
-                            <div id="pl-desglose-label" style="font-size:0.55rem;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,0.2);text-transform:uppercase;margin-bottom:6px;">Desglose del cálculo</div>
-                            <div id="pl-system-note" style="display:flex;align-items:flex-start;gap:4px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:5px;padding:5px 7px;margin-bottom:8px;color:var(--text-secondary);font-size:0.5rem;font-weight:500;line-height:1.5;opacity:0.8;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="11" height="11" style="flex-shrink:0;margin-top:1px;opacity:0.6;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>El PL se calcula con tus stats de la semana activa y se reinicia cada lunes. Tu rango y logros son permanentes.</span></div>
-                            <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:0 10px;margin-bottom:6px;padding:0 4px;">
-                                <span style="font-size:0.55rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.18);text-transform:uppercase;">Fuente</span>
-                                <span style="font-size:0.55rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.18);text-transform:uppercase;text-align:right;">Valor</span>
-                                <span style="font-size:0.55rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.18);text-transform:uppercase;text-align:center;">Factor</span>
-                                <span style="font-size:0.55rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.18);text-transform:uppercase;text-align:right;">= PL</span>
+                        <!-- Tabla de cálculo compacta -->
+                        <div style="padding:10px 16px 6px;">
+                            <div id="pl-system-note" style="display:flex;align-items:flex-start;gap:4px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:5px;padding:5px 7px;margin-bottom:8px;color:var(--text-secondary);font-size:0.48rem;font-weight:500;line-height:1.5;opacity:0.75;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="10" height="10" style="flex-shrink:0;margin-top:1px;opacity:0.55;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>PL semanal. Se reinicia cada lunes.</span></div>
+                            <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:0 8px;margin-bottom:4px;padding:0 2px;">
+                                <span style="font-size:0.46rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.16);text-transform:uppercase;">Fuente</span>
+                                <span style="font-size:0.46rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.16);text-transform:uppercase;text-align:right;">Valor</span>
+                                <span style="font-size:0.46rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.16);text-transform:uppercase;text-align:center;">x</span>
+                                <span style="font-size:0.46rem;font-weight:700;letter-spacing:1px;color:rgba(255,255,255,0.16);text-transform:uppercase;text-align:right;">PL</span>
                             </div>
-                            <div id="pl-rows" style="display:flex;flex-direction:column;gap:2px;"></div>
+                            <div id="pl-rows" style="display:flex;flex-direction:column;gap:1px;"></div>
                         </div>
 
-                        <!-- Total bar + footer -->
-                        <div style="padding:10px 24px 18px;">
-                            <div style="height:3px;border-radius:10px;background:rgba(255,255,255,0.05);overflow:hidden;margin-bottom:10px;">
+                        <!-- Barra + footer compacto -->
+                        <div style="padding:8px 16px 14px;">
+                            <div style="height:2px;border-radius:10px;background:rgba(255,255,255,0.05);overflow:hidden;margin-bottom:8px;">
                                 <div id="pl-bar-total" style="height:100%;border-radius:10px;background:var(--rank-color);width:0%;transition:width 1s cubic-bezier(0.16,1,0.3,1),background 0.5s;"></div>
                             </div>
-                            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:4px;">
-                                <span id="pl-next-label" style="font-size:0.58rem;color:var(--text-secondary);font-weight:500;flex:1;line-height:1.5;"></span>
-                                <span id="pl-accuracy-pct" style="font-size:0.58rem;color:var(--text-secondary);font-weight:600;white-space:nowrap;"></span>
+                            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:2px;">
+                                <span id="pl-next-label" style="font-size:0.52rem;color:var(--text-secondary);font-weight:500;flex:1;line-height:1.4;"></span>
+                                <span id="pl-accuracy-pct" style="font-size:0.52rem;color:var(--text-secondary);font-weight:600;white-space:nowrap;"></span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Logros Destacados -->
-                    <div style="display:flex;flex-direction:column;gap:10px;height:100%;">
+                    <div style="display:flex;flex-direction:column;gap:8px;">
                         <div class="profile-achievements-title">Logros Destacados</div>
-                        <div class="profile-achievements-grid" id="profile-achievements-grid" style="flex:1;height:100%;"></div>
+                        <div class="profile-achievements-grid" id="profile-achievements-grid"></div>
                     </div>
 
                 </div>
@@ -642,10 +638,19 @@
 
         <!-- Header con progreso global -->
         <div id="kp-header" class="kp-header">
-            <!-- Generado por renderKp3Pass() -->
+            <div class="kp-cycle-label">CAMINO DE PROGRESO</div>
+            <div class="kp-progress-summary">
+                <span class="kp-progress-count" id="kp-progress-count">0 / 100</span>
+                <span class="kp-progress-label">niveles completados</span>
+            </div>
+            <div class="kp-total-bar-wrap">
+                <div class="kp-total-bar-fill" id="kp-total-bar-fill"></div>
+            </div>
+            <div class="kp-reward-total" id="kp-reward-total">0 ℙ reclamados</div>
+            <div style="margin-top:8px;font-size:0.63rem;color:var(--text-secondary);line-height:1.5;opacity:0.65;">Los niveles se desbloquean en orden. La recompensa final solo se entrega al completar el pase en su totalidad.</div>
         </div>
 
-        <!-- Scroll con misiones diarias + niveles del pase -->
+        <!-- Scroll con el camino de niveles -->
         <div class="content-scroll no-scrollbar kp-scroll" id="kp-scroll">
             <div class="kp-path-container" id="kp-path-container">
                 <!-- Se genera dinámicamente con JS -->
