@@ -6219,6 +6219,30 @@ async function _adminUnbanPlayer(uuid, name) {
 // Muestra solo el estado de seguridad del propio usuario:
 // estado actual, historial de infracciones, contador de ban activo.
 // Los admin ven adicionalmente los controles de gestión.
+// ── Admin: registrar pago de pinceles KP ────────────────────────────────────
+async function _adminRegisterPayment(uuid, name, monto) {
+    if (!monto || monto <= 0) return;
+    const confirm = window.confirm(
+        `Registrar pago de ${monto.toLocaleString()} ℙ a ${name}?\n\nEste registro es permanente.`
+    );
+    if (!confirm) return;
+    const fecha = new Date().toISOString();
+    try {
+        await fetch(GAS_URL, {
+            method: 'POST', mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+                action: 'register-payment',
+                uuid, name, monto, fecha,
+            }),
+        });
+        showToast('Pago registrado', `${monto.toLocaleString()} ℙ → ${name}`, '#00c853');
+        setTimeout(() => { fetchSecurityData().then(() => renderSecurityStatus()); }, 1200);
+    } catch(e) {
+        showToast('Error', 'No se pudo registrar el pago. Intenta de nuevo.', 'var(--accent-red)');
+    }
+}
+
 function renderSecurityStatus() {
     const container = document.getElementById('ks-personal-layout');
     if (!container) return;
@@ -6325,6 +6349,51 @@ function renderSecurityStatus() {
             <div class="ks-list">
                 ${allCards || `<div class="ks-empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Todo limpio — sin acciones requeridas</span></div>`}
             </div>
+        </div>
+
+        <div class="ks-personal-section">
+            <div class="ks-personal-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                Cobros de Pinceles KP
+            </div>
+            ${(() => {
+                const allPlayers = (window._ksSecurityData || []).filter(p => p.uuid !== ADMIN_UUID);
+                if (!allPlayers.length) return '<div class="ks-empty-state"><span>Sin datos de jugadores cargados</span></div>';
+                return allPlayers
+                    .filter(p => (p.kpPincelesTotal || 0) > 0)
+                    .sort((a,b) => {
+                        const pendA = (a.kpPincelesTotal||0) - (a.totalPagadoKp||0);
+                        const pendB = (b.kpPincelesTotal||0) - (b.totalPagadoKp||0);
+                        return pendB - pendA;
+                    })
+                    .map(p => {
+                        const total    = p.kpPincelesTotal || 0;
+                        const pagado   = p.totalPagadoKp  || 0;
+                        const pendiente = Math.max(0, total - pagado);
+                        const historial = (p.historialPagosKp || []);
+                        const lastPago  = historial.length ? historial[historial.length-1] : null;
+                        const histHtml  = historial.length
+                            ? historial.slice().reverse().map(h =>
+                                `<div class="kp-pay-hist-row"><span class="kp-pay-hist-fecha">${new Date(h.fecha).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})}</span><span class="kp-pay-hist-monto">−${(h.monto||0).toLocaleString()} ℙ</span></div>`
+                              ).join('')
+                            : '<span style="font-size:0.58rem;color:var(--text-secondary);">Sin pagos previos</span>';
+                        return `<div class="kp-pay-card">
+                            <div class="kp-pay-header">
+                                <div class="kp-pay-name">${p.name||'—'}</div>
+                                <div class="kp-pay-saldo ${pendiente > 0 ? 'pendiente' : 'al-dia'}">${pendiente > 0 ? pendiente.toLocaleString() + ' ℙ pendientes' : 'Al día'}</div>
+                            </div>
+                            <div class="kp-pay-stats">
+                                <div class="kp-pay-stat"><span class="kp-pay-stat-label">Acumulado total</span><span class="kp-pay-stat-val">${total.toLocaleString()} ℙ</span></div>
+                                <div class="kp-pay-stat"><span class="kp-pay-stat-label">Ya pagado</span><span class="kp-pay-stat-val">${pagado.toLocaleString()} ℙ</span></div>
+                            </div>
+                            ${pendiente > 0 ? `<button class="kp-pay-btn" onclick="_adminRegisterPayment('${p.uuid}','${(p.name||'').replace(/['"]/g,'')}',${pendiente})">Registrar pago de ${pendiente.toLocaleString()} ℙ</button>` : ''}
+                            <details class="kp-pay-hist">
+                                <summary>Historial de pagos (${historial.length})</summary>
+                                <div class="kp-pay-hist-list">${histHtml}</div>
+                            </details>
+                        </div>`;
+                    }).join('') || '<div class="ks-empty-state"><span>Ningún jugador tiene pinceles acumulados aún</span></div>';
+            })()}
         </div>`;
     }
 
@@ -9764,6 +9833,109 @@ setTimeout(() => {
     border-radius: 10px;
     transition: width 0.6s ease;
     opacity: 0.7;
+}
+
+/* ── Cobros KP — panel admin ─────────────────────────────────────── */
+.kp-pay-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 10px;
+}
+.kp-pay-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+.kp-pay-name {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+.kp-pay-saldo {
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 3px 9px;
+    border-radius: 20px;
+}
+.kp-pay-saldo.pendiente {
+    background: rgba(255,196,0,0.12);
+    color: #ffc400;
+    border: 1px solid rgba(255,196,0,0.2);
+}
+.kp-pay-saldo.al-dia {
+    background: rgba(0,200,83,0.1);
+    color: #00c853;
+    border: 1px solid rgba(0,200,83,0.18);
+}
+.kp-pay-stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+.kp-pay-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.kp-pay-stat-label {
+    font-size: 0.48rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+.kp-pay-stat-val {
+    font-size: 0.82rem;
+    font-weight: 900;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+.kp-pay-btn {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(0,200,83,0.15);
+    color: #00c853;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background 0.2s;
+}
+.kp-pay-btn:active { background: rgba(0,200,83,0.25); }
+.kp-pay-hist { margin-top: 4px; }
+.kp-pay-hist summary {
+    font-size: 0.58rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px 0;
+    list-style: none;
+    font-weight: 600;
+}
+.kp-pay-hist-list {
+    padding-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.kp-pay-hist-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.62rem;
+    color: var(--text-secondary);
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.kp-pay-hist-monto {
+    font-weight: 700;
+    color: #ffc400;
+    font-variant-numeric: tabular-nums;
 }
 
 /* ── KS Shield en ranking cards ──────────────────────────────────── */
