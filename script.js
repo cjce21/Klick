@@ -6602,7 +6602,7 @@ function goToProfile(needsName = false) {
     if (_screenTransitioning && !needsName) return; // anti-glitch (no bloquear si se necesita nombre)
     _lockUserNav();
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
-    SFX.click();
+    try { SFX.click(); } catch(e) {}
     // Si no se llegó desde el ranking, el back button vuelve al menú principal.
     // Si venimos del ranking (return screen ya fijado en 'ranking-screen'), preservarlo.
     if (!_isViewingOtherProfile && _profileReturnScreen !== 'ranking-screen') _profileReturnScreen = 'start-screen';
@@ -7108,18 +7108,27 @@ let _startGameCheckPending = false; // anti-glitch: evitar doble tap en Jugar
 async function startGameCheck() {
     if (_startGameCheckPending) return; // anti-glitch
     _startGameCheckPending = true;
-    setTimeout(() => { _startGameCheckPending = false; }, 1200); // liberar tras 1.2s
+    setTimeout(() => { _startGameCheckPending = false; }, 300); // liberar rápido — Safari puede demorar el tap
     // iOS/Safari: AudioContext MUST be resumed synchronously inside a user gesture handler
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
-    if (!playerStats.playerName || playerStats.playerName === "JUGADOR") { 
-        SFX.incorrect(); goToProfile(true); 
+
+    // Sin nombre: mandar a perfil pero NO bloquear indefinidamente
+    if (!playerStats.playerName || playerStats.playerName === "JUGADOR") {
+        try { SFX.incorrect(); } catch(e) {}
+        goToProfile(true);
         return;
     }
 
-    // Onboarding: mostrar tutorial en la primera partida de un jugador nuevo
+    // Onboarding: marcar como visto antes de mostrarlo — si falla en Safari, no bloquea
     if (!playerStats.hasSeenOnboarding && (playerStats.gamesPlayed || 0) === 0) {
-        showOnboarding(() => startGameCheck());
-        return;
+        playerStats.hasSeenOnboarding = true;
+        saveStatsLocally();
+        try {
+            showOnboarding(() => startGameCheck());
+            return;
+        } catch(e) {
+            // Si el onboarding falla (ej. Safari quirk), continuar directamente al juego
+        }
     }
 
     if (quizDataPool.length === 0) {
