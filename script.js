@@ -1140,8 +1140,49 @@ addAchs([
 addAchs([
     { id: 'master1', title: 'Casi Dios',    desc: 'Desbloquea 150 logros en total.',                                  color: colors.yellow, icon: SVG_STAR },
     { id: 'master2', title: 'Semidivino',   desc: 'Desbloquea 200 logros en total.',                                  color: colors.orange, icon: SVG_STAR },
-    { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 225 logros en total.',                                  color: colors.purple, icon: SVG_STAR },
-    { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea todos los logros del juego. Eres absoluto.',            color: colors.red,    icon: SVG_STAR },
+    { id: 'master4', title: 'Leyenda Total',desc: 'Desbloquea 250 logros en total.',                                  color: colors.purple, icon: SVG_STAR },
+    { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea los 300 logros del juego. Eres absoluto.',              color: colors.red,    icon: SVG_STAR },
+]);
+
+// ─── 21. HAZAÑAS ESPECIALES (8 logros de situaciones únicas) ─────────────
+addAchs([
+    { id: 'haz1', title: 'Sin Despeinarse',   desc: 'Consigue 30 aciertos seguidos sin usar ninguna vida.',             color: colors.green,  icon: SVG_SHIELD },
+    { id: 'haz2', title: 'Punto de Oro',      desc: 'Alcanza exactamente 50,000 puntos (±250) en una partida.',         color: colors.yellow, icon: SVG_STAR },
+    { id: 'haz3', title: 'Triple Corona',     desc: 'En una misma partida: racha ≥10, multiplicador ≥4 y más de 30k pts.', color: colors.orange, icon: SVG_TROPHY },
+    { id: 'haz4', title: 'Contraataque',      desc: 'Pierde una vida y luego encadena 15 aciertos seguidos.',            color: colors.red,    icon: SVG_FIRE },
+    { id: 'haz5', title: 'Modo Difícil',      desc: 'Supera la pregunta 40 sin multiplicador (manteniéndolo en x1).',   color: colors.dark,   icon: SVG_SKULL },
+    { id: 'haz6', title: 'El Perfeccionista', desc: 'Termina 3 partidas seguidas con más de 20k puntos cada una.',      color: colors.blue,   icon: SVG_SHIELD },
+    { id: 'haz7', title: 'Golpe de Estado',   desc: 'Supera en ranking a un jugador que tenía más de 5,000 PL.',        color: colors.purple, icon: SVG_BOLT },
+    { id: 'haz8', title: 'Récord Absoluto',   desc: 'Supera tu propio récord personal por más de 10,000 puntos.',       color: colors.yellow, icon: SVG_TROPHY },
+]);
+
+// ─── 22. KLICK PASS (5 logros de progreso en el camino de niveles) ───────
+const SVG_PASS = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><circle cx="12" cy="12" r="1"/></svg>`;
+addAchs([
+    { id: 'kp1', title: 'Primer Escalón',  desc: 'Completa el nivel 1 del Klick Pass.',                                 color: colors.green,  icon: SVG_PASS },
+    { id: 'kp2', title: 'Constante',       desc: 'Completa los primeros 25 niveles del Klick Pass.',                    color: colors.blue,   icon: SVG_PASS },
+    { id: 'kp3', title: 'Dedicado',        desc: 'Completa los primeros 50 niveles del Klick Pass.',                    color: colors.orange, icon: SVG_PASS },
+    { id: 'kp4', title: 'El Largo Camino', desc: 'Completa los primeros 75 niveles del Klick Pass.',                    color: colors.purple, icon: SVG_PASS },
+    { id: 'kp5', title: 'Camino Completo', desc: 'Completa los 100 niveles del Klick Pass. El camino ha terminado.',    color: colors.yellow, icon: SVG_PASS },
+]);
+
+// ─── 23. RACHAS DE DÍAS (5 logros de fidelidad extrema) ──────────────────
+addAchs([
+    { id: 'dex1', title: 'Semana Perfecta',  desc: 'Inicia sesión 7 días consecutivos sin faltar ninguno.',              color: colors.green,  icon: SVG_CLOCK },
+    { id: 'dex2', title: 'Quincena Activa',  desc: 'Inicia sesión 14 días consecutivos.',                               color: colors.blue,   icon: SVG_CLOCK },
+    { id: 'dex3', title: 'Mes Completo',     desc: 'Inicia sesión 30 días consecutivos sin fallo.',                     color: colors.orange, icon: SVG_HEART },
+    { id: 'dex4', title: 'Bimestre de Acero',desc: 'Inicia sesión 60 días consecutivos.',                               color: colors.purple, icon: SVG_HEART },
+    { id: 'dex5', title: 'El Inquebrantable',desc: 'Inicia sesión 100 días consecutivos. Eres incondicional.',          color: colors.yellow, icon: SVG_TROPHY },
+]);
+
+// ─── 24. LOGROS SOCIALES Y RANKING (6 logros de clasificación avanzada) ──
+addAchs([
+    { id: 'soc1', title: 'Conocido',        desc: 'Tu nombre aparece en la clasificación global al menos 5 días.',      color: colors.blue,   icon: SVG_USER },
+    { id: 'soc2', title: 'Referente',       desc: 'Mantente en el Top 10 durante 3 días consecutivos.',                 color: colors.orange, icon: SVG_TROPHY },
+    { id: 'soc3', title: 'Amenaza',         desc: 'Sube 10 posiciones en el ranking en una sola sesión.',               color: colors.red,    icon: SVG_BOLT },
+    { id: 'soc4', title: 'Invitado de Honor',desc: 'Aparece en la clasificación global con un rango Maestro o superior.', color: colors.purple, icon: SVG_TROPHY },
+    { id: 'soc5', title: 'La Leyenda Sube', desc: 'Alcanza el Top 5 con rango Leyenda o Mítico.',                       color: colors.yellow, icon: SVG_STAR },
+    { id: 'soc6', title: 'Sin Rival',       desc: 'Mantente en el puesto #1 durante al menos 3 días consecutivos.',     color: colors.yellow, icon: SVG_STAR },
 ]);
 
 
@@ -1211,7 +1252,7 @@ function _checkAchievementsImpl() {
     if (playerStats.achViews >= 1) unlock('m4'); if (playerStats.achViews >= 10) unlock('m5'); if (playerStats.achViews >= 50) unlock('m6');
     if (playerStats.pinnedAchievements.length > 0) unlock('m7'); 
     if (normalAchs >= 10) unlock('m8'); if (normalAchs >= 50) unlock('m9'); if (normalAchs >= 100) unlock('m10');
-    if (normalAchs >= 150) unlock('master1'); if (normalAchs >= 200) unlock('master2'); if (normalAchs >= 225) unlock('master4'); if (normalAchs >= 250) unlock('master3');
+    if (normalAchs >= 150) unlock('master1'); if (normalAchs >= 200) unlock('master2'); if (normalAchs >= 250) unlock('master4'); if (normalAchs >= 299) unlock('master3');
 
     // DÍAS (Consecutivos vs Totales)
     const days = playerStats.maxLoginStreak; 
@@ -1356,6 +1397,39 @@ function _checkAchievementsImpl() {
     if((playerStats.gamesAtMusicZero||0)>=5) unlock('extra4');
     // extra5 Coleccionista: 10 logros en un día
     if((playerStats.dailyAchUnlocks||0)>=10) unlock('extra5');
+
+    // --- HAZAÑAS ESPECIALES ---
+    if(playerStats.haz1Earned) unlock('haz1');       // 30 aciertos seguidos sin perder vida — in-game
+    if((playerStats.bestScore||0)>=49750 && (playerStats.bestScore||0)<=50250) unlock('haz2'); // 50k exacto
+    if(playerStats.haz2Exact50k) unlock('haz2');
+    if(playerStats.haz3Earned) unlock('haz3');       // triple corona — in-game
+    if(playerStats.haz4Earned) unlock('haz4');       // contraataque — in-game
+    if(playerStats.haz5Earned) unlock('haz5');       // modo difícil — in-game
+    if((playerStats.perfectConsecutiveGames||0)>=3) unlock('haz6'); // 3 partidas seguidas >20k
+    if(playerStats.haz7Earned) unlock('haz7');       // superar jugador >5k PL — in-game/leaderboard
+    if(playerStats.haz8Earned) unlock('haz8');       // récord por >10k — in-game
+
+    // --- KLICK PASS ---
+    const kpLevel = playerStats.klickPassLevel||0;
+    if(kpLevel>=1) unlock('kp1'); if(kpLevel>=25) unlock('kp2');
+    if(kpLevel>=50) unlock('kp3'); if(kpLevel>=75) unlock('kp4'); if(kpLevel>=100) unlock('kp5');
+
+    // --- RACHAS DE DÍAS EXTREMAS ---
+    const loginStreak = playerStats.maxLoginStreak||0;
+    if(loginStreak>=7)   unlock('dex1'); if(loginStreak>=14) unlock('dex2');
+    if(loginStreak>=30)  unlock('dex3'); if(loginStreak>=60) unlock('dex4');
+    if(loginStreak>=100) unlock('dex5');
+
+    // --- LOGROS SOCIALES ---
+    if((playerStats.daysInLeaderboard||0)>=5) unlock('soc1');
+    if((playerStats.top10ConsecutiveDays||0)>=3) unlock('soc2');
+    if(playerStats.soc3Earned) unlock('soc3'); // subir 10 posiciones en ranking — tracked leaderboard
+    // soc4: clasificación con rango Maestro+
+    if((rank==='Maestro'||rank==='Leyenda'||rank==='Mítico') && rp<=200) unlock('soc4');
+    // soc5: Top 5 con Leyenda o Mítico
+    if(rp<=5 && (rank==='Leyenda'||rank==='Mítico')) unlock('soc5');
+    // soc6: #1 durante 3 días consecutivos
+    if((playerStats.daysAtRankOne||0)>=3) unlock('soc6');
 
     if(playerStats.playedNocturno) unlock('fin1');
     if(playerStats.playedMadrugador) unlock('fin2');
