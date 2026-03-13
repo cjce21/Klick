@@ -5275,9 +5275,13 @@ function getAchRarity(id) { return RARITY_SCORE[id] || 10; }
 function getAutoProfileAchs() {
     const result = [];
     const isAdmin = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
-    playerStats.pinnedAchievements.forEach(id => {
-        if (result.length < 9 && (isAdmin || playerStats.achievements.includes(id))) result.push(id);
-    });
+    playerStats.pinnedAchievements
+        
+        .forEach(id => {
+            // Admin: mostrar cualquier logro fijado aunque no esté en achievements[]
+            // Resto: solo mostrar fijados que estén desbloqueados
+            if (result.length < 9 && (isAdmin || playerStats.achievements.includes(id))) result.push(id);
+        });
     if (result.length < 9) {
         const rest = playerStats.achievements
             .filter(id => !result.includes(id))
