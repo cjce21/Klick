@@ -4009,7 +4009,7 @@ function openPlayerProfileFromRank(index) {
             const fragAdmin = document.createDocumentFragment();
             let nAdmin = 0;
             pinnedIds.forEach(id => {
-                if (nAdmin >= 6) return;
+                if (nAdmin >= 9) return;
                 const ach = ACHIEVEMENTS_MAP.get(id);
                 if (!ach) return;
                 const slot = document.createElement('div');
@@ -4020,7 +4020,7 @@ function openPlayerProfileFromRank(index) {
                 fragAdmin.appendChild(slot);
                 nAdmin++;
             });
-            while (nAdmin < 6) {
+            while (nAdmin < 9) {
                 const slot = document.createElement('div');
                 slot.className = 'achievement-slot';
                 if (achCount !== null && nAdmin === 0 && pinnedIds.length === 0) {
@@ -4042,7 +4042,7 @@ function openPlayerProfileFromRank(index) {
             const fragOther = document.createDocumentFragment();
             let nOther = 0;
             pinnedIds.forEach(id => {
-                if (nOther >= 6) return;
+                if (nOther >= 9) return;
                 const ach = ACHIEVEMENTS_MAP.get(id);
                 if (!ach) return;
                 const achDisplayColor = isLight ? darkenHex(ach.color, 0.4) : ach.color;
@@ -4054,7 +4054,7 @@ function openPlayerProfileFromRank(index) {
                 fragOther.appendChild(slot);
                 nOther++;
             });
-            while (nOther < 6) {
+            while (nOther < 9) {
                 const slot = document.createElement('div');
                 slot.className = 'achievement-slot';
                 if (achCount !== null && nOther === 0 && pinnedIds.length === 0) {
@@ -5261,7 +5261,7 @@ function togglePin(achId) {
     if (!_isAdminPin && !playerStats.achievements.includes(achId)) return;
     SFX.click(); const index = playerStats.pinnedAchievements.indexOf(achId);
     if (index > -1) { playerStats.pinnedAchievements.splice(index, 1); showToast('Quitado del perfil', 'Ya no aparecerá destacado.', 'var(--text-secondary)', SVG_PIN); } 
-    else { if (playerStats.pinnedAchievements.length >= 6) { showToast('Límite', 'Máximo 6 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); playerStats.totalPins = (playerStats.totalPins||0) + 1; const ach_data = ACHIEVEMENTS_MAP.get(achId); showToast('Fijado en Perfil', ach_data ? ach_data.title : achId, ach_data ? ach_data.color : '', ach_data ? ach_data.icon : ''); }
+    else { if (playerStats.pinnedAchievements.length >= 9) { showToast('Límite', 'Máximo 9 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); playerStats.totalPins = (playerStats.totalPins||0) + 1; const ach_data = ACHIEVEMENTS_MAP.get(achId); showToast('Fijado en Perfil', ach_data ? ach_data.title : achId, ach_data ? ach_data.color : '', ach_data ? ach_data.icon : ''); }
     saveStatsLocally(); checkAchievements(); renderAchievements(); submitLeaderboard();
 }
 
@@ -5275,16 +5275,14 @@ function getAchRarity(id) { return RARITY_SCORE[id] || 10; }
 function getAutoProfileAchs() {
     const result = [];
     const isAdmin = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
-    playerStats.pinnedAchievements
-        
-        .forEach(id => {
-            if (result.length < 6 && (isAdmin || playerStats.achievements.includes(id))) result.push(id);
-        });
-    if (result.length < 6) {
+    playerStats.pinnedAchievements.forEach(id => {
+        if (result.length < 9 && (isAdmin || playerStats.achievements.includes(id))) result.push(id);
+    });
+    if (result.length < 9) {
         const rest = playerStats.achievements
             .filter(id => !result.includes(id))
             .sort((a,b) => getAchRarity(b) - getAchRarity(a));
-        rest.forEach(id => { if (result.length < 6) result.push(id); });
+        rest.forEach(id => { if (result.length < 9) result.push(id); });
     }
     return result;
 }
@@ -5380,13 +5378,10 @@ function _vsRenderRow(rowIdx) {
         const isInProfile = _vsDisplayPin.includes(ach.id);
         html += _vsCardHTML(ach, isUnlocked, isManualPin, isInProfile);
     }
-    // Rellenar última fila con placeholders invisibles para simetría
     const remainder = (end - start) % cols;
     if (remainder !== 0) {
-        const placeholders = cols - remainder;
-        for (let p = 0; p < placeholders; p++) {
+        for (let p = 0; p < cols - remainder; p++)
             html += `<div class="ach-card" style="opacity:0;pointer-events:none;border:none;background:transparent;"></div>`;
-        }
     }
     rowEl.innerHTML = html;
     _vsContentEl.appendChild(rowEl);
@@ -5497,7 +5492,7 @@ function renderAchievements() {
         const divBorder = isLight ? 'rgba(13,17,23,0.35)' : 'rgba(255,255,255,0.35)';
         const divShadow = isLight ? 'none' : '0 0 12px rgba(255,255,255,0.18)';
         _vsDisplayPin.forEach(id => {
-            if (n >= 6) return;
+            if (n >= 9) return;
             let ach = ACHIEVEMENTS_MAP.get(id);
             if (!ach) return;
             const slot = document.createElement('div');
@@ -5514,7 +5509,7 @@ function renderAchievements() {
             }
             frag.appendChild(slot); n++;
         });
-        while (n < 6) {
+        while (n < 9) {
             const slot = document.createElement('div');
             slot.className = 'achievement-slot';
             slot.innerHTML = `<div class="ach-icon" style="color:var(--text-secondary);opacity:0.4">${SVG_LOCK}</div><div class="ach-title" style="color:var(--text-secondary);opacity:0.5;font-size:0.7rem;">Sin fijar</div>`;
