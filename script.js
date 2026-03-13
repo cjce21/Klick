@@ -2765,7 +2765,7 @@ function showToast(title, message, color, icon, duration) {
 }
 
 // --- Módulo: Clasificación Global ---
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxsZnUIg59B8qq6-Xkm7hIcy2hXzSRUTHnlqqhcWdWwFputKX9tC11mExs6zLP6GlOV/exec"; 
+const GAS_URL = "https://script.google.com/macros/s/AKfycby1OKP2rE2ozvpfypP7BOaYUdzuwawdoxjB3rtRhN9-CgtV1o0x2kdtiUXj8HCkjCQEBg/exec"; 
 
 
 // ══════════════════════════════════════════════════════════════════
