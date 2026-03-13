@@ -1542,3 +1542,4 @@ body.light-mode .kp-tramo-sep { border-bottom-color: var(--bg-elevated); }
     .toast-item.show { transform: translateY(0); }
     .achievements-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 }
+
