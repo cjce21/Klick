@@ -448,7 +448,7 @@
                 </div>
 
                 <!-- PL Panel + Logros en dos columnas -->
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;align-items:start;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;align-items:stretch;">
 
                     <!-- Panel PL compacto -->
                     <div class="glass-panel" id="pl-panel" style="border-radius:var(--radius-lg);border-color:rgba(var(--rank-rgb),0.22);overflow:hidden;position:relative;">
@@ -490,9 +490,9 @@
                     </div>
 
                     <!-- Logros Destacados -->
-                    <div style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="display:flex;flex-direction:column;gap:8px;height:100%;">
                         <div class="profile-achievements-title">Logros Destacados</div>
-                        <div class="profile-achievements-grid" id="profile-achievements-grid"></div>
+                        <div class="profile-achievements-grid" id="profile-achievements-grid" style="flex:1;height:100%;"></div>
                     </div>
 
                 </div>
