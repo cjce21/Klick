@@ -38,7 +38,10 @@ const defaultStats = {
     powerLevel: 0, maxMult: 1, maxQuestionReached: 0, totalDaysPlayed: 0,
     profileViewedAfterGames: 0, guideViewedBeforeGame: false,
     selectedTrack: 'track_chill', trackSwitches: 0, tracksTriedSet: [], triedAllTracks: false,
-    sameTrackGames: 0, lastGameTrack: ''
+    sameTrackGames: 0, lastGameTrack: '',
+    daysInLeaderboard: 0, top10ConsecutiveDays: 0, daysAtRankOne: 0,
+    soc3Earned: false, haz7Earned: false,
+    _lastLeaderboardDay: '', _lastTop10Day: '', _lastRankOnceDay: ''
 };
 
 const STORAGE_KEY = 'klick_player_data_permanent';
@@ -773,26 +776,82 @@ async function fetchLeaderboard() {
                 const prevPos = playerStats.rankingPosition || 999;
                 const prevPL  = playerStats.powerLevel || 0;
                 playerStats.rankingPosition = pos;
-                // nm7 Remontada: estaba en 15+ y sube al Top 5
+                const todayStr = new Date().toISOString().split('T')[0];
+                const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+                const ydStr = yesterday.toISOString().split('T')[0];
+
+                // ── soc1 Conocido: días distintos en que apareces en el ranking ──────
+                // Se incrementa una sola vez por día calendario.
+                if(playerStats._lastLeaderboardDay !== todayStr) {
+                    playerStats._lastLeaderboardDay = todayStr;
+                    playerStats.daysInLeaderboard = (playerStats.daysInLeaderboard||0) + 1;
+                }
+
+                // ── soc2 Referente: Top 10 en días consecutivos ─────────────────────
+                if(pos <= 10) {
+                    if(playerStats._lastTop10Day !== todayStr) {
+                        if(playerStats._lastTop10Day === ydStr) {
+                            playerStats.top10ConsecutiveDays = (playerStats.top10ConsecutiveDays||0) + 1;
+                        } else if(playerStats._lastTop10Day !== todayStr) {
+                            // gap en la racha — reiniciar solo si no era ayer
+                            playerStats.top10ConsecutiveDays = 1;
+                        }
+                        playerStats._lastTop10Day = todayStr;
+                    }
+                } else {
+                    // Salió del Top 10: rompe la racha
+                    playerStats.top10ConsecutiveDays = 0;
+                    playerStats._lastTop10Day = '';
+                }
+
+                // ── soc6 Sin Rival: puesto #1 en días consecutivos ──────────────────
+                if(pos === 1) {
+                    if(playerStats._lastRankOnceDay !== todayStr) {
+                        if(playerStats._lastRankOnceDay === ydStr) {
+                            playerStats.daysAtRankOne = (playerStats.daysAtRankOne||0) + 1;
+                        } else {
+                            playerStats.daysAtRankOne = 1;
+                        }
+                        playerStats._lastRankOnceDay = todayStr;
+                    }
+                } else {
+                    playerStats.daysAtRankOne = 0;
+                    playerStats._lastRankOnceDay = '';
+                }
+
+                // ── soc3 Amenaza: sube 10+ posiciones en una sesión ─────────────────
+                // prevPos se lee antes de actualizar rankingPosition, así que la
+                // diferencia refleja el salto real en este fetch.
+                if(prevPos < 999 && (prevPos - pos) >= 10) {
+                    playerStats.soc3Earned = true;
+                }
+
+                // ── haz7 Golpe de Estado: superar jugador con >5,000 PL ─────────────
+                if(!playerStats.haz7Earned && prevPL > 0) {
+                    topPlayers.forEach(other => {
+                        if(other.uuid !== playerStats.uuid && other.powerLevel > prevPL + 5000) {
+                            const otherIdx = topPlayers.findIndex(o => o.uuid === other.uuid);
+                            if(otherIdx !== -1 && otherIdx + 1 > pos) playerStats.haz7Earned = true;
+                        }
+                    });
+                }
+
+                // ── nm7 Remontada: estaba en 15+ y sube al Top 5 ───────────────────
                 if(prevPos >= 15 && pos <= 5) playerStats.rankRemontada = true;
-                // nm6 Impostado: supera a alguien con >1000 PL más (check against other players)
+
+                // ── nm6 Impostado: supera a alguien con >1,000 PL más ───────────────
                 if(!playerStats.surpassedHighPLPlayer && prevPL > 0) {
                     topPlayers.forEach(other => {
                         if(other.uuid !== playerStats.uuid && other.powerLevel > prevPL + 1000) {
-                            // If we're now ranked above them
-                            const otherIdx = topPlayers.indexOf(other);
+                            const otherIdx = topPlayers.findIndex(o => o.uuid === other.uuid);
                             if(otherIdx !== -1 && otherIdx + 1 > pos) playerStats.surpassedHighPLPlayer = true;
                         }
                     });
                 }
-                // nm5 Vigilia: sube posición en días consecutivos
-                const todayStr = new Date().toISOString().split('T')[0];
+
+                // ── nm5 Vigilia: sube posición en 3 días consecutivos ───────────────
                 if(pos < prevPos && prevPos < 999) {
-                    if(playerStats._lastRankUpDate === todayStr) {
-                        // already counted today
-                    } else {
-                        const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
-                        const ydStr = yesterday.toISOString().split('T')[0];
+                    if(playerStats._lastRankUpDate !== todayStr) {
                         if(playerStats._lastRankUpDate === ydStr) {
                             playerStats.consecutiveRankUpDays = (playerStats.consecutiveRankUpDays||0) + 1;
                         } else {
@@ -801,6 +860,7 @@ async function fetchLeaderboard() {
                         playerStats._lastRankUpDate = todayStr;
                     }
                 }
+
                 saveStatsLocally(); checkAchievements();
             }
 
@@ -1107,7 +1167,7 @@ addAchs([
     { id: 'nm8',  title: 'PL 10,000',         desc: 'Alcanza 10,000 Puntos de Poder (Nivel inicial).',                color: colors.green,  icon: SVG_STAR },
     { id: 'nm2',  title: 'Top 10',            desc: 'Entra en el Top 10 de la Clasificación.',                        color: colors.orange, icon: SVG_TROPHY },
     { id: 'nm9',  title: 'PL 100,000',        desc: 'Alcanza 100,000 Puntos de Poder.',                               color: colors.blue,   icon: SVG_STAR },
-    { id: 'nm5',  title: 'Vigilia',           desc: 'Sube en la Clasificación en 3 días consecutivos.',               color: colors.blue,   icon: SVG_CLOCK },
+    { id: 'nm5',  title: 'Vigilia',           desc: 'Mejora tu posición en el ranking en 3 días distintos consecutivos.',               color: colors.blue,   icon: SVG_CLOCK },
     { id: 'nm6',  title: 'Impostado',         desc: 'Supera a otro jugador que tenía más de 1,000 PL que tú.',        color: colors.purple, icon: SVG_BOLT },
     { id: 'nm7',  title: 'Remontada',         desc: 'Estabas en puesto 15+ y ascendiste al Top 5 en una partida.',    color: colors.orange, icon: SVG_FIRE },
     { id: 'nm3',  title: 'Podio',             desc: 'Entra en el Top 3 de la Clasificación.',                         color: colors.yellow, icon: SVG_TROPHY },
@@ -1177,12 +1237,12 @@ addAchs([
 
 // ─── 24. LOGROS SOCIALES Y RANKING (6 logros de clasificación avanzada) ──
 addAchs([
-    { id: 'soc1', title: 'Conocido',        desc: 'Tu nombre aparece en la clasificación global al menos 5 días.',      color: colors.blue,   icon: SVG_USER },
-    { id: 'soc2', title: 'Referente',       desc: 'Mantente en el Top 10 durante 3 días consecutivos.',                 color: colors.orange, icon: SVG_TROPHY },
-    { id: 'soc3', title: 'Amenaza',         desc: 'Sube 10 posiciones en el ranking en una sola sesión.',               color: colors.red,    icon: SVG_BOLT },
+    { id: 'soc1', title: 'Conocido',        desc: 'Aparece en la clasificación global en 5 días distintos.',            color: colors.blue,   icon: SVG_USER },
+    { id: 'soc2', title: 'Referente',       desc: 'Termina en el Top 10 del ranking en 3 días consecutivos.',           color: colors.orange, icon: SVG_TROPHY },
+    { id: 'soc3', title: 'Amenaza',         desc: 'Sube 10 o más posiciones en el ranking en una sola sesión.',         color: colors.red,    icon: SVG_BOLT },
     { id: 'soc4', title: 'Invitado de Honor',desc: 'Aparece en la clasificación global con un rango Maestro o superior.', color: colors.purple, icon: SVG_TROPHY },
-    { id: 'soc5', title: 'La Leyenda Sube', desc: 'Alcanza el Top 5 con rango Leyenda o Mítico.',                       color: colors.yellow, icon: SVG_STAR },
-    { id: 'soc6', title: 'Sin Rival',       desc: 'Mantente en el puesto #1 durante al menos 3 días consecutivos.',     color: colors.yellow, icon: SVG_STAR },
+    { id: 'soc5', title: 'La Leyenda Sube', desc: 'Alcanza el Top 5 de la clasificación con rango Leyenda o Mítico.',   color: colors.yellow, icon: SVG_STAR },
+    { id: 'soc6', title: 'Sin Rival',       desc: 'Ocupa el puesto #1 del ranking en 3 días consecutivos distintos.',   color: colors.yellow, icon: SVG_STAR },
 ]);
 
 
