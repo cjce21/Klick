@@ -106,6 +106,20 @@
                         <input type="range" id="op-fps" min="0" max="4" step="1" value="2">
                     </div>
 
+                    <!-- Modo de Rendimiento — ocupa las 2 columnas -->
+                    <div class="setting-card glass-panel" style="grid-column: 1/-1;" id="perf-mode-card">
+                        <div class="setting-header">
+                            <div class="setting-title-box">
+                                <div class="setting-icon" style="color: var(--text-primary);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                                </div>
+                                <div class="setting-label">Rendimiento<div class="setting-desc">Ajusta calidad visual y velocidad</div></div>
+                            </div>
+                            <span id="val-perf" class="setting-value">Alto</span>
+                        </div>
+                        <div id="perf-selector" style="display:flex;gap:8px;width:100%;"></div>
+                    </div>
+
                     <!-- Selector de Pistas — ocupa las 2 columnas del grid -->
                     <div class="setting-card glass-panel" style="grid-column: 1/-1;">
                         <div class="setting-header">
@@ -130,14 +144,14 @@
                             </div>
                             <span id="val-theme" class="setting-value">Oscuro</span>
                         </div>
-                        <div style="display:flex;gap:10px;">
-                            <div onclick="setTheme('dark')" id="theme-dark-btn" style="flex:1;padding:12px 15px;border-radius:var(--radius-md);border:1.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.07);cursor:pointer;text-align:center;transition:all 0.25s;">
-                                <div style="font-size:0.85rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;">Oscuro</div>
-                                <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:3px;">Predeterminado</div>
+                        <div style="display:flex;gap:8px;">
+                            <div onclick="setTheme('dark')" id="theme-dark-btn" style="flex:1;padding:9px 12px;border-radius:var(--radius-sm);border:1.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.07);cursor:pointer;text-align:center;transition:all 0.2s;">
+                                <div style="font-size:0.72rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.8px;">Oscuro</div>
+                                <div style="font-size:0.58rem;color:var(--text-secondary);margin-top:2px;">Predeterminado</div>
                             </div>
-                            <div onclick="setTheme('light')" id="theme-light-btn" style="flex:1;padding:12px 15px;border-radius:var(--radius-md);border:1.5px solid rgba(255,255,255,0.1);background:transparent;cursor:pointer;text-align:center;transition:all 0.25s;">
-                                <div style="font-size:0.85rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;">Claro</div>
-                                <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:3px;">Fondo blanco</div>
+                            <div onclick="setTheme('light')" id="theme-light-btn" style="flex:1;padding:9px 12px;border-radius:var(--radius-sm);border:1.5px solid rgba(255,255,255,0.1);background:transparent;cursor:pointer;text-align:center;transition:all 0.2s;">
+                                <div style="font-size:0.72rem;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.8px;">Claro</div>
+                                <div style="font-size:0.58rem;color:var(--text-secondary);margin-top:2px;">Fondo blanco</div>
                             </div>
                         </div>
                     </div>
@@ -272,11 +286,8 @@
                 <!-- Introducción -->
                 <div class="ranks-intro glass-panel">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;height:22px;color:var(--text-secondary);flex-shrink:0;"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>
-                    <span>Cumple <strong>TODOS</strong> los requisitos de forma simultánea para ascender al siguiente rango. El orden es de secundario a primario.</span>
+                    <span>Cumple <strong>TODOS</strong> los requisitos de forma simultánea para ascender al siguiente rango. Escala desde Novato hasta alcanzar el rango Mítico.</span>
                 </div>
-
-                <!-- RANGOS SECUNDARIOS -->
-                <div class="ranks-section-label">Rangos Secundarios</div>
 
                 <!-- Novato -->
                 <div class="rank-full-card glass-panel" style="border-left:4px solid var(--accent-green);">
@@ -320,9 +331,6 @@
                     </div>
                 </div>
 
-                <!-- RANGOS PRIMARIOS -->
-                <div class="ranks-section-label" style="margin-top:8px;">Rangos Primarios</div>
-
                 <!-- Maestro -->
                 <div class="rank-full-card glass-panel" style="border-left:4px solid var(--accent-purple);">
                     <div class="rfc-header">
@@ -349,7 +357,7 @@
                     <div class="rfc-reqs">
                         <div class="rfc-req"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg>Acumulado <strong>400,000 pts</strong> totales</div>
                         <div class="rfc-req"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Mínimo <strong>1,500 aciertos</strong> totales</div>
-                        <div class="rfc-req"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>Mínimo <strong>10 partidas perfectas</strong> (≥50 preguntas sin errores)</div>
+                        <div class="rfc-req"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>Mínimo <strong>10 partidas perfectas</strong> (≥10 preguntas sin errores)</div>
                     </div>
                 </div>
 
@@ -364,7 +372,7 @@
                     <div class="rfc-reqs">
                         <div class="rfc-req" style="color:rgba(255,255,255,0.85);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg>Acumulado <strong>1,200,000 pts</strong> totales</div>
                         <div class="rfc-req" style="color:rgba(255,255,255,0.85);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Mínimo <strong>5,000 aciertos</strong> totales</div>
-                        <div class="rfc-req" style="color:rgba(255,255,255,0.85);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>Mínimo <strong>50 partidas perfectas</strong> (≥50 preguntas sin errores)</div>
+                        <div class="rfc-req" style="color:rgba(255,255,255,0.85);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>Mínimo <strong>50 partidas perfectas</strong> (≥10 preguntas sin errores)</div>
                         <div class="rfc-req" style="color:rgba(255,255,255,0.85);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Mínimo <strong>200 logros</strong> desbloqueados</div>
                         <div class="rfc-req" style="color:rgba(255,255,255,0.85);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Racha máxima de <strong>40 aciertos</strong></div>
                         <div class="rfc-req" style="color:rgba(255,255,255,0.85);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>Multiplicador máximo <strong>×8</strong> alcanzado</div>
@@ -374,8 +382,9 @@
                 </div>
 
                 <!-- RANGOS DE PODIO -->
-                <div class="ranks-section-label" style="margin-top:8px;color:var(--accent-yellow);">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:4px;"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+                <div class="ranks-podio-divider"></div>
+                <div class="ranks-section-label" style="color:var(--accent-yellow);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;flex-shrink:0;"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
                     Rangos de Podio
                 </div>
                 <div class="ranks-podio-note">Exclusivos para jugadores rango <strong>Leyenda o Mítico</strong> que ocupen los 3 primeros puestos del ranking global.</div>
