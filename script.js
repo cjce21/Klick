@@ -830,7 +830,7 @@ function showToast(title, message, color, icon) {
 }
 
 // --- Módulo: Clasificación Global ---
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxbLrjL45NYaQsRaSlZJXHKlQj-1Qh4f-CPxz4KsOMpfMI4jwwYC1UrNpnm_-f6ISeCww/exec"; 
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxRHz7R7TmGy1YxMlL_HBbTi_7y9fKrXTQwtB5Iv07TJ_ByUgM2UEQGq4dCHt9BvhC8/exec"; 
 
 function calculatePowerLevel(stats) {
     const base = stats.totalScore * 0.05; 
