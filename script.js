@@ -681,6 +681,7 @@ const FPS_VALUES = [15, 30, 60, 120, 240];
 function openSettings() {
     initAudio(); SFX.click();
     playerStats.configViews = (playerStats.configViews||0) + 1;
+    playerStats._settingsOpenTime = Date.now();
     trackSectionVisit('settings');
     saveStatsLocally(); checkAchievements();
     document.getElementById('op-music').value = playerStats.musicVol; document.getElementById('op-sfx').value = playerStats.sfxVol; 
@@ -810,10 +811,50 @@ async function fetchLeaderboard() {
         }
         
         let html = "";
+        // ui6: Fan de Clasificación — visita ranking con menos de 5 jugadores
+        if (topPlayers.length < 5 && !playerStats.achievements.includes('ui6')) {
+            playerStats.achievements.push('ui6');
+            SFX.achievement();
+            showToast('Logro Desbloqueado', 'Fan de Clasificación', colors.dark, SVG_TROPHY);
+            saveStatsDebounced(); renderAchievements();
+        }
         topPlayers.forEach((p, index) => {
             const pos = index + 1;
             const isMe = p.uuid === playerStats.uuid;
-            if(isMe) { playerStats.rankingPosition = pos; saveStatsLocally(); checkAchievements(); }
+            if(isMe) {
+                const prevPos = playerStats.rankingPosition || 999;
+                const prevPL  = playerStats.powerLevel || 0;
+                playerStats.rankingPosition = pos;
+                // nm7 Remontada: estaba en 15+ y sube al Top 5
+                if(prevPos >= 15 && pos <= 5) playerStats.rankRemontada = true;
+                // nm6 Impostado: supera a alguien con >1000 PL más (check against other players)
+                if(!playerStats.surpassedHighPLPlayer && prevPL > 0) {
+                    topPlayers.forEach(other => {
+                        if(other.uuid !== playerStats.uuid && other.powerLevel > prevPL + 1000) {
+                            // If we're now ranked above them
+                            const otherIdx = topPlayers.indexOf(other);
+                            if(otherIdx !== -1 && otherIdx + 1 > pos) playerStats.surpassedHighPLPlayer = true;
+                        }
+                    });
+                }
+                // nm5 Vigilia: sube posición en días consecutivos
+                const todayStr = new Date().toISOString().split('T')[0];
+                if(pos < prevPos && prevPos < 999) {
+                    if(playerStats._lastRankUpDate === todayStr) {
+                        // already counted today
+                    } else {
+                        const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+                        const ydStr = yesterday.toISOString().split('T')[0];
+                        if(playerStats._lastRankUpDate === ydStr) {
+                            playerStats.consecutiveRankUpDays = (playerStats.consecutiveRankUpDays||0) + 1;
+                        } else {
+                            playerStats.consecutiveRankUpDays = 1;
+                        }
+                        playerStats._lastRankUpDate = todayStr;
+                    }
+                }
+                saveStatsLocally(); checkAchievements();
+            }
 
             // Podio titles — requiere Leyenda o superior
             let rankTitle = p.rankTitle;
@@ -1059,7 +1100,7 @@ addAchs([
     { id: 'm6',  title: 'Obsesivo',            desc: 'Visita el Banco de Logros 50 veces.',                           color: colors.purple, icon: SVG_TROPHY },
 ]);
 const guideVisTiers=[1,5,10,25,50];
-for(let i=0;i<5;i++) addAchs([{ id:`gv${i+1}`, title:`Estudiante ${i+1}`, desc:`Visita las Instrucciones del juego ${guideVisTiers[i]} veces.`, color:colors.green, icon:SVG_TARGET }]);
+for(let i=0;i<5;i++) addAchs([{ id:`gv${i+1}`, title:`Estudioso ${i+1}`, desc:`Visita la pantalla de Rangos ${guideVisTiers[i]} veces.`, color:colors.green, icon:SVG_TARGET }]);
 const profileVisTiers=[1,5,15,30,60];
 for(let i=0;i<5;i++) addAchs([{ id:`pv${i+1}`, title:`Egocéntrico ${i+1}`, desc:`Visita tu perfil ${profileVisTiers[i]} veces.`, color:colors.purple, icon:SVG_USER }]);
 const rankVisTiers=[1,5,15,30,60];
@@ -1068,7 +1109,7 @@ addAchs([
     { id: 'ui1',  title: 'Explorador',          desc: 'Visita todas las secciones del menú en una misma sesión.',      color: colors.blue,   icon: SVG_TARGET },
     { id: 'ui10', title: 'El Circuito',         desc: 'Navega por las 5 secciones del juego en orden secuencial.',     color: colors.purple, icon: SVG_FIRE },
     { id: 'ui2',  title: 'Vuelvo en Un Segundo',desc: 'Entra y sal del menú de Configuración en menos de 3 segundos.', color: colors.yellow, icon: SVG_BOLT },
-    { id: 'ui3',  title: 'La Guía No Miente',   desc: 'Lee el Manual y luego completa 5 aciertos en una partida.',    color: colors.green,  icon: SVG_SHIELD },
+    { id: 'ui3',  title: 'La Guía No Miente',   desc: 'Visita la pantalla de Rangos y luego completa 5 aciertos en una partida.',    color: colors.green,  icon: SVG_SHIELD },
     { id: 'ui5',  title: 'El Perfil Importa',   desc: 'Visita tu perfil después de cada una de tus primeras 5 partidas.', color: colors.blue, icon: SVG_USER },
     { id: 'ui6',  title: 'Fan de Clasificación',desc: 'Visita la Clasificación mientras hay menos de 5 jugadores.',    color: colors.dark,   icon: SVG_TROPHY },
     { id: 'ui8',  title: 'Bien Conectado',      desc: 'La clasificación global carga sin errores 10 veces.',           color: colors.blue,   icon: SVG_TARGET },
@@ -1408,7 +1449,7 @@ function _checkAchievementsImpl() {
 
     // VELOCIDAD Y REFLEJOS (por partida — tracked via persisted stats)
     if((playerStats.flashAnswersTotal||0)>=1) unlock('u13');
-    if((playerStats.flashAnswersTotal||0)>=5) unlock('x19');
+    if(playerStats.x19Earned) unlock('x19');
     if((playerStats.lastSecondAnswersTotal||0)>=50) unlock('u17');
 
     // CURADOR: pin tracking
@@ -2141,7 +2182,20 @@ function closeRoulette() {
     }, 300);
 }
 
-function goToMainMenu() { SFX.click(); switchScreen('start-screen'); }
+function goToMainMenu() {
+    SFX.click();
+    // ui2: Vuelvo en Un Segundo — sale de Configuración en <3 seg
+    if (playerStats._settingsOpenTime && Date.now() - playerStats._settingsOpenTime < 3000) {
+        if (!playerStats.achievements.includes('ui2')) {
+            playerStats.achievements.push('ui2');
+            SFX.achievement();
+            showToast('Logro Desbloqueado', 'Vuelvo en Un Segundo', colors.yellow, SVG_BOLT);
+            saveStatsDebounced(); renderAchievements();
+        }
+    }
+    playerStats._settingsOpenTime = null;
+    switchScreen('start-screen');
+}
 
 function onLogoClick() {
     initAudio();
@@ -2165,6 +2219,21 @@ function trackSectionVisit(section) {
     if (!playerStats.allSectionsVisited && ALL_SECTIONS.every(s => playerStats.sectionsVisitedThisSession.includes(s))) {
         playerStats.allSectionsVisited = true;
     }
+    // ui10: El Circuito — 5 secciones en orden secuencial (cualquier orden pero todas seguidas)
+    if (!playerStats.circuitDone) {
+        if (!Array.isArray(playerStats._circuitSeq)) playerStats._circuitSeq = [];
+        const last = playerStats._circuitSeq[playerStats._circuitSeq.length - 1];
+        if (last !== section) playerStats._circuitSeq.push(section);
+        if (ALL_SECTIONS.every(s => playerStats._circuitSeq.includes(s))) {
+            playerStats.circuitDone = true;
+            if (!playerStats.achievements.includes('ui10')) {
+                playerStats.achievements.push('ui10');
+                SFX.achievement();
+                showToast('Logro Desbloqueado', 'El Circuito', colors.purple, SVG_FIRE);
+                saveStatsDebounced(); renderAchievements();
+            }
+        }
+    }
 }
 
 function goToGuide() { initAudio(); SFX.click(); playerStats.guideViews++; trackSectionVisit('guide'); saveStatsLocally(); checkAchievements(); switchScreen('guide-screen'); }
@@ -2183,6 +2252,20 @@ function goToProfile(needsName = false) {
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
     SFX.click();
     playerStats.profileViews = (playerStats.profileViews||0) + 1;
+    // ui5: El Perfil Importa — visita el perfil después de cada una de tus primeras 5 partidas
+    if ((playerStats.gamesPlayed||0) > 0 && (playerStats.profileViewedAfterGames||0) < 5) {
+        if (!playerStats._lastProfileAfterGame || playerStats._lastProfileAfterGame < playerStats.gamesPlayed) {
+            playerStats._lastProfileAfterGame = playerStats.gamesPlayed;
+            playerStats.profileViewedAfterGames = (playerStats.profileViewedAfterGames||0) + 1;
+        }
+    }
+    // ui9: Puntaje en Mente — revisa perfil inmediatamente después de un récord
+    if (playerStats._justSetRecord && !playerStats.achievements.includes('ui9')) {
+        playerStats.achievements.push('ui9');
+        SFX.achievement();
+        showToast('Logro Desbloqueado', 'Puntaje en Mente', colors.yellow, SVG_STAR);
+        saveStatsDebounced(); renderAchievements();
+    }
     trackSectionVisit('profile');
     document.getElementById('stat-games').innerText = playerStats.gamesPlayed; document.getElementById('stat-score').innerText = playerStats.bestScore.toLocaleString(); document.getElementById('stat-streak').innerText = playerStats.maxStreak; document.getElementById('stat-days').innerText = playerStats.maxLoginStreak;
     document.getElementById('profile-name-input').value = (playerStats.playerName === "JUGADOR") ? "" : playerStats.playerName;
@@ -2749,6 +2832,8 @@ function showFeedback(isCorrect, isTimeout = false) {
         score += earned; streak++; if(streak > currentMaxStreak) currentMaxStreak = streak;
         totalCorrectThisGame++;
         consecutiveLivesLost = 0; // reset on correct answer
+        // x7: Un Golpe Certero — más de 3,000 pts en las primeras 3 preguntas
+        if(currentQuestionIndex < 3 && score > 3000) playerStats.fastStart3k = true;
         // u19: Resurrección — pierde 2 vidas seguidas y encadena 10 aciertos consecutivos
         if(playerStats._twoConsecLives && streak >= 10) {
             playerStats.u19Earned = true; playerStats._twoConsecLives = false;
@@ -2788,7 +2873,9 @@ function showFeedback(isCorrect, isTimeout = false) {
         // u24: Extremis — 3 aciertos de 1 seg en una partida
         if(lastSecondAnswers >= 3) inGameUnlock('u24','Extremis', colors.red, SVG_SHIELD);
         // x19: Espectacular — 5 respuestas Flash <1 seg en partida
-        if(timeLeft <= 1 && lastSecondAnswers >= 5) inGameUnlock('x19','Espectacular', colors.yellow, SVG_BOLT);
+        if(lastSecondAnswers >= 5) { playerStats.x19Earned = true; inGameUnlock('x19','Espectacular', colors.yellow, SVG_BOLT); }
+        // u20: Centinela — pregunta 50 sin ningún timeout
+        if(currentQuestionIndex >= 49 && currentTimeoutAnswers === 0) inGameUnlock('u20','Centinela', colors.dark, SVG_CLOCK);
         // np3: Sin Límites — partida >60 preguntas
         if(currentQuestionIndex >= 60) inGameUnlock('np3','Sin Límites', colors.purple, SVG_BOLT);
         // u15: Superviviente — 100 preguntas
@@ -2891,13 +2978,13 @@ function showFeedback(isCorrect, isTimeout = false) {
 function saveGameStats() {
     playerStats.gamesPlayed++; playerStats.todayGames++; playerStats.totalScore += score; 
     const prevBest = playerStats.bestScore || 0;
-    if(score > playerStats.bestScore) playerStats.bestScore = score; 
+    if(score > playerStats.bestScore) { playerStats.bestScore = score; playerStats._justSetRecord = true; } else { playerStats._justSetRecord = false; }
     if(currentMaxStreak > playerStats.maxStreak) playerStats.maxStreak = currentMaxStreak;
     if(score >= 100000) playerStats.maxScoreCount++;
     // x15: Punto de Quiebre — score exactamente 100k ±500 (tracked per-game, bestScore check alone fails once exceeded)
     if(score >= 99500 && score <= 100500) playerStats.hitExactly100k = true;
     if(!playerStats.maxQuestionReached || currentQuestionIndex > playerStats.maxQuestionReached) playerStats.maxQuestionReached = currentQuestionIndex;
-    if(currentQuestionIndex >= 50) playerStats.perfectGames = (playerStats.perfectGames||0) + 1;
+    if(currentQuestionIndex >= 50 && currentWrongAnswers === 0 && currentTimeoutAnswers === 0) playerStats.perfectGames = (playerStats.perfectGames||0) + 1;
     // x16: Regreso Triunfal — tras no jugar un día, supera su último récord
     if((playerStats.missedADay||false) && score > prevBest && prevBest > 0) playerStats.returnTriumph = (playerStats.returnTriumph||0) + 1;
     playerStats.missedADay = false; // reset once they play
