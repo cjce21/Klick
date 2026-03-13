@@ -5382,6 +5382,14 @@ function _vsRenderRow(rowIdx) {
         const isInProfile = _vsDisplayPin.includes(ach.id);
         html += _vsCardHTML(ach, isUnlocked, isManualPin, isInProfile);
     }
+    // Fix 3: rellenar última fila con placeholders para simetría
+    const remainder = (end - start) % cols;
+    if (remainder !== 0) {
+        const placeholders = cols - remainder;
+        for (let p = 0; p < placeholders; p++) {
+            html += `<div class="ach-card" style="opacity:0;pointer-events:none;border:none;background:transparent;"></div>`;
+        }
+    }
     rowEl.innerHTML = html;
     _vsContentEl.appendChild(rowEl);
     _vsRendered.set(rowIdx, rowEl);
