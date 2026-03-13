@@ -628,34 +628,34 @@ const SFX = {
 };
 
 // --- UI Modal y Configuracion ---
-// ── MODOS DE RENDIMIENTO v2 ──────────────────────────────────────────────────
-// 4 presets: Eco → Equilibrado → Alto → Ultra
-// connectLines: dibuja líneas entre partículas (O(n²), costoso en móvil)
-// schedulerMs : intervalo del audio scheduler (ms); mayor = menos CPU
-// audioFftSize: tamaño FFT del analyser (potencia de 2)
+// ── MODOS DE RENDIMIENTO ─────────────────────────────────────────────────────
+// ECO:   30 FPS · sin partículas · sin líneas · sin animaciones → ahorro máximo
+// NORMAL:60 FPS · partículas 40% · sin líneas · animaciones     → uso general
+// ALTO: 120 FPS · partículas 80% · con líneas · animaciones     → calidad alta
+// ULTRA: 240 FPS · partículas 100% · líneas · animaciones · FFT 128 → todo al máximo
 const PERF_MODES = {
     eco: {
-        label: 'Eco', desc: 'Batería · Sin efectos',
+        label: 'Eco', desc: '30 FPS',
         fps: 30, particles: 0, animScale: 0,
-        connectLines: false, schedulerMs: 50, audioFftSize: 32,
+        connectLines: false, schedulerMs: 60, audioFftSize: 32,
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12H3l9-9 9 9h-2"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M10 12v5h4v-5"/></svg>`
     },
     balanced: {
-        label: 'Equilibrado', desc: 'Recomendado',
+        label: 'Normal', desc: '60 FPS',
         fps: 60, particles: 0.4, animScale: 1,
         connectLines: false, schedulerMs: 30, audioFftSize: 64,
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
     },
     high: {
-        label: 'Alto', desc: 'Calidad completa',
-        fps: 60, particles: 1.0, animScale: 1,
-        connectLines: true, schedulerMs: 25, audioFftSize: 64,
+        label: 'Alto', desc: '120 FPS',
+        fps: 120, particles: 0.8, animScale: 1,
+        connectLines: true, schedulerMs: 20, audioFftSize: 64,
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`
     },
     ultra: {
-        label: 'Ultra', desc: '120 FPS · Máximo',
-        fps: 120, particles: 1.0, animScale: 1,
-        connectLines: true, schedulerMs: 20, audioFftSize: 128,
+        label: 'Ultra', desc: '240 FPS',
+        fps: 240, particles: 1.0, animScale: 1,
+        connectLines: true, schedulerMs: 10, audioFftSize: 128,
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`
     }
 };
@@ -715,20 +715,22 @@ function renderPerfSelector() {
     const current = playerStats.perfMode || 'high';
     const isLight = document.body.classList.contains('light-mode');
     container.innerHTML = '';
+    // Compact pill row — much smaller than the old card style
+    container.style.cssText = 'display:flex;gap:6px;flex-wrap:nowrap;';
     Object.entries(PERF_MODES).forEach(([key, cfg]) => {
         const active = key === current;
         const btn = document.createElement('div');
         btn.style.cssText = `
-            flex:1; padding:10px 8px; border-radius:var(--radius-md); cursor:pointer;
-            display:flex; flex-direction:column; align-items:center; gap:5px;
-            border:1.5px solid ${active ? 'var(--rank-color)' : (isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)')};
-            background:${active ? 'rgba(var(--rank-rgb),0.12)' : 'transparent'};
-            transition:all 0.2s ease; text-align:center;
+            flex:1; min-width:0; padding:6px 4px; border-radius:20px; cursor:pointer;
+            display:flex; flex-direction:column; align-items:center; gap:2px;
+            border:1.5px solid ${active ? 'var(--rank-color)' : (isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.1)')};
+            background:${active ? 'rgba(var(--rank-rgb),0.14)' : 'transparent'};
+            transition:all 0.18s ease;
         `;
         btn.innerHTML = `
-            <div style="width:20px;height:20px;color:${active ? 'var(--rank-color)' : 'var(--text-secondary)'};">${cfg.icon}</div>
-            <div style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:${active ? 'var(--rank-color)' : 'var(--text-primary)'};">${cfg.label}</div>
-            <div style="font-size:0.6rem;color:var(--text-secondary);font-weight:500;">${cfg.desc}</div>
+            <div style="width:14px;height:14px;flex-shrink:0;color:${active ? 'var(--rank-color)' : 'var(--text-secondary)'};">${cfg.icon}</div>
+            <div style="font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;color:${active ? 'var(--rank-color)' : 'var(--text-primary)'};white-space:nowrap;">${cfg.label}</div>
+            <div style="font-size:0.52rem;color:var(--text-secondary);white-space:nowrap;">${cfg.desc}</div>
         `;
         btn.onclick = () => { SFX.click(); applyPerfMode(key); document.getElementById('val-perf').innerText = cfg.label; };
         container.appendChild(btn);
@@ -830,7 +832,7 @@ function showToast(title, message, color, icon) {
 }
 
 // --- Módulo: Clasificación Global ---
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxRHz7R7TmGy1YxMlL_HBbTi_7y9fKrXTQwtB5Iv07TJ_ByUgM2UEQGq4dCHt9BvhC8/exec"; 
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxbLrjL45NYaQsRaSlZJXHKlQj-1Qh4f-CPxz4KsOMpfMI4jwwYC1UrNpnm_-f6ISeCww/exec"; 
 
 function calculatePowerLevel(stats) {
     const base = stats.totalScore * 0.05; 
@@ -3348,6 +3350,22 @@ initParticles(); requestAnimationFrame(animateParticles);
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
         then = performance.now();
+        // Reanudar música si estaba activa
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume().catch(() => {});
+        }
+        if (audioCtx && isMusicPlaying && !musicTimerID) {
+            nextNoteTime = audioCtx.currentTime + 0.05;
+            schedulerTick();
+        }
+    } else {
+        // Pestaña oculta → pausar audio para ahorrar CPU y batería
+        if (audioCtx && audioCtx.state === 'running') {
+            audioCtx.suspend().catch(() => {});
+        }
+        // Detener scheduler mientras la pestaña está oculta
+        clearTimeout(musicTimerID);
+        musicTimerID = null;
     }
 });
 
