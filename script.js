@@ -2765,7 +2765,7 @@ function showToast(title, message, color, icon, duration) {
 }
 
 // --- Módulo: Clasificación Global ---
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxbLrjL45NYaQsRaSlZJXHKlQj-1Qh4f-CPxz4KsOMpfMI4jwwYC1UrNpnm_-f6ISeCww/exec"; 
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxsZnUIg59B8qq6-Xkm7hIcy2hXzSRUTHnlqqhcWdWwFputKX9tC11mExs6zLP6GlOV/exec"; 
 
 
 // ══════════════════════════════════════════════════════════════════
@@ -4935,7 +4935,14 @@ function _checkAchievementsImpl() {
             if(f) newlyUnlocked.push(f); 
         } 
     };
-    
+
+    // ── ADMIN (CHRISTOPHER): desbloquear todos los logros automáticamente ────
+    if (playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER') {
+        ACHIEVEMENTS_MAP.forEach((ach, id) => unlock(id));
+        saveStatsDebounced();
+        // Continúa normalmente para actualizar UI y disparar notificaciones
+    }
+
     const normalAchs = playerStats.achievements.filter(id => ACHIEVEMENTS_MAP.has(id)).length;
 
     // META
@@ -5366,10 +5373,11 @@ function _vsRenderRow(rowIdx) {
     rowEl.className = 'ach-vrow';
     rowEl.style.cssText = `position:absolute;left:${ROW_PAD_PX}px;right:${ROW_PAD_PX}px;top:${rowIdx * _vsRowHeight}px;grid-template-columns:repeat(${cols},1fr);`;
 
+    const _isAdminRender = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
     let html = '';
     for (let i = start; i < end; i++) {
         const ach         = ACHIEVEMENTS_DATA[i];
-        const isUnlocked  = _vsAchSet.has(ach.id);
+        const isUnlocked  = _isAdminRender ? true : _vsAchSet.has(ach.id);
         const isManualPin = _vsPinned.includes(ach.id);
         const isInProfile = _vsDisplayPin.includes(ach.id);
         html += _vsCardHTML(ach, isUnlocked, isManualPin, isInProfile);
@@ -5458,7 +5466,8 @@ function renderAchievements() {
     if (!_vsInitialized) _vsSetup();
     if (!_vsScrollEl)    return;
 
-    _vsAchSet    = new Set(playerStats.achievements);
+    const _isAdminRS = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
+    _vsAchSet    = _isAdminRS ? new Set(ACHIEVEMENTS_DATA.map(a => a.id)) : new Set(playerStats.achievements);
     _vsPinned    = playerStats.pinnedAchievements;
     _vsDisplayPin = getAutoProfileAchs();
     _vsColCount  = _vsGetCols();
