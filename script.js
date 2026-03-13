@@ -1,4 +1,60 @@
 // ═══════════════════════════════════════════════════════════════════════════
+//  COMPATIBILIDAD UNIVERSAL — Polyfills y fallbacks para cualquier navegador
+// ═══════════════════════════════════════════════════════════════════════════
+
+// localStorage fallback en memoria (modo privado, Safari ITP, navegadores bloqueados)
+(function() {
+    try { localStorage.setItem('_k','1'); localStorage.removeItem('_k'); }
+    catch(e) {
+        var _mem = {};
+        window.localStorage = {
+            getItem:    function(k) { return Object.prototype.hasOwnProperty.call(_mem,k) ? _mem[k] : null; },
+            setItem:    function(k,v) { _mem[k] = String(v); },
+            removeItem: function(k) { delete _mem[k]; },
+            clear:      function() { _mem = {}; },
+            key:        function(i) { return Object.keys(_mem)[i] || null; },
+            get length(){ return Object.keys(_mem).length; }
+        };
+    }
+})();
+
+// fetch polyfill mínimo para navegadores sin soporte (IE11, etc.)
+if (typeof fetch === 'undefined') {
+    window.fetch = function(url, opts) {
+        return new Promise(function(resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            opts = opts || {};
+            xhr.open(opts.method || 'GET', url, true);
+            if (opts.headers) { Object.keys(opts.headers).forEach(function(h) { xhr.setRequestHeader(h, opts.headers[h]); }); }
+            xhr.onload = function() {
+                var r = { ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status,
+                    json: function() { return Promise.resolve(JSON.parse(xhr.responseText)); },
+                    text: function() { return Promise.resolve(xhr.responseText); } };
+                resolve(r);
+            };
+            xhr.onerror = function() { reject(new TypeError('Network error')); };
+            xhr.send(opts.body || null);
+        });
+    };
+}
+
+// Promise polyfill básico (solo si no existe — navegadores muy antiguos)
+if (typeof Promise === 'undefined') {
+    // Polyfill mínimo síncrónico para no romper el resto del código
+    window.Promise = function(fn) {
+        var _val, _err, _cbs = [], _ecbs = [], _done = false, _fail = false;
+        function resolve(v) { if(_done||_fail) return; _done=true; _val=v; _cbs.forEach(function(f){try{f(v);}catch(e){}}); }
+        function reject(e)  { if(_done||_fail) return; _fail=true; _err=e; _ecbs.forEach(function(f){try{f(e);}catch(er){}}); }
+        try { fn(resolve, reject); } catch(e) { reject(e); }
+        return { then: function(ok,er) { if(_done){if(ok)ok(_val);}else if(_fail){if(er)er(_err);}else{if(ok)_cbs.push(ok);if(er)_ecbs.push(er);} return this; },
+                 catch: function(er) { return this.then(null,er); } };
+    };
+    Promise.resolve = function(v){ return new Promise(function(r){r(v);}); };
+    Promise.reject  = function(e){ return new Promise(function(_,r){r(e);}); };
+    Promise.all     = function(arr){ return new Promise(function(res,rej){ var out=[],n=arr.length; if(!n)return res([]); arr.forEach(function(p,i){Promise.resolve(p).then(function(v){out[i]=v;if(--n===0)res(out);},rej);}); }); };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  KLICK SHIELD v4 — Sistema de Detección y Sanción
 //
 //  Principio: ningún evento aislado genera sanción. El sistema recolecta
@@ -2052,7 +2108,7 @@ window.addEventListener('beforeunload', () => {
 
 // --- Audio y Reactividad Musical ---
 // ── AUDIO ENGINE (Web Audio API – lookahead scheduler) ──────────────────
-const AudioContext = window.AudioContext || window.webkitAudioContext;
+const AudioContext = window.AudioContext || window.webkitAudioContext || null;
 let audioCtx = null;
 let masterMusicGain, masterSFXGain, masterLimiter, audioAnalyser, audioDataArray;
 let isMusicPlaying = false, musicSeqStep = 0, nextNoteTime = 0, musicTimerID = null;
@@ -2062,6 +2118,7 @@ const SCHED_AHEAD = 0.12;   // schedule this far ahead
 const SCHED_INTERVAL = 25;  // scheduler polling interval ms
 
 function initAudio() {
+    if (!AudioContext) return; // Web Audio API no disponible — continuar sin audio
     try {
     if (!audioCtx) {
         audioCtx = new AudioContext();
@@ -7105,82 +7162,11 @@ async function startGameCheck() {
         return;
     }
 
-    // KLICK SHIELD: verificar ban activo antes de permitir jugar
-    if (_ksCheckBanOnStart()) {
-        _ksShowBanScreen();
-        return;
-    }
-
     // Onboarding: mostrar tutorial en la primera partida de un jugador nuevo
     if (!playerStats.hasSeenOnboarding && (playerStats.gamesPlayed || 0) === 0) {
         showOnboarding(() => startGameCheck());
         return;
     }
-
-    // ── KLICK SHIELD: verificaciones pre-partida ──────────────────────────
-    const _ksE = (msg) => { showToast('No se puede iniciar', msg, 'var(--accent-red)', SVG_LOCK); };
-    const _sm  = window.screen.width <= 430 || _KS_IS_IPAD
-                 || (navigator.maxTouchPoints >= 2 && window.screen.width >= 768);
-    if (document.visibilityState === 'hidden' || document.hidden)
-        { _ksE('La ventana no está activa.'); return; }
-    // hasFocus check omitido: poco fiable en móvil y tablets al pulsar botones
-    if (document.pictureInPictureElement ||
-        (typeof documentPictureInPicture !== 'undefined' && documentPictureInPicture.window))
-        { _ksE('Desactiva Picture-in-Picture.'); return; }
-    if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
-        // Safari/iPadOS tiene un bug: speechSynthesis.speaking puede ser true por defecto.
-        // Cancelamos primero y re-comprobamos tras un tick para evitar falsos positivos.
-        if (!_KS_IS_IPAD) {
-            window.speechSynthesis.cancel();
-            if (window.speechSynthesis.speaking || window.speechSynthesis.pending)
-                { _ksE('Desactiva el lector de voz del sistema.'); return; }
-        }
-    }
-    if ((window._ksActiveMicTracks||[]).some(t => t.readyState === 'live'))
-        { _ksE('Desactiva el micrófono antes de jugar.'); return; }
-    if (!_sm && !_KS_IS_IPAD) {
-        // Corregir por DPR: en tablets Android/Surface con densidad ≥2x,
-        // innerWidth/Height es CSS pixels mientras screen.width/height es física.
-        // Sin corrección, el ratio cae falsamente por debajo del umbral.
-        const dpr = window.devicePixelRatio || 1;
-        const _wR = (window.innerWidth  * dpr) / window.screen.width;
-        const _hR = (window.innerHeight * dpr) / window.screen.height;
-        if (_wR < 0.28) { _ksE('Maximiza la ventana para jugar.'); return; }
-        if (_hR < 0.25) { _ksE('Maximiza la ventana para jugar.'); return; }
-        const _sx = window.screenX || window.screenLeft || 0;
-        const _sy = window.screenY || window.screenTop  || 0;
-        if (_sx > window.screen.width  * 0.72) { _ksE('Ventana en posición no permitida.'); return; }
-        if (_sy > window.screen.height * 0.65) { _ksE('Ventana en posición no permitida.'); return; }
-    }
-    if (window.visualViewport) {
-        // En iPad el zoom de accesibilidad puede estar activo por política escolar — no bloquear
-        if (!_KS_IS_IPAD && window.visualViewport.scale > 3.0)
-            { _ksE('Desactiva el zoom de pantalla.'); return; }
-        // En iPad el visualViewport puede ser más estrecho por teclado flotante o sidebar de Safari — no bloquear
-        if (!_KS_IS_IPAD && window.visualViewport.width < window.innerWidth * 0.38)
-            { _ksE('Cierra el panel lateral antes de jugar.'); return; }
-    }
-    if (!_sm && !_KS_IS_IPAD &&
-        ((window.outerWidth - window.innerWidth) > 400 || (window.outerHeight - window.innerHeight) > 400))
-        { _ksE('Cierra las herramientas del desarrollador.'); return; }
-    // 3-point overlay check
-    (function() {
-        const _app = document.getElementById('app');
-        if (!_app) return;
-        const _gr  = _app.getBoundingClientRect();
-        const _pts = [
-            [_gr.left + _gr.width * 0.50, _gr.top + _gr.height * 0.60],
-            [_gr.left + _gr.width * 0.25, _gr.top + _gr.height * 0.65],
-            [_gr.left + _gr.width * 0.75, _gr.top + _gr.height * 0.65],
-        ];
-        for (const [_px, _py] of _pts) {
-            const _top = document.elementFromPoint(_px, _py);
-            if (_top && !_app.contains(_top) && _top !== document.body && _top !== document.documentElement) {
-                _ksE('Hay un elemento externo sobre el juego.'); return;
-            }
-        }
-    })();
-    // ── Fin verificaciones pre-partida ────────────────────────────────────
 
     if (quizDataPool.length === 0) {
         const btn = document.querySelector('.btn-solid');
@@ -7781,11 +7767,6 @@ function confirmAbandon() {
 
 function replayGame() {
     SFX.click();
-    // Verificar ban activo antes de permitir reinicio desde pantalla de fin
-    if (_ksCheckBanOnStart()) {
-        _ksShowBanScreen();
-        return;
-    }
     startGame();
 }
 
