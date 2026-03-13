@@ -867,9 +867,18 @@ document.getElementById('op-fps').addEventListener('input', (e) => {
 function showToast(title, message, color, icon) {
     const container = document.getElementById('toast-container');
     if (!container) return;
+    // In light mode, resolve neon colors to their dark equivalents for readability
+    const isLight = document.body.classList.contains('light-mode');
+    const _neonToLight = {
+        '#00ff66': '#0a7a3e', '#00d4ff': '#0070a8', '#ccff00': '#5a7a00',
+        '#00ffcc': '#007a5e', '#aaaaff': '#4444aa', '#ff0090': '#b0006a',
+        '#b5179e': '#7a0a8c', '#f77f00': '#b84400', '#ff2a5f': '#c41940',
+        '#ffb800': '#8a6000',
+    };
+    const displayColor = isLight ? (_neonToLight[color] || resolveColor(color)) : color;
     const toast = document.createElement('div'); 
     toast.className = 'toast-item'; 
-    toast.innerHTML = `<div class="toast-icon" style="color: ${color}">${icon}</div><div class="toast-text"><span class="toast-title" style="color:${color}">${title}</span><span class="toast-name">${message}</span></div>`;
+    toast.innerHTML = `<div class="toast-icon" style="color:${displayColor}">${icon}</div><div class="toast-text"><span class="toast-title" style="color:${displayColor}">${title}</span><span class="toast-name">${message}</span></div>`;
     container.appendChild(toast); 
     setTimeout(() => toast.classList.add('show'), 50); 
     setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, 3500);
@@ -1347,7 +1356,7 @@ addAchs([
     { id: 'u6',        title: 'Pro',      desc: 'Alcanza el rango Pro.',                                              color: colors.red,    icon: SVG_TROPHY },
     { id: 'u7',        title: 'Maestro',  desc: 'Alcanza el rango Maestro.',                                          color: colors.purple, icon: SVG_TROPHY },
     { id: 'u8',        title: 'Leyenda',  desc: 'Alcanza el codiciado rango Leyenda.',                                color: colors.yellow, icon: SVG_TROPHY },
-    { id: 'u_mitico',  title: 'Mítico',   desc: 'Alcanza el rango Mítico. El más difícil de conseguir.',              color: '#ffffff',     icon: SVG_STAR },
+    { id: 'u_mitico',  title: 'Mítico',   desc: 'Alcanza el rango Mítico. El más difícil de conseguir.',              color: '#ffffff', colorLight: '#1a1a1a', icon: SVG_STAR },
     { id: 'fin4',      title: 'El Pacto', desc: 'Juega durante 7 días seguidos y alcanza el rango Junior.',           color: colors.green,  icon: SVG_SHIELD },
     { id: 'x17',       title: 'Veterano', desc: 'Acumula más de 100 partidas jugadas.',                               color: colors.blue,   icon: SVG_TROPHY },
 ]);
@@ -1459,6 +1468,13 @@ function getRankInfo(stats) {
         if (tier.check(stats)) return tier;
     }
     return RANK_TIERS[RANK_TIERS.length - 1]; // fallback: Novato
+}
+// Returns the rank color adapted for the current theme
+function getRankColor(rankInfo, isLight) {
+    if (isLight === undefined) isLight = document.body.classList.contains('light-mode');
+    if (!rankInfo) return isLight ? '#0d1117' : '#ffffff';
+    if (rankInfo.mitico) return isLight ? '#1a1a1a' : '#ffffff';
+    return rankInfo.color; // CSS vars — already redefined in light-mode
 }
 let currentRankInfo = getRankInfo(playerStats);
 
@@ -1771,7 +1787,8 @@ function _vsCardHTML(ach, isUnlocked, isManualPin, isInProfile) {
     else if (isInProfile) cls += ' in-profile';
 
     const isLight = document.body.classList.contains('light-mode');
-    const displayColor = isUnlocked ? (isLight ? darkenHex(ach.color, 0.4) : ach.color) : '';
+    const _achLightColor = ach.colorLight || darkenHex(ach.color, 0.4);
+    const displayColor = isUnlocked ? (isLight ? _achLightColor : ach.color) : '';
     const bdrColor = isUnlocked ? (isLight ? 'rgba(0,0,0,0.2)' : ach.color) : '';
     let shadow = '';
     if (!isLight) {
@@ -1784,7 +1801,7 @@ function _vsCardHTML(ach, isUnlocked, isManualPin, isInProfile) {
     else if (isInProfile) badge = `<div class="ach-pin-badge ach-pin-auto">*</div>`;
 
     const isHidden = ach.hidden && !isUnlocked;
-    const iconColor = isUnlocked ? (isLight ? darkenHex(ach.color, 0.4) : ach.color) : 'var(--text-secondary)';
+    const iconColor = isUnlocked ? (isLight ? (_achLightColor) : ach.color) : 'var(--text-secondary)';
     const iconSVG   = isUnlocked ? ach.icon  : SVG_LOCK;
     const title     = isHidden ? '???' : ach.title;
     const desc      = isUnlocked ? ach.desc  : (isHidden ? 'Logro secreto — descúbrelo tú mismo.' : 'Sigue jugando para descubrirlo.');
@@ -1908,7 +1925,7 @@ function renderAchievements() {
             const slot = document.createElement('div');
             slot.className = 'achievement-slot unlocked';
             const isLight = document.body.classList.contains('light-mode');
-            const achDisplayColor = isLight ? darkenHex(ach.color, 0.4) : ach.color;
+            const achDisplayColor = isLight ? (ach.colorLight || darkenHex(ach.color, 0.4)) : ach.color;
             slot.style.borderColor = isLight ? 'rgba(0,0,0,0.2)' : ach.color;
             slot.style.boxShadow = isLight ? 'none' : `0 0 12px ${ach.color}44`;
             slot.innerHTML = `<div class="ach-icon" style="color:${achDisplayColor}">${ach.icon}</div><div class="ach-title" style="color:${achDisplayColor}">${ach.title}</div>`;
@@ -1993,20 +2010,20 @@ if (playerStats.theme === 'light') {
 // ══════════════════════════════════════════════════════════
 const ROULETTE_PRIZES = [
     // Legendario (rarísimo)
-    { id: 'life',       label: 'VIDA EXTRA',    short: '+VIDA',   color: '#ff2a5f', rarity: 'Legendario', weight: 5,  desc: 'Recuperas una vida perdida.' },
+    { id: 'life',       label: 'VIDA EXTRA',    short: '+VIDA',   color: '#ff2a5f', colorLight: '#c41940', rarity: 'Legendario', weight: 5,  desc: 'Recuperas una vida perdida.' },
     // Épicos
-    { id: 'shield',     label: 'ESCUDO',         short: 'ESCUDO',  color: '#00d4ff', rarity: 'Épico',      weight: 8,  desc: 'Protección si fallas la próxima pregunta.' },
-    { id: 'frenzy',     label: 'FRENESÍ',        short: 'FRENESÍ', color: '#b5179e', rarity: 'Épico',      weight: 9,  desc: 'Activa Modo Frenesí en la siguiente pregunta.' },
-    { id: 'jackpot',    label: 'JACKPOT x4',     short: 'x4',      color: '#ff0090', rarity: 'Épico',      weight: 6,  desc: 'La próxima pregunta vale x4 puntos.' },
+    { id: 'shield',     label: 'ESCUDO',         short: 'ESCUDO',  color: '#00d4ff', colorLight: '#0070a8', rarity: 'Épico',      weight: 8,  desc: 'Protección si fallas la próxima pregunta.' },
+    { id: 'frenzy',     label: 'FRENESÍ',        short: 'FRENESÍ', color: '#b5179e', colorLight: '#7a0a8c', rarity: 'Épico',      weight: 9,  desc: 'Activa Modo Frenesí en la siguiente pregunta.' },
+    { id: 'jackpot',    label: 'JACKPOT x4',     short: 'x4',      color: '#ff0090', colorLight: '#b0006a', rarity: 'Épico',      weight: 6,  desc: 'La próxima pregunta vale x4 puntos.' },
     // Raros
-    { id: 'boost',      label: 'PUNTOS x2',      short: 'x2 PTS',  color: '#ffb800', rarity: 'Raro',       weight: 15, desc: 'La próxima pregunta vale puntos dobles.' },
-    { id: 'doublelife', label: 'TURBO x3',        short: 'x3 PTS',  color: '#ccff00', rarity: 'Raro',       weight: 12, desc: 'La próxima pregunta vale x3 puntos.' },
-    { id: 'freeze',     label: 'TIEMPO +8',      short: '+8 SEG',  color: '#00ffcc', rarity: 'Raro',       weight: 14, desc: 'La próxima pregunta tendrá 8 segundos extra.' },
+    { id: 'boost',      label: 'PUNTOS x2',      short: 'x2 PTS',  color: '#ffb800', colorLight: '#8a6000', rarity: 'Raro',       weight: 15, desc: 'La próxima pregunta vale puntos dobles.' },
+    { id: 'doublelife', label: 'TURBO x3',        short: 'x3 PTS',  color: '#ccff00', colorLight: '#5a7a00', rarity: 'Raro',       weight: 12, desc: 'La próxima pregunta vale x3 puntos.' },
+    { id: 'freeze',     label: 'TIEMPO +8',      short: '+8 SEG',  color: '#00ffcc', colorLight: '#007a5e', rarity: 'Raro',       weight: 14, desc: 'La próxima pregunta tendrá 8 segundos extra.' },
     // Poco comunes
-    { id: 'hint',       label: 'PISTA',           short: 'PISTA',   color: '#f77f00', rarity: 'Normal',     weight: 18, desc: 'Elimina una respuesta incorrecta.' },
-    { id: 'time',       label: 'TIEMPO +5',      short: '+5 SEG',  color: '#00ff66', rarity: 'Normal',     weight: 20, desc: 'La próxima pregunta tendrá 5 segundos extra.' },
+    { id: 'hint',       label: 'PISTA',           short: 'PISTA',   color: '#f77f00', colorLight: '#b84400', rarity: 'Normal',     weight: 18, desc: 'Elimina una respuesta incorrecta.' },
+    { id: 'time',       label: 'TIEMPO +5',      short: '+5 SEG',  color: '#00ff66', colorLight: '#0a7a3e', rarity: 'Normal',     weight: 20, desc: 'La próxima pregunta tendrá 5 segundos extra.' },
     // Común
-    { id: 'streak',     label: 'RACHA SALVADA',  short: 'RACHA',   color: '#aaaaff', rarity: 'Basico',     weight: 23, desc: 'Si fallas no se resetea tu racha esta vez.' },
+    { id: 'streak',     label: 'RACHA SALVADA',  short: 'RACHA',   color: '#aaaaff', colorLight: '#4444aa', rarity: 'Básico',     weight: 23, desc: 'Si fallas no se resetea tu racha esta vez.' },
 ];
 
 let rouletteActive = false;
@@ -2086,8 +2103,8 @@ function applyDeckLayout(animate) {
         const prizeIdx = ((deckOffset + slot) % ROULETTE_PRIZES.length + ROULETTE_PRIZES.length) % ROULETTE_PRIZES.length;
         const prize = ROULETTE_PRIZES[prizeIdx];
 
-        // In light mode, darken the prize color so it's readable on light backgrounds
-        const displayColor = isLight ? darkenHex(prize.color, 0.45) : prize.color;
+        // In light mode, use the pre-defined light color for accurate readability
+        const displayColor = isLight ? (prize.colorLight || darkenHex(prize.color, 0.45)) : prize.color;
 
         // Visual position
         const tx = rel * (cardW + gap);
@@ -2124,10 +2141,30 @@ function applyDeckLayout(animate) {
     });
 }
 
+// Resolves a CSS variable string or hex to an actual hex/rgb value
+function resolveColor(color) {
+    if (!color) return color;
+    if (!color.startsWith('var(')) return color;
+    // Map CSS variables to their light-mode hex equivalents
+    const varMap = {
+        'var(--accent-green)':  '#0a7a3e',
+        'var(--accent-blue)':   '#0070a8',
+        'var(--accent-yellow)': '#b07800',
+        'var(--accent-red)':    '#c41940',
+        'var(--accent-purple)': '#7a0a8c',
+        'var(--accent-orange)': '#b84400',
+        'var(--text-primary)':  '#0d1117',
+        'var(--text-secondary)':'#4a5568',
+        'var(--rank-color)':    '#0a7a3e',
+    };
+    return varMap[color.trim()] || color;
+}
+
 // Darkens a hex color string by mixing toward black by `factor` (0=original, 1=black)
 function darkenHex(hex, factor) {
-    const h = hex.replace('#', '');
-    if (h.length !== 6) return hex;
+    const resolved = resolveColor(hex);
+    const h = resolved.replace('#', '');
+    if (h.length !== 6) return resolved;
     const r = Math.round(parseInt(h.slice(0,2),16) * (1-factor));
     const g = Math.round(parseInt(h.slice(2,4),16) * (1-factor));
     const b = Math.round(parseInt(h.slice(4,6),16) * (1-factor));
@@ -2239,7 +2276,7 @@ function showCardPrize(prize) {
     const isLight = document.body.classList.contains('light-mode');
 
     nameEl.textContent = prize.label;
-    nameEl.style.color = isLight ? darkenHex(prize.color, 0.45) : prize.color;
+    nameEl.style.color = isLight ? (prize.colorLight || darkenHex(prize.color, 0.45)) : prize.color;
     descEl.textContent = prize.desc;
     zone.classList.add('revealed');
 
@@ -2325,6 +2362,7 @@ function collectRoulettePrize() {
     } else if (prize.id === 'frenzy') {
         // Guardar flag — el frenesí se activa al inicio de la siguiente pregunta (no al cobrar)
         frenzyNextQuestion = true;
+        playerStats.rouletteFrenzyWins = (playerStats.rouletteFrenzyWins || 0) + 1;
         showToast('FRENESÍ LISTO', 'El multiplicador subirá al empezar la siguiente pregunta.', '#b5179e', SVG_FIRE);
     } else if (prize.id === 'time') {
         extraTimeActive = 5;
@@ -2348,17 +2386,20 @@ function updateRewardIndicator() {
     const iconEl = document.getElementById('active-reward-icon');
     const textEl = document.getElementById('active-reward-text');
     if (!bar) return;
+    const isLight = document.body.classList.contains('light-mode');
+    const _c = (neon, dark) => isLight ? dark : neon;
     let label = '', icon = '', color = '';
-    if (activeBoostNextQ === 'boost') { label = 'Puntos x2 activo'; icon = 'x2'; color = '#ffb800'; }
-    else if (activeBoostNextQ === 'triple') { label = 'Turbo x3 activo'; icon = 'x3'; color = '#ccff00'; }
-    else if (activeBoostNextQ === 'jackpot') { label = 'Jackpot x4 activo'; icon = 'x4'; color = '#ff0090'; }
-    else if (shieldActive) { label = 'Escudo activo'; icon = '+1'; color = '#00d4ff'; }
-    else if (hintActive) { label = 'Pista lista'; icon = '?'; color = '#f77f00'; }
-    else if (frenzyNextQuestion) { label = 'Frenesí listo'; icon = 'FZ'; color = '#b5179e'; }
-    else if (extraTimeActive > 0) { label = `+${extraTimeActive}s de tiempo`; icon = '+t'; color = '#00ff66'; }
-    else if (streakShieldActive) { label = 'Racha protegida'; icon = 'R+'; color = '#aaaaff'; }
+    if (activeBoostNextQ === 'boost')   { label = 'Puntos x2 activo'; icon = 'x2'; color = _c('#ffb800','#8a6000'); }
+    else if (activeBoostNextQ === 'triple')  { label = 'Turbo x3 activo'; icon = 'x3'; color = _c('#ccff00','#5a7a00'); }
+    else if (activeBoostNextQ === 'jackpot') { label = 'Jackpot x4 activo'; icon = 'x4'; color = _c('#ff0090','#b0006a'); }
+    else if (shieldActive)          { label = 'Escudo activo'; icon = '+1'; color = _c('#00d4ff','#0070a8'); }
+    else if (hintActive)            { label = 'Pista lista'; icon = '?'; color = _c('#f77f00','#b84400'); }
+    else if (frenzyNextQuestion)    { label = 'Frenesí listo'; icon = 'FZ'; color = _c('#b5179e','#7a0a8c'); }
+    else if (extraTimeActive > 0)   { label = `+${extraTimeActive}s de tiempo`; icon = '+t'; color = _c('#00ff66','#0a7a3e'); }
+    else if (streakShieldActive)    { label = 'Racha protegida'; icon = 'R+'; color = _c('#aaaaff','#4444aa'); }
     if (label) {
         iconEl.textContent = icon;
+        iconEl.style.color = color;
         textEl.textContent = label;
         textEl.style.color = color;
         bar.style.display = 'flex';
@@ -2524,9 +2565,9 @@ function goToProfile(needsName = false) {
         const accuracy = totalAnswers>0 ? Math.min(100,Math.round((s.totalCorrect||0)/totalAnswers*100)) : 0;
         // PL total & rank color
         const plTotalEl = document.getElementById('pl-total');
-        if(plTotalEl){ plTotalEl.innerText=fmt(plTotal); plTotalEl.style.color=currentRankInfo.color; }
+        if(plTotalEl){ plTotalEl.innerText=fmt(plTotal); plTotalEl.style.color=getRankColor(currentRankInfo); }
         const plHeroEl = document.getElementById('pl-hero-total');
-        if(plHeroEl){ plHeroEl.innerText=fmt(plTotal); plHeroEl.style.color=currentRankInfo.color; }
+        if(plHeroEl){ plHeroEl.innerText=fmt(plTotal); plHeroEl.style.color=getRankColor(currentRankInfo); }
         // Panel border color
         const panel = document.getElementById('pl-panel');
         if(panel) panel.style.borderColor=`rgba(${currentRankInfo.rgb},0.28)`;
@@ -2555,7 +2596,7 @@ function goToProfile(needsName = false) {
             ${i===rows.length-1?`<div class="pl-calc-divider"></div><div class="pl-calc-row" style="padding:6px 4px;">
                 <span style="font-size:0.7rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;grid-column:1/3;">Total PL</span>
                 <span></span>
-                <span style="font-size:clamp(0.8rem,1.5vw,0.95rem);font-weight:900;font-family:monospace;color:${currentRankInfo.color};text-align:right;">${fmt(plTotal)}</span>
+                <span style="font-size:clamp(0.8rem,1.5vw,0.95rem);font-weight:900;font-family:monospace;color:${getRankColor(currentRankInfo)};text-align:right;">${fmt(plTotal)}</span>
             </div>`:''}
         `).join('');
         // Progress bar toward next milestone
@@ -2566,7 +2607,7 @@ function goToProfile(needsName = false) {
         const pctRound=Math.round(prog*100);
         setTimeout(()=>{
             const bar=document.getElementById('pl-bar-total');
-            if(bar){ bar.style.width=pctRound+'%'; bar.style.background=currentRankInfo.color; }
+            if(bar){ bar.style.width=pctRound+'%'; bar.style.background=getRankColor(currentRankInfo); }
         },120);
         // Build next rank conditions label — sincronizado con RANK_TIERS v3
         const nextEl=document.getElementById('pl-next-label');
@@ -2687,7 +2728,7 @@ function updateLogoDots() {
     if (!_logoDotsCached || !_logoDotsCached.length) _logoDotsCached = document.querySelectorAll('.logo-dot');
     const shadow = isLight ? 'none' : `0 0 15px rgba(${currentRankInfo.rgb}, 0.5)`;
     for (let i = 0; i < _logoDotsCached.length; i++) {
-        _logoDotsCached[i].style.color = currentRankInfo.color;
+        _logoDotsCached[i].style.color = getRankColor(currentRankInfo, isLight);
         _logoDotsCached[i].style.textShadow = shadow;
     }
     const favicon = document.getElementById('dynamic-favicon');
@@ -3059,7 +3100,7 @@ function showFeedback(isCorrect, isTimeout = false) {
         else if (activeBoostNextQ === 'jackpot') { boostMult = multiplier * 4; activeBoostNextQ = null; }
         earned = earned * boostMult;
         // Consume escudo si estaba activo pero no fue necesario (acierto normal)
-        if (shieldActive) { shieldActive = false; updateRewardIndicator(); }
+        if (shieldActive) { shieldActive = false; }
         updateRewardIndicator();
         score += earned; streak++; if(streak > currentMaxStreak) currentMaxStreak = streak;
         totalCorrectThisGame++;
@@ -3128,13 +3169,15 @@ function showFeedback(isCorrect, isTimeout = false) {
             saveStatsDebounced();
             updateRewardIndicator();
             SFX.correct();
+            const _isLightNow = document.body.classList.contains('light-mode');
+            const _shieldCol = _isLightNow ? '#0070a8' : '#00d4ff';
             scr.className = 'screen shield';
             icon.innerHTML = SVG_SHIELD;
-            icon.style.color = '#00d4ff';
+            icon.style.color = _shieldCol;
             title.innerText = '¡ESCUDO!';
             points.innerText = 'Protegido';
-            points.style.borderColor = 'rgba(0,212,255,0.45)';
-            points.style.color = '#00d4ff';
+            points.style.borderColor = _isLightNow ? 'rgba(0,112,168,0.35)' : 'rgba(0,212,255,0.45)';
+            points.style.color = _shieldCol;
             points.style.display = 'block';
             // Don't lose life, don't reset streak
         } else {
@@ -3150,12 +3193,13 @@ function showFeedback(isCorrect, isTimeout = false) {
             if (streakShieldActive) {
                 streakShieldActive = false;
                 updateRewardIndicator();
+                const _rachaCol = document.body.classList.contains('light-mode') ? '#4444aa' : '#aaaaff';
                 if (streak > 0) {
-                    showToast('RACHA PROTEGIDA', 'Tu racha ha sido salvada.', '#aaaaff', SVG_SHIELD);
+                    showToast('RACHA PROTEGIDA', 'Tu racha ha sido salvada.', _rachaCol, SVG_SHIELD);
                     // No resetear racha
                 } else {
                     // Escudo consumido sin racha que proteger — igual se consume
-                    showToast('ESCUDO DE RACHA', 'Sin racha activa, el escudo no pudo actuar.', '#aaaaff', SVG_SHIELD);
+                    showToast('ESCUDO DE RACHA', 'Sin racha activa, el escudo no pudo actuar.', _rachaCol, SVG_SHIELD);
                     streak = 0;
                     playerStats.currentFrenzyStreak = 0;
                 }
@@ -3603,10 +3647,8 @@ const _KP_REWARDS = [
 ];
 
 // ── Condiciones de misión (usan playerStats en tiempo real) ───────────
-// Nota: perfectGames se incrementa cuando currentQuestionIndex >= 10 Y sin errores.
-// En saveGameStats: if(currentQuestionIndex >= 10) perfectGames++
-// Eso es "partida larga sin importar errores". Aquí usamos hadPerfectAccuracyGame
-// que es la verdadera "partida sin errores" (≥5 preguntas, 0 wrong, 0 timeout).
+// Nota: perfectGames se incrementa cuando currentQuestionIndex >= 10 Y sin errores (0 wrong, 0 timeout).
+// hadPerfectAccuracyGame = verdadera "partida sin errores" (≥5 preguntas, 0 wrong, 0 timeout).
 // Para niveles "Sin Fallos" usamos un contador propio en kpState.perfectNoError.
 
 const _KP_MISSIONS = [
