@@ -200,8 +200,8 @@ function revokeInvalidAchievements() {
         for(let i=0;i<8;i++) { if(playerStats.achievements.includes(`hs${i+1}`)) toRevoke.add(`hs${i+1}`); }
     }
     // x1 (Primer Día): siempre válido si hay datos (no revocar)
-    // x18 (El Clásico): solo válido si nameChanges===0 y maxLoginStreak>=30
-    if (!( playerStats.nameChanges===0 && (playerStats.maxLoginStreak||0)>=30 ) && playerStats.achievements.includes('x18')) toRevoke.add('x18');
+    // x18 (El Clásico): válido si nameChanges===0 y maxLoginStreak>=30 (logro de fidelidad, independiente de rango)
+    if (playerStats.achievements.includes('x18') && !(playerStats.nameChanges===0 && (playerStats.maxLoginStreak||0)>=30)) toRevoke.add('x18');
 
     if (toRevoke.size > 0) {
         playerStats.achievements = playerStats.achievements.filter(id => !toRevoke.has(id));
@@ -454,7 +454,8 @@ function schedulerTick() {
         playMusicStep(nextNoteTime);
         advanceMusicStep();
     }
-    musicTimerID = setTimeout(schedulerTick, SCHED_INTERVAL);
+    // Use perf-mode-aware interval (window._perfSchedulerMs) or default SCHED_INTERVAL
+    musicTimerID = setTimeout(schedulerTick, window._perfSchedulerMs || SCHED_INTERVAL);
 }
 
 function advanceMusicStep() {
@@ -627,31 +628,35 @@ const SFX = {
 };
 
 // --- UI Modal y Configuracion ---
-// ── MODOS DE RENDIMIENTO ─────────────────────────────────────────────────────
+// ── MODOS DE RENDIMIENTO v2 ──────────────────────────────────────────────────
+// 4 presets: Eco → Equilibrado → Alto → Ultra
+// connectLines: dibuja líneas entre partículas (O(n²), costoso en móvil)
+// schedulerMs : intervalo del audio scheduler (ms); mayor = menos CPU
+// audioFftSize: tamaño FFT del analyser (potencia de 2)
 const PERF_MODES = {
     eco: {
-        label: 'Eco',
-        desc: 'Ahorra batería',
-        fps: 30,
-        particles: 0,
-        animScale: 0,   // 0 = reduce animations
+        label: 'Eco', desc: 'Batería · Sin efectos',
+        fps: 30, particles: 0, animScale: 0,
+        connectLines: false, schedulerMs: 50, audioFftSize: 32,
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12H3l9-9 9 9h-2"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M10 12v5h4v-5"/></svg>`
     },
     balanced: {
-        label: 'Equilibrado',
-        desc: 'Recomendado',
-        fps: 60,
-        particles: 0.5,
-        animScale: 1,
+        label: 'Equilibrado', desc: 'Recomendado',
+        fps: 60, particles: 0.4, animScale: 1,
+        connectLines: false, schedulerMs: 30, audioFftSize: 64,
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
     },
     high: {
-        label: 'Alto',
-        desc: 'Máxima calidad',
-        fps: 60,
-        particles: 1.0,
-        animScale: 1,
+        label: 'Alto', desc: 'Calidad completa',
+        fps: 60, particles: 1.0, animScale: 1,
+        connectLines: true, schedulerMs: 25, audioFftSize: 64,
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`
+    },
+    ultra: {
+        label: 'Ultra', desc: '120 FPS · Máximo',
+        fps: 120, particles: 1.0, animScale: 1,
+        connectLines: true, schedulerMs: 20, audioFftSize: 128,
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`
     }
 };
 
@@ -659,19 +664,38 @@ function applyPerfMode(mode) {
     const cfg = PERF_MODES[mode];
     if (!cfg) return;
     playerStats.perfMode = mode;
-    // Apply fps
+
+    // FPS
     playerStats.maxFps = cfg.fps;
     fpsInterval = 1000 / cfg.fps;
-    // Apply particles
+
+    // Particles
     playerStats.particleOpacity = cfg.particles;
-    // Apply animation speed via CSS custom property
+
+    // Animation scale via CSS var
     document.documentElement.style.setProperty('--anim-scale', cfg.animScale === 0 ? '0.001' : '1');
-    // Reduce CSS transitions in eco mode
-    if (mode === 'eco') {
-        document.documentElement.classList.add('perf-eco');
-    } else {
-        document.documentElement.classList.remove('perf-eco');
+
+    // Eco / ultra class hooks for CSS overrides
+    document.documentElement.classList.toggle('perf-eco',   mode === 'eco');
+    document.documentElement.classList.toggle('perf-ultra', mode === 'ultra');
+
+    // Particle line connections (expensive O(n²))
+    window._perfConnectLines = cfg.connectLines !== false;
+
+    // Audio scheduler interval — update live if engine running
+    if (typeof SCHED_INTERVAL !== 'undefined') {
+        // SCHED_INTERVAL is a const; we shadow it with a mutable var on window
+        window._perfSchedulerMs = cfg.schedulerMs || 25;
     }
+
+    // Audio analyser FFT size — update if analyser exists
+    if (audioAnalyser && cfg.audioFftSize && audioAnalyser.fftSize !== cfg.audioFftSize) {
+        try {
+            audioAnalyser.fftSize = cfg.audioFftSize;
+            audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
+        } catch(e) {}
+    }
+
     // Sync sliders if settings is open
     const fpsSl = document.getElementById('op-fps');
     const ptSl  = document.getElementById('op-particles');
@@ -826,12 +850,28 @@ async function submitLeaderboard() {
     _submitDebounceTimer = setTimeout(async () => {
         const pl = calculatePowerLevel(playerStats);
         playerStats.powerLevel = pl;
+        const ri = getRankInfo(playerStats);
+        const ta = (playerStats.totalCorrect||0)+(playerStats.totalWrong||0)+(playerStats.totalTimeouts||0);
         const payload = {
-            uuid: playerStats.uuid, name: playerStats.playerName,
-            rankTitle: getRankInfo(playerStats).title,
-            powerLevel: pl, totalScore: playerStats.totalScore, maxStreak: playerStats.maxStreak
+            uuid:         playerStats.uuid,
+            name:         playerStats.playerName,
+            rankTitle:    ri.title,
+            powerLevel:   pl,
+            totalScore:   playerStats.totalScore,
+            bestScore:    playerStats.bestScore    || 0,
+            maxStreak:    playerStats.maxStreak    || 0,
+            totalCorrect: playerStats.totalCorrect || 0,
+            perfectGames: playerStats.perfectGames || 0,
+            maxMult:      playerStats.maxMult      || 1,
+            accuracy:     ta > 0 ? Math.round((playerStats.totalCorrect||0)/ta*100) : 0,
+            gamesPlayed:  playerStats.gamesPlayed  || 0
         };
-        try { await fetch(GAS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(payload) });
+        try {
+            await fetch(GAS_URL, {
+                method: "POST", mode: "no-cors",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify(payload)
+            });
         } catch(e) {}
     }, 1200);
 }
@@ -839,7 +879,7 @@ async function submitLeaderboard() {
 async function fetchLeaderboard() {
     if(GAS_URL === "URL_DE_TU_GOOGLE_APPS_SCRIPT_AQUI") return;
     try {
-        const res = await fetch(GAS_URL);
+        const res = await fetch(GAS_URL + "?action=top&limit=20");
         const topPlayers = await res.json();
         const isLight = document.body.classList.contains('light-mode');
         
@@ -1303,19 +1343,76 @@ function processDailyLogin() {
 }
 function shuffleArray(array) { let current = array.length, random; while (current !== 0) { random = Math.floor(Math.random() * current); current--; [array[current], array[random]] = [array[random], array[current]]; } return array; }
 
+// ── SISTEMA DE RANGOS v3 ─────────────────────────────────────────────────────
+// Lógica 100% in-game: totalScore + totalCorrect + perfectGames + maxStreak + maxMult
+// Sin dependencia de días de login ni rachas de calendario.
+// Progresión lineal: cada rango exige ~3× más que el anterior en la métrica principal.
+// ─────────────────────────────────────────────────────────────────────────────
+// NOVATO   → punto de entrada, sin requisitos
+// JUNIOR   → primeros logros sólidos en partida
+// PRO      → jugador habitual con buen control del multiplicador
+// MAESTRO  → dominio real del juego, perfectas consistentes
+// LEYENDA  → élite: miles de aciertos, rachas largas, mult alto
+// MÍTICO   → techo absoluto: requisito multi-métrica, sin condiciones externas
+// ─────────────────────────────────────────────────────────────────────────────
+const RANK_TIERS = [
+    // { title, color, rgb, requisitos }  — orden de MAYOR a MENOR prioridad
+    {
+        title: "Mítico",
+        color: "#ffffff", rgb: "255,255,255",
+        mitico: true,
+        check: s => {
+            const ta = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
+            const acc = ta > 0 ? (s.totalCorrect||0)/ta : 0;
+            return s.totalScore    >= 1000000  // 1 M puntos totales
+                && s.totalCorrect  >= 4000     // 4 000 respuestas correctas
+                && s.perfectGames  >= 40       // 40 partidas perfectas
+                && s.maxStreak     >= 35        // racha máxima ≥ 35
+                && (s.maxMult||1)  >= 8        // multiplicador máximo ≥ ×8
+                && acc             >= 0.82;    // precisión global ≥ 82 %
+        }
+    },
+    {
+        title: "Leyenda",
+        color: "var(--accent-yellow)", rgb: "255,184,0",
+        check: s =>    s.totalScore   >= 300000   // 300 k puntos totales
+                    && s.totalCorrect >= 1200      // 1 200 aciertos
+                    && s.perfectGames >= 8         // 8 partidas perfectas
+                    && (s.maxMult||1) >= 6         // ×6 mult
+    },
+    {
+        title: "Maestro",
+        color: "var(--accent-purple)", rgb: "181,23,158",
+        check: s =>    s.totalScore   >= 100000   // 100 k puntos totales
+                    && s.totalCorrect >= 400       // 400 aciertos
+                    && s.perfectGames >= 3         // 3 partidas perfectas
+                    && (s.maxMult||1) >= 4         // ×4 mult
+    },
+    {
+        title: "Pro",
+        color: "var(--accent-red)", rgb: "255,42,95",
+        check: s =>    s.totalScore   >= 35000    // 35 k puntos totales
+                    && s.totalCorrect >= 120       // 120 aciertos
+                    && s.maxStreak    >= 10        // racha ≥ 10
+    },
+    {
+        title: "Junior",
+        color: "var(--accent-blue)", rgb: "0,212,255",
+        check: s =>    s.bestScore    >= 8000     // mejor score en una partida ≥ 8 k
+                    && s.gamesPlayed  >= 3        // al menos 3 partidas
+    },
+    {
+        title: "Novato",
+        color: "var(--accent-green)", rgb: "0,255,102",
+        check: () => true
+    }
+];
+
 function getRankInfo(stats) {
-    // Mítico — el rango supremo, requisitos extremos
-    const totalAnswers = (stats.totalCorrect||0)+(stats.totalWrong||0)+(stats.totalTimeouts||0);
-    const accuracy = totalAnswers>0 ? Math.round((stats.totalCorrect||0)/totalAnswers*100) : 0;
-    if (stats.totalScore >= 1200000 && stats.totalCorrect >= 5000 && stats.perfectGames >= 50 &&
-        (stats.achievements||[]).length >= 200 && stats.maxStreak >= 40 && (stats.maxMult||1) >= 8 &&
-        accuracy >= 85 && stats.maxLoginStreak >= 30)
-        return { title: "Mítico", color: "#ffffff", rgb: "255,255,255", mitico: true };
-    if (stats.totalScore >= 400000 && stats.totalCorrect >= 1500 && stats.perfectGames >= 10) return { title: "Leyenda", color: "var(--accent-yellow)", rgb: "255,184,0" };
-    if (stats.totalScore >= 150000 && stats.gamesPlayed >= 50 && (stats.maxMult||1) >= 4) return { title: "Maestro", color: "var(--accent-purple)", rgb: "181,23,158" };
-    if (stats.totalScore >= 60000 && stats.totalCorrect >= 200 && stats.maxStreak >= 12) return { title: "Pro", color: "var(--accent-red)", rgb: "255,42,95" };
-    if (stats.bestScore >= 15000 && stats.gamesPlayed >= 5) return { title: "Junior", color: "var(--accent-blue)", rgb: "0,212,255" };
-    return { title: "Novato", color: "var(--accent-green)", rgb: "0,255,102" };
+    for (const tier of RANK_TIERS) {
+        if (tier.check(stats)) return tier;
+    }
+    return RANK_TIERS[RANK_TIERS.length - 1]; // fallback: Novato
 }
 let currentRankInfo = getRankInfo(playerStats);
 
@@ -2426,54 +2523,55 @@ function goToProfile(needsName = false) {
             const bar=document.getElementById('pl-bar-total');
             if(bar){ bar.style.width=pctRound+'%'; bar.style.background=currentRankInfo.color; }
         },120);
-        // Build next rank conditions label
+        // Build next rank conditions label — sincronizado con RANK_TIERS v3
         const nextEl=document.getElementById('pl-next-label');
         if(nextEl) {
             const ri = currentRankInfo;
+            const G = (ok) => ok ? 'color:var(--accent-green)' : 'color:var(--text-secondary)';
             let condHtml = '';
             if (ri.title === 'Novato') {
-                // Next: Junior (bestScore >= 15000 && gamesPlayed >= 5)
-                const c1 = s.bestScore >= 15000, c2 = (s.gamesPlayed||0) >= 5;
+                // → Junior: bestScore >= 8000 && gamesPlayed >= 3
+                const c1 = (s.bestScore||0) >= 8000, c2 = (s.gamesPlayed||0) >= 3;
                 condHtml = `<span style="color:var(--accent-blue);font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: JUNIOR</span> &nbsp;`+
-                    `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Récord ${fmt(s.bestScore||0)}/15,000</span> &nbsp;`+
-                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Partidas ${s.gamesPlayed||0}/5</span>`;
+                    `<span style="${G(c1)}">Récord ${fmt(s.bestScore||0)}/8,000</span> &nbsp;`+
+                    `<span style="${G(c2)}">Partidas ${s.gamesPlayed||0}/3</span>`;
             } else if (ri.title === 'Junior') {
-                // Next: Pro (totalScore >= 60000 && totalCorrect >= 200 && maxStreak >= 12)
-                const c1 = (s.totalScore||0) >= 60000, c2 = (s.totalCorrect||0) >= 200, c3 = (s.maxStreak||0) >= 12;
+                // → Pro: totalScore >= 35000 && totalCorrect >= 120 && maxStreak >= 10
+                const c1=(s.totalScore||0)>=35000, c2=(s.totalCorrect||0)>=120, c3=(s.maxStreak||0)>=10;
                 condHtml = `<span style="color:var(--accent-red);font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: PRO</span> &nbsp;`+
-                    `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/60,000</span> &nbsp;`+
-                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/200</span> &nbsp;`+
-                    `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/12</span>`;
+                    `<span style="${G(c1)}">Acum. ${fmt(s.totalScore||0)}/35,000</span> &nbsp;`+
+                    `<span style="${G(c2)}">Aciertos ${s.totalCorrect||0}/120</span> &nbsp;`+
+                    `<span style="${G(c3)}">Racha ${s.maxStreak||0}/10</span>`;
             } else if (ri.title === 'Pro') {
-                // Next: Maestro (totalScore >= 150000 && gamesPlayed >= 50 && maxMult >= 4)
-                const c1 = (s.totalScore||0) >= 150000, c2 = (s.gamesPlayed||0) >= 50, c3 = (s.maxMult||1) >= 4;
+                // → Maestro: totalScore >= 100000 && totalCorrect >= 400 && perfectGames >= 3 && maxMult >= 4
+                const c1=(s.totalScore||0)>=100000, c2=(s.totalCorrect||0)>=400, c3=(s.perfectGames||0)>=3, c4=(s.maxMult||1)>=4;
                 condHtml = `<span style="color:var(--accent-purple);font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: MAESTRO</span> &nbsp;`+
-                    `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/150,000</span> &nbsp;`+
-                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Partidas ${s.gamesPlayed||0}/50</span> &nbsp;`+
-                    `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. máx. ${s.maxMult||1}/x4</span>`;
+                    `<span style="${G(c1)}">Acum. ${fmt(s.totalScore||0)}/100,000</span> &nbsp;`+
+                    `<span style="${G(c2)}">Aciertos ${s.totalCorrect||0}/400</span> &nbsp;`+
+                    `<span style="${G(c3)}">Perfectas ${s.perfectGames||0}/3</span> &nbsp;`+
+                    `<span style="${G(c4)}">Mult. ${s.maxMult||1}/x4</span>`;
             } else if (ri.title === 'Maestro') {
-                // Next: Leyenda (totalScore >= 400000 && totalCorrect >= 1500 && perfectGames >= 10)
-                const c1 = (s.totalScore||0) >= 400000, c2 = (s.totalCorrect||0) >= 1500, c3 = (s.perfectGames||0) >= 10;
+                // → Leyenda: totalScore >= 300000 && totalCorrect >= 1200 && perfectGames >= 8 && maxMult >= 6
+                const c1=(s.totalScore||0)>=300000, c2=(s.totalCorrect||0)>=1200, c3=(s.perfectGames||0)>=8, c4=(s.maxMult||1)>=6;
                 condHtml = `<span style="color:var(--accent-yellow);font-weight:700;font-size:0.62rem;letter-spacing:1px;">SIGUIENTE: LEYENDA</span> &nbsp;`+
-                    `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/400,000</span> &nbsp;`+
-                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/1,500</span> &nbsp;`+
-                    `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/10</span>`;
+                    `<span style="${G(c1)}">Acum. ${fmt(s.totalScore||0)}/300,000</span> &nbsp;`+
+                    `<span style="${G(c2)}">Aciertos ${s.totalCorrect||0}/1,200</span> &nbsp;`+
+                    `<span style="${G(c3)}">Perfectas ${s.perfectGames||0}/8</span> &nbsp;`+
+                    `<span style="${G(c4)}">Mult. ${s.maxMult||1}/x6</span>`;
             } else if (ri.title === 'Leyenda') {
-                // Next: Mítico — requisitos extremos
-                const totalAns = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
-                const acc2 = totalAns>0?Math.round((s.totalCorrect||0)/totalAns*100):0;
-                const c1=(s.totalScore||0)>=1200000, c2=(s.totalCorrect||0)>=5000, c3=(s.perfectGames||0)>=50;
-                const c4=(s.achievements||[]).length>=200, c5=(s.maxStreak||0)>=40, c6=(s.maxMult||1)>=8;
-                const c7=acc2>=85, c8=(s.maxLoginStreak||0)>=30;
+                // → Mítico: totalScore >= 1M && totalCorrect >= 4000 && perfectGames >= 40
+                //           && maxStreak >= 35 && maxMult >= 8 && acc >= 82%
+                const totalAns=(s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
+                const acc2=totalAns>0?Math.round((s.totalCorrect||0)/totalAns*100):0;
+                const c1=(s.totalScore||0)>=1000000, c2=(s.totalCorrect||0)>=4000, c3=(s.perfectGames||0)>=40;
+                const c4=(s.maxStreak||0)>=35, c5=(s.maxMult||1)>=8, c6=acc2>=82;
                 condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;letter-spacing:1px;text-shadow:0 0 8px rgba(255,255,255,0.5);">-- SIGUIENTE: MÍTICO --</span> &nbsp;`+
-                    `<span style="${c1?'color:var(--accent-green)':'color:var(--text-secondary)'}">Acum. ${fmt(s.totalScore||0)}/1,200,000</span> &nbsp;`+
-                    `<span style="${c2?'color:var(--accent-green)':'color:var(--text-secondary)'}">Aciertos ${s.totalCorrect||0}/5,000</span> &nbsp;`+
-                    `<span style="${c3?'color:var(--accent-green)':'color:var(--text-secondary)'}">Perfectas ${s.perfectGames||0}/50</span> &nbsp;`+
-                    `<span style="${c4?'color:var(--accent-green)':'color:var(--text-secondary)'}">Logros ${(s.achievements||[]).length}/200</span> &nbsp;`+
-                    `<span style="${c5?'color:var(--accent-green)':'color:var(--text-secondary)'}">Racha ${s.maxStreak||0}/40</span> &nbsp;`+
-                    `<span style="${c6?'color:var(--accent-green)':'color:var(--text-secondary)'}">Mult. ${s.maxMult||1}/x8</span> &nbsp;`+
-                    `<span style="${c7?'color:var(--accent-green)':'color:var(--text-secondary)'}">Precisión ${acc2}%/85%</span> &nbsp;`+
-                    `<span style="${c8?'color:var(--accent-green)':'color:var(--text-secondary)'}">Login días ${s.maxLoginStreak||0}/30</span>`;
+                    `<span style="${G(c1)}">Acum. ${fmt(s.totalScore||0)}/1,000,000</span> &nbsp;`+
+                    `<span style="${G(c2)}">Aciertos ${s.totalCorrect||0}/4,000</span> &nbsp;`+
+                    `<span style="${G(c3)}">Perfectas ${s.perfectGames||0}/40</span> &nbsp;`+
+                    `<span style="${G(c4)}">Racha ${s.maxStreak||0}/35</span> &nbsp;`+
+                    `<span style="${G(c5)}">Mult. ${s.maxMult||1}/x8</span> &nbsp;`+
+                    `<span style="${G(c6)}">Precisión ${acc2}%/82%</span>`;
             } else {
                 condHtml = `<span style="color:#ffffff;font-weight:700;font-size:0.62rem;text-shadow:0 0 10px rgba(255,255,255,0.6);">-- RANGO MÍTICO ALCANZADO --</span>`;
             }
@@ -3173,6 +3271,8 @@ function darkenRgb(rgb, factor) {
 }
 
 function connectParticles(pulse) { 
+    // Skip line drawing in eco/balanced mode (set by applyPerfMode → window._perfConnectLines)
+    if (window._perfConnectLines === false) return;
     if (particlesArray.length < 2) return; // nothing to connect
     const isStreak = streak >= 5;
     const baseOpacity = isStreak ? (_pIsLight ? 0.7 : 0.35) : (_pIsLight ? 0.4 : 0.18);
