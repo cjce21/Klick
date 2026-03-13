@@ -630,6 +630,11 @@ const SFX = {
 // --- UI Modal y Configuracion ---
 const FPS_VALUES = [15, 30, 60, 120, 240];
 function openSettings() {
+    // ANTI-EXPLOIT: no se puede abrir Configuración durante una partida activa.
+    if (isAnsweringAllowed && lives > 0) {
+        showToast('No disponible', 'No puedes abrir ajustes durante una partida.', 'var(--text-secondary)', SVG_LOCK);
+        return;
+    }
     initAudio(); SFX.click();
     playerStats.configViews = (playerStats.configViews||0) + 1;
     playerStats._settingsOpenTime = Date.now();
@@ -2169,16 +2174,20 @@ function collectRoulettePrize() {
     } else if (prize.id === 'frenzy') {
         // Forzar al menos multiplicador x2 (streak >= 5).
         // Si ya está en frenesí, subir un nivel más (streak += 5) hasta el tope de x10 (streak 45).
+        const prevStreak = streak;
         if (streak < 5) {
             streak = 5;
         } else {
             streak = Math.min(streak + 5, 45);
         }
         if (streak > currentMaxStreak) currentMaxStreak = streak;
-        // Track frenzy activation for achievements
-        playerStats.frenziesTriggered = (playerStats.frenziesTriggered || 0) + 1;
-        frenziesThisGame++;
-        if (frenziesThisGame > (playerStats.maxFrenziesInGame || 0)) playerStats.maxFrenziesInGame = frenziesThisGame;
+        // ANTI-EXPLOIT: solo contar frenzy si se cruzó un nuevo umbral de multiplicador.
+        // Evita doble conteo con la lógica natural de streak % 5 === 0 en showFeedback.
+        if (Math.floor(streak / 5) > Math.floor(prevStreak / 5)) {
+            playerStats.frenziesTriggered = (playerStats.frenziesTriggered || 0) + 1;
+            frenziesThisGame++;
+            if (frenziesThisGame > (playerStats.maxFrenziesInGame || 0)) playerStats.maxFrenziesInGame = frenziesThisGame;
+        }
         updateMultiplierUI();
         updateStreakVisuals();
         showToast('¡FRENESÍ ACTIVADO!', 'Modo Frenesí activado por la ruleta.', '#b5179e', SVG_FIRE);
@@ -2247,6 +2256,11 @@ function closeRoulette() {
 }
 
 function goToMainMenu() {
+    // ANTI-EXPLOIT: si hay partida activa, redirigir al flujo de abandon (con penalización).
+    if (isAnsweringAllowed && lives > 0) {
+        confirmAbandon();
+        return;
+    }
     SFX.click();
     // ui2: Vuelvo en Un Segundo — sale de Configuración en <3 seg
     if (playerStats._settingsOpenTime && Date.now() - playerStats._settingsOpenTime < 3000) {
@@ -2300,10 +2314,17 @@ function trackSectionVisit(section) {
     }
 }
 
-function goToGuide() { initAudio(); SFX.click(); playerStats.guideViews++; trackSectionVisit('guide'); saveStatsLocally(); checkAchievements(); switchScreen('guide-screen'); }
-function goToAchievements() { initAudio(); SFX.click(); playerStats.achViews++; trackSectionVisit('achievements'); saveStatsLocally(); checkAchievements(); renderAchievements(); switchScreen('achievements-screen'); const sc = document.getElementById('vscroll-container'); if(sc) sc.scrollTop = 0; }
+function goToGuide() {
+    if (isAnsweringAllowed && lives > 0) return;
+    initAudio(); SFX.click(); playerStats.guideViews++; trackSectionVisit('guide'); saveStatsLocally(); checkAchievements(); switchScreen('guide-screen');
+}
+function goToAchievements() {
+    if (isAnsweringAllowed && lives > 0) return;
+    initAudio(); SFX.click(); playerStats.achViews++; trackSectionVisit('achievements'); saveStatsLocally(); checkAchievements(); renderAchievements(); switchScreen('achievements-screen'); const sc = document.getElementById('vscroll-container'); if(sc) sc.scrollTop = 0;
+}
 
-function goToRanking() { 
+function goToRanking() {
+    if (isAnsweringAllowed && lives > 0) return;
     initAudio(); SFX.click();
     playerStats.rankingViews = (playerStats.rankingViews||0) + 1;
     trackSectionVisit('ranking');
@@ -2313,6 +2334,10 @@ function goToRanking() {
 
 
 function goToProfile(needsName = false) {
+    // ANTI-EXPLOIT: no navegar al perfil durante partida activa.
+    // La excepción es la redirección por falta de nombre (needsName=true),
+    // que solo ocurre antes de iniciar partida desde startGameCheck.
+    if (!needsName && isAnsweringAllowed && lives > 0) return;
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
     SFX.click();
     playerStats.profileViews = (playerStats.profileViews||0) + 1;
@@ -2456,6 +2481,8 @@ function goToProfile(needsName = false) {
 }
 
 async function startGameCheck() {
+    // ANTI-EXPLOIT: no reiniciar si ya hay una partida activa.
+    if (isAnsweringAllowed && lives > 0) return;
     // iOS/Safari: AudioContext MUST be resumed synchronously inside a user gesture handler
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e) {}
     if (!playerStats.playerName || playerStats.playerName === "JUGADOR") { 
@@ -2811,26 +2838,26 @@ function handleTimeout() {
 
 function abandonGame() {
     if(lives <= 0) return; // partida ya terminada
+    // ANTI-EXPLOIT: el modal se muestra pero el temporizador sigue corriendo.
+    // El jugador no puede usar el modal para congelar el tiempo y pensar la respuesta.
     SFX.click();
-    isGamePaused = true;
-    clearInterval(timerInterval);
     document.getElementById('abandon-modal').classList.add('active');
 }
 
 function cancelAbandon() {
     SFX.click();
-    isGamePaused = false;
     document.getElementById('abandon-modal').classList.remove('active');
 }
 
 function confirmAbandon() {
     document.getElementById('abandon-modal').classList.remove('active');
     isAnsweringAllowed = false;
+    isGamePaused = false;
     clearInterval(timerInterval);
-    initAudio(); SFX.incorrect(); 
-    const penalty = 300; 
+    initAudio(); SFX.incorrect();
+    const penalty = 300;
     playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
-    saveStatsLocally(); submitLeaderboard(); 
+    saveStatsLocally(); submitLeaderboard();
     showToast('Partida Abandonada', `Penalización de -300 pts.`, 'var(--text-secondary)', SVG_INCORRECT);
     document.getElementById('app').classList.remove('streak-active');
     streak = 0;
@@ -3744,6 +3771,7 @@ function renderKpPath() {
     }, 280);
 }
 function goToKlickPass() {
+    if (isAnsweringAllowed && lives > 0) return;
     try { initAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e){}
     SFX.click();
     renderKpPath();
