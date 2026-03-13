@@ -31,7 +31,7 @@ const defaultStats = {
     nameChanges: 0, achViews: 0, guideViews: 0, totalScore: 0, perfectGames: 0, totalCorrect: 0, totalWrong: 0, 
     totalTimeouts: 0, fastAnswersTotal: 0, frenziesTriggered: 0, lastLoginDate: "", currentLoginStreak: 0, 
     maxLoginStreak: 0, todayGames: 0, maxScoreCount: 0, perfectStreak: 0, previousGameScore: -1,
-    musicVol: 1.0, sfxVol: 1.0, particleOpacity: 1.0, maxFps: 60,
+    musicVol: 1.0, sfxVol: 1.0, particleOpacity: 1.0, maxFps: 60, perfMode: 'high',
     rankingViews: 0, configViews: 0, fpsChanges: 0, allSectionsVisited: false,
     sectionsVisitedThisSession: [], rankingPosition: 999,
     musicSetTo0: false, sfxSetTo0: false, particles0: false,
@@ -40,7 +40,6 @@ const defaultStats = {
     selectedTrack: 'track_chill', trackSwitches: 0, tracksTriedSet: [], triedAllTracks: false,
     sameTrackGames: 0, lastGameTrack: '',
     daysInLeaderboard: 0, top10ConsecutiveDays: 0, daysAtRankOne: 0,
-    soc3Earned: false, haz7Earned: false,
     _lastLeaderboardDay: '', _lastTop10Day: '', _lastRankOnceDay: ''
 };
 
@@ -355,18 +354,18 @@ function renderTrackSelector() {
     const container = document.getElementById('track-selector');
     if (!container) return;
     const currentTrack = playerStats.selectedTrack || 'track_chill';
+    const isLight = document.body.classList.contains('light-mode');
     container.innerHTML = MUSIC_TRACKS.map(t => {
         const isSelected = t.id === currentTrack;
         return `
         <div onclick="selectTrack('${t.id}')" class="track-option${isSelected ? ' selected' : ''}" style="
-            flex:1;min-width:120px;padding:12px 15px;border-radius:var(--radius-md);
-            border:1.5px solid ${isSelected ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)'};
-            background:${isSelected ? 'rgba(255,255,255,0.07)' : 'transparent'};
-            cursor:pointer;text-align:center;transition:all 0.25s;
-            box-shadow:${isSelected ? '0 0 15px rgba(255,255,255,0.08)' : 'none'};
+            flex:1; min-width:80px; padding:9px 10px; border-radius:var(--radius-sm);
+            border:1.5px solid ${isSelected ? 'var(--rank-color)' : (isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)')};
+            background:${isSelected ? 'rgba(var(--rank-rgb),0.1)' : 'transparent'};
+            cursor:pointer; text-align:center; transition:all 0.2s ease;
         ">
-            <div style="font-size:0.8rem;font-weight:800;color:${isSelected ? 'var(--text-primary)' : 'var(--text-secondary)'};text-transform:uppercase;letter-spacing:1px;">${t.name}</div>
-            <div style="font-size:0.65rem;color:var(--text-secondary);margin-top:3px;">${t.desc}</div>
+            <div style="font-size:0.72rem;font-weight:800;color:${isSelected ? 'var(--rank-color)' : 'var(--text-primary)'};text-transform:uppercase;letter-spacing:0.8px;">${t.name}</div>
+            <div style="font-size:0.58rem;color:var(--text-secondary);margin-top:2px;">${t.desc}</div>
         </div>
     `}).join('');
 }
@@ -628,6 +627,92 @@ const SFX = {
 };
 
 // --- UI Modal y Configuracion ---
+// ── MODOS DE RENDIMIENTO ─────────────────────────────────────────────────────
+const PERF_MODES = {
+    eco: {
+        label: 'Eco',
+        desc: 'Ahorra batería',
+        fps: 30,
+        particles: 0,
+        animScale: 0,   // 0 = reduce animations
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12H3l9-9 9 9h-2"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M10 12v5h4v-5"/></svg>`
+    },
+    balanced: {
+        label: 'Equilibrado',
+        desc: 'Recomendado',
+        fps: 60,
+        particles: 0.5,
+        animScale: 1,
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
+    },
+    high: {
+        label: 'Alto',
+        desc: 'Máxima calidad',
+        fps: 60,
+        particles: 1.0,
+        animScale: 1,
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`
+    }
+};
+
+function applyPerfMode(mode) {
+    const cfg = PERF_MODES[mode];
+    if (!cfg) return;
+    playerStats.perfMode = mode;
+    // Apply fps
+    playerStats.maxFps = cfg.fps;
+    fpsInterval = 1000 / cfg.fps;
+    // Apply particles
+    playerStats.particleOpacity = cfg.particles;
+    // Apply animation speed via CSS custom property
+    document.documentElement.style.setProperty('--anim-scale', cfg.animScale === 0 ? '0.001' : '1');
+    // Reduce CSS transitions in eco mode
+    if (mode === 'eco') {
+        document.documentElement.classList.add('perf-eco');
+    } else {
+        document.documentElement.classList.remove('perf-eco');
+    }
+    // Sync sliders if settings is open
+    const fpsSl = document.getElementById('op-fps');
+    const ptSl  = document.getElementById('op-particles');
+    const fpsVal = document.getElementById('val-fps');
+    const ptVal  = document.getElementById('val-particles');
+    if (fpsSl)  { fpsSl.value  = FPS_VALUES.indexOf(cfg.fps) >= 0 ? FPS_VALUES.indexOf(cfg.fps) : 2; }
+    if (ptSl)   { ptSl.value   = cfg.particles; }
+    if (fpsVal) { fpsVal.innerText = cfg.fps + ' FPS'; }
+    if (ptVal)  { ptVal.innerText  = Math.round(cfg.particles * 100) + '%'; }
+    renderPerfSelector();
+    saveStatsLocally();
+}
+
+function renderPerfSelector() {
+    const container = document.getElementById('perf-selector');
+    if (!container) return;
+    const current = playerStats.perfMode || 'high';
+    const isLight = document.body.classList.contains('light-mode');
+    container.innerHTML = '';
+    Object.entries(PERF_MODES).forEach(([key, cfg]) => {
+        const active = key === current;
+        const btn = document.createElement('div');
+        btn.style.cssText = `
+            flex:1; padding:10px 8px; border-radius:var(--radius-md); cursor:pointer;
+            display:flex; flex-direction:column; align-items:center; gap:5px;
+            border:1.5px solid ${active ? 'var(--rank-color)' : (isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)')};
+            background:${active ? 'rgba(var(--rank-rgb),0.12)' : 'transparent'};
+            transition:all 0.2s ease; text-align:center;
+        `;
+        btn.innerHTML = `
+            <div style="width:20px;height:20px;color:${active ? 'var(--rank-color)' : 'var(--text-secondary)'};">${cfg.icon}</div>
+            <div style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:${active ? 'var(--rank-color)' : 'var(--text-primary)'};">${cfg.label}</div>
+            <div style="font-size:0.6rem;color:var(--text-secondary);font-weight:500;">${cfg.desc}</div>
+        `;
+        btn.onclick = () => { SFX.click(); applyPerfMode(key); document.getElementById('val-perf').innerText = cfg.label; };
+        container.appendChild(btn);
+    });
+    const valEl = document.getElementById('val-perf');
+    if (valEl) valEl.innerText = PERF_MODES[current]?.label || 'Personalizado';
+}
+
 const FPS_VALUES = [15, 30, 60, 120, 240];
 function openSettings() {
     // ANTI-EXPLOIT: no se puede abrir Configuración durante una partida activa.
@@ -662,6 +747,7 @@ function openSettings() {
         }
     }
     renderTrackSelector();
+    renderPerfSelector();
     switchScreen('settings-screen');
 }
 
@@ -696,6 +782,9 @@ document.getElementById('op-fps').addEventListener('input', (e) => {
     fpsInterval = 1000/playerStats.maxFps; 
     document.getElementById('val-fps').innerText = playerStats.maxFps+' FPS'; 
     playerStats.fpsChanges = (playerStats.fpsChanges||0)+1;
+    // Decouple from preset if user adjusts manually
+    playerStats.perfMode = null;
+    renderPerfSelector();
     checkAchievements();
     saveStatsLocally(); 
 });
@@ -822,23 +911,6 @@ async function fetchLeaderboard() {
                 } else {
                     playerStats.daysAtRankOne = 0;
                     playerStats._lastRankOnceDay = '';
-                }
-
-                // ── soc3 Amenaza: sube 10+ posiciones en una sesión ─────────────────
-                // prevPos se lee antes de actualizar rankingPosition, así que la
-                // diferencia refleja el salto real en este fetch.
-                if(prevPos < 999 && (prevPos - pos) >= 10) {
-                    playerStats.soc3Earned = true;
-                }
-
-                // ── haz7 Golpe de Estado: superar jugador con >5,000 PL ─────────────
-                if(!playerStats.haz7Earned && prevPL > 0) {
-                    topPlayers.forEach(other => {
-                        if(other.uuid !== playerStats.uuid && other.powerLevel > prevPL + 5000) {
-                            const otherIdx = topPlayers.findIndex(o => o.uuid === other.uuid);
-                            if(otherIdx !== -1 && otherIdx + 1 > pos) playerStats.haz7Earned = true;
-                        }
-                    });
                 }
 
                 // ── nm7 Remontada: estaba en 15+ y sube al Top 5 ───────────────────
@@ -1209,46 +1281,7 @@ addAchs([
     { id: 'master3', title: 'Dios Klick',   desc: 'Desbloquea los 300 logros del juego. Eres absoluto.',              color: colors.red,    icon: SVG_STAR },
 ]);
 
-// ─── 21. HAZAÑAS ESPECIALES (8 logros de situaciones únicas) ─────────────
-addAchs([
-    { id: 'haz1', title: 'Sin Despeinarse',   desc: 'Consigue 30 aciertos seguidos sin usar ninguna vida.',             color: colors.green,  icon: SVG_SHIELD },
-    { id: 'haz2', title: 'Punto de Oro',      desc: 'Alcanza exactamente 50,000 puntos (±250) en una partida.',         color: colors.yellow, icon: SVG_STAR },
-    { id: 'haz3', title: 'Triple Corona',     desc: 'En una misma partida: racha ≥10, multiplicador ≥4 y más de 30k pts.', color: colors.orange, icon: SVG_TROPHY },
-    { id: 'haz4', title: 'Contraataque',      desc: 'Pierde una vida y luego encadena 15 aciertos seguidos.',            color: colors.red,    icon: SVG_FIRE },
-    { id: 'haz5', title: 'Modo Difícil',      desc: 'Supera la pregunta 40 sin multiplicador (manteniéndolo en x1).',   color: colors.dark,   icon: SVG_SKULL },
-    { id: 'haz6', title: 'El Perfeccionista', desc: 'Termina 3 partidas seguidas con más de 20k puntos cada una.',      color: colors.blue,   icon: SVG_SHIELD },
-    { id: 'haz7', title: 'Golpe de Estado',   desc: 'Supera en ranking a un jugador que tenía más de 5,000 PL.',        color: colors.purple, icon: SVG_BOLT },
-    { id: 'haz8', title: 'Récord Absoluto',   desc: 'Supera tu propio récord personal por más de 10,000 puntos.',       color: colors.yellow, icon: SVG_TROPHY },
-]);
 
-// ─── 22. KLICK PASS (5 logros de progreso en el camino de niveles) ───────
-const SVG_PASS = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><circle cx="12" cy="12" r="1"/></svg>`;
-addAchs([
-    { id: 'kp1', title: 'Primer Escalón',  desc: 'Completa el nivel 1 del Klick Pass.',                                 color: colors.green,  icon: SVG_PASS },
-    { id: 'kp2', title: 'Constante',       desc: 'Completa los primeros 25 niveles del Klick Pass.',                    color: colors.blue,   icon: SVG_PASS },
-    { id: 'kp3', title: 'Dedicado',        desc: 'Completa los primeros 50 niveles del Klick Pass.',                    color: colors.orange, icon: SVG_PASS },
-    { id: 'kp4', title: 'El Largo Camino', desc: 'Completa los primeros 75 niveles del Klick Pass.',                    color: colors.purple, icon: SVG_PASS },
-    { id: 'kp5', title: 'Camino Completo', desc: 'Completa los 100 niveles del Klick Pass. El camino ha terminado.',    color: colors.yellow, icon: SVG_PASS },
-]);
-
-// ─── 23. RACHAS DE DÍAS (5 logros de fidelidad extrema) ──────────────────
-addAchs([
-    { id: 'dex1', title: 'Semana Perfecta',  desc: 'Inicia sesión 7 días consecutivos sin faltar ninguno.',              color: colors.green,  icon: SVG_CLOCK },
-    { id: 'dex2', title: 'Quincena Activa',  desc: 'Inicia sesión 14 días consecutivos.',                               color: colors.blue,   icon: SVG_CLOCK },
-    { id: 'dex3', title: 'Mes Completo',     desc: 'Inicia sesión 30 días consecutivos sin fallo.',                     color: colors.orange, icon: SVG_HEART },
-    { id: 'dex4', title: 'Bimestre de Acero',desc: 'Inicia sesión 60 días consecutivos.',                               color: colors.purple, icon: SVG_HEART },
-    { id: 'dex5', title: 'El Inquebrantable',desc: 'Inicia sesión 100 días consecutivos. Eres incondicional.',          color: colors.yellow, icon: SVG_TROPHY },
-]);
-
-// ─── 24. LOGROS SOCIALES Y RANKING (6 logros de clasificación avanzada) ──
-addAchs([
-    { id: 'soc1', title: 'Conocido',        desc: 'Aparece en la clasificación global en 5 días distintos.',            color: colors.blue,   icon: SVG_USER },
-    { id: 'soc2', title: 'Referente',       desc: 'Termina en el Top 10 del ranking en 3 días consecutivos.',           color: colors.orange, icon: SVG_TROPHY },
-    { id: 'soc3', title: 'Amenaza',         desc: 'Sube 10 o más posiciones en el ranking en una sola sesión.',         color: colors.red,    icon: SVG_BOLT },
-    { id: 'soc4', title: 'Invitado de Honor',desc: 'Aparece en la clasificación global con un rango Maestro o superior.', color: colors.purple, icon: SVG_TROPHY },
-    { id: 'soc5', title: 'La Leyenda Sube', desc: 'Alcanza el Top 5 de la clasificación con rango Leyenda o Mítico.',   color: colors.yellow, icon: SVG_STAR },
-    { id: 'soc6', title: 'Sin Rival',       desc: 'Ocupa el puesto #1 del ranking en 3 días consecutivos distintos.',   color: colors.yellow, icon: SVG_STAR },
-]);
 
 
 function processDailyLogin() {
@@ -1462,39 +1495,6 @@ function _checkAchievementsImpl() {
     if((playerStats.gamesAtMusicZero||0)>=5) unlock('extra4');
     // extra5 Coleccionista: 10 logros en un día
     if((playerStats.dailyAchUnlocks||0)>=10) unlock('extra5');
-
-    // --- HAZAÑAS ESPECIALES ---
-    if(playerStats.haz1Earned) unlock('haz1');       // 30 aciertos seguidos sin perder vida — in-game
-    if((playerStats.bestScore||0)>=49750 && (playerStats.bestScore||0)<=50250) unlock('haz2'); // 50k exacto
-    if(playerStats.haz2Exact50k) unlock('haz2');
-    if(playerStats.haz3Earned) unlock('haz3');       // triple corona — in-game
-    if(playerStats.haz4Earned) unlock('haz4');       // contraataque — in-game
-    if(playerStats.haz5Earned) unlock('haz5');       // modo difícil — in-game
-    if((playerStats.perfectConsecutiveGames||0)>=3) unlock('haz6'); // 3 partidas seguidas >20k
-    if(playerStats.haz7Earned) unlock('haz7');       // superar jugador >5k PL — in-game/leaderboard
-    if(playerStats.haz8Earned) unlock('haz8');       // récord por >10k — in-game
-
-    // --- KLICK PASS ---
-    const kpLevel = playerStats.klickPassLevel||0;
-    if(kpLevel>=1) unlock('kp1'); if(kpLevel>=25) unlock('kp2');
-    if(kpLevel>=50) unlock('kp3'); if(kpLevel>=75) unlock('kp4'); if(kpLevel>=100) unlock('kp5');
-
-    // --- RACHAS DE DÍAS EXTREMAS ---
-    const loginStreak = playerStats.maxLoginStreak||0;
-    if(loginStreak>=7)   unlock('dex1'); if(loginStreak>=14) unlock('dex2');
-    if(loginStreak>=30)  unlock('dex3'); if(loginStreak>=60) unlock('dex4');
-    if(loginStreak>=100) unlock('dex5');
-
-    // --- LOGROS SOCIALES ---
-    if((playerStats.daysInLeaderboard||0)>=5) unlock('soc1');
-    if((playerStats.top10ConsecutiveDays||0)>=3) unlock('soc2');
-    if(playerStats.soc3Earned) unlock('soc3'); // subir 10 posiciones en ranking — tracked leaderboard
-    // soc4: clasificación con rango Maestro+
-    if((rank==='Maestro'||rank==='Leyenda'||rank==='Mítico') && rp<=200) unlock('soc4');
-    // soc5: Top 5 con Leyenda o Mítico
-    if(rp<=5 && (rank==='Leyenda'||rank==='Mítico')) unlock('soc5');
-    // soc6: #1 durante 3 días consecutivos
-    if((playerStats.daysAtRankOne||0)>=3) unlock('soc6');
 
     if(playerStats.playedNocturno) unlock('fin1');
     if(playerStats.playedMadrugador) unlock('fin2');
@@ -2030,7 +2030,7 @@ function spinRoulette() {
     deckAnimating = true;
     const btn = document.getElementById('roulette-spin-btn');
     btn.disabled = true;
-    btn.innerText = 'Mezclando...';
+    btn.innerText = 'Girando...';
 
     // Determine winning prize via weighted random
     const total = ROULETTE_PRIZES.reduce((s, p) => s + p.weight, 0);
@@ -2041,39 +2041,46 @@ function spinRoulette() {
         if (rand <= 0) { winIdx = i; break; }
     }
 
-    // How many extra steps to scroll to land on winIdx at center slot (slot 2)?
-    // Current center = deckOffset (+ 2) % len. We want winIdx at center.
-    // We need deckOffset_final such that (deckOffset_final + 2) % len = winIdx
+    // targetOffset: deckOffset value that puts winIdx at center slot (slot 2)
+    // center prize = ROULETTE_PRIZES[(deckOffset + 2) % len]
     // => deckOffset_final = (winIdx - 2 + len) % len
-    // We'll add several full loops for effect
-    const LOOPS = 3 + Math.floor(Math.random() * 3);
-    const targetOffset = ((winIdx - 2) + ROULETTE_PRIZES.length * 100) % ROULETTE_PRIZES.length;
-    const totalSteps = LOOPS * ROULETTE_PRIZES.length + ((targetOffset - deckOffset + ROULETTE_PRIZES.length * 100) % ROULETTE_PRIZES.length);
+    const len = ROULETTE_PRIZES.length;
+    const targetOffset = ((winIdx - 2) % len + len) % len;
 
-    // Animate step by step with decelerating intervals
+    // Extra steps needed from current offset to target (always forward)
+    const extraSteps = ((targetOffset - deckOffset) % len + len) % len;
+
+    // Always spin at least 4 full loops; if extraSteps=0 add a full loop to avoid instant stop
+    const LOOPS = 4 + Math.floor(Math.random() * 3);
+    const totalSteps = LOOPS * len + (extraSteps === 0 ? len : extraSteps);
+
     let stepsDone = 0;
-    let tickInterval = null;
 
     function schedNext() {
         const progress = stepsDone / totalSteps;
-        // Ease-in: start fast (~60ms), ease-out to ~400ms at end
-        const eased = Math.pow(progress, 2.2);
-        const delay = 55 + eased * 380;
-        tickInterval = setTimeout(() => {
-            deckOffset = (deckOffset + 1) % ROULETTE_PRIZES.length;
+        // Cubic ease-out: starts fast, slows toward end
+        const eased = Math.pow(progress, 2.5);
+        const delay = 38 + eased * 430;
+        setTimeout(() => {
+            deckOffset = (deckOffset + 1) % len;
             applyDeckLayout(true);
             stepsDone++;
-            // SFX tick
             if (audioCtx) {
-                const freq = 800 - progress * 300;
-                schedNote(freq, 'square', audioCtx.currentTime, 0.035, 0.06);
+                const freq = 900 - progress * 420;
+                schedNote(freq, 'square', audioCtx.currentTime, 0.028, 0.05);
             }
             if (stepsDone < totalSteps) {
                 schedNext();
             } else {
+                // Verify and correct center card to guarantee correct prize
+                const centerIdx = (deckOffset + 2) % len;
+                if (centerIdx !== winIdx) {
+                    deckOffset = targetOffset;
+                    applyDeckLayout(false);
+                }
                 deckAnimating = false;
                 currentPrize = ROULETTE_PRIZES[winIdx];
-                setTimeout(() => showCardPrize(currentPrize), 320);
+                setTimeout(() => showCardPrize(currentPrize), 340);
             }
         }, delay);
     }
@@ -2248,9 +2255,8 @@ function closeRoulette() {
         // loadQuestion carga la pregunta con extraTimeActive ya seteado (se aplica dentro)
         loadQuestion();
         if (_hint) {
-            // applyHintVisual necesita que la pregunta ya esté en el DOM
-            // 150ms es suficiente para que los botones estén pintados
-            setTimeout(applyHintVisual, 180);
+            // applyHintVisual necesita que la pregunta ya esté en el DOM con respuestas mezcladas
+            setTimeout(applyHintVisual, 400);
         }
     }, 300);
 }
@@ -2756,14 +2762,14 @@ function loadQuestion() {
     (_gAnswersGrid||document.getElementById('answers-grid')).classList.remove('answered'); 
     answerBtns.forEach(btn => { 
         btn.classList.remove('selected'); 
-        btn.style.opacity = ''; btn.style.pointerEvents = ''; btn.style.filter = '';
+        btn.style.opacity = ''; btn.style.pointerEvents = ''; btn.style.filter = ''; btn.style.textDecoration = '';
     });
 
     // Lanza animación escalonada
     questionEl.classList.add('q-enter');
     answerBtns.forEach((btn, i) => {
-        btn.style.setProperty('--q-dur',   '0.4s');
-        btn.style.setProperty('--q-delay', `${0.06 + i * 0.055}s`);
+        btn.style.setProperty('--q-dur',   '0.32s');
+        btn.style.setProperty('--q-delay', `${0.04 + i * 0.04}s`);
         btn.classList.add('q-enter');
     });
     
@@ -2813,16 +2819,18 @@ function applyHintVisual() {
     // Disable one WRONG answer button on the currently loaded question
     const q = currentSessionQuestions[currentQuestionIndex];
     const correctIdx = q ? q.currentCorrectIndex : -1;
-    const btns = document.querySelectorAll('.answer-btn');
-    let hidden = false;
-    btns.forEach((btn, i) => {
-        if (!hidden && i !== correctIdx) {
-            btn.style.opacity = '0.2';
-            btn.style.pointerEvents = 'none';
-            btn.style.filter = 'grayscale(1)';
-            hidden = true;
-        }
-    });
+    if (correctIdx < 0) return;
+    const btns = _gAnswerBtns || document.querySelectorAll('.answer-btn');
+    // Pick a random wrong button to eliminate (not always index 0)
+    const wrongIdxs = [];
+    btns.forEach((btn, i) => { if (i !== correctIdx) wrongIdxs.push(i); });
+    if (!wrongIdxs.length) return;
+    const pick = wrongIdxs[Math.floor(Math.random() * wrongIdxs.length)];
+    btns[pick].style.opacity = '0.18';
+    btns[pick].style.pointerEvents = 'none';
+    btns[pick].style.filter = 'grayscale(1)';
+    // Add subtle strike-through visual
+    btns[pick].style.textDecoration = 'line-through';
 }
 
 function handleTimeout() {
@@ -2960,6 +2968,7 @@ function showFeedback(isCorrect, isTimeout = false) {
             SFX.correct();
             scr.className = 'screen shield';
             icon.innerHTML = SVG_SHIELD;
+            icon.style.color = '#00d4ff';
             title.innerText = '¡ESCUDO!';
             points.innerText = 'Protegido';
             points.style.borderColor = 'rgba(0,212,255,0.45)';
@@ -3029,7 +3038,7 @@ function showFeedback(isCorrect, isTimeout = false) {
                 if (_applyHint) hintActive = false;
                 loadQuestion();
                 switchScreen('question-screen');
-                if (_applyHint) setTimeout(applyHintVisual, 180);
+                if (_applyHint) setTimeout(applyHintVisual, 400);
             }
         } else {
             endGame();
@@ -3046,7 +3055,7 @@ function saveGameStats() {
     // x15: Punto de Quiebre — score exactamente 100k ±500 (tracked per-game, bestScore check alone fails once exceeded)
     if(score >= 99500 && score <= 100500) playerStats.hitExactly100k = true;
     if(!playerStats.maxQuestionReached || currentQuestionIndex > playerStats.maxQuestionReached) playerStats.maxQuestionReached = currentQuestionIndex;
-    if(currentQuestionIndex >= 50 && currentWrongAnswers === 0 && currentTimeoutAnswers === 0) playerStats.perfectGames = (playerStats.perfectGames||0) + 1;
+    if(currentQuestionIndex >= 10 && currentWrongAnswers === 0 && currentTimeoutAnswers === 0) playerStats.perfectGames = (playerStats.perfectGames||0) + 1;
     // x16: Regreso Triunfal — tras no jugar un día, supera su último récord
     if((playerStats.missedADay||false) && score > prevBest && prevBest > 0) playerStats.returnTriumph = (playerStats.returnTriumph||0) + 1;
     playerStats.missedADay = false; // reset once they play
@@ -3375,8 +3384,8 @@ const _KP_REWARDS = [
 ];
 
 // ── Condiciones de misión (usan playerStats en tiempo real) ───────────
-// Nota: perfectGames se incrementa cuando currentQuestionIndex >= 50 Y sin errores.
-// En saveGameStats: if(currentQuestionIndex >= 50) perfectGames++
+// Nota: perfectGames se incrementa cuando currentQuestionIndex >= 10 Y sin errores.
+// En saveGameStats: if(currentQuestionIndex >= 10) perfectGames++
 // Eso es "partida larga sin importar errores". Aquí usamos hadPerfectAccuracyGame
 // que es la verdadera "partida sin errores" (≥5 preguntas, 0 wrong, 0 timeout).
 // Para niveles "Sin Fallos" usamos un contador propio en kpState.perfectNoError.
@@ -3811,7 +3820,7 @@ _kpUpdateMenuBadge();
 // ════════════════════════════════════ END KLICK PASS ═════════════════
 
 
-setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); }, 500);
+setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); applyPerfMode(playerStats.perfMode || 'high'); }, 500);
 
 // ══════════════════════════════════════════════════════════════════
 //  SERVICE WORKER — Auto-actualización silenciosa
