@@ -643,64 +643,10 @@ function _ksRecordAnswer(isCorrect) {
 // ksWarnings: array de {date, weight, signals} — no tienen penalización
 // Solo después de 3 advertencias activas (últimos 30 días) se sanciona
 function _ksAnalyzeSession(sessionAbandoned) {
-    const isAdmin = playerStats.playerName && playerStats.playerName.toUpperCase() === 'CHRISTOPHER';
-    if (isAdmin) { _ksReset(); return; }
-
-    let weight = _ksWeight;
-    if (weight <= 0) { _ksReset(); return; }
-
-    const gamesPlayed  = playerStats.gamesPlayed || 0;
-    const bestScore    = playerStats.bestScore    || 0;
-    const sessionScore = _ksSessionScore || 0;
-    const hasAnyFail   = _ksRespTimings.some(r => !r.correct);
-    const hasTimeout   = _ksRespTimings.some(r => r.ms >= 14000); // timeout = respondió al límite
-
-    if (gamesPlayed <= 3)         weight *= 0.50;  // cuenta muy nueva
-    if (gamesPlayed >= 30)        weight *= 0.80;
-    if (bestScore > 0 && sessionScore <= bestScore * 1.35) weight *= 0.85;
-    if (hasAnyFail || hasTimeout) weight *= 0.70;
-    if (_KS_IS_IPAD)              weight *= 0.82;
-    if (sessionAbandoned)         weight *= 0.50;
-
-    weight = Math.round(weight);
-
-    if (weight <= 6) {
-        // Sesión limpia — mostrar feedback positivo si hay partida completa
-        if (!sessionAbandoned) _ksShowPostGameFeedback('clean', weight);
-        _ksReset(); return;
-    }
-
-    const now     = new Date().toISOString();
-    const signals = [..._ksSignals];
-    const capturedWeight = weight;
+    // Sistema de sanciones desactivado — el juego funciona en todos los dispositivos.
+    // Solo mostramos feedback positivo al terminar una partida completa.
+    if (!sessionAbandoned) _ksShowPostGameFeedback('clean', 0);
     _ksReset();
-
-    // ── Nivel bajo: acumular sesiones sospechosas ──
-    if (weight <= 11) {
-        const sus = playerStats.ksSuspicious || [];
-        sus.push({ date: now, weight, signals });
-        if (sus.length > 20) sus.splice(0, sus.length - 20);
-        playerStats.ksSuspicious = sus;
-        const sevenDays = Date.now() - 7 * 24 * 3600 * 1000;
-        const recentSus = sus.filter(x => new Date(x.date).getTime() > sevenDays);
-        if (recentSus.length >= 3) {
-            // Acumuló 3 sesiones sospechosas → escalar a advertencia
-            playerStats.ksSuspicious = [];
-            _ksApplyWarning(now, capturedWeight, signals);
-        } else {
-            _ksShowPostGameFeedback('watch', capturedWeight);
-        }
-        saveStatsLocally(); submitLeaderboard(); return;
-    }
-
-    // ── Nivel medio: advertencia directa ──
-    if (weight <= 19) {
-        _ksApplyWarning(now, capturedWeight, signals);
-        saveStatsLocally(); submitLeaderboard(); return;
-    }
-
-    // ── Nivel alto: sanción (pero primero verificar si tiene < 3 advertencias) ──
-    _ksApplySanctionOrWarn(now, capturedWeight, signals);
 }
 
 // Aplica una advertencia formal sin penalización (hasta 3 antes de sancionar)
@@ -1447,6 +1393,14 @@ const STORAGE_KEY = 'klick_player_data_permanent';
 let savedData = '{}';
 try { savedData = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('klickStats_v9') || '{}'; } catch(e) {}
 let playerStats = { ...defaultStats, ...JSON.parse(savedData) };
+
+// Limpiar sanciones y bans existentes del Klick Shield — el sistema de sanciones
+// ha sido desactivado para garantizar compatibilidad universal con todos los dispositivos.
+playerStats.ksBanUntil     = null;
+playerStats.ksReviewStatus = null;
+playerStats.ksWarnings     = [];
+playerStats.ksSuspicious   = [];
+playerStats.ksInfractions  = [];
 
 if(!playerStats.uuid) playerStats.uuid = generateUUID();
 // CHRISTOPHER: UUID canónico fijo — garantiza una sola entrada en el leaderboard,
