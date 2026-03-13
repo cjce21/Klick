@@ -715,23 +715,67 @@ function renderPerfSelector() {
     const current = playerStats.perfMode || 'high';
     const isLight = document.body.classList.contains('light-mode');
     container.innerHTML = '';
-    // Compact pill row — much smaller than the old card style
     container.style.cssText = 'display:flex;gap:6px;flex-wrap:nowrap;';
+
+    // Descriptions richer so Alto vs Ultra are clearly different
+    const PERF_DESCS = {
+        eco:      '30 FPS · Mín',
+        balanced: '60 FPS · Std',
+        high:     '120 FPS · HD',
+        ultra:    '240 FPS · MAX'
+    };
+
     Object.entries(PERF_MODES).forEach(([key, cfg]) => {
         const active = key === current;
+        const isUltra = key === 'ultra';
         const btn = document.createElement('div');
+
+        // Ultra gets a special golden border when active, a subtle shimmer background when not
+        let borderCol, bgCol;
+        if (active) {
+            borderCol = isUltra ? '#ffb800' : 'var(--rank-color)';
+            bgCol = isUltra
+                ? (isLight ? 'rgba(255,184,0,0.12)' : 'rgba(255,184,0,0.14)')
+                : `rgba(var(--rank-rgb),0.14)`;
+        } else {
+            borderCol = isUltra
+                ? (isLight ? 'rgba(180,120,0,0.25)' : 'rgba(255,184,0,0.18)')
+                : (isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.1)');
+            bgCol = isUltra
+                ? (isLight ? 'rgba(255,184,0,0.05)' : 'rgba(255,184,0,0.05)')
+                : 'transparent';
+        }
+
         btn.style.cssText = `
             flex:1; min-width:0; padding:6px 4px; border-radius:20px; cursor:pointer;
             display:flex; flex-direction:column; align-items:center; gap:2px;
-            border:1.5px solid ${active ? 'var(--rank-color)' : (isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.1)')};
-            background:${active ? 'rgba(var(--rank-rgb),0.14)' : 'transparent'};
+            border:1.5px solid ${borderCol};
+            background:${bgCol};
             transition:all 0.18s ease;
+            position:relative;
         `;
+
+        const iconColor = active
+            ? (isUltra ? '#ffb800' : 'var(--rank-color)')
+            : 'var(--text-secondary)';
+        const labelColor = active
+            ? (isUltra ? (isLight ? '#8a5e00' : '#ffb800') : 'var(--rank-color)')
+            : 'var(--text-primary)';
+
         btn.innerHTML = `
-            <div style="width:14px;height:14px;flex-shrink:0;color:${active ? 'var(--rank-color)' : 'var(--text-secondary)'};">${cfg.icon}</div>
-            <div style="font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;color:${active ? 'var(--rank-color)' : 'var(--text-primary)'};white-space:nowrap;">${cfg.label}</div>
-            <div style="font-size:0.52rem;color:var(--text-secondary);white-space:nowrap;">${cfg.desc}</div>
+            <div style="width:14px;height:14px;flex-shrink:0;color:${iconColor};">${cfg.icon}</div>
+            <div style="font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;color:${labelColor};white-space:nowrap;">${cfg.label}</div>
+            <div style="font-size:0.5rem;color:${active && isUltra ? (isLight?'#8a5e00':'rgba(255,184,0,0.8)') : 'var(--text-secondary)'};white-space:nowrap;">${PERF_DESCS[key]}</div>
         `;
+
+        // Mark Ultra as top tier with a MAX label dot
+        if (isUltra && active) {
+            const marker = document.createElement('span');
+            marker.style.cssText = `position:absolute;top:-5px;right:2px;font-size:7px;font-weight:900;letter-spacing:0.5px;line-height:1;color:${isLight?'#8a5e00':'#ffb800'};text-transform:uppercase;`;
+            marker.textContent = 'MAX';
+            btn.appendChild(marker);
+        }
+
         btn.onclick = () => { SFX.click(); applyPerfMode(key); document.getElementById('val-perf').innerText = cfg.label; };
         container.appendChild(btn);
     });
@@ -1974,6 +2018,7 @@ let shieldActive = false;
 let hintActive = false;
 let extraTimeActive = 0;
 let streakShieldActive = false;
+let frenzyNextQuestion = false; // frenzy queued for next question start
 let totalCorrectThisGame = 0; // counts all corrects in game for roulette trigger
 let nextRouletteTrigger = 10; // fire roulette when this many corrects reached
 
@@ -2278,25 +2323,9 @@ function collectRoulettePrize() {
         activeBoostNextQ = 'jackpot';
         showToast('JACKPOT x4', 'La próxima pregunta vale x4 puntos.', '#ff0090', SVG_STAR);
     } else if (prize.id === 'frenzy') {
-        // Forzar al menos multiplicador x2 (streak >= 5).
-        // Si ya está en frenesí, subir un nivel más (streak += 5) hasta el tope de x10 (streak 45).
-        const prevStreak = streak;
-        if (streak < 5) {
-            streak = 5;
-        } else {
-            streak = Math.min(streak + 5, 45);
-        }
-        if (streak > currentMaxStreak) currentMaxStreak = streak;
-        // ANTI-EXPLOIT: solo contar frenzy si se cruzó un nuevo umbral de multiplicador.
-        // Evita doble conteo con la lógica natural de streak % 5 === 0 en showFeedback.
-        if (Math.floor(streak / 5) > Math.floor(prevStreak / 5)) {
-            playerStats.frenziesTriggered = (playerStats.frenziesTriggered || 0) + 1;
-            frenziesThisGame++;
-            if (frenziesThisGame > (playerStats.maxFrenziesInGame || 0)) playerStats.maxFrenziesInGame = frenziesThisGame;
-        }
-        updateMultiplierUI();
-        updateStreakVisuals();
-        showToast('¡FRENESÍ ACTIVADO!', 'Modo Frenesí activado por la ruleta.', '#b5179e', SVG_FIRE);
+        // Guardar flag — el frenesí se activa al inicio de la siguiente pregunta (no al cobrar)
+        frenzyNextQuestion = true;
+        showToast('FRENESÍ LISTO', 'El multiplicador subirá al empezar la siguiente pregunta.', '#b5179e', SVG_FIRE);
     } else if (prize.id === 'time') {
         extraTimeActive = 5;
         showToast('+5 SEGUNDOS', 'La próxima pregunta tendrá tiempo extra.', '#00ff66', SVG_CLOCK);
@@ -2325,6 +2354,7 @@ function updateRewardIndicator() {
     else if (activeBoostNextQ === 'jackpot') { label = 'Jackpot x4 activo'; icon = 'x4'; color = '#ff0090'; }
     else if (shieldActive) { label = 'Escudo activo'; icon = '+1'; color = '#00d4ff'; }
     else if (hintActive) { label = 'Pista lista'; icon = '?'; color = '#f77f00'; }
+    else if (frenzyNextQuestion) { label = 'Frenesí listo'; icon = 'FZ'; color = '#b5179e'; }
     else if (extraTimeActive > 0) { label = `+${extraTimeActive}s de tiempo`; icon = '+t'; color = '#00ff66'; }
     else if (streakShieldActive) { label = 'Racha protegida'; icon = 'R+'; color = '#aaaaff'; }
     if (label) {
@@ -2344,18 +2374,31 @@ function closeRoulette() {
     currentPrize = null;
     deckAnimating = false;
     isGamePaused = false;
-    // Capturar el estado de hintActive ANTES de cualquier cosa
-    // (loadQuestion no lo usa, applyHintVisual sí — no resetear hasta después)
-    const _hint = hintActive;
-    if (_hint) hintActive = false; // limpiar flag ya que se va a aplicar ahora
+    // NO limpiar hintActive aquí — se limpia en applyHintVisual después de aplicarse.
+    // Así el indicador de recompensa puede mostrarlo correctamente.
     switchScreen('question-screen');
     updateRewardIndicator();
     setTimeout(() => {
-        // loadQuestion carga la pregunta con extraTimeActive ya seteado (se aplica dentro)
         loadQuestion();
-        if (_hint) {
+        if (hintActive) {
             // applyHintVisual necesita que la pregunta ya esté en el DOM con respuestas mezcladas
-            setTimeout(applyHintVisual, 400);
+            setTimeout(applyHintVisual, 420);
+        }
+        if (frenzyNextQuestion) {
+            // Activar Frenesí al inicio de la siguiente pregunta (no al cobrar)
+            frenzyNextQuestion = false;
+            const prevStreak = streak;
+            if (streak < 5) streak = 5;
+            else streak = Math.min(streak + 5, 45);
+            if (streak > currentMaxStreak) currentMaxStreak = streak;
+            if (Math.floor(streak / 5) > Math.floor(prevStreak / 5)) {
+                playerStats.frenziesTriggered = (playerStats.frenziesTriggered || 0) + 1;
+                frenziesThisGame++;
+                if (frenziesThisGame > (playerStats.maxFrenziesInGame || 0)) playerStats.maxFrenziesInGame = frenziesThisGame;
+            }
+            updateMultiplierUI();
+            updateStreakVisuals();
+            showToast('MODO FRENESÍ', 'El multiplicador se ha disparado.', '#b5179e', SVG_FIRE);
         }
     }, 300);
 }
@@ -2709,7 +2752,7 @@ function startGame() {
     lastSecondAnswers = 0; ultraFastStreak = 0; currentNoTimeoutStreak = 0; livesLostThisGame = 0; consecutiveLivesLost = 0; frenziesThisGame = 0;
     // Reset roulette state for new game
     totalCorrectThisGame = 0; nextRouletteTrigger = 10;
-    activeBoostNextQ = null; shieldActive = false; hintActive = false; extraTimeActive = 0; streakShieldActive = false;
+    activeBoostNextQ = null; shieldActive = false; hintActive = false; extraTimeActive = 0; streakShieldActive = false; frenzyNextQuestion = false;
     const arb = document.getElementById('active-reward-bar'); if(arb) arb.style.display = 'none';
     
     document.getElementById('lives-container').style.display = 'flex';
@@ -2921,7 +2964,7 @@ function applyHintVisual() {
     const correctIdx = q ? q.currentCorrectIndex : -1;
     if (correctIdx < 0) return;
     const btns = _gAnswerBtns || document.querySelectorAll('.answer-btn');
-    // Pick a random wrong button to eliminate (not always index 0)
+    // Pick a random wrong button to eliminate
     const wrongIdxs = [];
     btns.forEach((btn, i) => { if (i !== correctIdx) wrongIdxs.push(i); });
     if (!wrongIdxs.length) return;
@@ -2929,8 +2972,10 @@ function applyHintVisual() {
     btns[pick].style.opacity = '0.18';
     btns[pick].style.pointerEvents = 'none';
     btns[pick].style.filter = 'grayscale(1)';
-    // Add subtle strike-through visual
     btns[pick].style.textDecoration = 'line-through';
+    // Limpiar el flag DESPUÉS de aplicar el efecto visual
+    hintActive = false;
+    updateRewardIndicator();
 }
 
 function handleTimeout() {
@@ -2977,9 +3022,24 @@ function replayGame() {
     startGame();
 }
 
+let _scoreAnimTimer = null;
 function animateScore(target) {
-    const el = document.getElementById('score-display'); let curr = parseInt(el.innerText); const diff = target - curr; if(diff <= 0) return;
-    const step = Math.ceil(diff / 20), t = setInterval(() => { curr += step; if(curr >= target) { curr = target; clearInterval(t); } el.innerText = curr; }, 20);
+    const el = document.getElementById('score-display');
+    if (!el) return;
+    // Cancel any running animation and sync from actual score variable
+    if (_scoreAnimTimer) { clearInterval(_scoreAnimTimer); _scoreAnimTimer = null; }
+    let curr = parseInt(el.innerText) || 0;
+    // Ensure we start from a valid base (never above target)
+    if (curr > target) curr = 0;
+    const diff = target - curr;
+    if (diff <= 0) { el.innerText = target; return; }
+    const steps = 20;
+    const step = Math.max(1, Math.ceil(diff / steps));
+    _scoreAnimTimer = setInterval(() => {
+        curr += step;
+        if (curr >= target) { curr = target; clearInterval(_scoreAnimTimer); _scoreAnimTimer = null; }
+        el.innerText = curr;
+    }, 18);
 }
 
 function showFeedback(isCorrect, isTimeout = false) {
@@ -2998,6 +3058,8 @@ function showFeedback(isCorrect, isTimeout = false) {
         else if (activeBoostNextQ === 'triple') { boostMult = multiplier * 3; activeBoostNextQ = null; }
         else if (activeBoostNextQ === 'jackpot') { boostMult = multiplier * 4; activeBoostNextQ = null; }
         earned = earned * boostMult;
+        // Consume escudo si estaba activo pero no fue necesario (acierto normal)
+        if (shieldActive) { shieldActive = false; updateRewardIndicator(); }
         updateRewardIndicator();
         score += earned; streak++; if(streak > currentMaxStreak) currentMaxStreak = streak;
         totalCorrectThisGame++;
@@ -3078,6 +3140,8 @@ function showFeedback(isCorrect, isTimeout = false) {
         } else {
             // Boost powers are lost on a wrong answer / timeout (no carry-over)
             activeBoostNextQ = null;
+            frenzyNextQuestion = false; // frenesí pendiente también se pierde al fallar
+            if (hintActive) { hintActive = false; } // pista no usada se pierde al fallar
             updateRewardIndicator();
             SFX.incorrect(); 
             if (isTimeout) { scr.className = 'screen timeout'; icon.innerHTML = SVG_TIMEOUT; title.innerText = "TIEMPO"; } 
@@ -3086,8 +3150,15 @@ function showFeedback(isCorrect, isTimeout = false) {
             if (streakShieldActive) {
                 streakShieldActive = false;
                 updateRewardIndicator();
-                showToast('RACHA PROTEGIDA', 'Tu racha ha sido salvada.', '#aaaaff', SVG_SHIELD);
-                // Don't reset streak, but do lose a life
+                if (streak > 0) {
+                    showToast('RACHA PROTEGIDA', 'Tu racha ha sido salvada.', '#aaaaff', SVG_SHIELD);
+                    // No resetear racha
+                } else {
+                    // Escudo consumido sin racha que proteger — igual se consume
+                    showToast('ESCUDO DE RACHA', 'Sin racha activa, el escudo no pudo actuar.', '#aaaaff', SVG_SHIELD);
+                    streak = 0;
+                    playerStats.currentFrenzyStreak = 0;
+                }
             } else {
                 streak = 0;
                 playerStats.currentFrenzyStreak = 0;
@@ -3134,11 +3205,27 @@ function showFeedback(isCorrect, isTimeout = false) {
                 nextRouletteTrigger += 10;
                 showRoulette();
             } else {
-                const _applyHint = hintActive;
-                if (_applyHint) hintActive = false;
                 loadQuestion();
                 switchScreen('question-screen');
-                if (_applyHint) setTimeout(applyHintVisual, 400);
+                if (hintActive) {
+                    // applyHintVisual limpia hintActive después de aplicarse
+                    setTimeout(applyHintVisual, 420);
+                }
+                if (frenzyNextQuestion) {
+                    frenzyNextQuestion = false;
+                    const prevStreak = streak;
+                    if (streak < 5) streak = 5;
+                    else streak = Math.min(streak + 5, 45);
+                    if (streak > currentMaxStreak) currentMaxStreak = streak;
+                    if (Math.floor(streak / 5) > Math.floor(prevStreak / 5)) {
+                        playerStats.frenziesTriggered = (playerStats.frenziesTriggered || 0) + 1;
+                        frenziesThisGame++;
+                        if (frenziesThisGame > (playerStats.maxFrenziesInGame || 0)) playerStats.maxFrenziesInGame = frenziesThisGame;
+                    }
+                    updateMultiplierUI();
+                    updateStreakVisuals();
+                    showToast('MODO FRENESÍ', 'El multiplicador se ha disparado.', '#b5179e', SVG_FIRE);
+                }
             }
         } else {
             endGame();
@@ -3195,7 +3282,21 @@ function saveGameStats() {
 }
 
 function endGame() {
+    const prevBestBeforeSave = playerStats.bestScore || 0;
     document.getElementById('final-score-display').innerText = score.toLocaleString(); saveGameStats();
+    
+    // Show NEW RECORD pill if this game beat the previous best
+    const recordPill = document.getElementById('end-new-record-pill');
+    if (recordPill) {
+        if (score > prevBestBeforeSave && prevBestBeforeSave > 0) {
+            recordPill.style.display = 'flex';
+        } else if (prevBestBeforeSave === 0 && score > 0) {
+            // First ever score also counts
+            recordPill.style.display = 'flex';
+        } else {
+            recordPill.style.display = 'none';
+        }
+    }
     
     SFX.gameEnd();
     
@@ -3976,7 +4077,7 @@ setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStat
                         'backdrop-filter:blur(8px);pointer-events:none',
                         'font-family:Inter,sans-serif;letter-spacing:0.5px'
                     ].join(';');
-                    b.textContent = '⚡ Nueva versión disponible — se aplicará al terminar la partida';
+                    b.textContent = 'Nueva versión disponible — se aplicará al terminar la partida';
                     document.body.appendChild(b);
                 }
                 // Reintentar cada 4 segundos hasta salir de partida
