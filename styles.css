@@ -705,7 +705,7 @@ body.light-mode .pl-calc-divider { background:rgba(0,0,0,0.07); }
 .profile-achievements-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(2, 1fr);
+    grid-template-rows: repeat(3, 1fr);
     gap: 10px;
     width: 100%;
     flex: 1;
@@ -1723,7 +1723,7 @@ body.light-mode .kp-tramo-sep { border-bottom-color: var(--bg-elevated); }
     .answer-btn { padding: 15px; font-size: 1rem; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .guide-grid { grid-template-columns: 1fr; }
-    .profile-achievements-grid { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); gap: 8px; }
+    .profile-achievements-grid { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 8px; }
     .settings-grid { grid-template-columns: 1fr; }
     .toast-container { bottom: auto; top: 20px; right: 50%; transform: translateX(50%); width: 90%; }
     .toast-item { transform: translateY(-120%); }
