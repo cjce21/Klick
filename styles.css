@@ -50,6 +50,21 @@ html.perf-eco .q-enter {
     animation-duration: 0.12s !important;
 }
 
+/* ── Modo Ultra: indicadores visuales distintivos ── */
+html.perf-ultra #app {
+    background: radial-gradient(circle at 50% -20%, rgba(var(--rank-rgb), 0.06) 0%, transparent 65%);
+}
+html.perf-ultra #app.streak-active {
+    animation: streak-pulse 1s infinite alternate ease-out;
+}
+html.perf-ultra .answer-btn {
+    transition: background-color 0.12s, border-color 0.12s, transform 0.1s;
+}
+html.perf-ultra .screen {
+    transition: opacity 0.18s cubic-bezier(0.16,1,0.3,1), transform 0.18s cubic-bezier(0.16,1,0.3,1), visibility 0.18s;
+}
+/* Ultra badge indicator on the perf selector — handled in JS renderPerfSelector */
+
 * { 
     box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; 
     user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
@@ -870,10 +885,12 @@ body.light-mode .rank-full-card.mitico-item {
     background: rgba(0,0,0,0.025) !important;
 }
 body.light-mode .mitico-name {
-    background: linear-gradient(90deg, #222, #000, #333);
+    background: linear-gradient(90deg, #1a1a1a, #000000, #2a2a2a);
     background-size: 200% auto;
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     background-clip: text; color: transparent;
+    animation: none;
+    filter: none;
 }
 
 /* ── Divisor visual antes del Podio ── */
@@ -906,6 +923,35 @@ body.light-mode .rfc-desc { color: var(--text-secondary); }
 body.light-mode .rfc-req { color: var(--text-secondary); }
 body.light-mode .ranks-section-label { color: var(--text-secondary); }
 body.light-mode .rfc-req svg { opacity: 0.5; }
+
+/* Mítico en modo claro — sobreescribir todos los estilos inline blancos */
+body.light-mode .rank-full-card.mitico-item .rfc-badge {
+    border-color: rgba(0,0,0,0.2) !important;
+    color: #222 !important;
+}
+body.light-mode .rank-full-card.mitico-item .rfc-dot {
+    background: #222 !important;
+    box-shadow: none !important;
+}
+body.light-mode .rank-full-card.mitico-item .rfc-desc,
+body.light-mode .rank-full-card.mitico-item .rfc-req {
+    color: var(--text-secondary) !important;
+}
+body.light-mode .rank-full-card.mitico-item .rfc-req strong,
+body.light-mode .rank-full-card.mitico-item .rfc-desc strong {
+    color: #0d1117 !important;
+}
+body.light-mode .rank-full-card.mitico-item .rfc-req svg {
+    color: var(--text-secondary) !important;
+}
+/* Mítico: border inline blanco → oscuro */
+body.light-mode .rank-full-card.mitico-item[style*="border-left:4px solid rgba(255,255,255"] {
+    border-left-color: rgba(0,0,0,0.35) !important;
+}
+/* rfc-req strong dentro de cualquier tarjeta en modo claro */
+body.light-mode .rfc-req strong { color: var(--text-primary); }
+/* rfc-dot box-shadow neon — eliminar en modo claro */
+body.light-mode .rfc-dot { box-shadow: none !important; }
 
 /* Podio — colores legibles en modo claro */
 body.light-mode [style*="color:#6e8fad"],
@@ -1126,6 +1172,36 @@ body.light-mode .guide-card { background: rgba(0,0,0,0.02); border-color: rgba(0
 .toast-icon { width: 24px; height: 24px; color: var(--accent-yellow); }
 .toast-title { font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 800; display: block; }
 .toast-name { font-size: 0.85rem; color: var(--text-primary); font-weight: 800; }
+
+/* ── Píldora de Nuevo Récord (pantalla de resultados) ── */
+.end-new-record-pill {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 18px;
+    border-radius: 50px;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #6b4500;
+    background: linear-gradient(135deg, #ffe066 0%, #ffb800 50%, #ff9500 100%);
+    border: 1.5px solid rgba(255,184,0,0.6);
+    box-shadow: 0 0 18px rgba(255,184,0,0.45), 0 4px 12px rgba(0,0,0,0.3);
+    animation: record-pill-pop 0.5s 0.55s var(--ease-spring) both;
+    position: relative;
+    z-index: 2;
+}
+@keyframes record-pill-pop {
+    from { transform: scale(0.5) translateY(10px); opacity: 0; }
+    to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+body.light-mode .end-new-record-pill {
+    color: #5a3000;
+    background: linear-gradient(135deg, #ffd840 0%, #ffb800 60%, #e08000 100%);
+    border-color: rgba(180,120,0,0.5);
+    box-shadow: 0 0 12px rgba(180,120,0,0.3), 0 3px 8px rgba(0,0,0,0.1);
+}
 
 /* --- Animaciones Frenesí Escalables --- */
 @keyframes frenzy-pulse-x2 { 0%,100%{text-shadow:0 0 10px rgba(247,127,0,0.6);} 50%{text-shadow:0 0 20px rgba(247,127,0,1);} }
