@@ -1,55 +1,3 @@
-// --- SISTEMAS DE PROTECCIÓN ANTI-TRAMPAS ---
-document.addEventListener('contextmenu', e => e.preventDefault());
-
-document.addEventListener('keydown', e => {
-    if (e.keyCode === 123 || 
-        (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || 
-        (e.ctrlKey && (e.keyCode === 85 || e.keyCode === 67 || e.keyCode === 83 || e.keyCode === 80))) { 
-        e.preventDefault();
-        return false;
-    }
-});
-
-let _cheaterCooldown = false;
-document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === 'hidden' && isAnsweringAllowed && !isGamePaused) {
-        if (_cheaterCooldown) return; _cheaterCooldown = true;
-        setTimeout(() => { _cheaterCooldown = false; }, 3000);
-        punishCheater();
-    }
-});
-window.addEventListener("blur", () => {
-    if (isAnsweringAllowed && !isGamePaused) {
-        if (_cheaterCooldown) return; _cheaterCooldown = true;
-        setTimeout(() => { _cheaterCooldown = false; }, 3000);
-        punishCheater();
-    }
-});
-
-function punishCheater() {
-    if(!isAnsweringAllowed || isGamePaused) return;
-    isAnsweringAllowed = false;
-    clearInterval(timerInterval);
-    
-    const penalty = 2000; 
-    playerStats.totalScore = Math.max(0, playerStats.totalScore - penalty);
-    
-    // --- LOGRO OCULTO TRAMPOSO ---
-    if (!playerStats.achievements.includes('tramposo')) {
-        playerStats.achievements.push('tramposo');
-    }
-
-    saveStatsLocally();
-    submitLeaderboard(); 
-    
-    initAudio(); SFX.incorrect();
-    showToast('¡Trampa detectada!', `Has recibido la marca permanente de Tramposo.`, 'var(--accent-red)', SVG_SKULL);
-    
-    document.getElementById('app').classList.remove('streak-active');
-    streak = 0;
-    switchScreen('start-screen');
-}
-
 // --- GENERACIÓN DE UUID ---
 function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -931,7 +879,6 @@ async function loadQuestions() {
 const ACHIEVEMENTS_DATA = [];
 const colors = { blue: 'var(--accent-blue)', green: 'var(--accent-green)', yellow: 'var(--accent-yellow)', orange: 'var(--accent-orange)', red: 'var(--accent-red)', purple: 'var(--accent-purple)', dark: 'var(--text-secondary)' };
 
-const CHEATER_ACHIEVEMENT = { id: 'tramposo', title: 'TRAMPOSO', desc: 'Infringió las normas. Marca imborrable.', color: 'var(--accent-red)', icon: SVG_SKULL };
 
 function addAchs(arr) { arr.forEach(a => ACHIEVEMENTS_DATA.push(a)); }
 
@@ -1257,22 +1204,12 @@ function _checkAchievementsImpl() {
         } 
     };
     
-    if (achSet.has('tramposo')) {
-        if (!playerStats.pinnedAchievements.includes('tramposo')) {
-            playerStats.pinnedAchievements.unshift('tramposo');
-            if (playerStats.pinnedAchievements.length > 3) playerStats.pinnedAchievements.pop();
-        } else if (playerStats.pinnedAchievements.indexOf('tramposo') !== 0) {
-            playerStats.pinnedAchievements.splice(playerStats.pinnedAchievements.indexOf('tramposo'), 1);
-            playerStats.pinnedAchievements.unshift('tramposo');
-        }
-    }
-
-    const normalAchs = playerStats.achievements.filter(id => id !== 'tramposo').length;
+    const normalAchs = playerStats.achievements.length;
 
     // META
     if (playerStats.nameChanges >= 1) unlock('m1'); if (playerStats.nameChanges >= 5) unlock('m2'); if (playerStats.nameChanges >= 20) unlock('m3');
     if (playerStats.achViews >= 1) unlock('m4'); if (playerStats.achViews >= 10) unlock('m5'); if (playerStats.achViews >= 50) unlock('m6');
-    if (playerStats.pinnedAchievements.filter(id => id !== 'tramposo').length > 0) unlock('m7'); 
+    if (playerStats.pinnedAchievements.length > 0) unlock('m7'); 
     if (normalAchs >= 10) unlock('m8'); if (normalAchs >= 50) unlock('m9'); if (normalAchs >= 100) unlock('m10');
     if (normalAchs >= 150) unlock('master1'); if (normalAchs >= 200) unlock('master2'); if (normalAchs >= 225) unlock('master4'); if (normalAchs >= 250) unlock('master3');
 
@@ -1489,10 +1426,6 @@ function _checkAchievementsImpl() {
 }
 
 function togglePin(achId) {
-    if (achId === 'tramposo') { 
-        showToast('Condena Permanente', 'Los tramposos no pueden ocultar sus actos.', 'var(--accent-red)', SVG_SKULL); 
-        return; 
-    }
     if (!playerStats.achievements.includes(achId)) return; SFX.click(); const index = playerStats.pinnedAchievements.indexOf(achId);
     if (index > -1) { playerStats.pinnedAchievements.splice(index, 1); showToast('Quitado del perfil', 'Ya no aparecerá destacado.', 'var(--text-secondary)', SVG_PIN); } 
     else { if (playerStats.pinnedAchievements.length >= 3) { showToast('Límite', 'Máximo 3 fijados', 'var(--accent-red)', SVG_INCORRECT); return; } playerStats.pinnedAchievements.push(achId); playerStats.totalPins = (playerStats.totalPins||0) + 1; const ach_data = ACHIEVEMENTS_DATA.find(a => a.id === achId); showToast('Fijado en Perfil', ach_data ? ach_data.title : achId, ach_data ? ach_data.color : '', ach_data ? ach_data.icon : ''); }
@@ -1508,13 +1441,11 @@ function getAchRarity(id) { return RARITY_SCORE[id] || 10; }
 
 function getAutoProfileAchs() {
     const result = [];
-    if (playerStats.achievements.includes('tramposo')) result.push('tramposo');
     playerStats.pinnedAchievements
-        .filter(id => id !== 'tramposo')
         .forEach(id => { if (result.length < 3 && playerStats.achievements.includes(id)) result.push(id); });
     if (result.length < 3) {
         const rest = playerStats.achievements
-            .filter(id => id !== 'tramposo' && !result.includes(id))
+            .filter(id => !result.includes(id))
             .sort((a,b) => getAchRarity(b) - getAchRarity(a));
         rest.forEach(id => { if (result.length < 3) result.push(id); });
     }
@@ -1691,7 +1622,6 @@ function renderAchievements() {
         _vsDisplayPin.forEach(id => {
             if (n >= 3) return;
             let ach = ACHIEVEMENTS_DATA.find(a => a.id === id);
-            if (id === 'tramposo') ach = CHEATER_ACHIEVEMENT;
             if (!ach) return;
             const slot = document.createElement('div');
             slot.className = 'achievement-slot unlocked';
@@ -1712,7 +1642,7 @@ function renderAchievements() {
     }
 
     const el = document.getElementById('achievements-progress-text');
-    if (el) el.innerText = `Desbloqueados: ${_vsAchSet.size - (_vsAchSet.has('tramposo') ? 1 : 0)} / ${ACHIEVEMENTS_DATA.length}`;
+    if (el) el.innerText = `Desbloqueados: ${_vsAchSet.size} / ${ACHIEVEMENTS_DATA.length}`;
 }
 
 // initializeAchievementsDOM y achCardElements ya no son necesarios con el virtual scroller
@@ -2398,35 +2328,6 @@ async function startGameCheck() {
         SFX.incorrect(); goToProfile(true); 
         return;
     }
-
-    // ── Anti-trampa: detectar condiciones sospechosas ANTES de iniciar ──────
-    // 1. Documento oculto o en segundo plano
-    if (document.visibilityState === 'hidden' || document.hidden) {
-        showToast('No se puede iniciar', 'La ventana no está en primer plano.', 'var(--accent-red)', SVG_SKULL);
-        return;
-    }
-    // 2. Picture-in-Picture activo
-    if (document.pictureInPictureElement) {
-        showToast('No se puede iniciar', 'Desactiva el modo Picture-in-Picture.', 'var(--accent-red)', SVG_SKULL);
-        return;
-    }
-    // 3. Pantalla dividida o ventana muy reducida (ancho < 30% del screenWidth indica split-screen)
-    const winRatio = window.innerWidth / window.screen.width;
-    if (winRatio < 0.45 && window.screen.width > 600) {
-        showToast('No se puede iniciar', 'Detectada pantalla dividida o ventana parcial. Abre el juego en pantalla completa.', 'var(--accent-red)', SVG_SKULL);
-        return;
-    }
-    // 4. DocumentPictureInPicture (Chrome API)
-    if (typeof documentPictureInPicture !== 'undefined' && documentPictureInPicture.window) {
-        showToast('No se puede iniciar', 'Desactiva el modo Picture-in-Picture.', 'var(--accent-red)', SVG_SKULL);
-        return;
-    }
-    // 5. La ventana no tiene el foco (podría estar cubierta por otra ventana)
-    if (!document.hasFocus()) {
-        showToast('No se puede iniciar', 'El juego no tiene el foco. Haz clic en la ventana del juego.', 'var(--accent-red)', SVG_SKULL);
-        return;
-    }
-    // ── Fin detección ──────────────────────────────────────────────────────
 
     if (quizDataPool.length === 0) {
         const btn = document.querySelector('.btn-solid');
