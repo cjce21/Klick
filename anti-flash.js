@@ -5,7 +5,7 @@
     (function() {
         try {
             var raw;
-            try { raw = localStorage.getItem('klick_player_data_permanent') || localStorage.getItem('klickStats_v9'); } catch(e) { raw = null; }
+            try { raw = localStorage.getItem('klick_player_data_permanent') || localStorage.getItem('klickStats_v9'); } catch(e) {}
             raw = raw || '{}';
             var s = JSON.parse(raw);
             // Aplicar tema antes de pintar para evitar flash oscuro→claro
