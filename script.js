@@ -3013,12 +3013,12 @@ const SR_SVG = {
 
 // ── Premios de la Ruleta de Racha ────────────────────────────────
 const STREAK_ROULETTE_PRIZES = [
-    { id: 'sr_pl_sm',  label: 'PL Bonus',        desc: '+500 PL directo a tu perfil.',         icon: 'star',   color: '#ffb800', colorLight: '#8a6000', plBonus: 500,   shields: 0, spins: 0, weight: 35 },
-    { id: 'sr_pl_md',  label: 'PL Mediano',       desc: '+1,500 PL directo a tu perfil.',       icon: 'star',   color: '#ffb800', colorLight: '#8a6000', plBonus: 1500,  shields: 0, spins: 0, weight: 25 },
-    { id: 'sr_pl_lg',  label: 'PL Grande',        desc: '+4,000 PL directo a tu perfil.',       icon: 'bolt',   color: '#f77f00', colorLight: '#b84400', plBonus: 4000,  shields: 0, spins: 0, weight: 12 },
-    { id: 'sr_shield1',label: 'Escudo de Racha',  desc: 'Protege tu racha si fallas un día.',   icon: 'shield', color: '#00d4ff', colorLight: '#0070a8', plBonus: 0,     shields: 1, spins: 0, weight: 18 },
-    { id: 'sr_shield2',label: 'Escudo Doble',     desc: 'Dos protecciones de racha acumuladas.',icon: 'shield', color: '#00d4ff', colorLight: '#0070a8', plBonus: 0,     shields: 2, spins: 0, weight: 6  },
-    { id: 'sr_spin',   label: 'Giro Extra',       desc: 'Un giro adicional en la ruleta.',      icon: 'spin',   color: '#b5179e', colorLight: '#7a0a8c', plBonus: 0,     shields: 0, spins: 1, weight: 4  },
+    { id: 'sr_pl_sm',  label: 'PL Bonus',        desc: '+500 PL directo a tu perfil.',         icon: 'star',   color: '#ffb800', colorLight: '#8a6000', plBonus: 500,   shields: 0, spins: 0, weight: 40 },
+    { id: 'sr_pl_md',  label: 'PL Mediano',       desc: '+1,500 PL directo a tu perfil.',       icon: 'star',   color: '#ffb800', colorLight: '#8a6000', plBonus: 1500,  shields: 0, spins: 0, weight: 28 },
+    { id: 'sr_pl_lg',  label: 'PL Grande',        desc: '+4,000 PL directo a tu perfil.',       icon: 'bolt',   color: '#f77f00', colorLight: '#b84400', plBonus: 4000,  shields: 0, spins: 0, weight: 15 },
+    { id: 'sr_spin',   label: 'Giro Extra',       desc: 'Un giro adicional en la ruleta.',      icon: 'spin',   color: '#b5179e', colorLight: '#7a0a8c', plBonus: 0,     shields: 0, spins: 1, weight: 10 },
+    { id: 'sr_shield1',label: 'Escudo de Racha',  desc: 'Protege tu racha si fallas un día.',   icon: 'shield', color: '#00d4ff', colorLight: '#0070a8', plBonus: 0,     shields: 1, spins: 0, weight: 5  },
+    { id: 'sr_shield2',label: 'Escudo Doble',     desc: 'Dos protecciones de racha acumuladas.',icon: 'shield', color: '#00d4ff', colorLight: '#0070a8', plBonus: 0,     shields: 2, spins: 0, weight: 2  },
 ];
 
 // ── Hitos de racha ────────────────────────────────────────────────
