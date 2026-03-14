@@ -598,6 +598,55 @@ const SFX = {
     gameStart:    () => playSFX([[110, 'sine', 0, 0.25, 0.08], [440, 'triangle', 0.08, 0.20, 0.12], [660, 'sine', 0.20, 0.15, 0.11]]),
     // Game end: warm resolving chord
     gameEnd:      () => playSFX([[330, 'sine', 0, 0.18, 0.14], [415, 'sine', 0.10, 0.18, 0.14], [554, 'sine', 0.20, 0.22, 0.14]]),
+    // Mission complete: satisfying coin-like collect chime
+    missionComplete: () => playSFX([
+        [880,  'sine', 0,    0.13, 0.07],
+        [1320, 'sine', 0.05, 0.16, 0.08],
+        [1760, 'sine', 0.11, 0.18, 0.09],
+        [2640, 'sine', 0.17, 0.12, 0.06]
+    ]),
+    // Mission progress: soft mid ping (partial advance)
+    missionTick: () => playSFX([[660, 'sine', 0, 0.08, 0.05], [880, 'sine', 0.04, 0.06, 0.04]]),
+    // Streak roulette spin start: whirring mechanical ramp-up
+    srSpinStart: () => {
+        if (!audioCtx) return;
+        const t = audioCtx.currentTime + 0.01;
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(80, t);
+        o.frequency.exponentialRampToValueAtTime(420, t + 0.55);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(playerStats.sfxVol * 0.18, t + 0.08);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.60);
+        o.connect(g); g.connect(masterSFXGain);
+        o.start(t); o.stop(t + 0.62);
+    },
+    // Streak roulette land: deep thud + sparkle
+    srLand: () => playSFX([
+        [120,  'sine',     0,    0.28, 0.09],
+        [60,   'sawtooth', 0.03, 0.22, 0.12],
+        [1047, 'sine',     0.07, 0.14, 0.10],
+        [1568, 'sine',     0.12, 0.18, 0.11],
+        [2093, 'sine',     0.18, 0.20, 0.10]
+    ]),
+    // Streak roulette claim: warm reward fanfare
+    srClaim: () => playSFX([
+        [523,  'triangle', 0,    0.14, 0.10],
+        [659,  'triangle', 0.06, 0.16, 0.11],
+        [784,  'triangle', 0.12, 0.18, 0.11],
+        [1047, 'sine',     0.18, 0.22, 0.10],
+        [1319, 'sine',     0.25, 0.16, 0.09]
+    ]),
+    // Streak milestone claim: grand triumphant chord
+    srMilestone: () => playSFX([
+        [261,  'sine',     0,    0.20, 0.16],
+        [330,  'sine',     0,    0.18, 0.16],
+        [392,  'sine',     0,    0.16, 0.16],
+        [523,  'sine',     0.05, 0.22, 0.14],
+        [784,  'triangle', 0.10, 0.24, 0.12],
+        [1047, 'triangle', 0.18, 0.20, 0.10],
+        [1568, 'sine',     0.26, 0.14, 0.08]
+    ]),
     // PC click: mechanical keyboard — sharp noise thud + crisp tick
     pcClick:      () => {
         if (!audioCtx) return;
@@ -674,11 +723,12 @@ function applyPerfMode(mode) {
     // In eco mode with 0 particles, pause the RAF loop entirely to save CPU
     const wasActive = _particlesActive;
     _particlesActive = cfg.particles > 0;
-    if (!wasActive && _particlesActive) {
-        // Restart loop if it was stopped
-        then = performance.now();
-        requestAnimationFrame(animateParticles);
-    } else if (_particlesActive === false) {
+    // Reinicializar partículas para ajustar cantidad al nuevo modo
+    if (_particlesActive) {
+        initParticles();
+        _lastFrameTime = performance.now();
+        if (!wasActive) requestAnimationFrame(animateParticles);
+    } else {
         // Clear canvas immediately when disabling particles
         const _c = document.getElementById('particle-canvas');
         if (_c) { const _cx = _c.getContext('2d'); if (_cx) _cx.clearRect(0, 0, _c.width, _c.height); }
@@ -2784,7 +2834,7 @@ function updateMissionsDot() {
 }
 
 function goToDailyMissions() {
-    SFX.click();
+    SFX.missionTick();
     _initDailyMissions();
     _syncMissionProgress();
     renderMissionsScreen();
@@ -2957,7 +3007,7 @@ function claimMission(missionId) {
     playerStats.bonusPL = (playerStats.bonusPL || 0) + def.rewardPL;
     saveStatsLocally();
 
-    SFX.achievement();
+    SFX.missionComplete();
     const rankColor = getRankColor(currentRankInfo);
     showToast(`+${def.rewardPL.toLocaleString()} PL`, def.title, '#ffb800',
         `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`);
@@ -3102,6 +3152,7 @@ function spinStreakRoulette() {
     if (spinsN) spinsN.textContent = ss.spins;
     btn.disabled = true;
     btn.textContent = 'Girando...';
+    SFX.srSpinStart();
     // Pausar animación idle al girar
     track.classList.remove('idle');
 
@@ -3159,7 +3210,7 @@ function spinStreakRoulette() {
         if (idleEl) { var iz = idleEl.previousElementSibling; if (iz && iz.classList.contains('sr-result-idle')) iz.classList.add('hidden'); }
         btn.textContent = 'Cobra primero';
         updateStreakDot();
-        SFX.correct && SFX.correct();
+        SFX.srLand();
     }, 2100);
 }
 
@@ -3194,7 +3245,7 @@ function claimStreakRouletteResult() {
 
     ss.pendingResult = null;
     saveStatsLocally();
-    SFX.achievement && SFX.achievement();
+    SFX.srClaim();
     updateStreakDot();
     renderStreaksScreen();
     // El re-render ya restaura el idle automáticamente (no hay pendingResult)
@@ -3229,7 +3280,7 @@ function claimStreakMilestone(days) {
     }
 
     saveStatsLocally();
-    SFX.achievement && SFX.achievement();
+    SFX.srMilestone();
     updateStreakDot();
     renderStreaksScreen();
     if (document.getElementById('pl-total')) renderProfileIfOpen();
@@ -4371,99 +4422,118 @@ function endGame() {
     document.getElementById('app').classList.remove('streak-active'); streak = 0; switchScreen('end-screen');
 }
 
-// --- FPS Controlled Particles (optimized: batched canvas draws) ---
-const canvas = document.getElementById('particle-canvas'); 
-const ctx = canvas.getContext('2d', { alpha: true }); 
+// --- FPS Controlled Particles (optimized: delta-time based, drift-free) ---
+const canvas = document.getElementById('particle-canvas');
+const ctx = canvas.getContext('2d', { alpha: true });
 let particlesArray = [];
-let fpsInterval = 1000 / playerStats.maxFps;
-let then = performance.now();
 
-function initParticles() { 
-    canvas.width = window.innerWidth; canvas.height = window.innerHeight; particlesArray = []; 
+// fpsInterval se actualiza en applyPerfMode — NO usar playerStats.maxFps directamente
+// porque puede cambiar después de la inicialización.
+let fpsInterval = 1000 / (playerStats.maxFps || 60);
+
+// _lastFrameTime reemplaza `then`: evita acumulación de deuda de frames.
+let _lastFrameTime = performance.now();
+
+// Tiempo de referencia físico (segundos a 60fps = 1.0). Todas las velocidades
+// están normalizadas a este valor para que sean independientes del FPS elegido.
+const PHYSICS_STEP = 1000 / 60; // ms por frame de referencia
+
+function initParticles() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    particlesArray = [];
     const isMobile = window.innerWidth < 768;
-    // Fewer particles = smoother, still visually rich
     const area = canvas.width * canvas.height;
-    let num = Math.round(Math.min(area / 15000, isMobile ? 30 : 60));
+    // Escalar densidad según modo de rendimiento para evitar sobrecarga
+    const perfMode = playerStats.perfMode || 'high';
+    const densityMap = { eco: 0, balanced: 0.5, high: 0.8, ultra: 1.0 };
+    const density = densityMap[perfMode] ?? 0.8;
+    const maxCount = isMobile ? 28 : 55;
+    const num = Math.round(Math.min(area / 14000, maxCount) * density);
     for (let i = 0; i < num; i++) {
         particlesArray.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            dx: (Math.random() - 0.5) * 0.7,
-            dy: (Math.random() - 0.5) * 0.7,
-            s: Math.random() * 1.4 + 0.4
+            x:  Math.random() * canvas.width,
+            y:  Math.random() * canvas.height,
+            // Velocidad fija en unidades "px por tick a 60fps"
+            dx: (Math.random() - 0.5) * 0.65,
+            dy: (Math.random() - 0.5) * 0.65,
+            s:  Math.random() * 1.3 + 0.4
         });
     }
 }
 
-// Cached per-frame values (set once in animateParticles before calling both draw fns)
+// Cached per-frame values
 let _pIsLight = false, _pRgb = '0,255,102';
 
-function updateAndDrawParticles(timeScale, pulse) {
-    const m = streak >= 5 ? 2.5 : 1;
-    const speedBoost = 1 + (pulse * 1.2);
-    const sizeBoost = 1 + pulse * 0.8;
-    const baseOpacity = streak >= 5 ? 0.65 : 0.42;
-    const dynamicOpacity = Math.min(1, (_pIsLight ? baseOpacity * 1.4 : baseOpacity) * playerStats.particleOpacity + pulse * 0.12);
+function darkenRgb(rgb, factor) {
+    const [r, g, b] = rgb.split(',').map(Number);
+    return `${Math.round(r*(1-factor))},${Math.round(g*(1-factor))},${Math.round(b*(1-factor))}`;
+}
+
+function updateAndDrawParticles(dt, pulse) {
+    // dt = delta normalizado respecto al tick de 60fps (1.0 = exactamente 1 tick de 60fps)
+    // Velocidades definidas en px/tick → multiplicar por dt da px reales este frame
+    const isStreak  = streak >= 5;
+    const m         = isStreak ? 2.2 : 1.0;
+    const speedBoost = 1 + pulse * 0.9;   // reducido: evita aceleración excesiva en picos
+    const sizeBoost  = 1 + pulse * 0.6;
+    const baseOp     = isStreak ? 0.60 : 0.40;
+    const dynOp      = Math.min(1, (_pIsLight ? baseOp * 1.35 : baseOp) * playerStats.particleOpacity + pulse * 0.10);
     const W = canvas.width, H = canvas.height;
-    
+
     ctx.beginPath();
-    ctx.fillStyle = `rgba(${_pRgb}, ${dynamicOpacity})`;
-    
+    ctx.fillStyle = `rgba(${_pRgb},${dynOp})`;
+
     for (let i = 0; i < particlesArray.length; i++) {
         const p = particlesArray[i];
-        if (p.x > W || p.x < 0) p.dx = -p.dx;
-        if (p.y > H || p.y < 0) p.dy = -p.dy;
-        p.x += p.dx * m * timeScale * speedBoost;
-        p.y += p.dy * m * timeScale * speedBoost;
-        const r = (p.s + pulse * 1.0) * sizeBoost;
+        // Rebote suave: invertir velocidad sólo cuando está saliendo del borde
+        if (p.x < 0   && p.dx < 0) p.dx = -p.dx;
+        if (p.x > W   && p.dx > 0) p.dx = -p.dx;
+        if (p.y < 0   && p.dy < 0) p.dy = -p.dy;
+        if (p.y > H   && p.dy > 0) p.dy = -p.dy;
+        p.x += p.dx * m * dt * speedBoost;
+        p.y += p.dy * m * dt * speedBoost;
+        const r = (p.s + pulse * 0.8) * sizeBoost;
         ctx.moveTo(p.x + r, p.y);
         ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
     }
     ctx.fill();
 }
 
-// Darkens an "r,g,b" string by mixing it toward black by `factor` (0=original, 1=black)
-function darkenRgb(rgb, factor) {
-    const [r, g, b] = rgb.split(',').map(Number);
-    return `${Math.round(r*(1-factor))},${Math.round(g*(1-factor))},${Math.round(b*(1-factor))}`;
-}
-
-function connectParticles(pulse) { 
-    // Skip line drawing in eco/balanced mode (set by applyPerfMode → window._perfConnectLines)
+function connectParticles(pulse) {
     if (window._perfConnectLines === false) return;
-    if (particlesArray.length < 2) return; // nothing to connect
-    const isStreak = streak >= 5;
-    const baseOpacity = isStreak ? (_pIsLight ? 0.35 : 0.35) : (_pIsLight ? 0.15 : 0.18);
-    const distMult = 1 + pulse * 0.3;
+    if (particlesArray.length < 2) return;
+    const isStreak     = streak >= 5;
+    const baseOp       = isStreak ? 0.32 : (_pIsLight ? 0.14 : 0.16);
     const screenFactor = Math.min(1, (canvas.width * canvas.height) / (1920 * 1080));
-    const maxDistSq = (canvas.width / 9) * (canvas.height / 9) * distMult * screenFactor;
+    const maxDistSq    = (canvas.width / 9) * (canvas.height / 9) * (1 + pulse * 0.25) * screenFactor;
     const pOp = playerStats.particleOpacity;
-    const n = particlesArray.length;
-    
-    ctx.lineWidth = (0.6 + pulse * 0.8) * (isStreak ? 1.3 : 1);
+    const n   = particlesArray.length;
 
-    // Batch lines into alpha buckets to reduce strokeStyle changes (major perf win)
-    const BUCKETS = 8;
-    const buckets = new Array(BUCKETS).fill(null).map(() => []);
+    ctx.lineWidth = (0.5 + pulse * 0.7) * (isStreak ? 1.2 : 1);
 
-    for (let a = 0; a < n; a++) { 
-        for (let b = a + 1; b < n; b++) { 
+    const BUCKETS = 6;   // menos buckets = menos strokeStyle changes
+    const buckets  = Array.from({ length: BUCKETS }, () => []);
+
+    for (let a = 0; a < n; a++) {
+        for (let b = a + 1; b < n; b++) {
             const dx = particlesArray[a].x - particlesArray[b].x;
             const dy = particlesArray[a].y - particlesArray[b].y;
-            const distSq = dx * dx + dy * dy;
-            if (distSq < maxDistSq) { 
-                const alpha = (1 - distSq / maxDistSq) * (baseOpacity + pulse * 0.1) * pOp;
-                const bucketIdx = Math.min(BUCKETS - 1, Math.floor(alpha * BUCKETS));
-                buckets[bucketIdx].push(particlesArray[a].x, particlesArray[a].y, particlesArray[b].x, particlesArray[b].y);
-            } 
-        } 
+            const dSq = dx * dx + dy * dy;
+            if (dSq < maxDistSq) {
+                const alpha = (1 - dSq / maxDistSq) * (baseOp + pulse * 0.08) * pOp;
+                buckets[Math.min(BUCKETS - 1, Math.floor(alpha * BUCKETS))].push(
+                    particlesArray[a].x, particlesArray[a].y,
+                    particlesArray[b].x, particlesArray[b].y
+                );
+            }
+        }
     }
 
     for (let bi = 0; bi < BUCKETS; bi++) {
         const lines = buckets[bi];
-        if (lines.length === 0) continue;
-        const alpha = ((bi + 0.5) / BUCKETS).toFixed(2);
-        ctx.strokeStyle = `rgba(${_pRgb},${alpha})`;
+        if (!lines.length) continue;
+        ctx.strokeStyle = `rgba(${_pRgb},${((bi + 0.5) / BUCKETS).toFixed(2)})`;
         ctx.beginPath();
         for (let i = 0; i < lines.length; i += 4) {
             ctx.moveTo(lines[i], lines[i+1]);
@@ -4473,31 +4543,33 @@ function connectParticles(pulse) {
     }
 }
 
-function animateParticles(now) { 
+function animateParticles(now) {
     if (!_particlesActive) return;
-    requestAnimationFrame(animateParticles); 
-    const elapsed = now - then; 
-    if (elapsed > fpsInterval) { 
-        // Subtract remainder to keep drift-free timing (no debt accumulation)
-        then = now - (elapsed % fpsInterval);
-        // Hard clamp to 1 frame worth of movement max — prevents burst after tab focus/throttle
-        const timeScale = Math.min(elapsed / fpsInterval, 1.0);
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // If opacity is 0, don't draw anything
-        if (!playerStats || playerStats.particleOpacity <= 0) return;
-        
-        // Update per-frame cached values once (avoid repeated DOM query)
-        _pIsLight = document.body.classList.contains('light-mode');
-        _pRgb = _pIsLight ? darkenRgb(currentRankInfo.rgb, 0.55) : currentRankInfo.rgb;
-        const pulse = audioAnalyser ? getAudioPulse() : 0; 
-        updateAndDrawParticles(timeScale, pulse);
-        connectParticles(pulse); 
-    } 
+    requestAnimationFrame(animateParticles);
+
+    const elapsed = now - _lastFrameTime;
+    if (elapsed < fpsInterval) return;  // aún no toca frame
+
+    // Avanzar timestamp respetando el intervalo para drift-free pacing.
+    // Si el tab estuvo oculto o el GC hizo una pausa larga, limitamos a 3 frames
+    // de deuda para evitar el "burst" de velocidad al volver.
+    _lastFrameTime = now - Math.min(elapsed % fpsInterval, fpsInterval * 3);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!playerStats || playerStats.particleOpacity <= 0) return;
+
+    // dt normalizado: cuántos ticks de 60fps equivalen a este elapsed real
+    // Clampeado a [0.1, 2.0] para suavidad incluso en FPS extremos (240fps o caídas)
+    const dt = Math.min(Math.max(elapsed / PHYSICS_STEP, 0.1), 2.0);
+
+    _pIsLight = document.body.classList.contains('light-mode');
+    _pRgb     = _pIsLight ? darkenRgb(currentRankInfo.rgb, 0.55) : currentRankInfo.rgb;
+    const pulse = audioAnalyser ? getAudioPulse() : 0;
+    updateAndDrawParticles(dt, pulse);
+    connectParticles(pulse);
 }
 
-// Debounced resize to avoid thrashing on window resize
+// Debounced resize
 let _resizeTimer;
 window.addEventListener('resize', () => { clearTimeout(_resizeTimer); _resizeTimer = setTimeout(initParticles, 150); });
 initParticles(); requestAnimationFrame(animateParticles);
@@ -4505,7 +4577,7 @@ initParticles(); requestAnimationFrame(animateParticles);
 // Reset particle timer when tab becomes visible to prevent accumulated frame debt causing speed burst
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-        then = performance.now();
+        _lastFrameTime = performance.now();
         // Reanudar música si estaba activa
         if (audioCtx && audioCtx.state === 'suspended') {
             audioCtx.resume().catch(() => {});
