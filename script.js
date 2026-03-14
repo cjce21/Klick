@@ -759,12 +759,11 @@ function renderPerfSelector() {
         }
 
         btn.style.cssText = `
-            flex:1; min-width:0; padding:6px 4px; border-radius:20px; cursor:pointer;
-            display:flex; flex-direction:column; align-items:center; gap:2px;
+            flex:1; min-width:0; padding:5px 2px; border-radius:16px; cursor:pointer;
+            display:flex; flex-direction:column; align-items:center; gap:1px;
             border:1.5px solid ${borderCol};
             background:${bgCol};
-            transition:all 0.18s ease;
-            position:relative;
+            transition:background 0.15s, border-color 0.15s;
         `;
 
         const iconColor = active
@@ -775,25 +774,10 @@ function renderPerfSelector() {
             : 'var(--text-primary)';
 
         btn.innerHTML = `
-            <div style="width:14px;height:14px;flex-shrink:0;color:${iconColor};">${cfg.icon}</div>
-            <div style="font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;color:${labelColor};white-space:nowrap;">${cfg.label}</div>
-            <div style="font-size:0.5rem;color:${active && isUltra ? (isLight?'#8a5e00':'rgba(255,184,0,0.8)') : 'var(--text-secondary)'};white-space:nowrap;">${PERF_DESCS[key]}</div>
+            <div style="width:13px;height:13px;flex-shrink:0;color:${iconColor};">${cfg.icon}</div>
+            <div style="font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:${labelColor};white-space:nowrap;">${cfg.label}</div>
+            <div style="font-size:0.48rem;color:var(--text-secondary);white-space:nowrap;">${PERF_DESCS[key]}</div>
         `;
-
-        // Ultra: siempre mostrar indicador MAX, más visible si activo
-        if (isUltra) {
-            const marker = document.createElement('div');
-            marker.style.cssText = `
-                margin-top:2px; padding:1px 7px; border-radius:20px;
-                font-size:6.5px; font-weight:900; letter-spacing:1.5px; line-height:1.6;
-                text-transform:uppercase;
-                color:${active ? (isLight?'#6b3e00':'#6b3e00') : (isLight?'rgba(0,0,0,0.3)':'rgba(255,255,255,0.3)')};
-                background:${active ? (isLight?'rgba(180,140,0,0.2)':'rgba(255,184,0,0.82)') : (isLight?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.07)')};
-                border:1px solid ${active ? (isLight?'rgba(180,140,0,0.4)':'rgba(255,184,0,0.45)') : (isLight?'rgba(0,0,0,0.1)':'rgba(255,255,255,0.12)')};
-            `;
-            marker.textContent = 'MAX';
-            btn.appendChild(marker);
-        }
 
         btn.onclick = () => { SFX.click(); applyPerfMode(key); document.getElementById('val-perf').innerText = cfg.label; };
         container.appendChild(btn);
@@ -913,7 +897,8 @@ function calculatePowerLevel(stats) {
     const perf = stats.perfectGames * 1000;
     const achs = stats.achievements.length * 300;
     const winRate = stats.gamesPlayed > 0 ? (stats.totalCorrect / (stats.gamesPlayed * 20)) * 5000 : 0;
-    return Math.floor(base + best + streak + perf + achs + winRate);
+    const bonus = stats.bonusPL || 0;
+    return Math.floor(base + best + streak + perf + achs + winRate + bonus);
 }
 
 let _submitDebounceTimer = null;
@@ -1412,7 +1397,13 @@ function processDailyLogin() {
         playerStats.todayGames = 0;
         // Reset daily achievement counter so da1-da5 and extra5 track per-day correctly
         playerStats.dailyAchUnlocks = 0;
+        // Inicializar misiones del nuevo día
+        _initDailyMissions();
         saveStatsLocally(); checkAchievements();
+    } else {
+        // Mismo día — asegurar misiones inicializadas y actualizar racha de login
+        _initDailyMissions();
+        updateMissionStats('loginStreak', playerStats.currentLoginStreak || 1);
     }
 }
 function shuffleArray(array) { let current = array.length, random; while (current !== 0) { random = Math.floor(Math.random() * current); current--; [array[current], array[random]] = [array[random], array[current]]; } return array; }
@@ -2402,6 +2393,8 @@ function collectRoulettePrize() {
         showToast('RACHA PROTEGIDA', 'Si fallas la siguiente, tu racha no se resetea.', '#aaaaff', SVG_SHIELD);
     }
 
+    // Actualizar misiones diarias
+    updateMissionStats('rouletteClaim', {});
     closeRoulette();
 }
 
@@ -2466,6 +2459,485 @@ function closeRoulette() {
             showToast('MODO FRENESÍ', 'El multiplicador se ha disparado.', '#b5179e', SVG_FIRE);
         }
     }, 300);
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  SISTEMA DE MISIONES DIARIAS
+//  - 6 misiones rotativas por día (generadas con semilla = fecha)
+//  - Se reinician a medianoche (fecha UTC)
+//  - Recompensa: PL bonus almacenado en playerStats.bonusPL
+//  - Independiente del cálculo de parámetros de PL
+// ══════════════════════════════════════════════════════════════════
+
+const MISSION_DEFS = [
+    // id, title, desc, icon(svg), category, goal-param, target, rewardPL
+    {
+        id: 'dm_score',
+        title: 'Puntaje de Élite',
+        desc: 'Consigue al menos 50,000 puntos en una sola partida.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+        category: 'Puntuación',
+        param: 'bestScoreToday',
+        target: 50000,
+        rewardPL: 3500
+    },
+    {
+        id: 'dm_score_elite',
+        title: 'Centenario',
+        desc: 'Supera los 100,000 puntos en una sola partida.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+        category: 'Puntuación',
+        param: 'bestScoreToday',
+        target: 100000,
+        rewardPL: 8000
+    },
+    {
+        id: 'dm_streak',
+        title: 'Racha Imparable',
+        desc: 'Encadena una racha de 15 aciertos consecutivos en una partida.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+        category: 'Racha',
+        param: 'maxStreakToday',
+        target: 15,
+        rewardPL: 4000
+    },
+    {
+        id: 'dm_streak_mega',
+        title: 'Zona de Fuego',
+        desc: 'Alcanza una racha de 25 aciertos consecutivos en una partida.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+        category: 'Racha',
+        param: 'maxStreakToday',
+        target: 25,
+        rewardPL: 9000
+    },
+    {
+        id: 'dm_perfect',
+        title: 'Sin Margen de Error',
+        desc: 'Completa una partida de al menos 10 preguntas sin un solo fallo.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+        category: 'Precisión',
+        param: 'perfectGamesToday',
+        target: 1,
+        rewardPL: 5500
+    },
+    {
+        id: 'dm_games',
+        title: 'Consistencia',
+        desc: 'Juega 3 partidas completas hoy.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+        category: 'Actividad',
+        param: 'gamesToday',
+        target: 3,
+        rewardPL: 2500
+    },
+    {
+        id: 'dm_games_hard',
+        title: 'Maratón',
+        desc: 'Juega 6 partidas completas hoy.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+        category: 'Actividad',
+        param: 'gamesToday',
+        target: 6,
+        rewardPL: 5000
+    },
+    {
+        id: 'dm_correct',
+        title: 'Banco de Saber',
+        desc: 'Acumula 40 respuestas correctas en el día.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 10"/></svg>`,
+        category: 'Precisión',
+        param: 'correctToday',
+        target: 40,
+        rewardPL: 3000
+    },
+    {
+        id: 'dm_correct_hard',
+        title: 'Biblioteca Viviente',
+        desc: 'Acumula 80 respuestas correctas en el día.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 10"/></svg>`,
+        category: 'Precisión',
+        param: 'correctToday',
+        target: 80,
+        rewardPL: 6500
+    },
+    {
+        id: 'dm_mult',
+        title: 'Multiplicador Máximo',
+        desc: 'Alcanza el multiplicador ×6 en una partida.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+        category: 'Dominio',
+        param: 'maxMultToday',
+        target: 6,
+        rewardPL: 4500
+    },
+    {
+        id: 'dm_mult_ultra',
+        title: 'Modo Dios',
+        desc: 'Alcanza el multiplicador ×9 en una partida.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+        category: 'Dominio',
+        param: 'maxMultToday',
+        target: 9,
+        rewardPL: 10000
+    },
+    {
+        id: 'dm_fast',
+        title: 'Velocidad Extrema',
+        desc: 'Responde 15 preguntas en menos de 3 segundos en total hoy.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+        category: 'Velocidad',
+        param: 'fastAnswersToday',
+        target: 15,
+        rewardPL: 4000
+    },
+    {
+        id: 'dm_roulette',
+        title: 'Coleccionista',
+        desc: 'Cobra 4 premios de la ruleta de recompensas en el día.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>`,
+        category: 'Ruleta',
+        param: 'rouletteClaimsToday',
+        target: 4,
+        rewardPL: 3500
+    },
+    {
+        id: 'dm_login_streak',
+        title: 'Fiel al Código',
+        desc: 'Mantén una racha de acceso de 5 días consecutivos.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+        category: 'Constancia',
+        param: 'loginStreak',
+        target: 5,
+        rewardPL: 5000
+    },
+    {
+        id: 'dm_accuracy',
+        title: 'Precisión Quirúrgica',
+        desc: 'Termina una partida de 20+ preguntas con 90% o más de precisión.',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+        category: 'Precisión',
+        param: 'highAccuracyGame',
+        target: 1,
+        rewardPL: 6000
+    },
+];
+
+// ─────────────────────────────────────────────
+// Selección diaria: 6 misiones únicas por día
+// Semilla basada en la fecha UTC para que
+// todos los jugadores tengan las mismas.
+// ─────────────────────────────────────────────
+const DAILY_MISSION_COUNT = 6;
+
+function _getTodayStr() {
+    return new Date().toISOString().split('T')[0];
+}
+
+function _seededShuffle(arr, seed) {
+    // Simple LCG seeded by date string hash
+    let s = 0;
+    for (let i = 0; i < seed.length; i++) s = (s * 31 + seed.charCodeAt(i)) >>> 0;
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        s = (s * 1664525 + 1013904223) >>> 0;
+        const j = s % (i + 1);
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+function getDailyMissionIds() {
+    const today = _getTodayStr();
+    const shuffled = _seededShuffle(MISSION_DEFS.map(m => m.id), today);
+    return shuffled.slice(0, DAILY_MISSION_COUNT);
+}
+
+// ─────────────────────────────────────────────
+// Estado de misiones — guardado en playerStats
+// playerStats.dailyMissions = {
+//   date: "2025-01-01",
+//   missions: [{ id, claimed, progress }]
+// }
+// playerStats.bonusPL = <int>  (acumulado total)
+// ─────────────────────────────────────────────
+
+function _initDailyMissions() {
+    const today = _getTodayStr();
+    const dm = playerStats.dailyMissions;
+    // Resetear si es un día nuevo o no existen
+    if (!dm || dm.date !== today) {
+        const ids = getDailyMissionIds();
+        playerStats.dailyMissions = {
+            date: today,
+            missions: ids.map(id => ({ id, claimed: false, progress: 0 }))
+        };
+        // Reset contadores diarios de misiones
+        playerStats._dmStats = {
+            bestScoreToday:      0,
+            maxStreakToday:       0,
+            perfectGamesToday:   0,
+            gamesToday:          0,
+            correctToday:        0,
+            maxMultToday:        1,
+            fastAnswersToday:    0,
+            rouletteClaimsToday: 0,
+            loginStreak:         playerStats.currentLoginStreak || 1,
+            highAccuracyGame:    0,
+        };
+        saveStatsLocally();
+    }
+    if (!playerStats.bonusPL) playerStats.bonusPL = 0;
+    if (!playerStats._dmStats) {
+        playerStats._dmStats = {
+            bestScoreToday:      0,
+            maxStreakToday:       0,
+            perfectGamesToday:   0,
+            gamesToday:          playerStats.todayGames || 0,
+            correctToday:        0,
+            maxMultToday:        1,
+            fastAnswersToday:    0,
+            rouletteClaimsToday: 0,
+            loginStreak:         playerStats.currentLoginStreak || 1,
+            highAccuracyGame:    0,
+        };
+    }
+}
+
+// Actualiza el progreso de una misión basada en el parámetro
+function _syncMissionProgress() {
+    const dm = playerStats.dailyMissions;
+    if (!dm || !dm.missions) return;
+    const s = playerStats._dmStats || {};
+    dm.missions.forEach(m => {
+        if (m.claimed) return;
+        const def = MISSION_DEFS.find(d => d.id === m.id);
+        if (!def) return;
+        const val = s[def.param] || 0;
+        m.progress = Math.min(val, def.target);
+    });
+}
+
+// Llamar después de cada partida y de cobrar recompensas de ruleta
+function updateMissionStats(type, value) {
+    _initDailyMissions();
+    const s = playerStats._dmStats;
+    switch(type) {
+        case 'gameEnd':
+            s.gamesToday       = (s.gamesToday || 0) + 1;
+            s.bestScoreToday   = Math.max(s.bestScoreToday || 0, value.score || 0);
+            s.maxStreakToday    = Math.max(s.maxStreakToday || 0, value.streak || 0);
+            s.maxMultToday     = Math.max(s.maxMultToday || 1, value.mult || 1);
+            s.correctToday     = (s.correctToday || 0) + (value.correct || 0);
+            s.fastAnswersToday = (s.fastAnswersToday || 0) + (value.fast || 0);
+            if (value.perfect) s.perfectGamesToday = (s.perfectGamesToday || 0) + 1;
+            if (value.highAccuracy) s.highAccuracyGame = (s.highAccuracyGame || 0) + 1;
+            break;
+        case 'rouletteClaim':
+            s.rouletteClaimsToday = (s.rouletteClaimsToday || 0) + 1;
+            break;
+        case 'loginStreak':
+            s.loginStreak = value || 1;
+            break;
+    }
+    _syncMissionProgress();
+    saveStatsDebounced();
+    updateMissionsDot();
+}
+
+// Determina si hay misiones listas para cobrar (muestra el dot)
+function updateMissionsDot() {
+    const dot = document.getElementById('missions-dot');
+    if (!dot) return;
+    const dm = playerStats.dailyMissions;
+    if (!dm || !dm.missions) { dot.style.display = 'none'; return; }
+    _syncMissionProgress();
+    const hasReady = dm.missions.some(m => {
+        if (m.claimed) return false;
+        const def = MISSION_DEFS.find(d => d.id === m.id);
+        if (!def) return false;
+        return (m.progress || 0) >= def.target;
+    });
+    dot.style.display = hasReady ? 'block' : 'none';
+}
+
+function goToDailyMissions() {
+    SFX.click();
+    _initDailyMissions();
+    _syncMissionProgress();
+    renderMissionsScreen();
+    switchScreen('missions-screen');
+}
+
+function renderMissionsScreen() {
+    const dashboard = document.getElementById('missions-dashboard');
+    if (!dashboard) return;
+    const dm = playerStats.dailyMissions;
+    if (!dm) return;
+
+    const isLight = document.body.classList.contains('light-mode');
+    const rankColor = getRankColor(currentRankInfo);
+
+    // Calcular PL ganado hoy y total posible
+    let plEarnedToday = 0;
+    let totalPossible = 0;
+    let completedCount = 0;
+    dm.missions.forEach(m => {
+        const def = MISSION_DEFS.find(d => d.id === m.id);
+        if (!def) return;
+        totalPossible += def.rewardPL;
+        if (m.claimed) { plEarnedToday += def.rewardPL; completedCount++; }
+    });
+
+    // Calcular tiempo hasta medianoche UTC
+    const now = new Date();
+    const msToMidnight = new Date(now.toISOString().split('T')[0] + 'T24:00:00Z') - now;
+    const hh = Math.floor(msToMidnight / 3600000);
+    const mm = Math.floor((msToMidnight % 3600000) / 60000);
+    const resetStr = `Reinicio en ${hh}h ${mm}m`;
+
+    const pct = totalPossible > 0 ? Math.round((plEarnedToday / totalPossible) * 100) : 0;
+
+    // Agrupar misiones: pendientes primero, luego listas, luego completadas
+    const pending = [], ready = [], done = [];
+    dm.missions.forEach(m => {
+        const def = MISSION_DEFS.find(d => d.id === m.id);
+        if (!def) return;
+        const prog = m.progress || 0;
+        if (m.claimed) done.push({m, def});
+        else if (prog >= def.target) ready.push({m, def});
+        else pending.push({m, def});
+    });
+    const ordered = [...ready, ...pending, ...done];
+
+    const SVG_CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+    function missionCardHTML(m, def) {
+        const prog = m.progress || 0;
+        const pct  = Math.min(100, Math.round((prog / def.target) * 100));
+        const isReady   = !m.claimed && prog >= def.target;
+        const isDone    = m.claimed;
+        let cardClass = 'mission-card';
+        if (isDone)    cardClass += ' completed';
+        else if (isReady) cardClass += ' ready';
+
+        // Color de categoría
+        const catColor = isLight
+            ? {Puntuación:'#8a6000',Racha:'#c41940',Precisión:'#0a7a3e',Actividad:'#0070a8',Dominio:'#7a0a8c',Velocidad:'#b84400',Ruleta:'#b07800',Constancia:'#3d5f80'}[def.category] || '#4a5568'
+            : {Puntuación:'var(--accent-yellow)',Racha:'var(--accent-red)',Precisión:'var(--accent-green)',Actividad:'var(--accent-blue)',Dominio:'var(--accent-purple)',Velocidad:'var(--accent-orange)',Ruleta:'var(--accent-yellow)',Constancia:'#6e8fad'}[def.category] || 'var(--text-secondary)';
+
+        const rewardColor = isDone
+            ? (isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.25)')
+            : (isReady ? rankColor : catColor);
+        const rewardBg = isDone
+            ? 'transparent'
+            : (isReady
+                ? `rgba(var(--rank-rgb),0.1)`
+                : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'));
+
+        const progressBar = isDone ? '' : `
+            <div class="mission-progress-row">
+                <div class="mission-bar-wrap">
+                    <div class="mission-bar-fill" style="width:${pct}%;background:${isReady ? rankColor : catColor};"></div>
+                </div>
+                <span class="mission-progress-text" style="color:${isReady ? rankColor : (isLight?'#4a5568':'var(--text-secondary)')}">
+                    ${prog.toLocaleString()} / ${def.target.toLocaleString()}
+                </span>
+            </div>`;
+
+        const claimBtn = isReady && !isDone
+            ? `<button class="mission-claim-btn" onclick="claimMission('${m.id}')" style="background:${rankColor};">COBRAR +${def.rewardPL.toLocaleString()} PL</button>`
+            : '';
+
+        const checkOverlay = isDone
+            ? `<div class="mission-check-overlay">${SVG_CHECK}</div>`
+            : '';
+
+        return `
+        <div class="${cardClass}" id="mcard-${m.id}">
+            ${checkOverlay}
+            <div class="mission-card-top">
+                <div class="mission-icon-wrap" style="color:${isDone?(isLight?'rgba(0,0,0,0.25)':'rgba(255,255,255,0.25)'):catColor};">
+                    ${def.icon}
+                </div>
+                <div class="mission-info">
+                    <div class="mission-title" style="color:${isDone?(isLight?'rgba(0,0,0,0.4)':'rgba(255,255,255,0.4)'):(isLight?'#0d1117':'var(--text-primary)')}">${def.title}</div>
+                    <div class="mission-desc">${def.desc}</div>
+                </div>
+                <div class="mission-reward-badge" style="color:${rewardColor};border-color:${rewardColor};background:${rewardBg};">
+                    +${def.rewardPL.toLocaleString()} PL
+                </div>
+            </div>
+            ${progressBar}
+            ${claimBtn}
+        </div>`;
+    }
+
+    const sectReady  = ready.length  > 0 ? `<div class="missions-section-label">Listas para cobrar (${ready.length})</div>${ready.map(({m,def})=>missionCardHTML(m,def)).join('')}` : '';
+    const sectActive = pending.length > 0 ? `<div class="missions-section-label">En progreso</div>${pending.map(({m,def})=>missionCardHTML(m,def)).join('')}` : '';
+    const sectDone   = done.length    > 0 ? `<div class="missions-section-label">Completadas (${done.length}/${DAILY_MISSION_COUNT})</div>${done.map(({m,def})=>missionCardHTML(m,def)).join('')}` : '';
+
+    dashboard.innerHTML = `
+        <div class="missions-header">
+            <div class="missions-header-top">
+                <div>
+                    <div class="missions-pl-earned" style="color:${rankColor};">+${plEarnedToday.toLocaleString()} <span style="font-size:0.6em;font-weight:700;opacity:0.7;">PL</span></div>
+                    <div class="missions-pl-label">Ganados hoy · Misiones ${completedCount}/${DAILY_MISSION_COUNT}</div>
+                </div>
+                <div class="missions-reset-badge">${resetStr}</div>
+            </div>
+            <div class="missions-progress-bar-wrap">
+                <div class="missions-progress-bar-fill" style="width:${pct}%;"></div>
+            </div>
+        </div>
+        ${sectReady}
+        ${sectActive}
+        ${sectDone}
+    `;
+}
+
+function claimMission(missionId) {
+    const dm = playerStats.dailyMissions;
+    if (!dm || !dm.missions) return;
+    const m = dm.missions.find(x => x.id === missionId);
+    if (!m || m.claimed) return;
+    const def = MISSION_DEFS.find(d => d.id === missionId);
+    if (!def) return;
+    if ((m.progress || 0) < def.target) return;
+
+    m.claimed = true;
+    playerStats.bonusPL = (playerStats.bonusPL || 0) + def.rewardPL;
+    saveStatsLocally();
+
+    SFX.achievement();
+    const rankColor = getRankColor(currentRankInfo);
+    showToast(`+${def.rewardPL.toLocaleString()} PL`, def.title, '#ffb800',
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`);
+
+    // Animar el elemento cobrado
+    const card = document.getElementById(`mcard-${missionId}`);
+    if (card) {
+        card.style.transition = 'opacity 0.3s, transform 0.3s';
+        card.style.opacity = '0.4';
+        card.style.transform = 'scale(0.97)';
+        setTimeout(() => {
+            renderMissionsScreen();
+            updateMissionsDot();
+            // Actualizar PL en perfil si está visible
+            if (document.getElementById('pl-total')) renderProfileIfOpen();
+        }, 350);
+    } else {
+        renderMissionsScreen();
+        updateMissionsDot();
+    }
+}
+
+// Helper: re-renderiza el panel PL del perfil si está en pantalla
+function renderProfileIfOpen() {
+    const ps = document.getElementById('profile-screen');
+    if (ps && ps.classList.contains('active')) {
+        goToProfile(false);
+    }
 }
 
 function goToMainMenu() {
@@ -2582,7 +3054,8 @@ function goToProfile(needsName = false) {
         const plPerf   = (s.perfectGames||0)*1000;
         const plAchs   = (s.achievements||[]).length*300;
         const plAcc    = s.gamesPlayed>0 ? Math.floor(((s.totalCorrect||0)/(s.gamesPlayed*20))*5000) : 0;
-        const plTotal  = plBase+plBest+plStreak+plPerf+plAchs+plAcc;
+        const plBonus  = s.bonusPL || 0;
+        const plTotal  = plBase+plBest+plStreak+plPerf+plAchs+plAcc+plBonus;
         const fmt = n => n.toLocaleString();
         // Precision %
         const totalAnswers = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
@@ -2601,15 +3074,23 @@ function goToProfile(needsName = false) {
         // Build rows
         const rowsEl=document.getElementById('pl-rows');
         if(!rowsEl) return;
-        const colors=['var(--accent-blue)','var(--accent-yellow)','var(--accent-orange)','var(--accent-green)','var(--accent-purple)','var(--accent-red)'];
+        const colors=['var(--accent-blue)','var(--accent-yellow)','var(--accent-orange)','var(--accent-green)','var(--accent-purple)','var(--accent-red)','var(--accent-yellow)'];
         const rows=[
-            { label:'Puntaje acum.',   raw:fmt(s.totalScore||0),    factor:'× 0.05',  result:plBase,   color:colors[0] },
-            { label:'Récord',          raw:fmt(s.bestScore||0),      factor:'× 1.5',   result:plBest,   color:colors[1] },
-            { label:'Racha máxima',    raw:`${s.maxStreak||0} aciertos`, factor:'× 200', result:plStreak, color:colors[2] },
+            { label:'Puntaje acum.',    raw:fmt(s.totalScore||0),    factor:'× 0.05',  result:plBase,   color:colors[0] },
+            { label:'Récord',           raw:fmt(s.bestScore||0),      factor:'× 1.5',   result:plBest,   color:colors[1] },
+            { label:'Racha máxima',     raw:`${s.maxStreak||0} aciertos`, factor:'× 200', result:plStreak, color:colors[2] },
             { label:'Partidas perfectas', raw:`${s.perfectGames||0} partidas`, factor:'× 1,000', result:plPerf, color:colors[3] },
-            { label:'Logros',          raw:`${(s.achievements||[]).length} logros`, factor:'× 300', result:plAchs, color:colors[4] },
-            { label:'Precisión',       raw:`${accuracy}%`,           factor:'× 5,000', result:plAcc,    color:colors[5] },
+            { label:'Logros',           raw:`${(s.achievements||[]).length} logros`, factor:'× 300', result:plAchs, color:colors[4] },
+            { label:'Precisión',        raw:`${accuracy}%`,           factor:'× 5,000', result:plAcc,    color:colors[5] },
         ];
+        // Build bonus PL row separately if non-zero
+        const bonusRow = plBonus > 0 ? `
+            <div class="pl-calc-row">
+                <span class="pl-calc-label" style="color:${colors[6]};">Misiones diarias</span>
+                <span class="pl-calc-val">${fmt(plBonus)} PL</span>
+                <span class="pl-calc-factor">+ bonus</span>
+                <span class="pl-calc-result" style="color:${colors[6]};">+${fmt(plBonus)}</span>
+            </div>` : '';
         rowsEl.innerHTML = rows.map((r,i)=>`
             <div class="pl-calc-row">
                 <span class="pl-calc-label" style="color:${r.color};">${r.label}</span>
@@ -2617,12 +3098,13 @@ function goToProfile(needsName = false) {
                 <span class="pl-calc-factor">${r.factor}</span>
                 <span class="pl-calc-result" style="color:${r.color};">+${fmt(r.result)}</span>
             </div>
-            ${i===rows.length-1?`<div class="pl-calc-divider"></div><div class="pl-calc-row" style="padding:6px 4px;">
+        `).join('') + bonusRow + `
+            <div class="pl-calc-divider"></div>
+            <div class="pl-calc-row" style="padding:6px 4px;">
                 <span style="font-size:0.7rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:1px;grid-column:1/3;">Total PL</span>
                 <span></span>
                 <span style="font-size:clamp(0.8rem,1.5vw,0.95rem);font-weight:900;font-family:monospace;color:${getRankColor(currentRankInfo)};text-align:right;">${fmt(plTotal)}</span>
-            </div>`:''}
-        `).join('');
+            </div>`;
         // Progress bar toward next milestone
         const milestones=[10000,100000,1000000,5000000,10000000];
         let nextMs=milestones.find(m=>m>plTotal)||10000000;
@@ -3362,7 +3844,22 @@ function saveGameStats() {
         playerStats.consecutiveGames25k = 0;
     }
     if((playerStats.consecutiveGames25k||0) >= 5) playerStats.consistent5Games = true;
-    playerStats.previousGameScore = score; 
+    playerStats.previousGameScore = score;
+    // ── Actualizar estadísticas de misiones diarias ──
+    const gameCorrectFinal = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
+    const totalAnswersFinal = currentQuestionIndex;
+    const gameAccuracyFinal = totalAnswersFinal >= 20 && (currentWrongAnswers + currentTimeoutAnswers) === 0
+        ? 1 : (totalAnswersFinal >= 20 && totalAnswersFinal > 0
+            ? gameCorrectFinal / totalAnswersFinal : 0);
+    updateMissionStats('gameEnd', {
+        score:        score,
+        streak:       currentMaxStreak,
+        mult:         playerStats.maxMult,
+        correct:      gameCorrectFinal,
+        fast:         currentFastAnswers,
+        perfect:      (currentWrongAnswers === 0 && currentTimeoutAnswers === 0 && currentQuestionIndex >= 10),
+        highAccuracy: gameAccuracyFinal >= 0.9,
+    });
     currentRankInfo = getRankInfo(playerStats); updateLogoDots(); 
     saveStatsLocally(); // guardar inmediatamente al final de partida (datos críticos)
     checkAchievements();
@@ -4126,7 +4623,7 @@ _kpUpdateMenuBadge();
 // ════════════════════════════════════ END KLICK PASS ═════════════════
 
 
-setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); applyPerfMode(playerStats.perfMode || 'high'); }, 500);
+setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); applyPerfMode(playerStats.perfMode || 'high'); updateMissionsDot(); }, 500);
 
 // ══════════════════════════════════════════════════════════════════
 //  SERVICE WORKER — Auto-actualización silenciosa
