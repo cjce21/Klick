@@ -3291,10 +3291,10 @@ function renderStreaksScreen() {
                 + '<div class="sr-cal-icon" style="color:' + col + ';">' + icn + '</div></div>';
     }
 
-    /* Cartas del carrusel — duplicadas para loop visual continuo */
+    /* Cartas del carrusel — 4 pasadas para garantizar loop seamless sin huecos */
     var N = STREAK_ROULETTE_PRIZES.length;
     var initCards = '';
-    for (var pass = 0; pass < 2; pass++) {
+    for (var pass = 0; pass < 4; pass++) {
         for (var i = 0; i < N; i++) {
             var p = STREAK_ROULETTE_PRIZES[i];
             var col = isLight ? (p.colorLight || p.color) : p.color;
