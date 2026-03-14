@@ -931,9 +931,9 @@ body.light-mode .pl-calc-divider { background:rgba(0,0,0,0.07); }
 /* Modo claro: todo negro */
 body.light-mode .rank-full-card.mitico-item {
     animation: mitico-shimmer-light 3s ease-in-out infinite;
-    border-color: rgba(0,0,0,0.2) !important;
+    border-color: rgba(0,0,0,0.1) !important;
     border-left: 4px solid rgba(0,0,0,0.55) !important;
-    background: rgba(0,0,0,0.025) !important;
+    background: rgba(255,255,255,0.8) !important;
 }
 body.light-mode .mitico-dot {
     background: #0d1117 !important;
