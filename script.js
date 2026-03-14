@@ -3102,6 +3102,8 @@ function spinStreakRoulette() {
     if (spinsN) spinsN.textContent = ss.spins;
     btn.disabled = true;
     btn.textContent = 'Girando...';
+    // Pausar animación idle al girar
+    track.classList.remove('idle');
 
     var isLight = document.body.classList.contains('light-mode');
     var CARD_W = 78, SPIN_CARDS = 30, CENTER_OFF = 3;
@@ -3152,6 +3154,9 @@ function spinStreakRoulette() {
                 + '<button class="sr-result-btn" onclick="claimStreakRouletteResult()" style="background:' + col + ';color:' + (isLight ? '#fff' : '#111') + ';">COBRAR</button>';
             requestAnimationFrame(function() { ri.classList.add('visible'); });
         }
+        // Ocultar placeholder idle
+        var idleEl = document.getElementById('sr-result-inner');
+        if (idleEl) { var iz = idleEl.previousElementSibling; if (iz && iz.classList.contains('sr-result-idle')) iz.classList.add('hidden'); }
         btn.textContent = 'Cobra primero';
         updateStreakDot();
         SFX.correct && SFX.correct();
@@ -3192,6 +3197,7 @@ function claimStreakRouletteResult() {
     SFX.achievement && SFX.achievement();
     updateStreakDot();
     renderStreaksScreen();
+    // El re-render ya restaura el idle automáticamente (no hay pendingResult)
     if (document.getElementById('pl-total')) renderProfileIfOpen();
 }
 
@@ -3285,20 +3291,22 @@ function renderStreaksScreen() {
                 + '<div class="sr-cal-icon" style="color:' + col + ';">' + icn + '</div></div>';
     }
 
-    /* Cartas iniciales del carrusel */
+    /* Cartas del carrusel — duplicadas para loop visual continuo */
     var N = STREAK_ROULETTE_PRIZES.length;
     var initCards = '';
-    for (var i = 0; i < 7; i++) {
-        var p = STREAK_ROULETTE_PRIZES[i % N];
-        var col = isLight ? (p.colorLight || p.color) : p.color;
-        initCards += '<div class="sr-card' + (i === 3 ? ' is-center' : '') + '" style="color:' + col
-                  + ';border-color:' + col + '28;background:' + col + '0c;">'
-                  + SR_SVG[p.icon]
-                  + '<span class="sr-card-lbl" style="color:' + col + ';">' + p.label + '</span></div>';
+    for (var pass = 0; pass < 2; pass++) {
+        for (var i = 0; i < N; i++) {
+            var p = STREAK_ROULETTE_PRIZES[i];
+            var col = isLight ? (p.colorLight || p.color) : p.color;
+            initCards += '<div class="sr-card" style="color:' + col
+                      + ';border-color:' + col + '28;background:' + col + '0c;">'
+                      + SR_SVG[p.icon]
+                      + '<span class="sr-card-lbl" style="color:' + col + ';">' + p.label + '</span></div>';
+        }
     }
 
     /* Resultado pendiente */
-    var resStyle = '', resHtml = '', resVisible = '';
+    var resStyle = '', resHtml = '', resVisible = '', idleHidden = '';
     if (ss.pendingResult) {
         var found = null;
         for (var i = 0; i < STREAK_ROULETTE_PRIZES.length; i++) {
@@ -3315,6 +3323,7 @@ function renderStreaksScreen() {
                      + '<div class="sr-result-sub">' + sub + '</div>'
                      + '<button class="sr-result-btn" onclick="claimStreakRouletteResult()" style="background:' + col + ';color:' + (isLight ? '#fff' : '#111') + ';">COBRAR</button>';
             resVisible = ' visible';
+            idleHidden = ' hidden';
         }
     }
     var canSpin = ss.spins > 0 && !ss.pendingResult && !_srSpinning;
@@ -3369,9 +3378,10 @@ function renderStreaksScreen() {
         + '<div class="sr-roulette-card">'
         +   '<div class="sr-carousel-outer">'
         +     '<div class="sr-carousel-frame"></div>'
-        +     '<div class="sr-track" id="sr-track">' + initCards + '</div>'
+        +     '<div class="sr-track idle" id="sr-track">' + initCards + '</div>'
         +   '</div>'
         +   '<div class="sr-result-zone">'
+        +     '<div class="sr-result-idle' + idleHidden + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span class="sr-result-idle-txt">Gira para ganar un premio</span></div>'
         +     '<div class="sr-result-inner' + resVisible + '" id="sr-result-inner" style="' + resStyle + '">' + resHtml + '</div>'
         +   '</div>'
         +   '<div class="sr-spin-row">'
