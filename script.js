@@ -671,6 +671,18 @@ function applyPerfMode(mode) {
 
     // Particles
     playerStats.particleOpacity = cfg.particles;
+    // In eco mode with 0 particles, pause the RAF loop entirely to save CPU
+    const wasActive = _particlesActive;
+    _particlesActive = cfg.particles > 0;
+    if (!wasActive && _particlesActive) {
+        // Restart loop if it was stopped
+        then = performance.now();
+        requestAnimationFrame(animateParticles);
+    } else if (_particlesActive === false) {
+        // Clear canvas immediately when disabling particles
+        const _c = document.getElementById('particle-canvas');
+        if (_c) { const _cx = _c.getContext('2d'); if (_cx) _cx.clearRect(0, 0, _c.width, _c.height); }
+    }
 
     // Animation scale via CSS var
     document.documentElement.style.setProperty('--anim-scale', cfg.animScale === 0 ? '0.001' : '1');
@@ -768,10 +780,17 @@ function renderPerfSelector() {
             <div style="font-size:0.5rem;color:${active && isUltra ? (isLight?'#8a5e00':'rgba(255,184,0,0.8)') : 'var(--text-secondary)'};white-space:nowrap;">${PERF_DESCS[key]}</div>
         `;
 
-        // Mark Ultra as top tier with a MAX label dot
-        if (isUltra && active) {
-            const marker = document.createElement('span');
-            marker.style.cssText = `position:absolute;top:-5px;right:2px;font-size:7px;font-weight:900;letter-spacing:0.5px;line-height:1;color:${isLight?'#8a5e00':'#ffb800'};text-transform:uppercase;`;
+        // Ultra: siempre mostrar indicador MAX, más visible si activo
+        if (isUltra) {
+            const marker = document.createElement('div');
+            marker.style.cssText = `
+                margin-top:2px; padding:1px 7px; border-radius:20px;
+                font-size:6.5px; font-weight:900; letter-spacing:1.5px; line-height:1.6;
+                text-transform:uppercase;
+                color:${active ? (isLight?'#6b3e00':'#6b3e00') : (isLight?'rgba(0,0,0,0.3)':'rgba(255,255,255,0.3)')};
+                background:${active ? (isLight?'rgba(180,140,0,0.2)':'rgba(255,184,0,0.82)') : (isLight?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.07)')};
+                border:1px solid ${active ? (isLight?'rgba(180,140,0,0.4)':'rgba(255,184,0,0.45)') : (isLight?'rgba(0,0,0,0.1)':'rgba(255,255,255,0.12)')};
+            `;
             marker.textContent = 'MAX';
             btn.appendChild(marker);
         }
@@ -2771,6 +2790,7 @@ let currentNoTimeoutStreak = 0;
 let livesLostThisGame = 0;
 let consecutiveLivesLost = 0;  // for u19 Resurreccion tracking
 let frenziesThisGame = 0;      // for extra1 Doble Frenesí
+let _particlesActive = true;   // controlled by applyPerfMode, declared here so it's always defined
 
 function startGame() {
     initAudio(); SFX.gameStart();
@@ -2920,7 +2940,11 @@ function getNextQuestion() {
         const fresh = shuffleArray([...quizDataPool]);
         const notRecent = fresh.filter(q => !_recentQuestionIds.has(q.question.slice(0, 30)));
         const pool = notRecent.length >= 10 ? notRecent : fresh;
-        currentSessionQuestions = currentSessionQuestions.concat(pool);
+        // Append new pool but trim old history to prevent unbounded growth.
+        // Keep a small tail of past questions (for context), append new pool.
+        const keepFrom = Math.max(0, currentQuestionIndex - 5);
+        currentSessionQuestions = currentSessionQuestions.slice(keepFrom).concat(pool);
+        currentQuestionIndex -= keepFrom; // adjust index to match new array offset
     }
     return currentSessionQuestions[currentQuestionIndex] || null;
 }
@@ -3385,7 +3409,8 @@ function endGame() {
 const canvas = document.getElementById('particle-canvas'); 
 const ctx = canvas.getContext('2d', { alpha: true }); 
 let particlesArray = [];
-let fpsInterval = 1000 / playerStats.maxFps; let then = performance.now();
+let fpsInterval = 1000 / playerStats.maxFps;
+let then = performance.now();
 
 function initParticles() { 
     canvas.width = window.innerWidth; canvas.height = window.innerHeight; particlesArray = []; 
@@ -3483,13 +3508,13 @@ function connectParticles(pulse) {
 }
 
 function animateParticles(now) { 
+    if (!_particlesActive) return;
     requestAnimationFrame(animateParticles); 
     const elapsed = now - then; 
     if (elapsed > fpsInterval) { 
         // Subtract remainder to keep drift-free timing (no debt accumulation)
         then = now - (elapsed % fpsInterval);
         // Hard clamp to 1 frame worth of movement max — prevents burst after tab focus/throttle
-        // Using 1.0 instead of 2.5 makes particles never "jump" forward
         const timeScale = Math.min(elapsed / fpsInterval, 1.0);
         
         ctx.clearRect(0, 0, canvas.width, canvas.height);
