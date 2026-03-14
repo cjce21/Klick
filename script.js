@@ -2854,7 +2854,7 @@ function renderMissionsScreen() {
             : '';
 
         return `
-        <div class="${cardClass}" id="mcard-${m.id}">
+        <div class="${cardClass}" id="mcard-${m.id}" style="flex:1;min-height:0;">
             ${checkOverlay}
             <div class="mission-card-top">
                 <div class="mission-icon-wrap" style="color:${isDone?(isLight?'rgba(0,0,0,0.25)':'rgba(255,255,255,0.25)'):catColor};">
@@ -2873,12 +2873,40 @@ function renderMissionsScreen() {
         </div>`;
     }
 
-    const sectReady  = ready.length  > 0 ? `<div class="missions-section-label">Listas para cobrar (${ready.length})</div>${ready.map(({m,def})=>missionCardHTML(m,def)).join('')}` : '';
-    const sectActive = pending.length > 0 ? `<div class="missions-section-label">En progreso</div>${pending.map(({m,def})=>missionCardHTML(m,def)).join('')}` : '';
-    const sectDone   = done.length    > 0 ? `<div class="missions-section-label">Completadas (${done.length}/${DAILY_MISSION_COUNT})</div>${done.map(({m,def})=>missionCardHTML(m,def)).join('')}` : '';
+    const sectLabels = [];
+    const allCards   = [];
+
+    if (ready.length > 0) {
+        sectLabels.push(`<div class="missions-section-label" style="flex-shrink:0;">Listas para cobrar (${ready.length})</div>`);
+        allCards.push(...ready.map(({m,def}) => missionCardHTML(m, def)));
+    }
+    if (pending.length > 0) {
+        if (allCards.length > 0) sectLabels.push(''); // spacer handled by gap
+        sectLabels.push(`<div class="missions-section-label" style="flex-shrink:0;">En progreso</div>`);
+        allCards.push(...pending.map(({m,def}) => missionCardHTML(m, def)));
+    }
+    if (done.length > 0) {
+        sectLabels.push(`<div class="missions-section-label" style="flex-shrink:0;">Completadas (${done.length}/${DAILY_MISSION_COUNT})</div>`);
+        allCards.push(...done.map(({m,def}) => missionCardHTML(m, def)));
+    }
+
+    // Build section blocks: label + cards in a flex column each
+    // All 6 cards fill remaining space equally after the header
+    let sectionsHTML = '';
+    let cardIdx = 0;
+    let sLabelIdx = 0;
+
+    // Simpler approach: one flat flex column, labels are flex-shrink:0
+    const flatHTML = ordered.map(({m, def}, i) => {
+        let label = '';
+        if (i === 0 && ready.length > 0) label = `<div class="missions-section-label" style="flex-shrink:0;">Listas para cobrar (${ready.length})</div>`;
+        else if (i === ready.length && pending.length > 0) label = `<div class="missions-section-label" style="flex-shrink:0;">En progreso</div>`;
+        else if (i === ready.length + pending.length && done.length > 0) label = `<div class="missions-section-label" style="flex-shrink:0;">Completadas (${done.length}/${DAILY_MISSION_COUNT})</div>`;
+        return label + missionCardHTML(m, def);
+    }).join('');
 
     dashboard.innerHTML = `
-        <div class="missions-header">
+        <div class="missions-header" style="flex-shrink:0;">
             <div class="missions-header-top">
                 <div>
                     <div class="missions-pl-earned" style="color:${rankColor};">+${plEarnedToday.toLocaleString()} <span style="font-size:0.6em;font-weight:700;opacity:0.7;">PL</span></div>
@@ -2890,9 +2918,7 @@ function renderMissionsScreen() {
                 <div class="missions-progress-bar-fill" style="width:${pct}%;"></div>
             </div>
         </div>
-        ${sectReady}
-        ${sectActive}
-        ${sectDone}
+        ${flatHTML}
     `;
 }
 
