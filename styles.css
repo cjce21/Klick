@@ -930,10 +930,11 @@ body.light-mode .rank-full-card.mitico-item {
     background: rgba(0,0,0,0.025) !important;
 }
 body.light-mode .mitico-name {
-    background: linear-gradient(90deg, #1a1a1a, #000000, #2a2a2a);
-    background-size: 200% auto;
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text; color: transparent;
+    background: none;
+    -webkit-background-clip: unset;
+    -webkit-text-fill-color: #0d1117;
+    background-clip: unset;
+    color: #0d1117;
     animation: none;
     filter: none;
 }
