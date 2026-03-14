@@ -3075,457 +3075,226 @@ function _applyStreakShieldIfAvailable() {
 
 // ── Girar la ruleta de racha con animación de carrusel ───────────
 let _srSpinning = false;
+
 function spinStreakRoulette() {
     if (_srSpinning) return;
     _initStreakSystem();
-    const ss = playerStats.streakSystem;
+    var ss = playerStats.streakSystem;
     if (ss.spins <= 0 || ss.pendingResult) return;
-
     _srSpinning = true;
     ss.spins--;
     saveStatsLocally();
 
-    // Weighted random pick
-    const totalW = STREAK_ROULETTE_PRIZES.reduce((a, p) => a + p.weight, 0);
-    let r = Math.random() * totalW;
-    let winPrize = STREAK_ROULETTE_PRIZES[STREAK_ROULETTE_PRIZES.length - 1];
-    for (const p of STREAK_ROULETTE_PRIZES) { r -= p.weight; if (r <= 0) { winPrize = p; break; } }
+    var totalW = 0;
+    for (var i = 0; i < STREAK_ROULETTE_PRIZES.length; i++) totalW += STREAK_ROULETTE_PRIZES[i].weight;
+    var r = Math.random() * totalW;
+    var win = STREAK_ROULETTE_PRIZES[STREAK_ROULETTE_PRIZES.length - 1];
+    for (var i = 0; i < STREAK_ROULETTE_PRIZES.length; i++) {
+        r -= STREAK_ROULETTE_PRIZES[i].weight;
+        if (r <= 0) { win = STREAK_ROULETTE_PRIZES[i]; break; }
+    }
 
-    const track = document.getElementById('sr-track');
-    const btn   = document.getElementById('sr-spin-btn');
-    const spinsNum = document.getElementById('sr-spins-num');
+    var track  = document.getElementById('sr-track');
+    var btn    = document.getElementById('sr-spin-btn');
+    var spinsN = document.getElementById('sr-spins-num');
     if (!track || !btn) { _srSpinning = false; return; }
-
-    if (spinsNum) spinsNum.textContent = ss.spins;
-    btn.disabled = true;
-    btn.textContent = 'Girando...';
-
-    // Build extended card list for animation:
-    // 30 random cards + landing on winPrize at position 30
-    const CARD_W = 76; // card width + gap
-    const VISIBLE_CENTER = 3; // index of center visible card (0-based, out of 5 visible)
-    const spinCount = 30;
-    const cards = [];
-    for (let i = 0; i < spinCount; i++) {
-        cards.push(STREAK_ROULETTE_PRIZES[i % STREAK_ROULETTE_PRIZES.length]);
-    }
-    // The center card at the end of animation should be winPrize
-    // Center = index spinCount-1-VISIBLE_CENTER in the array after stopping
-    const landingIdx = spinCount - 1 - VISIBLE_CENTER + 3; // 3 center offset
-    cards.push(winPrize); // ensure it's at the right place
-    // Actually: rebuild so card at exact center stop position = winPrize
-    const centerStop = spinCount + 2; // position that ends up centered
-    const extCards = [];
-    for (let i = 0; i < centerStop + 3; i++) {
-        if (i === centerStop) extCards.push(winPrize);
-        else extCards.push(STREAK_ROULETTE_PRIZES[i % STREAK_ROULETTE_PRIZES.length]);
-    }
-
-    const isLight = document.body.classList.contains('light-mode');
-    // Rebuild cards in DOM
-    track.innerHTML = extCards.map((p, idx) => {
-        const col = isLight ? (p.colorLight || p.color) : p.color;
-        return `<div class="sr-card" data-idx="${idx}" style="color:${col};border-color:${col}22;background:${col}0a;">
-            ${SR_SVG[p.icon]}
-            <span class="sr-card-label" style="color:${col};">${p.label}</span>
-        </div>`;
-    }).join('');
-
-    // Animate: scroll from start to landing position
-    // Each card = CARD_W px. Center the winning card.
-    const wrapW = track.parentElement.offsetWidth || 300;
-    const startX = 0;
-    const endX = -(centerStop * CARD_W - (wrapW / 2) + CARD_W / 2) + wrapW / 2 - 6;
-    // Fast ease-out scroll
-    track.style.transition = 'none';
-    track.style.transform = `translateX(${startX}px)`;
-
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            track.style.transition = 'transform 1.8s cubic-bezier(0.22,1,0.36,1)';
-            track.style.transform = `translateX(${endX}px)`;
-        });
-    });
-
-    setTimeout(() => {
-        // Highlight center card
-        const allCards = track.querySelectorAll('.sr-card');
-        allCards.forEach((c, i) => c.classList.toggle('center', i === centerStop));
-
-        ss.pendingResult = winPrize.id;
-        saveStatsLocally();
-        _srSpinning = false;
-
-        // Show result zone
-        const resultInner = document.getElementById('sr-result-inner');
-        if (resultInner) {
-            const col = isLight ? (winPrize.colorLight || winPrize.color) : winPrize.color;
-            const desc = winPrize.plBonus > 0 ? `+${winPrize.plBonus.toLocaleString()} PL`
-                : winPrize.shields > 0 ? `+${winPrize.shields} escudo${winPrize.shields>1?'s':''}`
-                : '+1 giro extra';
-            resultInner.style.background = `${col}12`;
-            resultInner.style.borderColor = `${col}30`;
-            resultInner.querySelector('.sr-result-icon').style.color = col;
-            resultInner.querySelector('.sr-result-icon').innerHTML = SR_SVG[winPrize.icon];
-            resultInner.querySelector('.sr-result-name').style.color = col;
-            resultInner.querySelector('.sr-result-name').textContent = winPrize.label;
-            resultInner.querySelector('.sr-result-sub').textContent = desc;
-            const claimBtn = resultInner.querySelector('.sr-result-claim');
-            claimBtn.style.background = col;
-            claimBtn.style.color = isLight ? '#fff' : '#111';
-            requestAnimationFrame(() => resultInner.classList.add('visible'));
-        }
-
-        btn.textContent = 'Sin giros disponibles';
-        SFX.correct && SFX.correct();
-        updateStreakDot();
-    }, 1900);
-}
-
-// ── Cobrar resultado de ruleta ────────────────────────────────────
-function claimStreakRouletteResult() {
-    _initStreakSystem();
-    const ss = playerStats.streakSystem;
-    if (!ss.pendingResult) return;
-    const prize = STREAK_ROULETTE_PRIZES.find(p => p.id === ss.pendingResult);
-    if (!prize) { ss.pendingResult = null; saveStatsLocally(); return; }
-
-    if (prize.plBonus  > 0) playerStats.bonusPL = (playerStats.bonusPL||0) + prize.plBonus;
-    if (prize.shields  > 0) ss.shields += prize.shields;
-    if (prize.spins    > 0) ss.spins = Math.min(ss.spins + prize.spins, SR_MAX_SPINS);
-    ss.pendingResult = null;
-    saveStatsLocally();
-
-    const isLight = document.body.classList.contains('light-mode');
-    const col = isLight ? (prize.colorLight||prize.color) : prize.color;
-    showToast(prize.label,
-        prize.plBonus>0 ? `+${prize.plBonus.toLocaleString()} PL añadidos.`
-        : prize.shields>0 ? `${prize.shields} escudo${prize.shields>1?'s':''} de racha ganados.`
-        : 'Giro extra acumulado.',
-        col, SR_SVG[prize.icon]);
-    SFX.achievement();
-
-    // Hide result zone in-place
-    const ri = document.getElementById('sr-result-inner');
-    if (ri) { ri.classList.remove('visible'); setTimeout(() => { ri.innerHTML = ''; ri.style.background=''; ri.style.borderColor='transparent'; }, 350); }
-
-    // Re-enable spin button
-    const btn = document.getElementById('sr-spin-btn');
-    const spinsNum = document.getElementById('sr-spins-num');
-    if (spinsNum) spinsNum.textContent = ss.spins;
-    if (btn) {
-        const canSpin = ss.spins > 0;
-        btn.disabled = !canSpin;
-        btn.textContent = canSpin ? 'Girar' : 'Sin giros';
-    }
-    // Update shields/spins pills
-    const shieldPill = document.querySelector('.streak-pill-shield');
-    const spinsPill  = document.querySelector('.streak-pill-spins');
-    if (shieldPill) shieldPill.innerHTML = `${SR_SVG.shield} ${ss.shields>0?ss.shields+' escudo'+(ss.shields!==1?'s':''):'Sin escudos'}`;
-    if (spinsPill)  spinsPill.innerHTML  = `${SR_SVG.spin} ${ss.spins} giro${ss.spins!==1?'s':''}`;
-
-    updateStreakDot();
-    if (document.getElementById('pl-total')) renderProfileIfOpen();
-}
-
-// ── Cobrar hito ───────────────────────────────────────────────────
-function claimStreakMilestone(days) {
-    _initStreakSystem();
-    const ss = playerStats.streakSystem;
-    const ms = STREAK_MILESTONES.find(m => m.days === days);
-    if (!ms) return;
-    if (ss.claimedMilestones.includes(days)) return;
-    if ((playerStats.currentLoginStreak||0) < days) return;
-
-    ss.claimedMilestones.push(days);
-    playerStats.bonusPL = (playerStats.bonusPL||0) + ms.plBonus;
-    if (ms.extraSpins > 0) ss.spins = Math.min(ss.spins + ms.extraSpins, SR_MAX_SPINS);
-    saveStatsLocally();
-    SFX.achievement();
-    showToast(`Hito: ${ms.label}`, `+${ms.plBonus.toLocaleString()} PL.${ms.extraSpins>0?` +${ms.extraSpins} giro${ms.extraSpins>1?'s':''} extra.`:''}`, '#ff2a5f', SR_SVG.trophy);
-
-    // Re-render only the milestones list
-    const list = document.querySelector('.streak-milestones-list');
-    if (list) {
-        const streak = playerStats.currentLoginStreak||0;
-        const isLight = document.body.classList.contains('light-mode');
-        const red = isLight ? '#c41940' : '#ff2a5f';
-        const fmt = n => n.toLocaleString();
-        list.innerHTML = STREAK_MILESTONES.map(m => {
-            const claimed   = ss.claimedMilestones.includes(m.days);
-            const available = !claimed && streak >= m.days;
-            const locked    = !claimed && !available;
-            const pct = Math.min(100, Math.round((streak/m.days)*100));
-            const col = available ? red : (isLight?'rgba(0,0,0,0.3)':'rgba(255,255,255,0.25)');
-            const extras = m.extraSpins>0?` +${m.extraSpins}G`:'';
-            const sub = claimed ? 'Completado' : available ? 'Listo para cobrar' : `${streak}/${m.days} días`;
-            const right = claimed
-                ? `<div class="streak-milestone-check">${SR_SVG.check}</div>`
-                : available
-                    ? `<button class="streak-milestone-claim" onclick="claimStreakMilestone(${m.days})">COBRAR</button>`
-                    : `<div class="streak-milestone-reward" style="color:${col};border-color:${col};">+${fmt(m.plBonus)} PL${extras}</div>`;
-            return `<div class="streak-milestone-card${available?' available':''}${claimed?' claimed':''}">
-                ${locked?`<div class="streak-milestone-progress" style="width:${pct}%;"></div>`:''}
-                <div class="streak-milestone-icon" style="color:${claimed?(isLight?'rgba(0,0,0,0.25)':'rgba(255,255,255,0.25)'):red};${available?`border-color:${red}44;background:${red}10`:''}">${SR_SVG[m.icon]}</div>
-                <div class="streak-milestone-info">
-                    <div class="streak-milestone-title">${m.label} — ${m.days} días</div>
-                    <div class="streak-milestone-sub">${sub}</div>
-                </div>
-                ${right}
-            </div>`;
-        }).join('');
-    }
-    // Update spins pill
-    const spinsPill = document.querySelector('.streak-pill-spins');
-    if (spinsPill) spinsPill.innerHTML = `${SR_SVG.spin} ${ss.spins} giro${ss.spins!==1?'s':''}`;
-    const spinsNum = document.getElementById('sr-spins-num');
-    if (spinsNum) spinsNum.textContent = ss.spins;
-    const btn = document.getElementById('sr-spin-btn');
-    if (btn && ss.spins > 0 && !ss.pendingResult) { btn.disabled = false; btn.textContent = 'Girar'; }
-
-    updateStreakDot();
-    if (document.getElementById('pl-total')) renderProfileIfOpen();
-}
-
-// ── Dot indicador en el botón del menú ───────────────────────────
-function updateStreakDot() {
-    const dot = document.getElementById('streak-dot');
-    if (!dot) return;
-    _initStreakSystem();
-    const ss = playerStats.streakSystem;
-    const streak = playerStats.currentLoginStreak || 0;
-    // Mostrar dot si: hay giros disponibles, hito cobrable, o resultado pendiente
-    const hasSpins    = ss.spins > 0;
-    const hasPending  = !!ss.pendingResult;
-    const hasMilestone = STREAK_MILESTONES.some(m =>
-        streak >= m.days && !ss.claimedMilestones.includes(m.days));
-    dot.style.display = (hasSpins || hasPending || hasMilestone) ? 'block' : 'none';
-}
-
-// ── Ir a la pantalla ─────────────────────────────────────────────
-function goToStreaks() {
-    SFX.click();
-    _initStreakSystem();
-    renderStreaksScreen();
-    switchScreen('streaks-screen');
-}
-
-function renderStreaksScreen() {
-    const db = document.getElementById('streaks-dashboard');
-    if (!db) return;
-    _initStreakSystem();
-    const ss = playerStats.streakSystem;
-    const streak = playerStats.currentLoginStreak || 0;
-    const isLight = document.body.classList.contains('light-mode');
-    const rc  = (n,d) => isLight ? d : n;
-    const fmt = n => n.toLocaleString();
-    const red = rc('#ff2a5f','#c41940');
-
-    // ─── HEADER ────────────────────────────────────────────────
-    const nextMs = STREAK_MILESTONES.find(m => streak < m.days);
-    const statusTxt = streak === 0 ? 'Juega hoy para empezar tu racha.'
-        : nextMs ? `Próximo hito en ${nextMs.days - streak} día${nextMs.days-streak!==1?'s':''}.`
-        : 'Has alcanzado todos los hitos.';
-
-    const shieldTxt = ss.shields > 0 ? `${ss.shields} escudo${ss.shields!==1?'s':''}` : 'Sin escudos';
-    const spinsTxt  = `${ss.spins} giro${ss.spins!==1?'s':''}`;
-
-    // ─── CALENDARIO ────────────────────────────────────────────
-    const today = _getTodayStr();
-    const DAY_SHORT = ['D','L','M','X','J','V','S'];
-    const calHtml = Array.from({length:7},(_,i) => {
-        const d = new Date(); d.setDate(d.getDate()-(6-i));
-        const daysAgo = 6-i;
-        const isToday = daysAgo===0;
-        const nm = DAY_SHORT[d.getDay()];
-        let cls='sr-cal-day', icon=SR_SVG.missed, col=rc('rgba(255,255,255,.18)','rgba(0,0,0,.18)');
-        if (isToday && (playerStats.todayGames||0)>0) { cls+=' today played'; icon=SR_SVG.today; col=red; }
-        else if (isToday) { cls+=' today'; icon=SR_SVG.today; col=rc('rgba(255,42,95,.4)','rgba(196,25,64,.35)'); }
-        else if (daysAgo < streak) { cls+=' played'; icon=SR_SVG.played; col=red; }
-        else { cls+=' missed'; }
-        return `<div class="${cls}"><span class="sr-cal-lbl">${nm}</span><div class="sr-cal-icon" style="color:${col};">${icon}</div></div>`;
-    }).join('');
-
-    // ─── CARRUSEL inicial ───────────────────────────────────────
-    // 7 cartas, la 4ª (idx 3) es la central
-    const N = STREAK_ROULETTE_PRIZES.length;
-    const initCardsHtml = Array.from({length:7},(_,i) => {
-        const p = STREAK_ROULETTE_PRIZES[i % N];
-        const col = isLight ? (p.colorLight||p.color) : p.color;
-        return `<div class="sr-card${i===3?' is-center':''}" style="color:${col};border-color:${col}28;background:${col}0c;">${SR_SVG[p.icon]}<span class="sr-card-lbl" style="color:${col};">${p.label}</span></div>`;
-    }).join('');
-
-    // ─── RESULTADO PENDIENTE ────────────────────────────────────
-    let resultStyle='', resultHtml='', resultVisible='';
-    if (ss.pendingResult) {
-        const p = STREAK_ROULETTE_PRIZES.find(x=>x.id===ss.pendingResult);
-        if (p) {
-            const col = isLight ? (p.colorLight||p.color) : p.color;
-            const sub = p.plBonus>0?`+${fmt(p.plBonus)} PL`:p.shields>0?`+${p.shields} escudo${p.shields>1?'s':''}`:'+1 giro extra';
-            resultStyle = `background:${col}14;border:1px solid ${col}30;border-radius:6px;`;
-            resultHtml = `<div class="sr-result-icon" style="color:${col};">${SR_SVG[p.icon]}</div>
-                <div class="sr-result-name" style="color:${col};">${p.label}</div>
-                <div class="sr-result-sub">${sub}</div>
-                <button class="sr-result-btn" onclick="claimStreakRouletteResult()" style="background:${col};color:${isLight?'#fff':'#111'};">COBRAR</button>`;
-            resultVisible = ' visible';
-        }
-    }
-
-    const canSpin = ss.spins>0 && !ss.pendingResult && !_srSpinning;
-    const spinLbl = ss.pendingResult?'Cobra primero': ss.spins<=0?'Sin giros':'Girar';
-
-    // ─── HITOS ──────────────────────────────────────────────────
-    const msHtml = STREAK_MILESTONES.map(ms => {
-        const claimed   = ss.claimedMilestones.includes(ms.days);
-        const available = !claimed && streak >= ms.days;
-        const pct = Math.min(100, Math.round((streak/ms.days)*100));
-        const col = available ? red : rc('rgba(255,255,255,.2)','rgba(0,0,0,.25)');
-        const extras = ms.extraSpins>0?` +${ms.extraSpins}G`:'';
-        const sub = `${streak}/${ms.days} días`;
-
-        const bottom = claimed
-            ? `<div class="sr-ms-check">${SR_SVG.check}</div>`
-            : available
-                ? `<button class="sr-ms-claim" onclick="claimStreakMilestone(${ms.days})">COBRAR</button>`
-                : `<div class="sr-ms-reward" style="color:${col};border-color:${col};">+${fmt(ms.plBonus)}${extras}</div>`;
-
-        return `<div class="sr-ms-card${available?' available':''}${claimed?' claimed':''}">
-            ${!claimed&&!available?`<div class="sr-ms-prog" style="width:${pct}%;"></div>`:''}
-            <div class="sr-ms-icon" style="color:${claimed?rc('rgba(255,255,255,.2)','rgba(0,0,0,.2)'):red};">${SR_SVG[ms.icon]}</div>
-            <div class="sr-ms-title">${ms.label}</div>
-            <div class="sr-ms-days">${claimed?'Hecho':sub}</div>
-            ${bottom}
-        </div>`;
-    }).join('');
-
-    // ─── ENSAMBLAJE ─────────────────────────────────────────────
-    db.innerHTML = `
-        <div class="sr-header">
-            <div class="sr-count">
-                <div class="sr-count-num">${streak}</div>
-                <div class="sr-count-lbl">DÍAS</div>
-            </div>
-            <div class="sr-header-mid">
-                <div class="sr-status">${statusTxt}</div>
-                <div class="sr-pills">
-                    <div class="sr-pill sr-pill-shield">${SR_SVG.shield} ${shieldTxt}</div>
-                    <div class="sr-pill sr-pill-spins">${SR_SVG.spin} ${spinsTxt}</div>
-                </div>
-            </div>
-            <div class="sr-flame-icon">${SR_SVG.flame}</div>
-        </div>
-
-        <div class="sr-mid-row">
-            <div class="sr-cal-wrap">
-                <div class="sr-section-lbl">Últimos 7 días</div>
-                <div class="sr-cal-grid">${calHtml}</div>
-            </div>
-
-            <div class="sr-roulette-wrap">
-                <div class="sr-section-lbl">Ruleta de Racha</div>
-                <div class="sr-carousel-outer">
-                    <div class="sr-carousel-frame"></div>
-                    <div class="sr-track" id="sr-track">${initCardsHtml}</div>
-                </div>
-                <div class="sr-result-zone">
-                    <div class="sr-result-inner${resultVisible}" id="sr-result-inner" style="${resultStyle}">${resultHtml}</div>
-                </div>
-                <div class="sr-spin-row">
-                    <div class="sr-spins-badge">
-                        <div class="sr-spins-num" id="sr-spins-num">${ss.spins}</div>
-                        <div class="sr-spins-lbl">Giros</div>
-                    </div>
-                    <button class="sr-spin-btn" id="sr-spin-btn" onclick="spinStreakRoulette()" ${!canSpin?'disabled':''}>${spinLbl}</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="sr-milestones-row">${msHtml}</div>
-    `;
-}
-
-function spinStreakRoulette() {
-    if (_srSpinning) return;
-    _initStreakSystem();
-    const ss = playerStats.streakSystem;
-    if (ss.spins<=0 || ss.pendingResult) return;
-    _srSpinning = true;
-    ss.spins--;
-    saveStatsLocally();
-
-    // Weighted pick
-    const totalW = STREAK_ROULETTE_PRIZES.reduce((a,p)=>a+p.weight,0);
-    let r = Math.random()*totalW;
-    let win = STREAK_ROULETTE_PRIZES[STREAK_ROULETTE_PRIZES.length-1];
-    for (const p of STREAK_ROULETTE_PRIZES) { r-=p.weight; if(r<=0){win=p;break;} }
-
-    const track  = document.getElementById('sr-track');
-    const btn    = document.getElementById('sr-spin-btn');
-    const spinsN = document.getElementById('sr-spins-num');
-    if (!track||!btn) { _srSpinning=false; return; }
 
     if (spinsN) spinsN.textContent = ss.spins;
     btn.disabled = true;
     btn.textContent = 'Girando...';
 
-    const isLight = document.body.classList.contains('light-mode');
-    const CARD_W  = 75; // px per card including gap
-    const SPIN_CARDS = 32; // cards to scroll past
-    const CENTER_OFFSET = 3; // index of center card in visible window
+    var isLight = document.body.classList.contains('light-mode');
+    var CARD_W = 78, SPIN_CARDS = 30, CENTER_OFF = 3;
+    var N = STREAK_ROULETTE_PRIZES.length;
+    var total = SPIN_CARDS + 7;
+    var html = '';
+    for (var i = 0; i < total; i++) {
+        var p = (i === SPIN_CARDS + CENTER_OFF) ? win : STREAK_ROULETTE_PRIZES[i % N];
+        var col = isLight ? (p.colorLight || p.color) : p.color;
+        html += '<div class="sr-card" style="color:' + col + ';border-color:' + col + '28;background:' + col + '0c;">'
+             + SR_SVG[p.icon]
+             + '<span class="sr-card-lbl" style="color:' + col + ';">' + p.label + '</span></div>';
+    }
+    track.innerHTML = html;
 
-    // Build extended list: SPIN_CARDS + 7 visible, winner at SPIN_CARDS+CENTER_OFFSET
-    const N = STREAK_ROULETTE_PRIZES.length;
-    const allCards = Array.from({length: SPIN_CARDS + 7}, (_,i) => {
-        const idx = (i === SPIN_CARDS + CENTER_OFFSET) ? STREAK_ROULETTE_PRIZES.indexOf(win) : i % N;
-        return STREAK_ROULETTE_PRIZES[Math.abs(idx) % N];
-    });
-    // Make sure winner is at the exact center-stop position
-    allCards[SPIN_CARDS + CENTER_OFFSET] = win;
-
-    track.innerHTML = allCards.map((p,i) => {
-        const col = isLight ? (p.colorLight||p.color) : p.color;
-        return `<div class="sr-card" style="color:${col};border-color:${col}28;background:${col}0c;">${SR_SVG[p.icon]}<span class="sr-card-lbl" style="color:${col};">${p.label}</span></div>`;
-    }).join('');
-
-    // Position track: start so first 7 cards are visible (centered on card 3)
-    const outerW = track.parentElement.offsetWidth || 280;
-    const startX = outerW/2 - CENTER_OFFSET*CARD_W - CARD_W/2 - 6;
-    const endX   = outerW/2 - (SPIN_CARDS+CENTER_OFFSET)*CARD_W - CARD_W/2 - 6;
-
+    var outerW = (track.parentElement ? track.parentElement.offsetWidth : 0) || 300;
+    var startX = outerW/2 - CENTER_OFF*CARD_W - CARD_W/2 - 7;
+    var endX   = outerW/2 - (SPIN_CARDS+CENTER_OFF)*CARD_W - CARD_W/2 - 7;
     track.style.transition = 'none';
-    track.style.transform  = `translateX(${startX}px)`;
+    track.style.transform  = 'translateX(' + startX + 'px)';
 
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-        track.style.transition = 'transform 2s cubic-bezier(0.17,1,0.35,1)';
-        track.style.transform  = `translateX(${endX}px)`;
-    }));
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+            track.style.transition = 'transform 2s cubic-bezier(0.17,1,0.35,1)';
+            track.style.transform  = 'translateX(' + endX + 'px)';
+        });
+    });
 
-    setTimeout(() => {
-        // Highlight winner card
-        const cards = track.querySelectorAll('.sr-card');
-        cards.forEach((c,i) => c.classList.toggle('is-center', i === SPIN_CARDS+CENTER_OFFSET));
-
+    setTimeout(function() {
+        var cards = track.querySelectorAll('.sr-card');
+        for (var i = 0; i < cards.length; i++) {
+            cards[i].classList.toggle('is-center', i === SPIN_CARDS + CENTER_OFF);
+        }
         ss.pendingResult = win.id;
         saveStatsLocally();
         _srSpinning = false;
 
-        // Show result
-        const ri = document.getElementById('sr-result-inner');
+        var ri = document.getElementById('sr-result-inner');
         if (ri) {
-            const col = isLight ? (win.colorLight||win.color) : win.color;
-            const sub = win.plBonus>0?`+${win.plBonus.toLocaleString()} PL`:win.shields>0?`+${win.shields} escudo${win.shields>1?'s':''}`:'+1 giro extra';
-            ri.style.cssText = `background:${col}14;border:1px solid ${col}30;border-radius:6px;`;
-            ri.innerHTML = `<div class="sr-result-icon" style="color:${col};">${SR_SVG[win.icon]}</div>
-                <div class="sr-result-name" style="color:${col};">${win.label}</div>
-                <div class="sr-result-sub">${sub}</div>
-                <button class="sr-result-btn" onclick="claimStreakRouletteResult()" style="background:${col};color:${isLight?'#fff':'#111'};">COBRAR</button>`;
-            requestAnimationFrame(() => ri.classList.add('visible'));
+            var col = isLight ? (win.colorLight || win.color) : win.color;
+            var sub = win.plBonus > 0 ? ('+' + win.plBonus.toLocaleString() + ' PL')
+                    : win.shields > 0 ? ('+' + win.shields + ' escudo' + (win.shields > 1 ? 's' : ''))
+                    : '+1 giro extra';
+            ri.style.cssText = 'background:' + col + '14;border:1px solid ' + col + '30;border-radius:8px;';
+            ri.innerHTML = '<div class="sr-result-icon" style="color:' + col + ';">' + SR_SVG[win.icon] + '</div>'
+                + '<div class="sr-result-name" style="color:' + col + ';">' + win.label + '</div>'
+                + '<div class="sr-result-sub">' + sub + '</div>'
+                + '<button class="sr-result-btn" onclick="claimStreakRouletteResult()" style="background:' + col + ';color:' + (isLight ? '#fff' : '#111') + ';">COBRAR</button>';
+            requestAnimationFrame(function() { ri.classList.add('visible'); });
         }
         btn.textContent = 'Cobra primero';
         updateStreakDot();
         SFX.correct && SFX.correct();
     }, 2100);
 }
+
+function renderStreaksScreen() {
+    var db = document.getElementById('streaks-dashboard');
+    if (!db) return;
+    _initStreakSystem();
+    var ss = playerStats.streakSystem;
+    var streak = playerStats.currentLoginStreak || 0;
+    var isLight = document.body.classList.contains('light-mode');
+    var fmt = function(n) { return n.toLocaleString(); };
+    var red = isLight ? '#c41940' : '#ff2a5f';
+
+    var nextMs = null;
+    for (var i = 0; i < STREAK_MILESTONES.length; i++) {
+        if (streak < STREAK_MILESTONES[i].days) { nextMs = STREAK_MILESTONES[i]; break; }
+    }
+    var remaining = nextMs ? (nextMs.days - streak) : 0;
+    var statusTxt = streak === 0 ? 'Juega hoy para empezar tu racha.'
+        : nextMs ? ('Pr\u00f3ximo hito en ' + remaining + (remaining !== 1 ? ' d\u00edas.' : ' d\u00eda.'))
+        : 'Has alcanzado todos los hitos.';
+
+    /* Calendario */
+    var DAY = ['D','L','M','X','J','V','S'];
+    var calHtml = '';
+    for (var i = 0; i < 7; i++) {
+        var d = new Date(); d.setDate(d.getDate() - (6 - i));
+        var daysAgo = 6 - i;
+        var isToday = daysAgo === 0;
+        var nm = DAY[d.getDay()];
+        var cls = 'sr-cal-day', icn = SR_SVG.missed, col = isLight ? 'rgba(0,0,0,.18)' : 'rgba(255,255,255,.18)';
+        if (isToday && (playerStats.todayGames||0) > 0) { cls += ' today played'; icn = SR_SVG.today; col = red; }
+        else if (isToday) { cls += ' today'; icn = SR_SVG.today; col = isLight ? 'rgba(196,25,64,.35)' : 'rgba(255,42,95,.4)'; }
+        else if (daysAgo < streak) { cls += ' played'; icn = SR_SVG.played; col = red; }
+        else cls += ' missed';
+        calHtml += '<div class="' + cls + '"><span class="sr-cal-lbl">' + nm + '</span>'
+                + '<div class="sr-cal-icon" style="color:' + col + ';">' + icn + '</div></div>';
+    }
+
+    /* Cartas iniciales del carrusel */
+    var N = STREAK_ROULETTE_PRIZES.length;
+    var initCards = '';
+    for (var i = 0; i < 7; i++) {
+        var p = STREAK_ROULETTE_PRIZES[i % N];
+        var col = isLight ? (p.colorLight || p.color) : p.color;
+        initCards += '<div class="sr-card' + (i === 3 ? ' is-center' : '') + '" style="color:' + col
+                  + ';border-color:' + col + '28;background:' + col + '0c;">'
+                  + SR_SVG[p.icon]
+                  + '<span class="sr-card-lbl" style="color:' + col + ';">' + p.label + '</span></div>';
+    }
+
+    /* Resultado pendiente */
+    var resStyle = '', resHtml = '', resVisible = '';
+    if (ss.pendingResult) {
+        var found = null;
+        for (var i = 0; i < STREAK_ROULETTE_PRIZES.length; i++) {
+            if (STREAK_ROULETTE_PRIZES[i].id === ss.pendingResult) { found = STREAK_ROULETTE_PRIZES[i]; break; }
+        }
+        if (found) {
+            var col = isLight ? (found.colorLight || found.color) : found.color;
+            var sub = found.plBonus > 0 ? ('+' + fmt(found.plBonus) + ' PL')
+                    : found.shields > 0 ? ('+' + found.shields + ' escudo' + (found.shields > 1 ? 's' : ''))
+                    : '+1 giro extra';
+            resStyle = 'background:' + col + '14;border:1px solid ' + col + '30;border-radius:8px;';
+            resHtml  = '<div class="sr-result-icon" style="color:' + col + ';">' + SR_SVG[found.icon] + '</div>'
+                     + '<div class="sr-result-name" style="color:' + col + ';">' + found.label + '</div>'
+                     + '<div class="sr-result-sub">' + sub + '</div>'
+                     + '<button class="sr-result-btn" onclick="claimStreakRouletteResult()" style="background:' + col + ';color:' + (isLight ? '#fff' : '#111') + ';">COBRAR</button>';
+            resVisible = ' visible';
+        }
+    }
+    var canSpin = ss.spins > 0 && !ss.pendingResult && !_srSpinning;
+    var spinLbl = ss.pendingResult ? 'Cobra primero' : ss.spins <= 0 ? 'Sin giros' : 'Girar (' + ss.spins + ')';
+
+    /* Hitos */
+    var msHtml = '';
+    for (var i = 0; i < STREAK_MILESTONES.length; i++) {
+        var ms = STREAK_MILESTONES[i];
+        var claimed   = ss.claimedMilestones.indexOf(ms.days) !== -1;
+        var available = !claimed && streak >= ms.days;
+        var locked    = !claimed && !available;
+        var pct = Math.min(100, Math.round((streak / ms.days) * 100));
+        var col = available ? red : (isLight ? 'rgba(0,0,0,.25)' : 'rgba(255,255,255,.22)');
+        var extras = ms.extraSpins > 0 ? (' +' + ms.extraSpins + ' giro' + (ms.extraSpins > 1 ? 's' : '')) : '';
+        var sub = claimed ? 'Completado' : available ? 'Listo para cobrar' : (streak + '/' + ms.days + ' d\u00edas');
+        var right = claimed
+            ? '<div class="sr-ms-check">' + SR_SVG.check + '</div>'
+            : available
+                ? '<button class="sr-ms-claim" onclick="claimStreakMilestone(' + ms.days + ')">COBRAR</button>'
+                : '<div class="sr-ms-reward" style="color:' + col + ';border-color:' + col + ';">+' + fmt(ms.plBonus) + ' PL' + extras + '</div>';
+        var iconCol = claimed ? (isLight ? 'rgba(0,0,0,.25)' : 'rgba(255,255,255,.25)') : red;
+        var iconStyle = 'color:' + iconCol + ';' + (available ? 'border-color:' + red + '44;background:' + red + '10;' : '');
+        msHtml += '<div class="sr-ms-card' + (available ? ' available' : '') + (claimed ? ' claimed' : '') + '">'
+                + (locked ? '<div class="sr-ms-prog" style="width:' + pct + '%;"></div>' : '')
+                + '<div class="sr-ms-icon" style="' + iconStyle + '">' + SR_SVG[ms.icon] + '</div>'
+                + '<div class="sr-ms-info">'
+                +   '<div class="sr-ms-title">' + ms.label + ' \u2014 ' + ms.days + ' d\u00edas</div>'
+                +   '<div class="sr-ms-sub">' + sub + '</div>'
+                + '</div>'
+                + right
+                + '</div>';
+    }
+
+    /* Ensamblaje final */
+    var shieldTxt = ss.shields > 0 ? (ss.shields + ' escudo' + (ss.shields !== 1 ? 's' : '')) : 'Sin escudos';
+    var spinsTxt  = ss.spins + ' giro' + (ss.spins !== 1 ? 's' : '');
+
+    db.innerHTML =
+        '<div class="sr-header">'
+        + '<div class="sr-count"><div class="sr-count-num">' + streak + '</div><div class="sr-count-lbl">D\u00CDAS</div></div>'
+        + '<div class="sr-header-mid"><div class="sr-status">' + statusTxt + '</div>'
+        + '<div class="sr-pills">'
+        + '<div class="sr-pill sr-pill-shield">' + SR_SVG.shield + ' ' + shieldTxt + '</div>'
+        + '<div class="sr-pill sr-pill-spins">'  + SR_SVG.spin   + ' ' + spinsTxt  + '</div>'
+        + '</div></div>'
+        + '<div class="sr-flame-icon">' + SR_SVG.flame + '</div>'
+        + '</div>'
+        + '<div class="sr-section-lbl">Últimos 7 días</div>'
+        + '<div class="sr-cal-grid">' + calHtml + '</div>'
+        + '<div class="sr-section-lbl">Ruleta de Racha</div>'
+        + '<div class="sr-roulette-card">'
+        +   '<div class="sr-carousel-outer">'
+        +     '<div class="sr-carousel-frame"></div>'
+        +     '<div class="sr-track" id="sr-track">' + initCards + '</div>'
+        +   '</div>'
+        +   '<div class="sr-result-zone">'
+        +     '<div class="sr-result-inner' + resVisible + '" id="sr-result-inner" style="' + resStyle + '">' + resHtml + '</div>'
+        +   '</div>'
+        +   '<div class="sr-spin-row">'
+        +     '<div class="sr-spins-badge">'
+        +       '<div class="sr-spins-num" id="sr-spins-num">' + ss.spins + '</div>'
+        +       '<div class="sr-spins-lbl">Giros</div>'
+        +     '</div>'
+        +     '<button class="sr-spin-btn" id="sr-spin-btn" onclick="spinStreakRoulette()"' + (!canSpin ? ' disabled' : '') + '>' + spinLbl + '</button>'
+        +   '</div>'
+        + '</div>'
+        + '<div class="sr-section-lbl">Hitos</div>'
+        + '<div class="sr-ms-list">' + msHtml + '</div>';
+}
+
 
 function goToMainMenu() {
     // ANTI-EXPLOIT: si hay partida activa, redirigir al flujo de abandon (con penalización).
