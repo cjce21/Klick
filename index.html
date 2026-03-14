@@ -22,6 +22,10 @@
 
     <div id="start-screen" class="screen active content-fit">
         <div class="top-btn-container">
+            <button class="top-btn" onclick="goToDailyMissions()" title="Misiones Diarias" id="missions-top-btn" style="position:relative;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                <span id="missions-dot" style="display:none;position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--accent-yellow);box-shadow:0 0 6px var(--accent-yellow);"></span>
+            </button>
             <button class="top-btn" onclick="goToRanking()" title="Clasificación Global">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"></rect><rect x="10" y="8" width="4" height="13"></rect><rect x="2" y="13" width="4" height="8"></rect></svg>
             </button>
@@ -557,6 +561,25 @@
             <div class="rl-result-desc" id="rl-result-desc"></div>
         </div>
         <button class="rl-btn" id="roulette-spin-btn" onclick="spinRoulette()" style="position:relative;z-index:1;">MEZCLAR Y GIRAR</button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         MISIONES DIARIAS
+         ═══════════════════════════════════════════════ -->
+    <div id="missions-screen" class="screen nav-screen">
+        <div class="top-nav">
+            <button class="btn-back" onclick="goToMainMenu()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                <span>Regresar</span>
+            </button>
+            <div class="nav-title">MISIONES DIARIAS</div>
+            <div class="nav-spacer"></div>
+        </div>
+        <div class="content-scroll no-scrollbar" id="missions-scroll">
+            <div class="missions-dashboard" id="missions-dashboard">
+                <!-- Renderizado por JS -->
+            </div>
+        </div>
     </div>
 
 </div>
