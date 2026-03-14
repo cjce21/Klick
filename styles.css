@@ -73,6 +73,203 @@ html.perf-ultra .screen {
 }
 /* Ultra badge indicator on the perf selector — handled in JS renderPerfSelector */
 
+/* ═══════════════════════════════════════════════════════════════
+   LIQUID GLASS — modo Ultra
+   Inspirado en visionOS / Apple Intelligence UI:
+   capas de vidrio traslúcido, highlight especular, refracción
+   y brillo interno que reacciona al color de rango.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Variables de liquid glass */
+html.perf-ultra {
+    --lg-blur:       22px;
+    --lg-sat:        180%;
+    --lg-bg-dark:    rgba(255,255,255,0.07);
+    --lg-bg-light:   rgba(255,255,255,0.72);
+    --lg-border:     rgba(255,255,255,0.22);
+    --lg-border-b:   rgba(0,0,0,0.18);
+    --lg-shine:      rgba(255,255,255,0.28);
+    --lg-shadow:     0 8px 32px rgba(0,0,0,0.45), 0 1.5px 0 rgba(255,255,255,0.12) inset;
+    --lg-radius:     18px;
+    --lg-transition: background 0.3s, box-shadow 0.3s, border-color 0.3s;
+}
+
+/* ── Mixin base glass ── */
+html.perf-ultra .glass-panel,
+html.perf-ultra .setting-card,
+html.perf-ultra .menu-box,
+html.perf-ultra .top-nav,
+html.perf-ultra .sr-roulette-card,
+html.perf-ultra .sr-ms-card,
+html.perf-ultra .kp-header,
+html.perf-ultra .end-fullscreen,
+html.perf-ultra .pl-panel,
+html.perf-ultra .profile-card,
+html.perf-ultra .achievement-card,
+html.perf-ultra .ranking-card,
+html.perf-ultra .missions-dashboard > *,
+html.perf-ultra .streaks-dashboard > * {
+    background: var(--lg-bg-dark) !important;
+    -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+    backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+    border: 1px solid var(--lg-border) !important;
+    box-shadow: var(--lg-shadow) !important;
+    border-radius: var(--lg-radius) !important;
+    transition: var(--lg-transition) !important;
+    position: relative;
+    overflow: hidden;
+}
+/* Highlight especular — borde superior brillante */
+html.perf-ultra .glass-panel::before,
+html.perf-ultra .setting-card::before,
+html.perf-ultra .sr-roulette-card::before,
+html.perf-ultra .sr-ms-card::before,
+html.perf-ultra .end-fullscreen::before,
+html.perf-ultra .pl-panel::before,
+html.perf-ultra .profile-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 8%; right: 8%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--lg-shine) 40%, var(--lg-shine) 60%, transparent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+}
+/* Gradiente interno de profundidad (efecto de lente) */
+html.perf-ultra .glass-panel::after,
+html.perf-ultra .setting-card::after,
+html.perf-ultra .sr-roulette-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg,
+        rgba(255,255,255,0.06) 0%,
+        transparent 45%,
+        rgba(0,0,0,0.04) 100%);
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+}
+/* Asegurar que el contenido quede sobre los pseudo-elementos */
+html.perf-ultra .glass-panel > *,
+html.perf-ultra .setting-card > *,
+html.perf-ultra .sr-roulette-card > * {
+    position: relative; z-index: 1;
+}
+
+/* ── Botones: liquid glass interactivo ── */
+html.perf-ultra .btn-solid,
+html.perf-ultra .btn-outline,
+html.perf-ultra .btn-back,
+html.perf-ultra .top-btn,
+html.perf-ultra .sr-spin-btn,
+html.perf-ultra .sr-ms-claim,
+html.perf-ultra .sr-result-btn,
+html.perf-ultra .mission-claim-btn,
+html.perf-ultra .btn-end-menu,
+html.perf-ultra .btn-end-replay,
+html.perf-ultra .btn-kpass {
+    -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+    backdrop-filter: blur(14px) saturate(160%) !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.18) inset !important;
+    border-radius: 14px !important;
+    transition: var(--lg-transition), transform 0.1s !important;
+}
+html.perf-ultra .btn-solid {
+    background: rgba(255,255,255,0.10) !important;
+    border: 1px solid rgba(255,255,255,0.45) !important;
+}
+html.perf-ultra .btn-outline {
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.22) !important;
+}
+html.perf-ultra .btn-solid:hover,
+html.perf-ultra .btn-outline:hover {
+    background: rgba(255,255,255,0.16) !important;
+    box-shadow: 0 4px 20px rgba(var(--rank-rgb),0.25), 0 1px 0 rgba(255,255,255,0.22) inset !important;
+    transform: translateY(-1px);
+}
+html.perf-ultra .btn-solid:active,
+html.perf-ultra .btn-outline:active {
+    transform: scale(0.97) translateY(0) !important;
+}
+/* top-btn redondo */
+html.perf-ultra .top-btn {
+    background: rgba(255,255,255,0.06) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    border-radius: 50% !important;
+}
+html.perf-ultra .top-btn:hover {
+    background: rgba(255,255,255,0.14) !important;
+    box-shadow: 0 4px 14px rgba(var(--rank-rgb),0.2) !important;
+}
+
+/* ── Modal overlay: cristal esmerilado ── */
+html.perf-ultra .modal-overlay {
+    -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+    backdrop-filter: blur(28px) saturate(200%) !important;
+    background: rgba(0,0,0,0.55) !important;
+}
+html.perf-ultra .modal-overlay > div {
+    -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+    backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) !important;
+    background: rgba(20,20,20,0.6) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    box-shadow: var(--lg-shadow) !important;
+    border-radius: var(--lg-radius) !important;
+}
+
+/* ── top-nav glass ── */
+html.perf-ultra .top-nav {
+    background: rgba(8,8,8,0.5) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.10) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset !important;
+}
+
+/* ── Carousel de racha: ventana de cristal ── */
+html.perf-ultra .sr-carousel-outer {
+    -webkit-backdrop-filter: blur(8px) !important;
+    backdrop-filter: blur(8px) !important;
+    background: rgba(0,0,0,0.18) !important;
+    border: 1px solid rgba(255,255,255,0.10) !important;
+}
+html.perf-ultra .sr-result-zone {
+    -webkit-backdrop-filter: blur(10px) !important;
+    backdrop-filter: blur(10px) !important;
+    background: rgba(255,255,255,0.04) !important;
+}
+
+/* ── Light mode: liquid glass claro (estilo visionOS claro) ── */
+html.perf-ultra body.light-mode .glass-panel,
+html.perf-ultra body.light-mode .setting-card,
+html.perf-ultra body.light-mode .sr-roulette-card,
+html.perf-ultra body.light-mode .sr-ms-card,
+html.perf-ultra body.light-mode .pl-panel,
+html.perf-ultra body.light-mode .profile-card,
+html.perf-ultra body.light-mode .end-fullscreen {
+    background: var(--lg-bg-light) !important;
+    border: 1px solid var(--lg-border-b) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 1.5px 0 rgba(255,255,255,0.9) inset !important;
+}
+html.perf-ultra body.light-mode .btn-solid,
+html.perf-ultra body.light-mode .btn-outline {
+    background: rgba(255,255,255,0.65) !important;
+    border-color: rgba(0,0,0,0.15) !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.95) inset !important;
+}
+html.perf-ultra body.light-mode .top-nav {
+    background: rgba(242,244,247,0.75) !important;
+    border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+}
+html.perf-ultra body.light-mode .modal-overlay > div {
+    background: rgba(250,250,252,0.85) !important;
+    border: 1px solid rgba(0,0,0,0.12) !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.9) inset !important;
+}
+
 * { 
     box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; 
     user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;
