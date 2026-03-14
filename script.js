@@ -2688,12 +2688,14 @@ function _initDailyMissions() {
         saveStatsLocally();
     }
     if (!playerStats.bonusPL) playerStats.bonusPL = 0;
+    // If _dmStats is missing (first time running missions), start all counters at 0.
+    // Do NOT inherit todayGames — that would pre-complete "play N games" missions.
     if (!playerStats._dmStats) {
         playerStats._dmStats = {
             bestScoreToday:      0,
             maxStreakToday:       0,
             perfectGamesToday:   0,
-            gamesToday:          playerStats.todayGames || 0,
+            gamesToday:          0,
             correctToday:        0,
             maxMultToday:        1,
             fastAnswersToday:    0,
@@ -3298,6 +3300,7 @@ let currentNoTimeoutStreak = 0;
 let livesLostThisGame = 0;
 let consecutiveLivesLost = 0;  // for u19 Resurreccion tracking
 let frenziesThisGame = 0;      // for extra1 Doble Frenesí
+let _currentGameMaxMult = 1;   // max multiplier reached THIS game (missions only)
 let _particlesActive = true;   // controlled by applyPerfMode, declared here so it's always defined
 
 function startGame() {
@@ -3339,6 +3342,7 @@ function startGame() {
     currentGameLog = []; isGamePaused = false;
     lives = 3; multiplier = 1;
     lastSecondAnswers = 0; ultraFastStreak = 0; currentNoTimeoutStreak = 0; livesLostThisGame = 0; consecutiveLivesLost = 0; frenziesThisGame = 0;
+    _currentGameMaxMult = 1; // reset per-game max multiplier (missions use this, NOT playerStats.maxMult)
     // Reset roulette state for new game
     totalCorrectThisGame = 0; nextRouletteTrigger = 10;
     activeBoostNextQ = null; shieldActive = false; hintActive = false; extraTimeActive = 0; streakShieldActive = false; frenzyNextQuestion = false;
@@ -3398,6 +3402,7 @@ function updateMultiplierUI() {
     const b = document.getElementById('multiplier-badge');
     multiplier = Math.min(10, Math.max(1, Math.floor(streak / 5) + 1));
     if(multiplier > (playerStats.maxMult||1)) { playerStats.maxMult = multiplier; }
+    if(multiplier > _currentGameMaxMult) { _currentGameMaxMult = multiplier; }
     if(multiplier > 1) {
         b.style.display = 'block';
         b.innerText = `x${multiplier}`;
@@ -3880,7 +3885,7 @@ function saveGameStats() {
     updateMissionStats('gameEnd', {
         score:        score,
         streak:       currentMaxStreak,
-        mult:         playerStats.maxMult,
+        mult:         _currentGameMaxMult,
         correct:      gameCorrectFinal,
         fast:         currentFastAnswers,
         perfect:      (currentWrongAnswers === 0 && currentTimeoutAnswers === 0 && currentQuestionIndex >= 10),
