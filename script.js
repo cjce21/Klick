@@ -3158,6 +3158,97 @@ function spinStreakRoulette() {
     }, 2100);
 }
 
+// ── Cobrar resultado de la ruleta de racha ──────────────────────
+function claimStreakRouletteResult() {
+    _initStreakSystem();
+    var ss = playerStats.streakSystem;
+    if (!ss.pendingResult) return;
+
+    var found = null;
+    for (var i = 0; i < STREAK_ROULETTE_PRIZES.length; i++) {
+        if (STREAK_ROULETTE_PRIZES[i].id === ss.pendingResult) { found = STREAK_ROULETTE_PRIZES[i]; break; }
+    }
+    if (!found) { ss.pendingResult = null; saveStatsLocally(); renderStreaksScreen(); return; }
+
+    // Aplicar premio
+    if (found.plBonus > 0) {
+        playerStats.bonusPL = (playerStats.bonusPL || 0) + found.plBonus;
+        showToast('+' + found.plBonus.toLocaleString() + ' PL', found.label, found.color,
+            SR_SVG[found.icon] || SR_SVG.star);
+    }
+    if (found.shields > 0) {
+        ss.shields = (ss.shields || 0) + found.shields;
+        showToast('+' + found.shields + ' Escudo' + (found.shields > 1 ? 's' : ''), found.label, found.color,
+            SR_SVG.shield);
+    }
+    if (found.spins > 0) {
+        ss.spins = Math.min((ss.spins || 0) + found.spins, SR_MAX_SPINS);
+        showToast('+' + found.spins + ' Giro' + (found.spins > 1 ? 's' : ''), found.label, found.color,
+            SR_SVG.spin);
+    }
+
+    ss.pendingResult = null;
+    saveStatsLocally();
+    SFX.achievement && SFX.achievement();
+    updateStreakDot();
+    renderStreaksScreen();
+    if (document.getElementById('pl-total')) renderProfileIfOpen();
+}
+
+// ── Cobrar hito de racha ─────────────────────────────────────────
+function claimStreakMilestone(days) {
+    _initStreakSystem();
+    var ss = playerStats.streakSystem;
+    var streak = playerStats.currentLoginStreak || 0;
+    if (streak < days) return;
+    if (ss.claimedMilestones.indexOf(days) !== -1) return;
+
+    var ms = null;
+    for (var i = 0; i < STREAK_MILESTONES.length; i++) {
+        if (STREAK_MILESTONES[i].days === days) { ms = STREAK_MILESTONES[i]; break; }
+    }
+    if (!ms) return;
+
+    ss.claimedMilestones.push(days);
+
+    if (ms.plBonus > 0) {
+        playerStats.bonusPL = (playerStats.bonusPL || 0) + ms.plBonus;
+        showToast('+' + ms.plBonus.toLocaleString() + ' PL', ms.label + ' — ' + days + ' días',
+            '#ff2a5f', SR_SVG.flame);
+    }
+    if (ms.extraSpins > 0) {
+        ss.spins = Math.min((ss.spins || 0) + ms.extraSpins, SR_MAX_SPINS);
+        showToast('+' + ms.extraSpins + ' Giro' + (ms.extraSpins > 1 ? 's' : ''),
+            'Hito desbloqueado', '#ffb800', SR_SVG.spin);
+    }
+
+    saveStatsLocally();
+    SFX.achievement && SFX.achievement();
+    updateStreakDot();
+    renderStreaksScreen();
+    if (document.getElementById('pl-total')) renderProfileIfOpen();
+}
+
+// ── Actualizar punto indicador de racha en el menú ───────────────
+function updateStreakDot() {
+    var dot = document.getElementById('streak-dot');
+    if (!dot) return;
+    _initStreakSystem();
+    var ss = playerStats.streakSystem;
+    var streak = playerStats.currentLoginStreak || 0;
+
+    // Mostrar dot si: hay resultado pendiente de cobrar O hay hito disponible sin cobrar
+    var hasPending = !!ss.pendingResult;
+    var hasClaimable = false;
+    for (var i = 0; i < STREAK_MILESTONES.length; i++) {
+        var ms = STREAK_MILESTONES[i];
+        if (streak >= ms.days && ss.claimedMilestones.indexOf(ms.days) === -1) {
+            hasClaimable = true; break;
+        }
+    }
+    dot.style.display = (hasPending || hasClaimable) ? 'block' : 'none';
+}
+
 function renderStreaksScreen() {
     var db = document.getElementById('streaks-dashboard');
     if (!db) return;
