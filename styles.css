@@ -914,8 +914,34 @@ body.light-mode .pl-calc-divider { background:rgba(0,0,0,0.07); }
 .rank-full-card.mitico-item {
     animation: mitico-glow 3.5s ease-in-out infinite;
     border-color: rgba(255,255,255,0.2) !important;
+    border-left: 4px solid rgba(255,255,255,0.7) !important;
     background: rgba(255,255,255,0.03) !important;
     will-change: box-shadow;
+}
+/* Dot blanco neón en modo oscuro */
+.mitico-dot {
+    background: #ffffff;
+    box-shadow: 0 0 18px rgba(255,255,255,0.7);
+}
+/* Badge "Rango Supremo" en modo oscuro */
+.mitico-badge {
+    border-color: rgba(255,255,255,0.3);
+    color: #ffffff;
+}
+/* Modo claro: todo negro */
+body.light-mode .rank-full-card.mitico-item {
+    animation: mitico-shimmer-light 3s ease-in-out infinite;
+    border-color: rgba(0,0,0,0.2) !important;
+    border-left: 4px solid rgba(0,0,0,0.55) !important;
+    background: rgba(0,0,0,0.025) !important;
+}
+body.light-mode .mitico-dot {
+    background: #0d1117 !important;
+    box-shadow: none !important;
+}
+body.light-mode .mitico-badge {
+    border-color: rgba(0,0,0,0.25) !important;
+    color: #0d1117 !important;
 }
 .mitico-name {
     background: linear-gradient(90deg, #e0e0e0, #ffffff, #c8c8c8);
@@ -970,30 +996,6 @@ body.light-mode .rfc-req { color: var(--text-secondary); }
 body.light-mode .ranks-section-label { color: var(--text-secondary); }
 body.light-mode .rfc-req svg { opacity: 0.5; }
 
-/* Mítico en modo claro — sobreescribir todos los estilos inline blancos */
-body.light-mode .rank-full-card.mitico-item .rfc-badge {
-    border-color: rgba(0,0,0,0.2) !important;
-    color: #222 !important;
-}
-body.light-mode .rank-full-card.mitico-item .rfc-dot {
-    background: #222 !important;
-    box-shadow: none !important;
-}
-body.light-mode .rank-full-card.mitico-item .rfc-desc,
-body.light-mode .rank-full-card.mitico-item .rfc-req {
-    color: var(--text-secondary) !important;
-}
-body.light-mode .rank-full-card.mitico-item .rfc-req strong,
-body.light-mode .rank-full-card.mitico-item .rfc-desc strong {
-    color: #0d1117 !important;
-}
-body.light-mode .rank-full-card.mitico-item .rfc-req svg {
-    color: var(--text-secondary) !important;
-}
-/* Mítico: border inline blanco → oscuro */
-body.light-mode .rank-full-card.mitico-item[style*="border-left:4px solid rgba(255,255,255"] {
-    border-left-color: rgba(0,0,0,0.35) !important;
-}
 /* rfc-req strong dentro de cualquier tarjeta en modo claro */
 body.light-mode .rfc-req strong { color: var(--text-primary); }
 /* rfc-dot box-shadow neon — eliminar en modo claro */
