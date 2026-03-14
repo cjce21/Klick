@@ -54,8 +54,16 @@ html.perf-eco .q-enter {
 html.perf-ultra #app {
     background: radial-gradient(circle at 50% -20%, rgba(var(--rank-rgb), 0.06) 0%, transparent 65%);
 }
+body.light-mode html.perf-ultra #app,
+html.perf-ultra body.light-mode #app {
+    background: radial-gradient(circle at 50% -20%, rgba(180,140,0,0.05) 0%, transparent 65%);
+}
 html.perf-ultra #app.streak-active {
     animation: streak-pulse 1s infinite alternate ease-out;
+}
+body.light-mode html.perf-ultra #app.streak-active,
+html.perf-ultra body.light-mode #app.streak-active {
+    background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.04) 0%, #f2f4f7 75%);
 }
 html.perf-ultra .answer-btn {
     transition: background-color 0.12s, border-color 0.12s, transform 0.1s;
@@ -291,12 +299,12 @@ body.light-mode .ranking-loading { color: #4a5568; }
 
 /* ── Fin de partida ── */
 body.light-mode .btn-end-replay {
-    background: rgba(var(--rank-rgb), 0.07);
+    background: rgba(var(--rank-rgb), 0.08);
     color: var(--text-primary);
-    border-color: rgba(var(--rank-rgb), 0.3);
-    filter: brightness(0.65) saturate(0.9);
+    border-color: rgba(var(--rank-rgb), 0.35);
+    filter: none;
 }
-body.light-mode .btn-end-replay:hover { box-shadow: none; }
+body.light-mode .btn-end-replay:hover { box-shadow: 0 4px 14px rgba(var(--rank-rgb), 0.2); }
 
 /* ── Slider neon hover ── */
 body.light-mode input[type=range]::-webkit-slider-thumb:hover {
@@ -545,9 +553,9 @@ body.light-mode [style*="color: rgba(255,255,255,0.7"],
 body.light-mode [style*="color:rgba(255,255,255,0.8"],
 body.light-mode [style*="color: rgba(255,255,255,0.8"] { color: #0d1117 !important; }
 
-/* rank color is set dynamically via JS inline var; when it's neon green, tone it for light */
+/* rank color is now set to dark value in light mode via updateLogoDots — no filter needed */
 body.light-mode .logo-dot,
-body.light-mode .rank-color-text { filter: brightness(0.7) saturate(0.85); }
+body.light-mode .rank-color-text { filter: none; }
 
 /* Guide: todos los textos dentro de cards */
 body.light-mode .guide-card { color: #0d1117; }
@@ -998,6 +1006,82 @@ body.light-mode [style*="color:#ff5e00"],
 body.light-mode [style*="color: #ff5e00"] { color: #b84000 !important; }
 body.light-mode [style*="color:#ccff00"],
 body.light-mode [style*="color: #ccff00"] { color: #5a7a00 !important; }
+
+/* Podio — bordes laterales inline */
+body.light-mode [style*="border-left:4px solid #6e8fad"],
+body.light-mode [style*="border-left: 4px solid #6e8fad"] { border-left-color: #3d5f80 !important; }
+body.light-mode [style*="border-left:4px solid #ff5e00"],
+body.light-mode [style*="border-left: 4px solid #ff5e00"] { border-left-color: #b84000 !important; }
+body.light-mode [style*="border-left:4px solid #ccff00"],
+body.light-mode [style*="border-left: 4px solid #ccff00"] { border-left-color: #5a7a00 !important; }
+
+/* Podio — dots background inline */
+body.light-mode [style*="background:#6e8fad"],
+body.light-mode [style*="background: #6e8fad"] { background: #3d5f80 !important; box-shadow: none !important; }
+body.light-mode [style*="background:#ff5e00"],
+body.light-mode [style*="background: #ff5e00"] { background: #b84000 !important; box-shadow: none !important; }
+body.light-mode [style*="background:#ccff00"],
+body.light-mode [style*="background: #ccff00"] { background: #5a7a00 !important; box-shadow: none !important; }
+
+/* También cubrir los neón puros de las tarjetas normales de rangos */
+body.light-mode [style*="border-left:4px solid var(--accent-green)"],
+body.light-mode [style*="border-left: 4px solid var(--accent-green)"] { border-left-color: var(--accent-green) !important; }
+body.light-mode [style*="border-left:4px solid var(--accent-blue)"],
+body.light-mode [style*="border-left: 4px solid var(--accent-blue)"] { border-left-color: var(--accent-blue) !important; }
+body.light-mode [style*="border-left:4px solid var(--accent-red)"],
+body.light-mode [style*="border-left: 4px solid var(--accent-red)"] { border-left-color: var(--accent-red) !important; }
+body.light-mode [style*="border-left:4px solid var(--accent-purple)"],
+body.light-mode [style*="border-left: 4px solid var(--accent-purple)"] { border-left-color: var(--accent-purple) !important; }
+body.light-mode [style*="border-left:4px solid var(--accent-yellow)"],
+body.light-mode [style*="border-left: 4px solid var(--accent-yellow)"] { border-left-color: var(--accent-yellow) !important; }
+
+/* Podio — border-left y dot background en modo claro */
+body.light-mode [style*="border-left:4px solid #6e8fad"],
+body.light-mode [style*="border-left: 4px solid #6e8fad"] { border-left-color: #3d5f80 !important; }
+body.light-mode [style*="border-left:4px solid #ff5e00"],
+body.light-mode [style*="border-left: 4px solid #ff5e00"] { border-left-color: #b84000 !important; }
+body.light-mode [style*="border-left:4px solid #ccff00"],
+body.light-mode [style*="border-left: 4px solid #ccff00"] { border-left-color: #5a7a00 !important; }
+body.light-mode [style*="background:#6e8fad"],
+body.light-mode [style*="background: #6e8fad"] { background: #3d5f80 !important; }
+body.light-mode [style*="background:#ff5e00"],
+body.light-mode [style*="background: #ff5e00"] { background: #b84000 !important; }
+body.light-mode [style*="background:#ccff00"],
+body.light-mode [style*="background: #ccff00"] { background: #5a7a00 !important; }
+/* Eliminar neon box-shadow en dots de podio */
+body.light-mode [style*="box-shadow:0 0 10px rgba(110,143,173"],
+body.light-mode [style*="box-shadow:0 0 10px rgba(255,94,0"],
+body.light-mode [style*="box-shadow:0 0 10px rgba(204,255,0"] { box-shadow: none !important; }
+
+/* Podio — border-left inline colors */
+body.light-mode [style*="border-left:4px solid #6e8fad"],
+body.light-mode [style*="border-left: 4px solid #6e8fad"] { border-left-color: #3d5f80 !important; }
+body.light-mode [style*="border-left:4px solid #ff5e00"],
+body.light-mode [style*="border-left: 4px solid #ff5e00"] { border-left-color: #b84000 !important; }
+body.light-mode [style*="border-left:4px solid #ccff00"],
+body.light-mode [style*="border-left: 4px solid #ccff00"] { border-left-color: #5a7a00 !important; }
+
+/* Podio — rfc-dot background inline colors */
+body.light-mode [style*="background:#6e8fad"],
+body.light-mode [style*="background: #6e8fad"] { background: #3d5f80 !important; box-shadow: none !important; }
+body.light-mode [style*="background:#ff5e00"],
+body.light-mode [style*="background: #ff5e00"] { background: #b84000 !important; box-shadow: none !important; }
+body.light-mode [style*="background:#ccff00"],
+body.light-mode [style*="background: #ccff00"] { background: #5a7a00 !important; box-shadow: none !important; }
+
+/* Rangos normales — rfc-dot background neon → oscuro en light mode */
+body.light-mode [style*="background:var(--accent-green)"],
+body.light-mode [style*="background: var(--accent-green)"] { background: #0a7a3e !important; box-shadow: none !important; }
+body.light-mode [style*="background:var(--accent-blue)"],
+body.light-mode [style*="background: var(--accent-blue)"] { background: #0070a8 !important; box-shadow: none !important; }
+body.light-mode [style*="background:var(--accent-red)"],
+body.light-mode [style*="background: var(--accent-red)"] { background: #c41940 !important; box-shadow: none !important; }
+body.light-mode [style*="background:var(--accent-purple)"],
+body.light-mode [style*="background: var(--accent-purple)"] { background: #7a0a8c !important; box-shadow: none !important; }
+body.light-mode [style*="background:var(--accent-yellow)"],
+body.light-mode [style*="background: var(--accent-yellow)"] { background: #b07800 !important; box-shadow: none !important; }
+body.light-mode [style*="background:var(--accent-orange)"],
+body.light-mode [style*="background: var(--accent-orange)"] { background: #b84400 !important; box-shadow: none !important; }
 
 /* Compatibilidad clases legacy (rank-item usadas en JS dinámico si aplica) */
 .rank-item { display: flex; flex-direction: column; align-items: center; padding: 10px 12px; background: rgba(255,255,255,0.03); border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.1); flex: 1 1 30%; }
