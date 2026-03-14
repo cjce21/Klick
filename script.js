@@ -2998,13 +2998,12 @@ function renderProfileIfOpen() {
 
 // SVG icons para la ruleta de racha
 const SR_SVG = {
-    flame:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c0 0-4 4-4 8a4 4 0 008 0c0-4-4-8-4-8z"/><path d="M12 18v2"/><path d="M9 21h6"/></svg>`,
+    flame:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>`,
     shield: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
     star:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
     bolt:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
     spin:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
     check:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
-    lock:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`,
     played: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
     missed: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
     today:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/></svg>`,
@@ -3074,30 +3073,113 @@ function _applyStreakShieldIfAvailable() {
     return false;
 }
 
-// ── Girar la ruleta de racha ──────────────────────────────────────
+// ── Girar la ruleta de racha con animación de carrusel ───────────
+let _srSpinning = false;
 function spinStreakRoulette() {
+    if (_srSpinning) return;
     _initStreakSystem();
     const ss = playerStats.streakSystem;
-    if (ss.spins <= 0) return;
+    if (ss.spins <= 0 || ss.pendingResult) return;
 
+    _srSpinning = true;
     ss.spins--;
+    saveStatsLocally();
+
     // Weighted random pick
     const totalW = STREAK_ROULETTE_PRIZES.reduce((a, p) => a + p.weight, 0);
     let r = Math.random() * totalW;
-    let prize = STREAK_ROULETTE_PRIZES[STREAK_ROULETTE_PRIZES.length - 1];
-    for (const p of STREAK_ROULETTE_PRIZES) {
-        r -= p.weight;
-        if (r <= 0) { prize = p; break; }
-    }
-    ss.pendingResult = prize.id;
-    saveStatsLocally();
-    renderStreaksScreen();
+    let winPrize = STREAK_ROULETTE_PRIZES[STREAK_ROULETTE_PRIZES.length - 1];
+    for (const p of STREAK_ROULETTE_PRIZES) { r -= p.weight; if (r <= 0) { winPrize = p; break; } }
 
-    // Animar resultado después de breve pausa
+    const track = document.getElementById('sr-track');
+    const btn   = document.getElementById('sr-spin-btn');
+    const spinsNum = document.getElementById('sr-spins-num');
+    if (!track || !btn) { _srSpinning = false; return; }
+
+    if (spinsNum) spinsNum.textContent = ss.spins;
+    btn.disabled = true;
+    btn.textContent = 'Girando...';
+
+    // Build extended card list for animation:
+    // 30 random cards + landing on winPrize at position 30
+    const CARD_W = 76; // card width + gap
+    const VISIBLE_CENTER = 3; // index of center visible card (0-based, out of 5 visible)
+    const spinCount = 30;
+    const cards = [];
+    for (let i = 0; i < spinCount; i++) {
+        cards.push(STREAK_ROULETTE_PRIZES[i % STREAK_ROULETTE_PRIZES.length]);
+    }
+    // The center card at the end of animation should be winPrize
+    // Center = index spinCount-1-VISIBLE_CENTER in the array after stopping
+    const landingIdx = spinCount - 1 - VISIBLE_CENTER + 3; // 3 center offset
+    cards.push(winPrize); // ensure it's at the right place
+    // Actually: rebuild so card at exact center stop position = winPrize
+    const centerStop = spinCount + 2; // position that ends up centered
+    const extCards = [];
+    for (let i = 0; i < centerStop + 3; i++) {
+        if (i === centerStop) extCards.push(winPrize);
+        else extCards.push(STREAK_ROULETTE_PRIZES[i % STREAK_ROULETTE_PRIZES.length]);
+    }
+
+    const isLight = document.body.classList.contains('light-mode');
+    // Rebuild cards in DOM
+    track.innerHTML = extCards.map((p, idx) => {
+        const col = isLight ? (p.colorLight || p.color) : p.color;
+        return `<div class="sr-card" data-idx="${idx}" style="color:${col};border-color:${col}22;background:${col}0a;">
+            ${SR_SVG[p.icon]}
+            <span class="sr-card-label" style="color:${col};">${p.label}</span>
+        </div>`;
+    }).join('');
+
+    // Animate: scroll from start to landing position
+    // Each card = CARD_W px. Center the winning card.
+    const wrapW = track.parentElement.offsetWidth || 300;
+    const startX = 0;
+    const endX = -(centerStop * CARD_W - (wrapW / 2) + CARD_W / 2) + wrapW / 2 - 6;
+    // Fast ease-out scroll
+    track.style.transition = 'none';
+    track.style.transform = `translateX(${startX}px)`;
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            track.style.transition = 'transform 1.8s cubic-bezier(0.22,1,0.36,1)';
+            track.style.transform = `translateX(${endX}px)`;
+        });
+    });
+
     setTimeout(() => {
-        const resultEl = document.getElementById('sr-result-zone');
-        if (resultEl) resultEl.classList.add('visible');
-    }, 300);
+        // Highlight center card
+        const allCards = track.querySelectorAll('.sr-card');
+        allCards.forEach((c, i) => c.classList.toggle('center', i === centerStop));
+
+        ss.pendingResult = winPrize.id;
+        saveStatsLocally();
+        _srSpinning = false;
+
+        // Show result zone
+        const resultInner = document.getElementById('sr-result-inner');
+        if (resultInner) {
+            const col = isLight ? (winPrize.colorLight || winPrize.color) : winPrize.color;
+            const desc = winPrize.plBonus > 0 ? `+${winPrize.plBonus.toLocaleString()} PL`
+                : winPrize.shields > 0 ? `+${winPrize.shields} escudo${winPrize.shields>1?'s':''}`
+                : '+1 giro extra';
+            resultInner.style.background = `${col}12`;
+            resultInner.style.borderColor = `${col}30`;
+            resultInner.querySelector('.sr-result-icon').style.color = col;
+            resultInner.querySelector('.sr-result-icon').innerHTML = SR_SVG[winPrize.icon];
+            resultInner.querySelector('.sr-result-name').style.color = col;
+            resultInner.querySelector('.sr-result-name').textContent = winPrize.label;
+            resultInner.querySelector('.sr-result-sub').textContent = desc;
+            const claimBtn = resultInner.querySelector('.sr-result-claim');
+            claimBtn.style.background = col;
+            claimBtn.style.color = isLight ? '#fff' : '#111';
+            requestAnimationFrame(() => resultInner.classList.add('visible'));
+        }
+
+        btn.textContent = 'Sin giros disponibles';
+        SFX.correct && SFX.correct();
+        updateStreakDot();
+    }, 1900);
 }
 
 // ── Cobrar resultado de ruleta ────────────────────────────────────
@@ -3108,28 +3190,40 @@ function claimStreakRouletteResult() {
     const prize = STREAK_ROULETTE_PRIZES.find(p => p.id === ss.pendingResult);
     if (!prize) { ss.pendingResult = null; saveStatsLocally(); return; }
 
-    if (prize.plBonus > 0) {
-        playerStats.bonusPL = (playerStats.bonusPL || 0) + prize.plBonus;
-    }
-    if (prize.shields > 0) {
-        ss.shields += prize.shields;
-    }
-    if (prize.spins > 0) {
-        ss.spins = Math.min(ss.spins + prize.spins, SR_MAX_SPINS);
-    }
+    if (prize.plBonus  > 0) playerStats.bonusPL = (playerStats.bonusPL||0) + prize.plBonus;
+    if (prize.shields  > 0) ss.shields += prize.shields;
+    if (prize.spins    > 0) ss.spins = Math.min(ss.spins + prize.spins, SR_MAX_SPINS);
     ss.pendingResult = null;
     saveStatsLocally();
 
     const isLight = document.body.classList.contains('light-mode');
-    const col = isLight ? (prize.colorLight || prize.color) : prize.color;
+    const col = isLight ? (prize.colorLight||prize.color) : prize.color;
     showToast(prize.label,
-        prize.plBonus > 0 ? `+${prize.plBonus.toLocaleString()} PL añadidos.`
-        : prize.shields > 0 ? `${prize.shields} escudo(s) de racha ganados.`
-        : `Giro extra acumulado.`,
+        prize.plBonus>0 ? `+${prize.plBonus.toLocaleString()} PL añadidos.`
+        : prize.shields>0 ? `${prize.shields} escudo${prize.shields>1?'s':''} de racha ganados.`
+        : 'Giro extra acumulado.',
         col, SR_SVG[prize.icon]);
-
     SFX.achievement();
-    renderStreaksScreen();
+
+    // Hide result zone in-place
+    const ri = document.getElementById('sr-result-inner');
+    if (ri) { ri.classList.remove('visible'); setTimeout(() => { ri.innerHTML = ''; ri.style.background=''; ri.style.borderColor='transparent'; }, 350); }
+
+    // Re-enable spin button
+    const btn = document.getElementById('sr-spin-btn');
+    const spinsNum = document.getElementById('sr-spins-num');
+    if (spinsNum) spinsNum.textContent = ss.spins;
+    if (btn) {
+        const canSpin = ss.spins > 0;
+        btn.disabled = !canSpin;
+        btn.textContent = canSpin ? 'Girar' : 'Sin giros';
+    }
+    // Update shields/spins pills
+    const shieldPill = document.querySelector('.streak-pill-shield');
+    const spinsPill  = document.querySelector('.streak-pill-spins');
+    if (shieldPill) shieldPill.innerHTML = `${SR_SVG.shield} ${ss.shields>0?ss.shields+' escudo'+(ss.shields!==1?'s':''):'Sin escudos'}`;
+    if (spinsPill)  spinsPill.innerHTML  = `${SR_SVG.spin} ${ss.spins} giro${ss.spins!==1?'s':''}`;
+
     updateStreakDot();
     if (document.getElementById('pl-total')) renderProfileIfOpen();
 }
@@ -3141,17 +3235,54 @@ function claimStreakMilestone(days) {
     const ms = STREAK_MILESTONES.find(m => m.days === days);
     if (!ms) return;
     if (ss.claimedMilestones.includes(days)) return;
-    if ((playerStats.currentLoginStreak || 0) < days) return;
+    if ((playerStats.currentLoginStreak||0) < days) return;
 
     ss.claimedMilestones.push(days);
-    playerStats.bonusPL = (playerStats.bonusPL || 0) + ms.plBonus;
-    if (ms.extraSpins > 0) {
-        ss.spins = Math.min(ss.spins + ms.extraSpins, SR_MAX_SPINS);
-    }
+    playerStats.bonusPL = (playerStats.bonusPL||0) + ms.plBonus;
+    if (ms.extraSpins > 0) ss.spins = Math.min(ss.spins + ms.extraSpins, SR_MAX_SPINS);
     saveStatsLocally();
     SFX.achievement();
-    showToast(`Hito: ${ms.label}`, `+${ms.plBonus.toLocaleString()} PL. ${ms.extraSpins > 0 ? `+${ms.extraSpins} giro(s) extra.` : ''}`, '#ff2a5f', SR_SVG.trophy);
-    renderStreaksScreen();
+    showToast(`Hito: ${ms.label}`, `+${ms.plBonus.toLocaleString()} PL.${ms.extraSpins>0?` +${ms.extraSpins} giro${ms.extraSpins>1?'s':''} extra.`:''}`, '#ff2a5f', SR_SVG.trophy);
+
+    // Re-render only the milestones list
+    const list = document.querySelector('.streak-milestones-list');
+    if (list) {
+        const streak = playerStats.currentLoginStreak||0;
+        const isLight = document.body.classList.contains('light-mode');
+        const red = isLight ? '#c41940' : '#ff2a5f';
+        const fmt = n => n.toLocaleString();
+        list.innerHTML = STREAK_MILESTONES.map(m => {
+            const claimed   = ss.claimedMilestones.includes(m.days);
+            const available = !claimed && streak >= m.days;
+            const locked    = !claimed && !available;
+            const pct = Math.min(100, Math.round((streak/m.days)*100));
+            const col = available ? red : (isLight?'rgba(0,0,0,0.3)':'rgba(255,255,255,0.25)');
+            const extras = m.extraSpins>0?` +${m.extraSpins}G`:'';
+            const sub = claimed ? 'Completado' : available ? 'Listo para cobrar' : `${streak}/${m.days} días`;
+            const right = claimed
+                ? `<div class="streak-milestone-check">${SR_SVG.check}</div>`
+                : available
+                    ? `<button class="streak-milestone-claim" onclick="claimStreakMilestone(${m.days})">COBRAR</button>`
+                    : `<div class="streak-milestone-reward" style="color:${col};border-color:${col};">+${fmt(m.plBonus)} PL${extras}</div>`;
+            return `<div class="streak-milestone-card${available?' available':''}${claimed?' claimed':''}">
+                ${locked?`<div class="streak-milestone-progress" style="width:${pct}%;"></div>`:''}
+                <div class="streak-milestone-icon" style="color:${claimed?(isLight?'rgba(0,0,0,0.25)':'rgba(255,255,255,0.25)'):red};${available?`border-color:${red}44;background:${red}10`:''}">${SR_SVG[m.icon]}</div>
+                <div class="streak-milestone-info">
+                    <div class="streak-milestone-title">${m.label} — ${m.days} días</div>
+                    <div class="streak-milestone-sub">${sub}</div>
+                </div>
+                ${right}
+            </div>`;
+        }).join('');
+    }
+    // Update spins pill
+    const spinsPill = document.querySelector('.streak-pill-spins');
+    if (spinsPill) spinsPill.innerHTML = `${SR_SVG.spin} ${ss.spins} giro${ss.spins!==1?'s':''}`;
+    const spinsNum = document.getElementById('sr-spins-num');
+    if (spinsNum) spinsNum.textContent = ss.spins;
+    const btn = document.getElementById('sr-spin-btn');
+    if (btn && ss.spins > 0 && !ss.pendingResult) { btn.disabled = false; btn.textContent = 'Girar'; }
+
     updateStreakDot();
     if (document.getElementById('pl-total')) renderProfileIfOpen();
 }
@@ -3180,15 +3311,162 @@ function goToStreaks() {
 }
 
 // ── Renderizado principal ─────────────────────────────────────────
+// ── Renderizado principal — 2 columnas sin scroll ─────────────────
 function renderStreaksScreen() {
     const dashboard = document.getElementById('streaks-dashboard');
     if (!dashboard) return;
     _initStreakSystem();
-    const ss    = playerStats.streakSystem;
+    const ss     = playerStats.streakSystem;
     const streak = playerStats.currentLoginStreak || 0;
     const isLight = document.body.classList.contains('light-mode');
-    const rc = (neon, dark) => isLight ? dark : neon;
+    const rc  = (neon, dark) => isLight ? dark : neon;
     const fmt = n => n.toLocaleString();
+    const red = rc('#ff2a5f','#c41940');
+
+    // ── Header ──────────────────────────────────────────────────
+    const nextMs = STREAK_MILESTONES.find(m => streak < m.days);
+    const statusLine = streak === 0
+        ? 'Juega hoy para empezar tu racha.'
+        : nextMs
+            ? `Próximo hito en ${nextMs.days - streak} día${nextMs.days - streak !== 1 ? 's' : ''}.`
+            : 'Has alcanzado todos los hitos.';
+
+    const shieldCol = rc('#00d4ff','#0070a8');
+    const spinCol   = rc('#ffb800','#8a6000');
+    const shieldPill = `<div class="streak-pill streak-pill-shield">${SR_SVG.shield} ${ss.shields > 0 ? ss.shields+' escudo'+(ss.shields!==1?'s':'') : 'Sin escudos'}</div>`;
+    const spinsPill  = `<div class="streak-pill streak-pill-spins">${SR_SVG.spin} ${ss.spins} giro${ss.spins!==1?'s':''}</div>`;
+
+    // ── Calendario 7 días ────────────────────────────────────────
+    const today = _getTodayStr();
+    const calHtml = Array.from({length:7}, (_,i) => {
+        const d = new Date(); d.setDate(d.getDate() - (6-i));
+        const daysAgo = 6-i;
+        const isToday = daysAgo === 0;
+        const dayName = ['D','L','M','X','J','V','S'][d.getDay()];
+        let state = 'missed', icon = SR_SVG.missed, iconCol = rc('rgba(255,255,255,0.2)','rgba(0,0,0,0.2)');
+        if (isToday && (playerStats.todayGames||0) > 0) { state='today played'; icon=SR_SVG.today; iconCol=red; }
+        else if (isToday) { state='today'; icon=SR_SVG.today; iconCol=rc('rgba(255,42,95,0.4)','rgba(196,25,64,0.35)'); }
+        else if (daysAgo < streak) { state='played'; icon=SR_SVG.played; iconCol=red; }
+        return `<div class="streak-cal-day ${state}"><span class="streak-cal-label">${dayName}</span><div class="streak-cal-icon" style="color:${iconCol};">${icon}</div></div>`;
+    }).join('');
+
+    // ── Carrusel de ruleta ───────────────────────────────────────
+    // Build initial card layout (centered at card index 3 out of displayed)
+    const DISPLAY_COUNT = 7; // cards shown initially
+    const centerIdx = 3;
+    const initCards = Array.from({length: DISPLAY_COUNT}, (_,i) => {
+        const p = STREAK_ROULETTE_PRIZES[i % STREAK_ROULETTE_PRIZES.length];
+        const col = isLight ? (p.colorLight||p.color) : p.color;
+        return `<div class="sr-card${i===centerIdx?' center':''}" style="color:${col};border-color:${col}22;background:${col}0a;">
+            ${SR_SVG[p.icon]}
+            <span class="sr-card-label" style="color:${col};">${p.label}</span>
+        </div>`;
+    }).join('');
+
+    // Result zone — always rendered, toggled visible
+    const hasPending = !!ss.pendingResult;
+    let resultStyle = '', resultContent = '';
+    if (hasPending) {
+        const prize = STREAK_ROULETTE_PRIZES.find(p => p.id === ss.pendingResult);
+        if (prize) {
+            const col = isLight ? (prize.colorLight||prize.color) : prize.color;
+            const desc = prize.plBonus>0?`+${fmt(prize.plBonus)} PL`:prize.shields>0?`+${prize.shields} escudo${prize.shields>1?'s':''}`:'+1 giro extra';
+            resultStyle = `background:${col}12;border-color:${col}30;`;
+            resultContent = `
+                <div class="sr-result-icon" style="color:${col};">${SR_SVG[prize.icon]}</div>
+                <div style="flex:1;min-width:0;">
+                    <div class="sr-result-name" style="color:${col};">${prize.label}</div>
+                    <div class="sr-result-sub">${desc}</div>
+                </div>
+                <button class="sr-result-claim" onclick="claimStreakRouletteResult()" style="background:${col};color:${isLight?'#fff':'#111'};">COBRAR</button>`;
+        }
+    }
+
+    const canSpin = ss.spins > 0 && !hasPending && !_srSpinning;
+    const spinLabel = hasPending ? 'Cobra primero' : ss.spins<=0 ? 'Sin giros' : `Girar`;
+
+    // ── Hitos ────────────────────────────────────────────────────
+    const milestonesHtml = STREAK_MILESTONES.map(ms => {
+        const claimed   = ss.claimedMilestones.includes(ms.days);
+        const available = !claimed && streak >= ms.days;
+        const locked    = !claimed && !available;
+        const pct = Math.min(100, Math.round((streak/ms.days)*100));
+        const col = available ? red : (isLight?'rgba(0,0,0,0.3)':'rgba(255,255,255,0.25)');
+        const extras = ms.extraSpins>0?` +${ms.extraSpins}G`:'';
+        const sub = claimed ? 'Completado' : available ? 'Listo para cobrar' : `${streak}/${ms.days} días`;
+
+        const right = claimed
+            ? `<div class="streak-milestone-check">${SR_SVG.check}</div>`
+            : available
+                ? `<button class="streak-milestone-claim" onclick="claimStreakMilestone(${ms.days})">COBRAR</button>`
+                : `<div class="streak-milestone-reward" style="color:${col};border-color:${col};background:${available?col+'14':'transparent'};">+${fmt(ms.plBonus)} PL${extras}</div>`;
+
+        return `<div class="streak-milestone-card ${available?'available':''} ${claimed?'claimed':''}">
+            ${locked?`<div class="streak-milestone-progress" style="width:${pct}%;"></div>`:''}
+            <div class="streak-milestone-icon" style="color:${claimed?(isLight?'rgba(0,0,0,0.25)':'rgba(255,255,255,0.25)'):red};${available?`border-color:${red}44;background:${red}10`:''}">
+                ${SR_SVG[ms.icon]}
+            </div>
+            <div class="streak-milestone-info">
+                <div class="streak-milestone-title">${ms.label} — ${ms.days} días</div>
+                <div class="streak-milestone-sub">${sub}</div>
+            </div>
+            ${right}
+        </div>`;
+    }).join('');
+
+    // ── HTML final — 2 columnas ───────────────────────────────────
+    dashboard.innerHTML = `
+        <div class="streak-col-left">
+            <!-- Header -->
+            <div class="streak-main-header">
+                <div class="streak-count-block">
+                    <div class="streak-count-num">${streak}</div>
+                    <div class="streak-count-label">DÍAS</div>
+                </div>
+                <div class="streak-center-block">
+                    <div class="streak-status-line">${statusLine}</div>
+                    <div class="streak-pills-row">${shieldPill}${spinsPill}</div>
+                </div>
+                <div style="width:32px;height:32px;flex-shrink:0;color:${red};">${SR_SVG.flame}</div>
+            </div>
+
+            <!-- Calendario -->
+            <div class="streak-section-label">Últimos 7 días</div>
+            <div class="streak-calendar">${calHtml}</div>
+
+            <!-- Ruleta -->
+            <div class="streak-roulette-block">
+                <div class="streak-section-label">Ruleta de Racha</div>
+                <div class="streak-roulette-inner">
+                    <!-- Carrusel -->
+                    <div class="sr-carousel-wrap">
+                        <div class="sr-carousel-track" id="sr-track">${initCards}</div>
+                        <div class="sr-pointer"></div>
+                    </div>
+                    <!-- Zona de resultado fija -->
+                    <div class="sr-result-zone">
+                        <div class="sr-result-inner${hasPending?' visible':''}" id="sr-result-inner" style="${resultStyle}border:1px solid transparent;border-radius:var(--radius-sm);width:100%;height:100%;box-sizing:border-box;">
+                            ${resultContent}
+                        </div>
+                    </div>
+                    <!-- Fila inferior -->
+                    <div class="sr-bottom-row">
+                        <div class="sr-spins-badge">
+                            <div class="sr-spins-num" id="sr-spins-num">${ss.spins}</div>
+                            <div class="sr-spins-lbl">Giros</div>
+                        </div>
+                        <button class="sr-spin-btn" id="sr-spin-btn" onclick="spinStreakRoulette()" ${!canSpin?'disabled':''}>${spinLabel}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="streak-col-right">
+            <div class="streak-section-label">Hitos</div>
+            <div class="streak-milestones-list">${milestonesHtml}</div>
+        </div>
+    `;
+}
 
     // ── Header ──────────────────────────────────────────────────
     const nextMs = STREAK_MILESTONES.find(m => streak < m.days);
@@ -3308,47 +3586,6 @@ function renderStreaksScreen() {
                 ${rightEl}
             </div>`;
     }).join('');
-
-    // ── Ensamblaje final ─────────────────────────────────────────
-    dashboard.innerHTML = `
-        <div class="streak-main-header">
-            <div class="streak-count-block">
-                <div class="streak-count-num">${streak}</div>
-                <div class="streak-count-label">DÍAS</div>
-            </div>
-            <div class="streak-center-block">
-                <div class="streak-status-line">${statusLine}</div>
-                <div class="streak-shields-row">
-                    ${shieldsHtml}
-                    ${spinsHtml}
-                </div>
-            </div>
-            <div class="streak-icon-wrap">${SR_SVG.flame}</div>
-        </div>
-
-        <div class="streak-section-label">Últimos 7 días</div>
-        <div class="streak-calendar">${calDays.join('')}</div>
-
-        <div class="streak-roulette-section">
-            <div class="streak-section-label">Ruleta de Racha</div>
-            <div class="streak-roulette-card">
-                <div class="streak-spin-info">
-                    <div class="streak-spin-desc">Gira cada día para ganar PL bonus, escudos de racha o giros extra. Puedes acumular hasta ${SR_MAX_SPINS} giros sin usar.</div>
-                    <div class="streak-spin-counter">
-                        <div class="streak-spin-counter-num">${ss.spins}</div>
-                        <div class="streak-spin-counter-label">Giros</div>
-                    </div>
-                </div>
-                <div class="streak-prize-strip">${prizesPreview}</div>
-                ${resultHtml}
-                <button class="streak-spin-btn" onclick="spinStreakRoulette()" ${!canSpin?'disabled':''}>${spinBtnLabel}</button>
-            </div>
-        </div>
-
-        <div class="streak-section-label">Hitos</div>
-        <div class="streak-milestones">${milestonesHtml}</div>
-    `;
-}
 
 function goToMainMenu() {
     // ANTI-EXPLOIT: si hay partida activa, redirigir al flujo de abandon (con penalización).
