@@ -733,16 +733,16 @@ function renderPerfSelector() {
         // Ultra gets a special golden border when active, a subtle shimmer background when not
         let borderCol, bgCol;
         if (active) {
-            borderCol = isUltra ? '#ffb800' : 'var(--rank-color)';
+            borderCol = isUltra ? (isLight ? '#8a5e00' : '#ffb800') : 'var(--rank-color)';
             bgCol = isUltra
-                ? (isLight ? 'rgba(255,184,0,0.12)' : 'rgba(255,184,0,0.14)')
-                : `rgba(var(--rank-rgb),0.14)`;
+                ? (isLight ? 'rgba(180,140,0,0.12)' : 'rgba(255,184,0,0.14)')
+                : (isLight ? 'rgba(0,0,0,0.06)' : `rgba(var(--rank-rgb),0.14)`);
         } else {
             borderCol = isUltra
                 ? (isLight ? 'rgba(180,120,0,0.25)' : 'rgba(255,184,0,0.18)')
                 : (isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.1)');
             bgCol = isUltra
-                ? (isLight ? 'rgba(255,184,0,0.05)' : 'rgba(255,184,0,0.05)')
+                ? (isLight ? 'rgba(180,140,0,0.05)' : 'rgba(255,184,0,0.05)')
                 : 'transparent';
         }
 
@@ -756,7 +756,7 @@ function renderPerfSelector() {
         `;
 
         const iconColor = active
-            ? (isUltra ? '#ffb800' : 'var(--rank-color)')
+            ? (isUltra ? (isLight ? '#8a5e00' : '#ffb800') : 'var(--rank-color)')
             : 'var(--text-secondary)';
         const labelColor = active
             ? (isUltra ? (isLight ? '#8a5e00' : '#ffb800') : 'var(--rank-color)')
@@ -1345,9 +1345,9 @@ addAchs([
     { id: 'nm3',  title: 'Podio',             desc: 'Entra en el Top 3 de la Clasificación.',                         color: colors.yellow, icon: SVG_TROPHY },
     { id: 'nm4',  title: 'El Primero',        desc: 'Llega al primer lugar de la Clasificación.',                     color: colors.yellow, icon: SVG_STAR },
     { id: 'nm10', title: 'PL 1,000,000',      desc: 'Alcanza 1,000,000 de Puntos de Poder. Meta del Top Mundial.',    color: colors.yellow, icon: SVG_STAR },
-    { id: 'pod1', title: 'Rey Klick',         desc: 'Eres Leyenda y ocupas el 1.er lugar de la clasificación.',       color: '#6e8fad',    icon: SVG_TROPHY },
-    { id: 'pod2', title: 'Señor Klick',       desc: 'Eres Leyenda y ocupas el 2.º lugar de la clasificación.',        color: '#ff5e00',    icon: SVG_TROPHY },
-    { id: 'pod3', title: 'Caballero Klick',   desc: 'Eres Leyenda y ocupas el 3.er lugar de la clasificación.',       color: '#ccff00',    icon: SVG_TROPHY },
+    { id: 'pod1', title: 'Rey Klick',         desc: 'Eres Leyenda y ocupas el 1.er lugar de la clasificación.',       color: '#6e8fad', colorLight: '#3d5f80', icon: SVG_TROPHY },
+    { id: 'pod2', title: 'Señor Klick',       desc: 'Eres Leyenda y ocupas el 2.º lugar de la clasificación.',        color: '#ff5e00', colorLight: '#b84000', icon: SVG_TROPHY },
+    { id: 'pod3', title: 'Caballero Klick',   desc: 'Eres Leyenda y ocupas el 3.er lugar de la clasificación.',       color: '#ccff00', colorLight: '#5a7a00', icon: SVG_TROPHY },
 ]);
 
 // ─── 18. RANGOS (Junior → Mítico) ─────────────────────────────────────────
@@ -1411,10 +1411,10 @@ function shuffleArray(array) { let current = array.length, random; while (curren
 // MÍTICO   → techo absoluto: requisito multi-métrica, sin condiciones externas
 // ─────────────────────────────────────────────────────────────────────────────
 const RANK_TIERS = [
-    // { title, color, rgb, requisitos }  — orden de MAYOR a MENOR prioridad
+    // { title, color, rgb, rgbLight, requisitos }  — orden de MAYOR a MENOR prioridad
     {
         title: "Mítico",
-        color: "#ffffff", rgb: "255,255,255",
+        color: "#ffffff", rgb: "255,255,255", rgbLight: "26,26,26",
         mitico: true,
         check: s => {
             const ta = (s.totalCorrect||0)+(s.totalWrong||0)+(s.totalTimeouts||0);
@@ -1429,36 +1429,36 @@ const RANK_TIERS = [
     },
     {
         title: "Leyenda",
-        color: "var(--accent-yellow)", rgb: "255,184,0",
-        check: s =>    s.totalScore   >= 300000   // 300 k puntos totales
-                    && s.totalCorrect >= 1200      // 1 200 aciertos
-                    && s.perfectGames >= 8         // 8 partidas perfectas
-                    && (s.maxMult||1) >= 6         // ×6 mult
+        color: "var(--accent-yellow)", rgb: "255,184,0", rgbLight: "176,120,0",
+        check: s =>    s.totalScore   >= 300000
+                    && s.totalCorrect >= 1200
+                    && s.perfectGames >= 8
+                    && (s.maxMult||1) >= 6
     },
     {
         title: "Maestro",
-        color: "var(--accent-purple)", rgb: "181,23,158",
-        check: s =>    s.totalScore   >= 100000   // 100 k puntos totales
-                    && s.totalCorrect >= 400       // 400 aciertos
-                    && s.perfectGames >= 3         // 3 partidas perfectas
-                    && (s.maxMult||1) >= 4         // ×4 mult
+        color: "var(--accent-purple)", rgb: "181,23,158", rgbLight: "122,10,140",
+        check: s =>    s.totalScore   >= 100000
+                    && s.totalCorrect >= 400
+                    && s.perfectGames >= 3
+                    && (s.maxMult||1) >= 4
     },
     {
         title: "Pro",
-        color: "var(--accent-red)", rgb: "255,42,95",
-        check: s =>    s.totalScore   >= 35000    // 35 k puntos totales
-                    && s.totalCorrect >= 120       // 120 aciertos
-                    && s.maxStreak    >= 10        // racha ≥ 10
+        color: "var(--accent-red)", rgb: "255,42,95", rgbLight: "196,25,64",
+        check: s =>    s.totalScore   >= 35000
+                    && s.totalCorrect >= 120
+                    && s.maxStreak    >= 10
     },
     {
         title: "Junior",
-        color: "var(--accent-blue)", rgb: "0,212,255",
-        check: s =>    s.bestScore    >= 8000     // mejor score en una partida ≥ 8 k
-                    && s.gamesPlayed  >= 3        // al menos 3 partidas
+        color: "var(--accent-blue)", rgb: "0,212,255", rgbLight: "0,112,168",
+        check: s =>    s.bestScore    >= 8000
+                    && s.gamesPlayed  >= 3
     },
     {
         title: "Novato",
-        color: "var(--accent-green)", rgb: "0,255,102",
+        color: "var(--accent-green)", rgb: "0,255,102", rgbLight: "10,122,62",
         check: () => true
     }
 ];
@@ -1469,12 +1469,13 @@ function getRankInfo(stats) {
     }
     return RANK_TIERS[RANK_TIERS.length - 1]; // fallback: Novato
 }
-// Returns the rank color adapted for the current theme
+// Returns the rank color adapted for the current theme, always as a usable value
 function getRankColor(rankInfo, isLight) {
     if (isLight === undefined) isLight = document.body.classList.contains('light-mode');
     if (!rankInfo) return isLight ? '#0d1117' : '#ffffff';
     if (rankInfo.mitico) return isLight ? '#1a1a1a' : '#ffffff';
-    return rankInfo.color; // CSS vars — already redefined in light-mode
+    if (isLight) return resolveColor(rankInfo.color); // resolve var(--accent-X) to hex
+    return rankInfo.color;
 }
 let currentRankInfo = getRankInfo(playerStats);
 
@@ -1997,6 +1998,10 @@ function setTheme(theme) {
     }
     const valTheme = document.getElementById('val-theme');
     if (valTheme) valTheme.innerText = theme === 'light' ? 'Claro' : 'Oscuro';
+    // Re-sync rank color CSS var and any rendered selectors that depend on it
+    updateLogoDots();
+    renderPerfSelector();
+    renderTrackSelector();
     SFX.click();
 }
 
@@ -2548,7 +2553,7 @@ function goToProfile(needsName = false) {
     document.getElementById('stat-games').innerText = playerStats.gamesPlayed; document.getElementById('stat-score').innerText = playerStats.bestScore.toLocaleString(); document.getElementById('stat-streak').innerText = playerStats.maxStreak; document.getElementById('stat-days').innerText = playerStats.maxLoginStreak;
     document.getElementById('profile-name-input').value = (playerStats.playerName === "JUGADOR") ? "" : playerStats.playerName;
     document.getElementById('profile-warning').style.opacity = needsName ? '1' : '0';
-    currentRankInfo = getRankInfo(playerStats); updateLogoDots(); document.getElementById('profile-rank-display').innerText = `Rango: ${currentRankInfo.title}`; { const isLight = document.body.classList.contains('light-mode'); document.getElementById('profile-rank-display').style.color = isLight ? darkenHex(currentRankInfo.color, 0.4) : currentRankInfo.color; }
+    currentRankInfo = getRankInfo(playerStats); updateLogoDots(); document.getElementById('profile-rank-display').innerText = `Rango: ${currentRankInfo.title}`; { const isLight = document.body.classList.contains('light-mode'); document.getElementById('profile-rank-display').style.color = getRankColor(currentRankInfo, isLight); }
     // Render PL panel
     (function renderPLPanel(){
         const s = playerStats;
@@ -2722,13 +2727,28 @@ document.getElementById('profile-name-input').addEventListener('blur', function(
 
 let _logoDotsCached = null;
 function updateLogoDots() {
-    document.documentElement.style.setProperty('--rank-rgb', currentRankInfo.rgb);
-    document.documentElement.style.setProperty('--rank-color', currentRankInfo.color);
     const isLight = document.body.classList.contains('light-mode');
+    // En modo claro usamos colores oscuros para --rank-color y --rank-rgb
+    // para que gradientes, glows y bordes con var(--rank-rgb) no sean neón
+    const adaptedColor = getRankColor(currentRankInfo, isLight);
+    let adaptedRgb = currentRankInfo.rgb;
+    if (isLight) {
+        // Parsear adaptedColor (hex o rgb(...)) para derivar el RGB seguro
+        const hexM = adaptedColor.match(/^#([0-9a-f]{6})$/i);
+        const rgbM = adaptedColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)/i);
+        if (hexM) {
+            const h = hexM[1];
+            adaptedRgb = `${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)}`;
+        } else if (rgbM) {
+            adaptedRgb = `${rgbM[1]},${rgbM[2]},${rgbM[3]}`;
+        }
+    }
+    document.documentElement.style.setProperty('--rank-color', adaptedColor);
+    document.documentElement.style.setProperty('--rank-rgb', adaptedRgb);
     if (!_logoDotsCached || !_logoDotsCached.length) _logoDotsCached = document.querySelectorAll('.logo-dot');
     const shadow = isLight ? 'none' : `0 0 15px rgba(${currentRankInfo.rgb}, 0.5)`;
     for (let i = 0; i < _logoDotsCached.length; i++) {
-        _logoDotsCached[i].style.color = getRankColor(currentRankInfo, isLight);
+        _logoDotsCached[i].style.color = adaptedColor;
         _logoDotsCached[i].style.textShadow = shadow;
     }
     const favicon = document.getElementById('dynamic-favicon');
@@ -3392,7 +3412,7 @@ function updateAndDrawParticles(timeScale, pulse) {
     const speedBoost = 1 + (pulse * 1.2);
     const sizeBoost = 1 + pulse * 0.8;
     const baseOpacity = streak >= 5 ? 0.65 : 0.42;
-    const dynamicOpacity = Math.min(1, (_pIsLight ? baseOpacity * 2.2 : baseOpacity) * playerStats.particleOpacity + pulse * 0.12);
+    const dynamicOpacity = Math.min(1, (_pIsLight ? baseOpacity * 1.4 : baseOpacity) * playerStats.particleOpacity + pulse * 0.12);
     const W = canvas.width, H = canvas.height;
     
     ctx.beginPath();
@@ -3422,7 +3442,7 @@ function connectParticles(pulse) {
     if (window._perfConnectLines === false) return;
     if (particlesArray.length < 2) return; // nothing to connect
     const isStreak = streak >= 5;
-    const baseOpacity = isStreak ? (_pIsLight ? 0.7 : 0.35) : (_pIsLight ? 0.4 : 0.18);
+    const baseOpacity = isStreak ? (_pIsLight ? 0.35 : 0.35) : (_pIsLight ? 0.15 : 0.18);
     const distMult = 1 + pulse * 0.3;
     const screenFactor = Math.min(1, (canvas.width * canvas.height) / (1920 * 1080));
     const maxDistSq = (canvas.width / 9) * (canvas.height / 9) * distMult * screenFactor;
