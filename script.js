@@ -1043,7 +1043,16 @@ async function fetchLeaderboard() {
             // Podio titles — requiere Leyenda o superior
             let rankTitle = p.rankTitle;
             const podiumTitles = { 1: 'Rey Klick', 2: 'Señor Klick', 3: 'Caballero Klick' };
-            if (pos <= 3 && (p.rankTitle === 'Leyenda' || p.rankTitle === 'Mítico')) rankTitle = podiumTitles[pos];
+            const isPodium = pos <= 3 && (p.rankTitle === 'Leyenda' || p.rankTitle === 'Mítico');
+            if (isPodium) rankTitle = podiumTitles[pos];
+
+            // Color del título: podio tiene colores propios, resto usa el del rango
+            const podiumColors = {
+                1: isLight ? '#3d5f80' : '#6e8fad',
+                2: isLight ? '#b84000' : '#ff5e00',
+                3: isLight ? '#5a7a00' : '#ccff00',
+            };
+            const titleColor = isPodium ? podiumColors[pos] : rankTitleColor(p.rankTitle);
 
             const meClass = isMe ? 'is-me' : '';
 
@@ -1051,7 +1060,7 @@ async function fetchLeaderboard() {
                 <div class="rc-pos">${pos}</div>
                 <div class="rc-info">
                     <div class="rc-name">${p.name}</div>
-                    <div class="rc-title">${rankTitle}</div>
+                    <div class="rc-title" style="color:${titleColor};">${rankTitle}</div>
                 </div>
                 <div class="rc-score">${p.powerLevel.toLocaleString()} <span>PL</span></div>
             </div>`;
