@@ -2197,10 +2197,14 @@ body.light-mode .sr-carousel-frame { border-color: rgba(0,0,0,0.25); }
 body.light-mode .sr-card          { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.08); }
 body.light-mode .sr-card.is-center{ box-shadow: 0 0 0 1px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.1); }
 
-/* Zona resultado — altura fija, nunca cambia el layout */
+/* Zona resultado — colapsa cuando no hay resultado visible */
 .sr-result-zone {
-    height: 44px; position: relative;
-    border-radius: 8px; overflow: hidden;
+    height: 0; position: relative;
+    border-radius: 8px; overflow: visible;
+    transition: height 0.3s ease;
+}
+.sr-result-zone:has(.sr-result-inner.visible) {
+    height: 52px;
 }
 .sr-result-inner {
     position: absolute; inset: 0;
