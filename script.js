@@ -603,6 +603,18 @@ const SFX = {
     gameStart:    () => playSFX([[110, 'sine', 0, 0.25, 0.08], [440, 'triangle', 0.08, 0.20, 0.12], [660, 'sine', 0.20, 0.15, 0.11]]),
     // Game end: warm resolving chord
     gameEnd:      () => playSFX([[330, 'sine', 0, 0.18, 0.14], [415, 'sine', 0.10, 0.18, 0.14], [554, 'sine', 0.20, 0.22, 0.14]]),
+    // Ranking entry: ascending podium fanfare — 3 tonos cortos y brillantes
+    rankingEnter: () => playSFX([
+        [523,  'triangle', 0,    0.10, 0.07],
+        [784,  'triangle', 0.06, 0.13, 0.08],
+        [1047, 'sine',     0.12, 0.16, 0.07]
+    ]),
+    // Streaks entry: pulso cálido de llama — grave + brillo
+    streaksEnter: () => playSFX([
+        [220, 'sine',     0,    0.14, 0.09],
+        [440, 'triangle', 0.05, 0.12, 0.08],
+        [660, 'sine',     0.11, 0.10, 0.07]
+    ]),
     // Mission complete: satisfying coin-like collect chime
     missionComplete: () => playSFX([
         [880,  'sine', 0,    0.13, 0.07],
@@ -3590,7 +3602,7 @@ function goToAchievements() {
 
 function goToRanking() {
     if (isAnsweringAllowed && lives > 0) return;
-    initAudio(); SFX.click();
+    initAudio(); SFX.rankingEnter();
     playerStats.rankingViews = (playerStats.rankingViews||0) + 1;
     trackSectionVisit('ranking');
     saveStatsLocally(); checkAchievements();
@@ -3599,7 +3611,7 @@ function goToRanking() {
 
 function goToStreaks() {
     if (isAnsweringAllowed && lives > 0) return;
-    initAudio(); SFX.click();
+    initAudio(); SFX.streaksEnter();
     renderStreaksScreen();
     switchScreen('streaks-screen');
     const sc = document.getElementById('streaks-scroll');
