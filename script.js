@@ -579,6 +579,11 @@ function playMusicStep(t) {
 }
 
 // ── SFX definitions (all notes pre-scheduled via WebAudio clock) ─────────
+// Feedback háptico (no-op en desktop / iOS que no lo soporta)
+function haptic(pattern) {
+    try { if (navigator.vibrate) navigator.vibrate(pattern); } catch(e) {}
+}
+
 const SFX = {
     // UI click: short crisp high tick
     click:        () => playSFX([[1200, 'sine', 0, 0.06, 0.05]]),
@@ -587,9 +592,9 @@ const SFX = {
     // Answer select: low-mid soft thud (selection confirmed)
     select:       () => playSFX([[220, 'sine', 0, 0.12, 0.06], [330, 'sine', 0.03, 0.08, 0.05]]),
     // Correct: ascending chime, bright and satisfying
-    correct:      () => playSFX([[659, 'sine', 0, 0.14, 0.10], [988, 'sine', 0.07, 0.18, 0.10], [1319, 'sine', 0.14, 0.22, 0.09]]),
+    correct:      () => { playSFX([[659, 'sine', 0, 0.14, 0.10], [988, 'sine', 0.07, 0.18, 0.10], [1319, 'sine', 0.14, 0.22, 0.09]]); haptic(12); },
     // Incorrect: deep descending buzz — clearly negative
-    incorrect:    () => playSFX([[160, 'sawtooth', 0, 0.18, 0.08], [110, 'sawtooth', 0.06, 0.22, 0.12]]),
+    incorrect:    () => { playSFX([[160, 'sawtooth', 0, 0.18, 0.08], [110, 'sawtooth', 0.06, 0.22, 0.12]]); haptic([25,10,25]); },
     // Streak trigger: synth fanfare — rising 3 tones
     streakTrigger:() => playSFX([[523, 'triangle', 0, 0.12, 0.10], [784, 'triangle', 0.10, 0.15, 0.12], [1047, 'triangle', 0.22, 0.28, 0.13]]),
     // Achievement: sparkling arpeggiated run
@@ -856,17 +861,31 @@ function openSettings() {
     // Apply theme UI
     const currentTheme = playerStats.theme || 'dark';
     const valThemeEl = document.getElementById('val-theme');
-    if (valThemeEl) valThemeEl.innerText = currentTheme === 'light' ? 'Claro' : 'Oscuro';
-    // Sync theme buttons state
-    const _darkBtn = document.getElementById('theme-dark-btn');
-    const _lightBtn = document.getElementById('theme-light-btn');
-    if (_darkBtn && _lightBtn) {
-        if (currentTheme === 'light') {
-            _lightBtn.style.borderColor = 'rgba(0,0,0,0.4)'; _lightBtn.style.background = 'rgba(0,0,0,0.05)'; _lightBtn.firstElementChild.style.color = 'var(--text-primary)';
-            _darkBtn.style.borderColor = 'rgba(0,0,0,0.1)'; _darkBtn.style.background = 'transparent'; _darkBtn.firstElementChild.style.color = 'var(--text-secondary)';
-        } else {
-            _darkBtn.style.borderColor = 'rgba(255,255,255,0.5)'; _darkBtn.style.background = 'rgba(255,255,255,0.07)'; _darkBtn.firstElementChild.style.color = 'var(--text-primary)';
-            _lightBtn.style.borderColor = 'rgba(255,255,255,0.1)'; _lightBtn.style.background = 'transparent'; _lightBtn.firstElementChild.style.color = 'var(--text-secondary)';
+    if (valThemeEl) valThemeEl.innerText = currentTheme === 'auto' ? 'Auto' : (currentTheme === 'light' ? 'Claro' : 'Oscuro');
+    // Sync all 3 theme buttons — delegate to setTheme visual logic via a silent re-apply
+    {
+        const _darkBtn  = document.getElementById('theme-dark-btn');
+        const _lightBtn = document.getElementById('theme-light-btn');
+        const _autoBtn  = document.getElementById('theme-auto-btn');
+        const _isLight  = document.body.classList.contains('light-mode');
+        const _activeS  = _isLight
+            ? { border:'rgba(0,0,0,0.4)', bg:'rgba(0,0,0,0.05)', color:'var(--text-primary)' }
+            : { border:'rgba(255,255,255,0.5)', bg:'rgba(255,255,255,0.07)', color:'var(--text-primary)' };
+        const _inactS   = _isLight
+            ? { border:'rgba(0,0,0,0.1)', bg:'transparent', color:'var(--text-secondary)' }
+            : { border:'rgba(255,255,255,0.1)', bg:'transparent', color:'var(--text-secondary)' };
+        [
+            { btn: _darkBtn,  active: currentTheme === 'dark'  },
+            { btn: _lightBtn, active: currentTheme === 'light' },
+            { btn: _autoBtn,  active: currentTheme === 'auto'  },
+        ].forEach(({ btn, active }) => {
+            if (!btn) return;
+            const s = active ? _activeS : _inactS;
+            btn.style.borderColor = s.border; btn.style.background = s.bg;
+            if (btn.firstElementChild) btn.firstElementChild.style.color = s.color;
+        });
+        if (_darkBtn && _lightBtn) {
+        // legacy block — kept empty for structure
         }
     }
     renderTrackSelector();
@@ -917,10 +936,22 @@ document.getElementById('op-fps').addEventListener('input', (e) => {
     if (el) el.addEventListener('change', (e) => el.dispatchEvent(new Event('input', {bubbles:true})));
 });
 
-function showToast(title, message, color, icon) {
+// ── Toast system: cola interna + límite de 3 visibles ──────────────
+const _toastQueue = [];
+const _TOAST_MAX_VISIBLE = 3;
+const _TOAST_DURATION = 3200;
+let _toastActiveCount = 0;
+
+function _drainToastQueue() {
+    if (_toastQueue.length === 0 || _toastActiveCount >= _TOAST_MAX_VISIBLE) return;
+    const { title, message, color, icon } = _toastQueue.shift();
+    _showToastNow(title, message, color, icon);
+}
+
+function _showToastNow(title, message, color, icon) {
     const container = document.getElementById('toast-container');
     if (!container) return;
-    // In light mode, resolve neon colors to their dark equivalents for readability
+    _toastActiveCount++;
     const isLight = document.body.classList.contains('light-mode');
     const _neonToLight = {
         '#00ff66': '#0a7a3e', '#00d4ff': '#0070a8', '#ccff00': '#5a7a00',
@@ -929,12 +960,30 @@ function showToast(title, message, color, icon) {
         '#ffb800': '#8a6000',
     };
     const displayColor = isLight ? (_neonToLight[color] || resolveColor(color)) : color;
-    const toast = document.createElement('div'); 
-    toast.className = 'toast-item'; 
+    const toast = document.createElement('div');
+    toast.className = 'toast-item';
     toast.innerHTML = `<div class="toast-icon" style="color:${displayColor}">${icon}</div><div class="toast-text"><span class="toast-title" style="color:${displayColor}">${title}</span><span class="toast-name">${message}</span></div>`;
-    container.appendChild(toast); 
-    setTimeout(() => toast.classList.add('show'), 50); 
-    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, 3500);
+    container.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 30);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            toast.remove();
+            _toastActiveCount = Math.max(0, _toastActiveCount - 1);
+            _drainToastQueue();
+        }, 420);
+    }, _TOAST_DURATION);
+}
+
+function showToast(title, message, color, icon) {
+    // Si hay hueco libre, mostrar inmediatamente; si no, encolar
+    if (_toastActiveCount < _TOAST_MAX_VISIBLE) {
+        _showToastNow(title, message, color, icon);
+    } else {
+        // Limitar la cola a 5 entradas: descartar las más antiguas si se desborda
+        if (_toastQueue.length >= 5) _toastQueue.shift();
+        _toastQueue.push({ title, message, color, icon });
+    }
 }
 
 // --- Módulo: Clasificación Global ---
@@ -2039,45 +2088,68 @@ function switchScreen(id) {
 // Initialize current screen
 _currentScreen = document.querySelector('.screen.active');
 // --- SISTEMA DE TEMA (CLARO / OSCURO) ---
+// Tema automático: detecta preferencia del sistema
+function applyAutoTheme() {
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setTheme(prefersDark ? 'dark' : 'light');
+}
+// Escuchar cambios de tema del sistema si está en modo auto
+if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        if (playerStats.theme === 'auto') applyAutoTheme();
+    });
+}
+
 function setTheme(theme) {
     const previousTheme = playerStats.theme || 'dark';
     playerStats.theme = theme;
-    if (theme === 'light') {
+
+    // Si es auto, aplicar la preferencia del sistema como tema visual real
+    const visualTheme = theme === 'auto'
+        ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : theme;
+
+    if (visualTheme === 'light') {
         playerStats.usedLightMode = true;
     }
     // "Vuelta a Casa" — only unlocks when switching FROM light TO dark
-    if (theme === 'dark' && previousTheme === 'light') {
+    if (visualTheme === 'dark' && (previousTheme === 'light' || (previousTheme === 'auto' && document.body.classList.contains('light-mode')))) {
         playerStats.switchedLightToDark = true;
     }
     saveStatsLocally();
     checkAchievements();
-    if (theme === 'light') {
+    if (visualTheme === 'light') {
         document.body.classList.add('light-mode');
     } else {
         document.body.classList.remove('light-mode');
     }
-    // Update buttons appearance
-    const darkBtn = document.getElementById('theme-dark-btn');
+
+    // Actualizar estado visual de los tres botones
+    const darkBtn  = document.getElementById('theme-dark-btn');
     const lightBtn = document.getElementById('theme-light-btn');
-    if (darkBtn && lightBtn) {
-        if (theme === 'dark') {
-            darkBtn.style.borderColor = 'rgba(255,255,255,0.5)';
-            darkBtn.style.background = 'rgba(255,255,255,0.07)';
-            darkBtn.firstElementChild.style.color = 'var(--text-primary)';
-            lightBtn.style.borderColor = 'rgba(255,255,255,0.1)';
-            lightBtn.style.background = 'transparent';
-            lightBtn.firstElementChild.style.color = 'var(--text-secondary)';
-        } else {
-            lightBtn.style.borderColor = 'rgba(0,0,0,0.4)';
-            lightBtn.style.background = 'rgba(0,0,0,0.05)';
-            lightBtn.firstElementChild.style.color = 'var(--text-primary)';
-            darkBtn.style.borderColor = 'rgba(0,0,0,0.1)';
-            darkBtn.style.background = 'transparent';
-            darkBtn.firstElementChild.style.color = 'var(--text-secondary)';
-        }
-    }
+    const autoBtn  = document.getElementById('theme-auto-btn');
+    const isLight  = visualTheme === 'light';
+    const activeStyle   = isLight
+        ? { border:'rgba(0,0,0,0.4)',  bg:'rgba(0,0,0,0.05)',  color:'var(--text-primary)' }
+        : { border:'rgba(255,255,255,0.5)', bg:'rgba(255,255,255,0.07)', color:'var(--text-primary)' };
+    const inactiveStyle = isLight
+        ? { border:'rgba(0,0,0,0.1)',  bg:'transparent', color:'var(--text-secondary)' }
+        : { border:'rgba(255,255,255,0.1)', bg:'transparent', color:'var(--text-secondary)' };
+
+    [
+        { btn: darkBtn,  active: theme === 'dark'  },
+        { btn: lightBtn, active: theme === 'light' },
+        { btn: autoBtn,  active: theme === 'auto'  },
+    ].forEach(({ btn, active }) => {
+        if (!btn) return;
+        const s = active ? activeStyle : inactiveStyle;
+        btn.style.borderColor = s.border;
+        btn.style.background  = s.bg;
+        if (btn.firstElementChild) btn.firstElementChild.style.color = s.color;
+    });
+
     const valTheme = document.getElementById('val-theme');
-    if (valTheme) valTheme.innerText = theme === 'light' ? 'Claro' : 'Oscuro';
+    if (valTheme) valTheme.innerText = theme === 'auto' ? 'Auto' : (theme === 'light' ? 'Claro' : 'Oscuro');
     // Re-sync rank color CSS var and any rendered selectors that depend on it
     updateLogoDots();
     renderPerfSelector();
@@ -3005,9 +3077,9 @@ function claimMission(missionId) {
 
     m.claimed = true;
     playerStats.bonusPL = (playerStats.bonusPL || 0) + def.rewardPL;
-    saveStatsLocally();
+    saveStatsDebounced();
 
-    SFX.missionComplete();
+    SFX.missionComplete(); haptic([10,5,20]);
     const rankColor = getRankColor(currentRankInfo);
     showToast(`+${def.rewardPL.toLocaleString()} PL`, def.title, '#ffb800',
         `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`);
@@ -3245,7 +3317,7 @@ function claimStreakRouletteResult() {
 
     ss.pendingResult = null;
     saveStatsLocally();
-    SFX.srClaim();
+    SFX.srClaim(); haptic(18);
     updateStreakDot();
     renderStreaksScreen();
     // El re-render ya restaura el idle automáticamente (no hay pendingResult)
@@ -3280,7 +3352,7 @@ function claimStreakMilestone(days) {
     }
 
     saveStatsLocally();
-    SFX.srMilestone();
+    SFX.srMilestone(); haptic([15,8,15,8,30]);
     updateStreakDot();
     renderStreaksScreen();
     if (document.getElementById('pl-total')) renderProfileIfOpen();
@@ -4106,7 +4178,24 @@ function confirmAbandon() {
 
 function replayGame() {
     SFX.click();
-    startGame();
+    // Pasar por startGameCheck para validar nombre y preguntas cargadas
+    startGameCheck();
+}
+
+// Anima cualquier elemento de texto de 0 → target con easing
+function _animateCounter(elId, target, duration) {
+    const el = document.getElementById(elId);
+    if (!el || target === 0) { if (el) el.innerText = target.toLocaleString(); return; }
+    const start = performance.now();
+    const step = (now) => {
+        const t = Math.min((now - start) / duration, 1);
+        // easeOutExpo
+        const eased = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+        el.innerText = Math.round(eased * target).toLocaleString();
+        if (t < 1) requestAnimationFrame(step);
+        else el.innerText = target.toLocaleString();
+    };
+    requestAnimationFrame(step);
 }
 
 let _scoreAnimTimer = null;
@@ -4415,11 +4504,27 @@ function endGame() {
 
     document.getElementById('final-name').innerText = playerStats.playerName || 'ESTUDIANTE';
     document.getElementById('final-correct-label').innerText = 'Aciertos';
-    document.getElementById('final-correct').innerText = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
-    document.getElementById('final-streak').innerText = currentMaxStreak; 
-    document.getElementById('final-speed').innerText = currentFastAnswers;
-    
+
+    const _finalCorrect = currentQuestionIndex - currentWrongAnswers - currentTimeoutAnswers;
+    const _finalStreak  = currentMaxStreak;
+    const _finalSpeed   = currentFastAnswers;
+    const _finalScore   = score;
+
+    // Mostrar 0 inicialmente — los contadores se animan tras el switchScreen
+    document.getElementById('final-correct').innerText = '0';
+    document.getElementById('final-streak').innerText  = '0';
+    document.getElementById('final-speed').innerText   = '0';
+    document.getElementById('final-score-display').innerText = '0';
+
     document.getElementById('app').classList.remove('streak-active'); streak = 0; switchScreen('end-screen');
+
+    // Animar todos los contadores de la pantalla final
+    setTimeout(() => {
+        _animateCounter('final-score-display', _finalScore, 700);
+        setTimeout(() => _animateCounter('final-correct', _finalCorrect, 500), 120);
+        setTimeout(() => _animateCounter('final-streak',  _finalStreak,  500), 240);
+        setTimeout(() => _animateCounter('final-speed',   _finalSpeed,   500), 360);
+    }, 280);
 }
 
 // --- FPS Controlled Particles (optimized: delta-time based, drift-free) ---
@@ -4578,6 +4683,9 @@ initParticles(); requestAnimationFrame(animateParticles);
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
         _lastFrameTime = performance.now();
+        // Actualizar indicadores por si cambió el día o hay pendientes
+        updateMissionsDot();
+        updateStreakDot();
         // Reanudar música si estaba activa
         if (audioCtx && audioCtx.state === 'suspended') {
             audioCtx.resume().catch(() => {});
