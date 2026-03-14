@@ -1396,11 +1396,19 @@ function processDailyLogin() {
     const now = new Date(); const todayStr = now.toISOString().split('T')[0];
     if (playerStats.lastLoginDate !== todayStr) {
         const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1); const yesterdayStr = yesterday.toISOString().split('T')[0];
-        if (playerStats.lastLoginDate === yesterdayStr) { playerStats.currentLoginStreak++; playerStats.maxLoginStreak = Math.max(playerStats.maxLoginStreak, playerStats.currentLoginStreak); } 
-        else { 
-            playerStats.currentLoginStreak = 1; if(playerStats.maxLoginStreak === 0) playerStats.maxLoginStreak = 1;
-            // Player missed at least one day — mark for x16 Regreso Triunfal
-            if(playerStats.lastLoginDate) playerStats.missedADay = true;
+        if (playerStats.lastLoginDate === yesterdayStr) {
+            playerStats.currentLoginStreak++;
+            playerStats.maxLoginStreak = Math.max(playerStats.maxLoginStreak, playerStats.currentLoginStreak);
+        } else {
+            // Check if a streak shield can save the streak
+            if (playerStats.lastLoginDate && !_applyStreakShieldIfAvailable()) {
+                playerStats.currentLoginStreak = 1;
+                if(playerStats.maxLoginStreak === 0) playerStats.maxLoginStreak = 1;
+                if(playerStats.lastLoginDate) playerStats.missedADay = true;
+            } else if (!playerStats.lastLoginDate) {
+                playerStats.currentLoginStreak = 1;
+                if(playerStats.maxLoginStreak === 0) playerStats.maxLoginStreak = 1;
+            }
         }
         playerStats.lastLoginDate = todayStr;
         playerStats.todayGames = 0;
@@ -1408,10 +1416,13 @@ function processDailyLogin() {
         playerStats.dailyAchUnlocks = 0;
         // Inicializar misiones del nuevo día
         _initDailyMissions();
+        // Inicializar sistema de rachas (añade giro diario si aplica)
+        _initStreakSystem();
         saveStatsLocally(); checkAchievements();
     } else {
         // Mismo día — asegurar misiones inicializadas y actualizar racha de login
         _initDailyMissions();
+        _initStreakSystem();
         updateMissionStats('loginStreak', playerStats.currentLoginStreak || 1);
     }
 }
@@ -2975,6 +2986,368 @@ function renderProfileIfOpen() {
     if (ps && ps.classList.contains('active')) {
         goToProfile(false);
     }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  SISTEMA DE RACHAS DIARIAS
+//  - Racha basada en currentLoginStreak (ya trackeada en processDailyLogin)
+//  - Ruleta propia: 1 giro diario gratis, acumulable hasta 5
+//  - Hitos con PL bonus y giros extra
+//  - Escudos de racha: protegen un día perdido
+// ══════════════════════════════════════════════════════════════════
+
+// SVG icons para la ruleta de racha
+const SR_SVG = {
+    flame:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c0 0-4 4-4 8a4 4 0 008 0c0-4-4-8-4-8z"/><path d="M12 18v2"/><path d="M9 21h6"/></svg>`,
+    shield: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+    star:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+    bolt:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+    spin:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
+    check:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+    lock:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`,
+    played: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+    missed: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+    today:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/></svg>`,
+    trophy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/><circle cx="12" cy="8" r="7"/></svg>`,
+};
+
+// ── Premios de la Ruleta de Racha ────────────────────────────────
+const STREAK_ROULETTE_PRIZES = [
+    { id: 'sr_pl_sm',  label: 'PL Bonus',        desc: '+500 PL directo a tu perfil.',         icon: 'star',   color: '#ffb800', colorLight: '#8a6000', plBonus: 500,   shields: 0, spins: 0, weight: 35 },
+    { id: 'sr_pl_md',  label: 'PL Mediano',       desc: '+1,500 PL directo a tu perfil.',       icon: 'star',   color: '#ffb800', colorLight: '#8a6000', plBonus: 1500,  shields: 0, spins: 0, weight: 25 },
+    { id: 'sr_pl_lg',  label: 'PL Grande',        desc: '+4,000 PL directo a tu perfil.',       icon: 'bolt',   color: '#f77f00', colorLight: '#b84400', plBonus: 4000,  shields: 0, spins: 0, weight: 12 },
+    { id: 'sr_shield1',label: 'Escudo de Racha',  desc: 'Protege tu racha si fallas un día.',   icon: 'shield', color: '#00d4ff', colorLight: '#0070a8', plBonus: 0,     shields: 1, spins: 0, weight: 18 },
+    { id: 'sr_shield2',label: 'Escudo Doble',     desc: 'Dos protecciones de racha acumuladas.',icon: 'shield', color: '#00d4ff', colorLight: '#0070a8', plBonus: 0,     shields: 2, spins: 0, weight: 6  },
+    { id: 'sr_spin',   label: 'Giro Extra',       desc: 'Un giro adicional en la ruleta.',      icon: 'spin',   color: '#b5179e', colorLight: '#7a0a8c', plBonus: 0,     shields: 0, spins: 1, weight: 4  },
+];
+
+// ── Hitos de racha ────────────────────────────────────────────────
+const STREAK_MILESTONES = [
+    { days: 3,   label: 'Inicio',     plBonus: 1500,   extraSpins: 0, icon: 'flame'  },
+    { days: 7,   label: 'Constante',  plBonus: 4000,   extraSpins: 1, icon: 'flame'  },
+    { days: 14,  label: 'Dedicado',   plBonus: 10000,  extraSpins: 2, icon: 'bolt'   },
+    { days: 30,  label: 'Imparable',  plBonus: 25000,  extraSpins: 3, icon: 'trophy' },
+    { days: 60,  label: 'Legendario', plBonus: 60000,  extraSpins: 4, icon: 'trophy' },
+    { days: 100, label: 'Eterno',     plBonus: 120000, extraSpins: 5, icon: 'star'   },
+];
+
+const SR_MAX_SPINS = 5; // máximo de giros acumulables
+
+// ── Inicialización del estado de rachas ──────────────────────────
+function _initStreakSystem() {
+    if (!playerStats.streakSystem) {
+        playerStats.streakSystem = {
+            shields:          0,         // escudos de racha acumulados
+            spins:            1,         // giros disponibles (comienza con 1)
+            lastSpinDate:     '',        // última fecha en que se usó/añadió giro diario
+            claimedMilestones:[],        // días de hitos ya cobrados
+            pendingResult:    null,      // premio girado pendiente de cobrar
+        };
+    }
+    // Añadir giro diario si no se ha dado hoy
+    const today = _getTodayStr();
+    const ss = playerStats.streakSystem;
+    if (ss.lastSpinDate !== today) {
+        if (ss.spins < SR_MAX_SPINS) {
+            ss.spins = Math.min(ss.spins + 1, SR_MAX_SPINS);
+        }
+        ss.lastSpinDate = today;
+        saveStatsLocally();
+    }
+}
+
+// ── Aplicar escudos cuando se detecta día perdido ────────────────
+// Llamar desde processDailyLogin cuando la racha se rompe
+function _applyStreakShieldIfAvailable() {
+    _initStreakSystem();
+    const ss = playerStats.streakSystem;
+    if (ss.shields > 0) {
+        ss.shields--;
+        // Restaurar la racha: sumar 1 para compensar el día perdido
+        playerStats.currentLoginStreak = Math.max(1, (playerStats.currentLoginStreak || 1));
+        playerStats.maxLoginStreak = Math.max(playerStats.maxLoginStreak || 0, playerStats.currentLoginStreak);
+        saveStatsLocally();
+        showToast('Racha Protegida', `Escudo de racha usado. Te quedan ${ss.shields}.`, '#00d4ff',
+            `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`);
+        return true;
+    }
+    return false;
+}
+
+// ── Girar la ruleta de racha ──────────────────────────────────────
+function spinStreakRoulette() {
+    _initStreakSystem();
+    const ss = playerStats.streakSystem;
+    if (ss.spins <= 0) return;
+
+    ss.spins--;
+    // Weighted random pick
+    const totalW = STREAK_ROULETTE_PRIZES.reduce((a, p) => a + p.weight, 0);
+    let r = Math.random() * totalW;
+    let prize = STREAK_ROULETTE_PRIZES[STREAK_ROULETTE_PRIZES.length - 1];
+    for (const p of STREAK_ROULETTE_PRIZES) {
+        r -= p.weight;
+        if (r <= 0) { prize = p; break; }
+    }
+    ss.pendingResult = prize.id;
+    saveStatsLocally();
+    renderStreaksScreen();
+
+    // Animar resultado después de breve pausa
+    setTimeout(() => {
+        const resultEl = document.getElementById('sr-result-zone');
+        if (resultEl) resultEl.classList.add('visible');
+    }, 300);
+}
+
+// ── Cobrar resultado de ruleta ────────────────────────────────────
+function claimStreakRouletteResult() {
+    _initStreakSystem();
+    const ss = playerStats.streakSystem;
+    if (!ss.pendingResult) return;
+    const prize = STREAK_ROULETTE_PRIZES.find(p => p.id === ss.pendingResult);
+    if (!prize) { ss.pendingResult = null; saveStatsLocally(); return; }
+
+    if (prize.plBonus > 0) {
+        playerStats.bonusPL = (playerStats.bonusPL || 0) + prize.plBonus;
+    }
+    if (prize.shields > 0) {
+        ss.shields += prize.shields;
+    }
+    if (prize.spins > 0) {
+        ss.spins = Math.min(ss.spins + prize.spins, SR_MAX_SPINS);
+    }
+    ss.pendingResult = null;
+    saveStatsLocally();
+
+    const isLight = document.body.classList.contains('light-mode');
+    const col = isLight ? (prize.colorLight || prize.color) : prize.color;
+    showToast(prize.label,
+        prize.plBonus > 0 ? `+${prize.plBonus.toLocaleString()} PL añadidos.`
+        : prize.shields > 0 ? `${prize.shields} escudo(s) de racha ganados.`
+        : `Giro extra acumulado.`,
+        col, SR_SVG[prize.icon]);
+
+    SFX.achievement();
+    renderStreaksScreen();
+    updateStreakDot();
+    if (document.getElementById('pl-total')) renderProfileIfOpen();
+}
+
+// ── Cobrar hito ───────────────────────────────────────────────────
+function claimStreakMilestone(days) {
+    _initStreakSystem();
+    const ss = playerStats.streakSystem;
+    const ms = STREAK_MILESTONES.find(m => m.days === days);
+    if (!ms) return;
+    if (ss.claimedMilestones.includes(days)) return;
+    if ((playerStats.currentLoginStreak || 0) < days) return;
+
+    ss.claimedMilestones.push(days);
+    playerStats.bonusPL = (playerStats.bonusPL || 0) + ms.plBonus;
+    if (ms.extraSpins > 0) {
+        ss.spins = Math.min(ss.spins + ms.extraSpins, SR_MAX_SPINS);
+    }
+    saveStatsLocally();
+    SFX.achievement();
+    showToast(`Hito: ${ms.label}`, `+${ms.plBonus.toLocaleString()} PL. ${ms.extraSpins > 0 ? `+${ms.extraSpins} giro(s) extra.` : ''}`, '#ff2a5f', SR_SVG.trophy);
+    renderStreaksScreen();
+    updateStreakDot();
+    if (document.getElementById('pl-total')) renderProfileIfOpen();
+}
+
+// ── Dot indicador en el botón del menú ───────────────────────────
+function updateStreakDot() {
+    const dot = document.getElementById('streak-dot');
+    if (!dot) return;
+    _initStreakSystem();
+    const ss = playerStats.streakSystem;
+    const streak = playerStats.currentLoginStreak || 0;
+    // Mostrar dot si: hay giros disponibles, hito cobrable, o resultado pendiente
+    const hasSpins    = ss.spins > 0;
+    const hasPending  = !!ss.pendingResult;
+    const hasMilestone = STREAK_MILESTONES.some(m =>
+        streak >= m.days && !ss.claimedMilestones.includes(m.days));
+    dot.style.display = (hasSpins || hasPending || hasMilestone) ? 'block' : 'none';
+}
+
+// ── Ir a la pantalla ─────────────────────────────────────────────
+function goToStreaks() {
+    SFX.click();
+    _initStreakSystem();
+    renderStreaksScreen();
+    switchScreen('streaks-screen');
+}
+
+// ── Renderizado principal ─────────────────────────────────────────
+function renderStreaksScreen() {
+    const dashboard = document.getElementById('streaks-dashboard');
+    if (!dashboard) return;
+    _initStreakSystem();
+    const ss    = playerStats.streakSystem;
+    const streak = playerStats.currentLoginStreak || 0;
+    const isLight = document.body.classList.contains('light-mode');
+    const rc = (neon, dark) => isLight ? dark : neon;
+    const fmt = n => n.toLocaleString();
+
+    // ── Header ──────────────────────────────────────────────────
+    const nextMs = STREAK_MILESTONES.find(m => streak < m.days);
+    const statusLine = streak === 0
+        ? 'Juega hoy para empezar tu racha.'
+        : nextMs
+            ? `Próximo hito en ${nextMs.days - streak} día${nextMs.days - streak !== 1 ? 's' : ''}.`
+            : 'Has alcanzado todos los hitos.';
+
+    const shieldsHtml = ss.shields > 0
+        ? `<div class="streak-shield-pill">${SR_SVG.shield} ${ss.shields} escudo${ss.shields !== 1 ? 's' : ''}</div>`
+        : `<div class="streak-shield-pill" style="opacity:0.4;">${SR_SVG.shield} Sin escudos</div>`;
+
+    const spinsHtml = `<div class="streak-spins-pill">${SR_SVG.spin} ${ss.spins} giro${ss.spins !== 1 ? 's' : ''} disponibles</div>`;
+
+    // ── Calendario últimos 7 días ────────────────────────────────
+    const today = _getTodayStr();
+    const calDays = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        const dStr = d.toISOString().split('T')[0];
+        const isToday = dStr === today;
+        const dayName = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d.getDay()];
+        // Determinar estado: hoy no se puede marcar como jugado aún (todayGames puede ser 0 si no ha jugado)
+        // Los días anteriores: si la racha es N, los últimos N días incluido hoy estaban activos
+        const daysAgo = i;
+        let state = 'missed';
+        if (isToday) {
+            state = (playerStats.todayGames || 0) > 0 ? 'today played' : 'today';
+        } else if (daysAgo < streak) {
+            state = 'played';
+        }
+        let icon, iconColor;
+        if (state.includes('played') && state.includes('today')) {
+            icon = SR_SVG.today; iconColor = rc('#ff2a5f','#c41940');
+        } else if (state === 'today') {
+            icon = SR_SVG.today; iconColor = rc('rgba(255,42,95,0.45)','rgba(196,25,64,0.4)');
+        } else if (state === 'played') {
+            icon = SR_SVG.played; iconColor = rc('#ff2a5f','#c41940');
+        } else {
+            icon = SR_SVG.missed; iconColor = rc('rgba(255,255,255,0.2)','rgba(0,0,0,0.2)');
+        }
+        calDays.push(`
+            <div class="streak-cal-day ${state}">
+                <span class="streak-cal-label">${dayName}</span>
+                <div class="streak-cal-icon" style="color:${iconColor};">${icon}</div>
+            </div>`);
+    }
+
+    // ── Ruleta de racha ──────────────────────────────────────────
+    const prizesPreview = STREAK_ROULETTE_PRIZES.map(p => {
+        const col = isLight ? (p.colorLight || p.color) : p.color;
+        return `<div class="streak-prize-chip" style="color:${col};border-color:${col}22;">
+            <div style="color:${col};">${SR_SVG[p.icon]}</div>
+            ${p.label}
+        </div>`;
+    }).join('');
+
+    const canSpin = ss.spins > 0 && !ss.pendingResult;
+    const spinBtnLabel = ss.pendingResult ? 'Cobra el premio primero' : ss.spins <= 0 ? 'Sin giros disponibles' : `Girar (${ss.spins} restante${ss.spins !== 1 ? 's' : ''})`;
+
+    // Resultado pendiente
+    let resultHtml = '';
+    if (ss.pendingResult) {
+        const prize = STREAK_ROULETTE_PRIZES.find(p => p.id === ss.pendingResult);
+        if (prize) {
+            const col = isLight ? (prize.colorLight || prize.color) : prize.color;
+            const desc = prize.plBonus > 0 ? `+${fmt(prize.plBonus)} PL` : prize.shields > 0 ? `+${prize.shields} escudo(s)` : '+1 giro extra';
+            resultHtml = `
+                <div class="streak-spin-result visible" id="sr-result-zone" style="border-color:${col}33;background:${col}08;">
+                    <div class="streak-result-icon" style="color:${col};">${SR_SVG[prize.icon]}</div>
+                    <div class="streak-result-text">
+                        <div class="streak-result-name" style="color:${col};">${prize.label}</div>
+                        <div class="streak-result-desc">${desc} — ${prize.desc}</div>
+                    </div>
+                    <button class="streak-result-claim" onclick="claimStreakRouletteResult()" style="background:${col};color:${isLight?'#fff':'#111'};">COBRAR</button>
+                </div>`;
+        }
+    }
+
+    // ── Hitos ────────────────────────────────────────────────────
+    const milestonesHtml = STREAK_MILESTONES.map(ms => {
+        const claimed   = ss.claimedMilestones.includes(ms.days);
+        const available = !claimed && streak >= ms.days;
+        const locked    = !claimed && !available;
+        const pct       = Math.min(100, Math.round((streak / ms.days) * 100));
+        const col       = rc('#ff2a5f','#c41940');
+        const rewardCol = available ? col : (isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.25)');
+        const rewardBg  = available ? `${col}14` : 'transparent';
+
+        const extras = ms.extraSpins > 0 ? ` + ${ms.extraSpins} giro${ms.extraSpins > 1 ? 's' : ''}` : '';
+        const subLabel = claimed
+            ? 'Completado'
+            : available ? 'Listo para cobrar'
+            : `${streak}/${ms.days} días${locked ? ` — faltan ${ms.days - streak}` : ''}`;
+
+        const rightEl = claimed
+            ? `<div class="streak-milestone-check">${SR_SVG.check}</div>`
+            : available
+                ? `<button class="streak-milestone-claim" onclick="claimStreakMilestone(${ms.days})">COBRAR</button>`
+                : `<div class="streak-milestone-reward" style="color:${rewardCol};border-color:${rewardCol};background:${rewardBg};">+${fmt(ms.plBonus)} PL${extras}</div>`;
+
+        const progressBar = (!claimed && locked)
+            ? `<div class="streak-milestone-progress" style="width:${pct}%;"></div>`
+            : '';
+
+        return `
+            <div class="streak-milestone-card ${available?'available':''} ${claimed?'claimed':''}">
+                ${progressBar}
+                <div class="streak-milestone-icon" style="color:${claimed?(isLight?'rgba(0,0,0,0.3)':'rgba(255,255,255,0.3)'):col};${available?`border-color:${col}44;background:${col}10`:''}">
+                    ${SR_SVG[ms.icon]}
+                </div>
+                <div class="streak-milestone-info">
+                    <div class="streak-milestone-title" style="color:${claimed?(isLight?'rgba(0,0,0,0.4)':'rgba(255,255,255,0.4)'):(isLight?'#0d1117':'var(--text-primary)')}">${ms.label} — ${ms.days} días</div>
+                    <div class="streak-milestone-sub">${subLabel}</div>
+                </div>
+                ${rightEl}
+            </div>`;
+    }).join('');
+
+    // ── Ensamblaje final ─────────────────────────────────────────
+    dashboard.innerHTML = `
+        <div class="streak-main-header">
+            <div class="streak-count-block">
+                <div class="streak-count-num">${streak}</div>
+                <div class="streak-count-label">DÍAS</div>
+            </div>
+            <div class="streak-center-block">
+                <div class="streak-status-line">${statusLine}</div>
+                <div class="streak-shields-row">
+                    ${shieldsHtml}
+                    ${spinsHtml}
+                </div>
+            </div>
+            <div class="streak-icon-wrap">${SR_SVG.flame}</div>
+        </div>
+
+        <div class="streak-section-label">Últimos 7 días</div>
+        <div class="streak-calendar">${calDays.join('')}</div>
+
+        <div class="streak-roulette-section">
+            <div class="streak-section-label">Ruleta de Racha</div>
+            <div class="streak-roulette-card">
+                <div class="streak-spin-info">
+                    <div class="streak-spin-desc">Gira cada día para ganar PL bonus, escudos de racha o giros extra. Puedes acumular hasta ${SR_MAX_SPINS} giros sin usar.</div>
+                    <div class="streak-spin-counter">
+                        <div class="streak-spin-counter-num">${ss.spins}</div>
+                        <div class="streak-spin-counter-label">Giros</div>
+                    </div>
+                </div>
+                <div class="streak-prize-strip">${prizesPreview}</div>
+                ${resultHtml}
+                <button class="streak-spin-btn" onclick="spinStreakRoulette()" ${!canSpin?'disabled':''}>${spinBtnLabel}</button>
+            </div>
+        </div>
+
+        <div class="streak-section-label">Hitos</div>
+        <div class="streak-milestones">${milestonesHtml}</div>
+    `;
 }
 
 function goToMainMenu() {
@@ -4663,7 +5036,7 @@ _kpUpdateMenuBadge();
 // ════════════════════════════════════ END KLICK PASS ═════════════════
 
 
-setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); applyPerfMode(playerStats.perfMode || 'high'); updateMissionsDot(); }, 500);
+setTimeout(() => { processDailyLogin(); currentRankInfo = getRankInfo(playerStats); updateLogoDots(); revokeInvalidAchievements(); checkAchievements(); submitLeaderboard(); fetchLeaderboard(); loadQuestions(); applyPerfMode(playerStats.perfMode || 'high'); updateMissionsDot(); updateStreakDot(); }, 500);
 
 // ══════════════════════════════════════════════════════════════════
 //  SERVICE WORKER — Auto-actualización silenciosa
