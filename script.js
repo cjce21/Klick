@@ -3310,282 +3310,222 @@ function goToStreaks() {
     switchScreen('streaks-screen');
 }
 
-// ── Renderizado principal ─────────────────────────────────────────
-// ── Renderizado principal — 2 columnas sin scroll ─────────────────
 function renderStreaksScreen() {
-    const dashboard = document.getElementById('streaks-dashboard');
-    if (!dashboard) return;
+    const db = document.getElementById('streaks-dashboard');
+    if (!db) return;
     _initStreakSystem();
-    const ss     = playerStats.streakSystem;
+    const ss = playerStats.streakSystem;
     const streak = playerStats.currentLoginStreak || 0;
     const isLight = document.body.classList.contains('light-mode');
-    const rc  = (neon, dark) => isLight ? dark : neon;
+    const rc  = (n,d) => isLight ? d : n;
     const fmt = n => n.toLocaleString();
     const red = rc('#ff2a5f','#c41940');
 
-    // ── Header ──────────────────────────────────────────────────
+    // ─── HEADER ────────────────────────────────────────────────
     const nextMs = STREAK_MILESTONES.find(m => streak < m.days);
-    const statusLine = streak === 0
-        ? 'Juega hoy para empezar tu racha.'
-        : nextMs
-            ? `Próximo hito en ${nextMs.days - streak} día${nextMs.days - streak !== 1 ? 's' : ''}.`
-            : 'Has alcanzado todos los hitos.';
+    const statusTxt = streak === 0 ? 'Juega hoy para empezar tu racha.'
+        : nextMs ? `Próximo hito en ${nextMs.days - streak} día${nextMs.days-streak!==1?'s':''}.`
+        : 'Has alcanzado todos los hitos.';
 
-    const shieldCol = rc('#00d4ff','#0070a8');
-    const spinCol   = rc('#ffb800','#8a6000');
-    const shieldPill = `<div class="streak-pill streak-pill-shield">${SR_SVG.shield} ${ss.shields > 0 ? ss.shields+' escudo'+(ss.shields!==1?'s':'') : 'Sin escudos'}</div>`;
-    const spinsPill  = `<div class="streak-pill streak-pill-spins">${SR_SVG.spin} ${ss.spins} giro${ss.spins!==1?'s':''}</div>`;
+    const shieldTxt = ss.shields > 0 ? `${ss.shields} escudo${ss.shields!==1?'s':''}` : 'Sin escudos';
+    const spinsTxt  = `${ss.spins} giro${ss.spins!==1?'s':''}`;
 
-    // ── Calendario 7 días ────────────────────────────────────────
+    // ─── CALENDARIO ────────────────────────────────────────────
     const today = _getTodayStr();
-    const calHtml = Array.from({length:7}, (_,i) => {
-        const d = new Date(); d.setDate(d.getDate() - (6-i));
+    const DAY_SHORT = ['D','L','M','X','J','V','S'];
+    const calHtml = Array.from({length:7},(_,i) => {
+        const d = new Date(); d.setDate(d.getDate()-(6-i));
         const daysAgo = 6-i;
-        const isToday = daysAgo === 0;
-        const dayName = ['D','L','M','X','J','V','S'][d.getDay()];
-        let state = 'missed', icon = SR_SVG.missed, iconCol = rc('rgba(255,255,255,0.2)','rgba(0,0,0,0.2)');
-        if (isToday && (playerStats.todayGames||0) > 0) { state='today played'; icon=SR_SVG.today; iconCol=red; }
-        else if (isToday) { state='today'; icon=SR_SVG.today; iconCol=rc('rgba(255,42,95,0.4)','rgba(196,25,64,0.35)'); }
-        else if (daysAgo < streak) { state='played'; icon=SR_SVG.played; iconCol=red; }
-        return `<div class="streak-cal-day ${state}"><span class="streak-cal-label">${dayName}</span><div class="streak-cal-icon" style="color:${iconCol};">${icon}</div></div>`;
+        const isToday = daysAgo===0;
+        const nm = DAY_SHORT[d.getDay()];
+        let cls='sr-cal-day', icon=SR_SVG.missed, col=rc('rgba(255,255,255,.18)','rgba(0,0,0,.18)');
+        if (isToday && (playerStats.todayGames||0)>0) { cls+=' today played'; icon=SR_SVG.today; col=red; }
+        else if (isToday) { cls+=' today'; icon=SR_SVG.today; col=rc('rgba(255,42,95,.4)','rgba(196,25,64,.35)'); }
+        else if (daysAgo < streak) { cls+=' played'; icon=SR_SVG.played; col=red; }
+        else { cls+=' missed'; }
+        return `<div class="${cls}"><span class="sr-cal-lbl">${nm}</span><div class="sr-cal-icon" style="color:${col};">${icon}</div></div>`;
     }).join('');
 
-    // ── Carrusel de ruleta ───────────────────────────────────────
-    // Build initial card layout (centered at card index 3 out of displayed)
-    const DISPLAY_COUNT = 7; // cards shown initially
-    const centerIdx = 3;
-    const initCards = Array.from({length: DISPLAY_COUNT}, (_,i) => {
-        const p = STREAK_ROULETTE_PRIZES[i % STREAK_ROULETTE_PRIZES.length];
+    // ─── CARRUSEL inicial ───────────────────────────────────────
+    // 7 cartas, la 4ª (idx 3) es la central
+    const N = STREAK_ROULETTE_PRIZES.length;
+    const initCardsHtml = Array.from({length:7},(_,i) => {
+        const p = STREAK_ROULETTE_PRIZES[i % N];
         const col = isLight ? (p.colorLight||p.color) : p.color;
-        return `<div class="sr-card${i===centerIdx?' center':''}" style="color:${col};border-color:${col}22;background:${col}0a;">
-            ${SR_SVG[p.icon]}
-            <span class="sr-card-label" style="color:${col};">${p.label}</span>
-        </div>`;
+        return `<div class="sr-card${i===3?' is-center':''}" style="color:${col};border-color:${col}28;background:${col}0c;">${SR_SVG[p.icon]}<span class="sr-card-lbl" style="color:${col};">${p.label}</span></div>`;
     }).join('');
 
-    // Result zone — always rendered, toggled visible
-    const hasPending = !!ss.pendingResult;
-    let resultStyle = '', resultContent = '';
-    if (hasPending) {
-        const prize = STREAK_ROULETTE_PRIZES.find(p => p.id === ss.pendingResult);
-        if (prize) {
-            const col = isLight ? (prize.colorLight||prize.color) : prize.color;
-            const desc = prize.plBonus>0?`+${fmt(prize.plBonus)} PL`:prize.shields>0?`+${prize.shields} escudo${prize.shields>1?'s':''}`:'+1 giro extra';
-            resultStyle = `background:${col}12;border-color:${col}30;`;
-            resultContent = `
-                <div class="sr-result-icon" style="color:${col};">${SR_SVG[prize.icon]}</div>
-                <div style="flex:1;min-width:0;">
-                    <div class="sr-result-name" style="color:${col};">${prize.label}</div>
-                    <div class="sr-result-sub">${desc}</div>
-                </div>
-                <button class="sr-result-claim" onclick="claimStreakRouletteResult()" style="background:${col};color:${isLight?'#fff':'#111'};">COBRAR</button>`;
+    // ─── RESULTADO PENDIENTE ────────────────────────────────────
+    let resultStyle='', resultHtml='', resultVisible='';
+    if (ss.pendingResult) {
+        const p = STREAK_ROULETTE_PRIZES.find(x=>x.id===ss.pendingResult);
+        if (p) {
+            const col = isLight ? (p.colorLight||p.color) : p.color;
+            const sub = p.plBonus>0?`+${fmt(p.plBonus)} PL`:p.shields>0?`+${p.shields} escudo${p.shields>1?'s':''}`:'+1 giro extra';
+            resultStyle = `background:${col}14;border:1px solid ${col}30;border-radius:6px;`;
+            resultHtml = `<div class="sr-result-icon" style="color:${col};">${SR_SVG[p.icon]}</div>
+                <div class="sr-result-name" style="color:${col};">${p.label}</div>
+                <div class="sr-result-sub">${sub}</div>
+                <button class="sr-result-btn" onclick="claimStreakRouletteResult()" style="background:${col};color:${isLight?'#fff':'#111'};">COBRAR</button>`;
+            resultVisible = ' visible';
         }
     }
 
-    const canSpin = ss.spins > 0 && !hasPending && !_srSpinning;
-    const spinLabel = hasPending ? 'Cobra primero' : ss.spins<=0 ? 'Sin giros' : `Girar`;
+    const canSpin = ss.spins>0 && !ss.pendingResult && !_srSpinning;
+    const spinLbl = ss.pendingResult?'Cobra primero': ss.spins<=0?'Sin giros':'Girar';
 
-    // ── Hitos ────────────────────────────────────────────────────
-    const milestonesHtml = STREAK_MILESTONES.map(ms => {
+    // ─── HITOS ──────────────────────────────────────────────────
+    const msHtml = STREAK_MILESTONES.map(ms => {
         const claimed   = ss.claimedMilestones.includes(ms.days);
         const available = !claimed && streak >= ms.days;
-        const locked    = !claimed && !available;
         const pct = Math.min(100, Math.round((streak/ms.days)*100));
-        const col = available ? red : (isLight?'rgba(0,0,0,0.3)':'rgba(255,255,255,0.25)');
+        const col = available ? red : rc('rgba(255,255,255,.2)','rgba(0,0,0,.25)');
         const extras = ms.extraSpins>0?` +${ms.extraSpins}G`:'';
-        const sub = claimed ? 'Completado' : available ? 'Listo para cobrar' : `${streak}/${ms.days} días`;
+        const sub = `${streak}/${ms.days} días`;
 
-        const right = claimed
-            ? `<div class="streak-milestone-check">${SR_SVG.check}</div>`
+        const bottom = claimed
+            ? `<div class="sr-ms-check">${SR_SVG.check}</div>`
             : available
-                ? `<button class="streak-milestone-claim" onclick="claimStreakMilestone(${ms.days})">COBRAR</button>`
-                : `<div class="streak-milestone-reward" style="color:${col};border-color:${col};background:${available?col+'14':'transparent'};">+${fmt(ms.plBonus)} PL${extras}</div>`;
+                ? `<button class="sr-ms-claim" onclick="claimStreakMilestone(${ms.days})">COBRAR</button>`
+                : `<div class="sr-ms-reward" style="color:${col};border-color:${col};">+${fmt(ms.plBonus)}${extras}</div>`;
 
-        return `<div class="streak-milestone-card ${available?'available':''} ${claimed?'claimed':''}">
-            ${locked?`<div class="streak-milestone-progress" style="width:${pct}%;"></div>`:''}
-            <div class="streak-milestone-icon" style="color:${claimed?(isLight?'rgba(0,0,0,0.25)':'rgba(255,255,255,0.25)'):red};${available?`border-color:${red}44;background:${red}10`:''}">
-                ${SR_SVG[ms.icon]}
-            </div>
-            <div class="streak-milestone-info">
-                <div class="streak-milestone-title">${ms.label} — ${ms.days} días</div>
-                <div class="streak-milestone-sub">${sub}</div>
-            </div>
-            ${right}
+        return `<div class="sr-ms-card${available?' available':''}${claimed?' claimed':''}">
+            ${!claimed&&!available?`<div class="sr-ms-prog" style="width:${pct}%;"></div>`:''}
+            <div class="sr-ms-icon" style="color:${claimed?rc('rgba(255,255,255,.2)','rgba(0,0,0,.2)'):red};">${SR_SVG[ms.icon]}</div>
+            <div class="sr-ms-title">${ms.label}</div>
+            <div class="sr-ms-days">${claimed?'Hecho':sub}</div>
+            ${bottom}
         </div>`;
     }).join('');
 
-    // ── HTML final — 2 columnas ───────────────────────────────────
-    dashboard.innerHTML = `
-        <div class="streak-col-left">
-            <!-- Header -->
-            <div class="streak-main-header">
-                <div class="streak-count-block">
-                    <div class="streak-count-num">${streak}</div>
-                    <div class="streak-count-label">DÍAS</div>
+    // ─── ENSAMBLAJE ─────────────────────────────────────────────
+    db.innerHTML = `
+        <div class="sr-header">
+            <div class="sr-count">
+                <div class="sr-count-num">${streak}</div>
+                <div class="sr-count-lbl">DÍAS</div>
+            </div>
+            <div class="sr-header-mid">
+                <div class="sr-status">${statusTxt}</div>
+                <div class="sr-pills">
+                    <div class="sr-pill sr-pill-shield">${SR_SVG.shield} ${shieldTxt}</div>
+                    <div class="sr-pill sr-pill-spins">${SR_SVG.spin} ${spinsTxt}</div>
                 </div>
-                <div class="streak-center-block">
-                    <div class="streak-status-line">${statusLine}</div>
-                    <div class="streak-pills-row">${shieldPill}${spinsPill}</div>
-                </div>
-                <div style="width:32px;height:32px;flex-shrink:0;color:${red};">${SR_SVG.flame}</div>
+            </div>
+            <div class="sr-flame-icon">${SR_SVG.flame}</div>
+        </div>
+
+        <div class="sr-mid-row">
+            <div class="sr-cal-wrap">
+                <div class="sr-section-lbl">Últimos 7 días</div>
+                <div class="sr-cal-grid">${calHtml}</div>
             </div>
 
-            <!-- Calendario -->
-            <div class="streak-section-label">Últimos 7 días</div>
-            <div class="streak-calendar">${calHtml}</div>
-
-            <!-- Ruleta -->
-            <div class="streak-roulette-block">
-                <div class="streak-section-label">Ruleta de Racha</div>
-                <div class="streak-roulette-inner">
-                    <!-- Carrusel -->
-                    <div class="sr-carousel-wrap">
-                        <div class="sr-carousel-track" id="sr-track">${initCards}</div>
-                        <div class="sr-pointer"></div>
+            <div class="sr-roulette-wrap">
+                <div class="sr-section-lbl">Ruleta de Racha</div>
+                <div class="sr-carousel-outer">
+                    <div class="sr-carousel-frame"></div>
+                    <div class="sr-track" id="sr-track">${initCardsHtml}</div>
+                </div>
+                <div class="sr-result-zone">
+                    <div class="sr-result-inner${resultVisible}" id="sr-result-inner" style="${resultStyle}">${resultHtml}</div>
+                </div>
+                <div class="sr-spin-row">
+                    <div class="sr-spins-badge">
+                        <div class="sr-spins-num" id="sr-spins-num">${ss.spins}</div>
+                        <div class="sr-spins-lbl">Giros</div>
                     </div>
-                    <!-- Zona de resultado fija -->
-                    <div class="sr-result-zone">
-                        <div class="sr-result-inner${hasPending?' visible':''}" id="sr-result-inner" style="${resultStyle}border:1px solid transparent;border-radius:var(--radius-sm);width:100%;height:100%;box-sizing:border-box;">
-                            ${resultContent}
-                        </div>
-                    </div>
-                    <!-- Fila inferior -->
-                    <div class="sr-bottom-row">
-                        <div class="sr-spins-badge">
-                            <div class="sr-spins-num" id="sr-spins-num">${ss.spins}</div>
-                            <div class="sr-spins-lbl">Giros</div>
-                        </div>
-                        <button class="sr-spin-btn" id="sr-spin-btn" onclick="spinStreakRoulette()" ${!canSpin?'disabled':''}>${spinLabel}</button>
-                    </div>
+                    <button class="sr-spin-btn" id="sr-spin-btn" onclick="spinStreakRoulette()" ${!canSpin?'disabled':''}>${spinLbl}</button>
                 </div>
             </div>
         </div>
 
-        <div class="streak-col-right">
-            <div class="streak-section-label">Hitos</div>
-            <div class="streak-milestones-list">${milestonesHtml}</div>
-        </div>
+        <div class="sr-milestones-row">${msHtml}</div>
     `;
 }
 
-    // ── Header ──────────────────────────────────────────────────
-    const nextMs = STREAK_MILESTONES.find(m => streak < m.days);
-    const statusLine = streak === 0
-        ? 'Juega hoy para empezar tu racha.'
-        : nextMs
-            ? `Próximo hito en ${nextMs.days - streak} día${nextMs.days - streak !== 1 ? 's' : ''}.`
-            : 'Has alcanzado todos los hitos.';
+function spinStreakRoulette() {
+    if (_srSpinning) return;
+    _initStreakSystem();
+    const ss = playerStats.streakSystem;
+    if (ss.spins<=0 || ss.pendingResult) return;
+    _srSpinning = true;
+    ss.spins--;
+    saveStatsLocally();
 
-    const shieldsHtml = ss.shields > 0
-        ? `<div class="streak-shield-pill">${SR_SVG.shield} ${ss.shields} escudo${ss.shields !== 1 ? 's' : ''}</div>`
-        : `<div class="streak-shield-pill" style="opacity:0.4;">${SR_SVG.shield} Sin escudos</div>`;
+    // Weighted pick
+    const totalW = STREAK_ROULETTE_PRIZES.reduce((a,p)=>a+p.weight,0);
+    let r = Math.random()*totalW;
+    let win = STREAK_ROULETTE_PRIZES[STREAK_ROULETTE_PRIZES.length-1];
+    for (const p of STREAK_ROULETTE_PRIZES) { r-=p.weight; if(r<=0){win=p;break;} }
 
-    const spinsHtml = `<div class="streak-spins-pill">${SR_SVG.spin} ${ss.spins} giro${ss.spins !== 1 ? 's' : ''} disponibles</div>`;
+    const track  = document.getElementById('sr-track');
+    const btn    = document.getElementById('sr-spin-btn');
+    const spinsN = document.getElementById('sr-spins-num');
+    if (!track||!btn) { _srSpinning=false; return; }
 
-    // ── Calendario últimos 7 días ────────────────────────────────
-    const today = _getTodayStr();
-    const calDays = [];
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date(); d.setDate(d.getDate() - i);
-        const dStr = d.toISOString().split('T')[0];
-        const isToday = dStr === today;
-        const dayName = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d.getDay()];
-        // Determinar estado: hoy no se puede marcar como jugado aún (todayGames puede ser 0 si no ha jugado)
-        // Los días anteriores: si la racha es N, los últimos N días incluido hoy estaban activos
-        const daysAgo = i;
-        let state = 'missed';
-        if (isToday) {
-            state = (playerStats.todayGames || 0) > 0 ? 'today played' : 'today';
-        } else if (daysAgo < streak) {
-            state = 'played';
-        }
-        let icon, iconColor;
-        if (state.includes('played') && state.includes('today')) {
-            icon = SR_SVG.today; iconColor = rc('#ff2a5f','#c41940');
-        } else if (state === 'today') {
-            icon = SR_SVG.today; iconColor = rc('rgba(255,42,95,0.45)','rgba(196,25,64,0.4)');
-        } else if (state === 'played') {
-            icon = SR_SVG.played; iconColor = rc('#ff2a5f','#c41940');
-        } else {
-            icon = SR_SVG.missed; iconColor = rc('rgba(255,255,255,0.2)','rgba(0,0,0,0.2)');
-        }
-        calDays.push(`
-            <div class="streak-cal-day ${state}">
-                <span class="streak-cal-label">${dayName}</span>
-                <div class="streak-cal-icon" style="color:${iconColor};">${icon}</div>
-            </div>`);
-    }
+    if (spinsN) spinsN.textContent = ss.spins;
+    btn.disabled = true;
+    btn.textContent = 'Girando...';
 
-    // ── Ruleta de racha ──────────────────────────────────────────
-    const prizesPreview = STREAK_ROULETTE_PRIZES.map(p => {
-        const col = isLight ? (p.colorLight || p.color) : p.color;
-        return `<div class="streak-prize-chip" style="color:${col};border-color:${col}22;">
-            <div style="color:${col};">${SR_SVG[p.icon]}</div>
-            ${p.label}
-        </div>`;
+    const isLight = document.body.classList.contains('light-mode');
+    const CARD_W  = 75; // px per card including gap
+    const SPIN_CARDS = 32; // cards to scroll past
+    const CENTER_OFFSET = 3; // index of center card in visible window
+
+    // Build extended list: SPIN_CARDS + 7 visible, winner at SPIN_CARDS+CENTER_OFFSET
+    const N = STREAK_ROULETTE_PRIZES.length;
+    const allCards = Array.from({length: SPIN_CARDS + 7}, (_,i) => {
+        const idx = (i === SPIN_CARDS + CENTER_OFFSET) ? STREAK_ROULETTE_PRIZES.indexOf(win) : i % N;
+        return STREAK_ROULETTE_PRIZES[Math.abs(idx) % N];
+    });
+    // Make sure winner is at the exact center-stop position
+    allCards[SPIN_CARDS + CENTER_OFFSET] = win;
+
+    track.innerHTML = allCards.map((p,i) => {
+        const col = isLight ? (p.colorLight||p.color) : p.color;
+        return `<div class="sr-card" style="color:${col};border-color:${col}28;background:${col}0c;">${SR_SVG[p.icon]}<span class="sr-card-lbl" style="color:${col};">${p.label}</span></div>`;
     }).join('');
 
-    const canSpin = ss.spins > 0 && !ss.pendingResult;
-    const spinBtnLabel = ss.pendingResult ? 'Cobra el premio primero' : ss.spins <= 0 ? 'Sin giros disponibles' : `Girar (${ss.spins} restante${ss.spins !== 1 ? 's' : ''})`;
+    // Position track: start so first 7 cards are visible (centered on card 3)
+    const outerW = track.parentElement.offsetWidth || 280;
+    const startX = outerW/2 - CENTER_OFFSET*CARD_W - CARD_W/2 - 6;
+    const endX   = outerW/2 - (SPIN_CARDS+CENTER_OFFSET)*CARD_W - CARD_W/2 - 6;
 
-    // Resultado pendiente
-    let resultHtml = '';
-    if (ss.pendingResult) {
-        const prize = STREAK_ROULETTE_PRIZES.find(p => p.id === ss.pendingResult);
-        if (prize) {
-            const col = isLight ? (prize.colorLight || prize.color) : prize.color;
-            const desc = prize.plBonus > 0 ? `+${fmt(prize.plBonus)} PL` : prize.shields > 0 ? `+${prize.shields} escudo(s)` : '+1 giro extra';
-            resultHtml = `
-                <div class="streak-spin-result visible" id="sr-result-zone" style="border-color:${col}33;background:${col}08;">
-                    <div class="streak-result-icon" style="color:${col};">${SR_SVG[prize.icon]}</div>
-                    <div class="streak-result-text">
-                        <div class="streak-result-name" style="color:${col};">${prize.label}</div>
-                        <div class="streak-result-desc">${desc} — ${prize.desc}</div>
-                    </div>
-                    <button class="streak-result-claim" onclick="claimStreakRouletteResult()" style="background:${col};color:${isLight?'#fff':'#111'};">COBRAR</button>
-                </div>`;
+    track.style.transition = 'none';
+    track.style.transform  = `translateX(${startX}px)`;
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        track.style.transition = 'transform 2s cubic-bezier(0.17,1,0.35,1)';
+        track.style.transform  = `translateX(${endX}px)`;
+    }));
+
+    setTimeout(() => {
+        // Highlight winner card
+        const cards = track.querySelectorAll('.sr-card');
+        cards.forEach((c,i) => c.classList.toggle('is-center', i === SPIN_CARDS+CENTER_OFFSET));
+
+        ss.pendingResult = win.id;
+        saveStatsLocally();
+        _srSpinning = false;
+
+        // Show result
+        const ri = document.getElementById('sr-result-inner');
+        if (ri) {
+            const col = isLight ? (win.colorLight||win.color) : win.color;
+            const sub = win.plBonus>0?`+${win.plBonus.toLocaleString()} PL`:win.shields>0?`+${win.shields} escudo${win.shields>1?'s':''}`:'+1 giro extra';
+            ri.style.cssText = `background:${col}14;border:1px solid ${col}30;border-radius:6px;`;
+            ri.innerHTML = `<div class="sr-result-icon" style="color:${col};">${SR_SVG[win.icon]}</div>
+                <div class="sr-result-name" style="color:${col};">${win.label}</div>
+                <div class="sr-result-sub">${sub}</div>
+                <button class="sr-result-btn" onclick="claimStreakRouletteResult()" style="background:${col};color:${isLight?'#fff':'#111'};">COBRAR</button>`;
+            requestAnimationFrame(() => ri.classList.add('visible'));
         }
-    }
-
-    // ── Hitos ────────────────────────────────────────────────────
-    const milestonesHtml = STREAK_MILESTONES.map(ms => {
-        const claimed   = ss.claimedMilestones.includes(ms.days);
-        const available = !claimed && streak >= ms.days;
-        const locked    = !claimed && !available;
-        const pct       = Math.min(100, Math.round((streak / ms.days) * 100));
-        const col       = rc('#ff2a5f','#c41940');
-        const rewardCol = available ? col : (isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.25)');
-        const rewardBg  = available ? `${col}14` : 'transparent';
-
-        const extras = ms.extraSpins > 0 ? ` + ${ms.extraSpins} giro${ms.extraSpins > 1 ? 's' : ''}` : '';
-        const subLabel = claimed
-            ? 'Completado'
-            : available ? 'Listo para cobrar'
-            : `${streak}/${ms.days} días${locked ? ` — faltan ${ms.days - streak}` : ''}`;
-
-        const rightEl = claimed
-            ? `<div class="streak-milestone-check">${SR_SVG.check}</div>`
-            : available
-                ? `<button class="streak-milestone-claim" onclick="claimStreakMilestone(${ms.days})">COBRAR</button>`
-                : `<div class="streak-milestone-reward" style="color:${rewardCol};border-color:${rewardCol};background:${rewardBg};">+${fmt(ms.plBonus)} PL${extras}</div>`;
-
-        const progressBar = (!claimed && locked)
-            ? `<div class="streak-milestone-progress" style="width:${pct}%;"></div>`
-            : '';
-
-        return `
-            <div class="streak-milestone-card ${available?'available':''} ${claimed?'claimed':''}">
-                ${progressBar}
-                <div class="streak-milestone-icon" style="color:${claimed?(isLight?'rgba(0,0,0,0.3)':'rgba(255,255,255,0.3)'):col};${available?`border-color:${col}44;background:${col}10`:''}">
-                    ${SR_SVG[ms.icon]}
-                </div>
-                <div class="streak-milestone-info">
-                    <div class="streak-milestone-title" style="color:${claimed?(isLight?'rgba(0,0,0,0.4)':'rgba(255,255,255,0.4)'):(isLight?'#0d1117':'var(--text-primary)')}">${ms.label} — ${ms.days} días</div>
-                    <div class="streak-milestone-sub">${subLabel}</div>
-                </div>
-                ${rightEl}
-            </div>`;
-    }).join('');
+        btn.textContent = 'Cobra primero';
+        updateStreakDot();
+        SFX.correct && SFX.correct();
+    }, 2100);
+}
 
 function goToMainMenu() {
     // ANTI-EXPLOIT: si hay partida activa, redirigir al flujo de abandon (con penalización).
