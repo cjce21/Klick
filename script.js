@@ -3373,6 +3373,15 @@ function goToRanking() {
     switchScreen('ranking-screen');
 }
 
+function goToStreaks() {
+    if (isAnsweringAllowed && lives > 0) return;
+    initAudio(); SFX.click();
+    renderStreaksScreen();
+    switchScreen('streaks-screen');
+    const sc = document.getElementById('streaks-scroll');
+    if (sc) sc.scrollTop = 0;
+}
+
 
 function goToProfile(needsName = false) {
     // ANTI-EXPLOIT: no navegar al perfil durante partida activa.
