@@ -236,17 +236,17 @@ function initAudio() {
         audioCtx = new AudioContext();
         // Master music gain (lower so it doesn't overpower SFX)
         masterMusicGain = audioCtx.createGain();
-        masterMusicGain.gain.value = playerStats.musicVol * 0.8;
+        masterMusicGain.gain.value = playerStats.musicVol * 0.55;
         // Master SFX gain
         masterSFXGain = audioCtx.createGain();
         masterSFXGain.gain.value = playerStats.sfxVol;
         // Limiter/compressor to avoid clipping
         masterLimiter = audioCtx.createDynamicsCompressor();
-        masterLimiter.threshold.value = -3;
-        masterLimiter.knee.value = 3;
-        masterLimiter.ratio.value = 12;
+        masterLimiter.threshold.value = -6;
+        masterLimiter.knee.value = 2;
+        masterLimiter.ratio.value = 20;
         masterLimiter.attack.value = 0.001;
-        masterLimiter.release.value = 0.1;
+        masterLimiter.release.value = 0.25;
         // Analyser for visuals
         audioAnalyser = audioCtx.createAnalyser();
         audioAnalyser.fftSize = 64;
@@ -265,7 +265,7 @@ function initAudio() {
 function updateVolumes() {
     if (!audioCtx) return;
     const t = audioCtx.currentTime;
-    if (masterMusicGain) masterMusicGain.gain.setTargetAtTime(playerStats.musicVol * 0.8, t, 0.05);
+    if (masterMusicGain) masterMusicGain.gain.setTargetAtTime(playerStats.musicVol * 0.55, t, 0.05);
     if (masterSFXGain)   masterSFXGain.gain.setTargetAtTime(playerStats.sfxVol, t, 0.05);
 }
 
@@ -640,11 +640,11 @@ const SFX = {
     },
     // Streak roulette land: deep thud + sparkle
     srLand: () => playSFX([
-        [120,  'sine',     0,    0.28, 0.09],
-        [60,   'sawtooth', 0.03, 0.22, 0.12],
-        [1047, 'sine',     0.07, 0.14, 0.10],
-        [1568, 'sine',     0.12, 0.18, 0.11],
-        [2093, 'sine',     0.18, 0.20, 0.10]
+        [120,  'sine',     0,    0.16, 0.09],
+        [60,   'sawtooth', 0.03, 0.13, 0.12],
+        [1047, 'sine',     0.07, 0.10, 0.10],
+        [1568, 'sine',     0.12, 0.12, 0.11],
+        [2093, 'sine',     0.18, 0.12, 0.10]
     ]),
     // Streak roulette claim: warm reward fanfare
     srClaim: () => playSFX([
@@ -682,14 +682,14 @@ const SFX = {
         f.Q.value = 0.8;
         g.gain.setValueAtTime(playerStats.sfxVol * 0.55, t);
         g.gain.exponentialRampToValueAtTime(0.0001, t + 0.038);
-        src.connect(f); f.connect(g); g.connect(audioCtx.destination);
+        src.connect(f); f.connect(g); g.connect(masterSFXGain);
         src.start(t);
         // Tick: short high transient
         const o = audioCtx.createOscillator(), g2 = audioCtx.createGain();
         o.type = 'square'; o.frequency.setValueAtTime(4800, t); o.frequency.exponentialRampToValueAtTime(2000, t + 0.015);
         g2.gain.setValueAtTime(playerStats.sfxVol * 0.12, t);
         g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.018);
-        o.connect(g2); g2.connect(audioCtx.destination); o.start(t); o.stop(t + 0.02);
+        o.connect(g2); g2.connect(masterSFXGain); o.start(t); o.stop(t + 0.02);
     }
 };
 
@@ -3222,10 +3222,11 @@ function spinStreakRoulette() {
     var totalW = 0;
     for (var i = 0; i < STREAK_ROULETTE_PRIZES.length; i++) totalW += STREAK_ROULETTE_PRIZES[i].weight;
     var r = Math.random() * totalW;
-    var win = STREAK_ROULETTE_PRIZES[STREAK_ROULETTE_PRIZES.length - 1];
+    var win = STREAK_ROULETTE_PRIZES[0]; // fallback al primero (mayor peso), no al último
+    var cumW = 0;
     for (var i = 0; i < STREAK_ROULETTE_PRIZES.length; i++) {
-        r -= STREAK_ROULETTE_PRIZES[i].weight;
-        if (r <= 0) { win = STREAK_ROULETTE_PRIZES[i]; break; }
+        cumW += STREAK_ROULETTE_PRIZES[i].weight;
+        if (r < cumW) { win = STREAK_ROULETTE_PRIZES[i]; break; }
     }
 
     var track  = document.getElementById('sr-track');
